@@ -1,0 +1,83 @@
+[project]
+name = "backend"
+version = "0.1.0"
+description = ""
+readme = "README.md"
+requires-python = ">=3.13,<4.0"
+dependencies = [
+    "alembic[tz]>=1.18.5,<2.0.0",
+    "fastapi[standard]>=0.139.0",
+    "loguru<8.0.0,>=0.7.3",
+    "psycopg[binary]<4.0.0,>=3.3.4",
+    "pydantic<3.0.0,>=2.13.4",
+    "pydantic-settings<3.0.0,>=2.14.2",
+    "redis<9.0.0,>=8.0.1",
+    "sqlalchemy<3.0.0,>=2.0.51",
+]
+
+[dependency-groups]
+dev = [
+    "httpx2<3.0.0,>=2.9.1",
+    "mypy<3.0.0,>=2.2.0",
+    "pytest<10.0.0,>=9.1.1",
+    "pytest-asyncio<2.0.0,>=1.4.0",
+    "pytest-mock<4.0.0,>=3.15.1",
+    "pytest-timeout<3.0.0,>=2.4.0",
+    "ruff>=0.15.20",
+    "ty>=0.0.57",
+]
+
+[tool.uv]
+package = false
+
+[tool.mypy]
+strict = true
+exclude = [".venv", "alembic"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "ARG001", # unused arguments in functions
+    "T201",   # print statements are not allowed
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+    "W191",  # indentation contains tabs
+    "B904",  # Allow raising exceptions without from e, for HTTPException
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pytest.ini_options]
+minversion = "9.0"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+pythonpath = ["."]
+addopts = [
+    "-ra",
+    "--strict-config",
+    "--strict-markers",
+    "--verbose",
+]
+markers = [
+    "unit: marks tests as unit tests",
+    "integration: marks tests as integration tests",
+    "slow: marks tests as slow running"
+]
+asyncio_mode = "auto"
+strict_xfail = true
+timeout = 20

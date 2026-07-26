@@ -1,0 +1,95 @@
+name: web-app
+
+x-default-logging: &default-logging
+  driver: local
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-backend-environment: &backend-environment
+  POSTGRES_HOST: postgres
+  POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+
+  REDIS_HOST: redis
+  REDIS_PORT: ${REDIS_PORT:-6379}
+  REDIS_DB: ${REDIS_DB:-0}
+
+services:
+
+  postgres:
+    image: postgres:17-alpine
+    logging: *default-logging
+    restart: unless-stopped
+    volumes:
+      - app-postgres-data:/var/lib/postgresql/data/pgdata
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+      start_interval: 5s
+
+  redis:
+    image: redis:8-alpine
+    logging: *default-logging
+    restart: unless-stopped
+    volumes:
+      - app-redis-data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "-e", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+      start_interval: 5s
+
+  prestart:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    networks:
+      - default
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["bash", "scripts/prestart.sh"]
+    environment:
+      <<: *backend-environment
+
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    logging: *default-logging
+    init: true
+    networks:
+      - default
+    depends_on:
+      redis:
+        condition: service_healthy
+      prestart:
+        condition: service_completed_successfully
+    command: ["bash", "scripts/start.sh"]
+    environment:
+      <<: *backend-environment
+    healthcheck:
+      test: ["CMD", "python", "scripts/healthcheck.py"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+      start_interval: 5s
+
+volumes:
+  app-postgres-data:
+  app-redis-data:
+
+networks:
+  default:
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: "1400"

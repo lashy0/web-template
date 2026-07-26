@@ -1,0 +1,56 @@
+services:
+  postgres:
+    restart: "no"
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-web_app}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+
+  redis:
+    restart: "no"
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+
+  prestart:
+    env_file:
+      - .env
+    environment:
+      BACKEND_DEBUG: "true"
+
+  backend:
+    restart: "no"
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    env_file:
+      - .env
+    environment:
+      BACKEND_DEBUG: "true"
+      BACKEND_RELOAD: "true"
+      REDIS_PASSWORD: ""
+
+    develop:
+      watch:
+        - action: sync
+          path: ./apps/backend/app
+          target: /app/backend/app
+
+        - action: sync
+          path: ./apps/backend/alembic
+          target: /app/backend/alembic
+
+        - action: sync
+          path: ./apps/backend/scripts
+          target: /app/backend/scripts
+
+        - action: rebuild
+          path: ./apps/backend/pyproject.toml
+
+        - action: rebuild
+          path: ./apps/backend/uv.lock
+
+networks:
+  default:
+    driver_opts:
+      com.docker.network.bridge.host_binding_ipv4: "127.0.0.1"
