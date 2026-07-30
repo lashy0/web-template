@@ -161,8 +161,14 @@ Run unit tests:
 uv run pytest -m unit
 ```
 
-Run integration tests:
+Start the development Postgres and Redis services from the repository root:
 
 ```console
-uv run pytest -m integration
+docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d postgres redis
+```
+
+Then run integration tests from `apps/backend/`:
+
+```console
+uv run --env-file ../../.env pytest -m integration
 ```

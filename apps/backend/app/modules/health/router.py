@@ -1,8 +1,10 @@
+import asyncio
+
 from fastapi import APIRouter, Request, Response, status
 
-from app.api.deps import DatabaseDep
+from app.api.deps import DatabaseDep, RedisDep
 from app.modules.health.schemas import ApplicationStatus, DependencyStatus, ReadinessResponse
-from app.modules.health.service import is_postgres_ready
+from app.modules.health.service import is_postgres_ready, is_redis_ready
 
 router = APIRouter(
     prefix="/health",
@@ -27,24 +29,24 @@ async def liveness(
 async def readiness(
     response: Response,
     database: DatabaseDep,
+    redis: RedisDep,
 ) -> ReadinessResponse:
-    postgres_ready = await is_postgres_ready(
-        database.engine
+    postgres_ready, redis_ready = await asyncio.gather(
+        is_postgres_ready(database.engine),
+        is_redis_ready(redis),
     )
 
     checks_ready = {
         "postgres": postgres_ready,
+        "redis": redis_ready,
     }
 
     application_ready = all(checks_ready.values())
 
-    application_status: ApplicationStatus = (
-        "ready" if application_ready else "not_ready"
-    )
+    application_status: ApplicationStatus = "ready" if application_ready else "not_ready"
 
     dependency_statuses: dict[str, DependencyStatus] = {
-        name: "up" if ready else "down"
-        for name, ready in checks_ready.items()
+        name: "up" if ready else "down" for name, ready in checks_ready.items()
     }
 
     if not application_ready:

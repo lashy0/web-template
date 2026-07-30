@@ -20,19 +20,46 @@ Development documentation lives in [`docs/`](docs/). Read the relevant guide
 before changing the corresponding part of the backend:
 
 * [Database models and migrations](docs/database.md)
+* [Redis](docs/redis.md)
 
 ## Backend tests
 
-Run the complete test suite with:
+Run the fast test suite with:
 
 ```console
 uv run pytest
 ```
 
+Integration tests are excluded by default because they require real Postgres
+and Redis services. Start the development infrastructure from the repository
+root:
+
+```console
+docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d postgres redis
+```
+
+Then run the integration suite from `apps/backend/` with the repository
+environment loaded:
+
+```console
+uv run --env-file ../../.env pytest -m integration
+```
+
 The available test markers are:
 
-* `unit` - isolated tests with external dependencies mocked.
-* `integration` - tests that verify the integration between application components.
+* `unit` - isolated functions and classes with dependencies mocked.
+* `api` - in-process FastAPI HTTP tests with external dependencies mocked.
+* `integration` - tests against real external infrastructure.
+* `slow` - tests intentionally excluded from time-sensitive workflows.
+
+Tests are organized by scope first and then by feature:
+
+```text
+tests/
+├── unit/
+├── api/
+└── integration/
+```
 
 ## Migrations
 

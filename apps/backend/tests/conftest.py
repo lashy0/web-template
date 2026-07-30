@@ -1,4 +1,7 @@
+import asyncio
+import sys
 from collections.abc import Generator
+from typing import Any
 
 import pytest
 from fastapi import FastAPI
@@ -20,7 +23,15 @@ def app(test_settings: Settings) -> FastAPI:
 
 @pytest.fixture(scope="module")
 def client(app: FastAPI) -> Generator[TestClient]:
-    with TestClient(app) as test_client:
+    backend_options: dict[str, Any] = {}
+
+    if sys.platform == "win32":
+        backend_options["loop_factory"] = asyncio.SelectorEventLoop
+
+    with TestClient(
+        app,
+        backend_options=backend_options,
+    ) as test_client:
         yield test_client
 
 

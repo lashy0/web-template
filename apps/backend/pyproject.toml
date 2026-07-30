@@ -69,13 +69,16 @@ python_functions = ["test_*"]
 pythonpath = ["."]
 addopts = [
     "-ra",
+    "-m",
+    "not integration",
     "--strict-config",
     "--strict-markers",
     "--verbose",
 ]
 markers = [
     "unit: marks tests as unit tests",
-    "integration: marks tests as integration tests",
+    "api: marks in-process HTTP API tests with external dependencies mocked",
+    "integration: marks tests that require real external infrastructure",
     "slow: marks tests as slow running"
 ]
 asyncio_mode = "auto"
