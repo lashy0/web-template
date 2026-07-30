@@ -3,13 +3,16 @@ from fastapi import FastAPI, status
 from fastapi.testclient import TestClient
 from pytest_mock import MockerFixture
 
+from app.core.version import APP_VERSION
+
 
 @pytest.mark.api
 def test_liveness(app: FastAPI, client: TestClient, api_prefix: str) -> None:
     response = client.get(f"{api_prefix}/health/live")
 
     assert response.status_code == status.HTTP_200_OK
-    assert response.json() == {"status": "ok", "version": app.version}
+    assert app.version == APP_VERSION
+    assert response.json() == {"status": "ok", "version": APP_VERSION}
 
 
 @pytest.mark.api

@@ -9,6 +9,7 @@ from loguru import logger
 from app.api.main import api_router
 from app.core.config import Settings, get_settings
 from app.core.logging import setup_logging
+from app.core.version import APP_VERSION
 from app.database.session import create_database
 from app.middleware.request_context import RequestContextMiddleware
 from app.redis.client import create_redis_client
@@ -50,6 +51,7 @@ def create_app(
 
     app = FastAPI(
         title=app_settings.PROJECT_NAME,
+        version=APP_VERSION,
         openapi_url=(f"{app_settings.API_PREFIX}/openapi.json"),
         generate_unique_id_function=custom_generate_unique_id,
         lifespan=lifespan,
