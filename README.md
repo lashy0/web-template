@@ -1,7 +1,8 @@
 # Web App
 
 Monorepository for the Web App services. Deployable applications live in
-`apps/`.
+`apps/`, while repository-wide automation and operational utilities live in
+`scripts/`.
 
 ## Repository structure
 
@@ -9,6 +10,7 @@ Monorepository for the Web App services. Deployable applications live in
 .
 ├── apps/
 │   └── backend/                 FastAPI application
+├── scripts/                     Repository automation and operational tools
 ├── docker-compose.yaml          Shared service definitions
 ├── docker-compose.dev.yaml      Development overrides
 └── docker-compose.prod.yaml     Production overrides
@@ -50,10 +52,11 @@ Read the application-specific README before changing an application.
 
 ## Production
 
-Create `.env` with production values and start the production stack:
+Install Docker with the Compose plugin and uv, then create `.env` with
+production values. Run the deployment script from the repository root:
 
 ```console
-docker compose -f docker-compose.yaml -f docker-compose.prod.yaml up -d --build
+uv run --script scripts/deploy.py
 ```
 
 Production secrets must not use the development defaults from `.env.example`.

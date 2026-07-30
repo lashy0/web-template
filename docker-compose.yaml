@@ -17,6 +17,12 @@ x-backend-environment: &backend-environment
   BACKEND_REDIS_PORT: ${REDIS_PORT:-6379}
   BACKEND_REDIS_DB: ${BACKEND_REDIS_DB:-0}
 
+x-backend-image: &backend-image
+  image: "web-app-backend:${TAG:-dev}"
+  build:
+    context: ./apps/backend
+    dockerfile: Dockerfile
+
 services:
 
   postgres:
@@ -51,9 +57,7 @@ services:
       start_interval: 5s
 
   prestart:
-    build:
-      context: ./apps/backend
-      dockerfile: Dockerfile
+    <<: *backend-image
     networks:
       - default
     depends_on:
@@ -64,9 +68,7 @@ services:
       <<: *backend-environment
 
   backend:
-    build:
-      context: ./apps/backend
-      dockerfile: Dockerfile
+    <<: *backend-image
     logging: *default-logging
     init: true
     networks:
@@ -79,13 +81,6 @@ services:
     command: ["bash", "scripts/start.sh"]
     environment:
       <<: *backend-environment
-    healthcheck:
-      test: ["CMD", "python", "scripts/healthcheck.py"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 20s
-      start_interval: 5s
 
 volumes:
   app-postgres-data:
