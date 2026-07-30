@@ -9,7 +9,7 @@ from loguru import logger
 from app.api.main import api_router
 from app.core.config import Settings, get_settings
 from app.core.logging import setup_logging
-from app.db.session import create_database
+from app.database.session import create_database
 from app.middleware.request_context import RequestContextMiddleware
 
 

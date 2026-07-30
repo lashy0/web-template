@@ -5,7 +5,7 @@ changes are managed with Alembic.
 
 ## Defining models
 
-All SQLAlchemy models must inherit from `app.db.base.Base`. The base provides
+All SQLAlchemy models must inherit from `app.database.base.Base`. The base provides
 the naming convention used for indexes and database constraints.
 
 Use SQLAlchemy 2 typed mappings:
@@ -13,7 +13,7 @@ Use SQLAlchemy 2 typed mappings:
 ```python
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.db.base import Base
+from app.database.base import Base
 
 
 class User(Base):
@@ -30,7 +30,7 @@ app/modules/users/models.py
 
 ## Registering models
 
-Every model module must be imported by `app/db/models.py`:
+Every model module must be imported by `app/database/models.py`:
 
 ```python
 from app.modules.users.models import User
@@ -38,14 +38,14 @@ from app.modules.users.models import User
 __all__ = ["User"]
 ```
 
-Alembic imports `app.db.models` before reading `Base.metadata`. A model that is
+Alembic imports `app.database.models` before reading `Base.metadata`. A model that is
 not registered there will not be detected by:
 
 ```console
 uv run alembic revision --autogenerate
 ```
 
-Keep model implementations in their feature modules. Use `app/db/models.py`
+Keep model implementations in their feature modules. Use `app/database/models.py`
 only as the central model registry.
 
 ## Engine and sessions

@@ -9,8 +9,10 @@ NAMING_CONVENTION = {
     "pk": "pk_%(table_name)s",
 }
 
+
 class Base(DeclarativeBase):
     """Base class for all declarative models."""
+
     metadata = MetaData(
         naming_convention=NAMING_CONVENTION,
     )

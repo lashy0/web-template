@@ -4,7 +4,7 @@ from typing import Annotated, cast
 from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.session import Database
+from app.database.session import Database
 
 
 async def get_database(request: Request) -> Database:
