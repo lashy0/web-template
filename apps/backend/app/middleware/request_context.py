@@ -7,8 +7,13 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 
 class RequestContextMiddleware:
-    def __init__(self, app: ASGIApp) -> None:
+    def __init__(
+        self,
+        app: ASGIApp,
+        quiet_path_prefixes: tuple[str, ...],
+    ) -> None:
         self.app = app
+        self.quiet_path_prefixes = quiet_path_prefixes
 
     async def __call__(
         self,
@@ -55,17 +60,29 @@ class RequestContextMiddleware:
                 raise
 
             duration_ms = (perf_counter() - started_at) * 1000
+            path = scope["path"]
+            is_quiet_request = any(
+                path == prefix or path.startswith(f"{prefix}/")
+                for prefix in self.quiet_path_prefixes
+            )
+            log_level = "INFO"
+
+            if is_quiet_request:
+                log_level = (
+                    "ERROR" if status_code >= 500 else "WARNING" if status_code >= 400 else "DEBUG"
+                )
 
             logger.bind(
                 event="http.request.completed",
                 method=scope["method"],
-                path=scope["path"],
+                path=path,
                 status_code=status_code,
                 duration_ms=round(duration_ms, 2),
-            ).info(
+            ).log(
+                log_level,
                 "{} {} -> {} in {:.2f} ms",
                 scope["method"],
-                scope["path"],
+                path,
                 status_code,
                 duration_ms,
             )

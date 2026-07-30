@@ -35,10 +35,3 @@ services:
     environment:
       BACKEND_DEBUG: "false"
       BACKEND_REDIS_PASSWORD: "${REDIS_PASSWORD:?REDIS_PASSWORD is required}"
-    healthcheck:
-      test: ["CMD", "python", "scripts/healthcheck.py"]
-      interval: 1m
-      timeout: 10s
-      retries: 5
-      start_period: 20s
-      start_interval: 5s

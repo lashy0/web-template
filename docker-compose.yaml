@@ -81,6 +81,13 @@ services:
     command: ["bash", "scripts/start.sh"]
     environment:
       <<: *backend-environment
+    healthcheck:
+      test: ["CMD", "python", "scripts/healthcheck.py"]
+      interval: 1m
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+      start_interval: 5s
 
 volumes:
   app-postgres-data:

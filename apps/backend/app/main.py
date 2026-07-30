@@ -69,7 +69,10 @@ def create_app(
         expose_headers=["x-request-id"],
     )
 
-    app.add_middleware(RequestContextMiddleware)
+    app.add_middleware(
+        RequestContextMiddleware,
+        quiet_path_prefixes=(f"{app_settings.API_PREFIX.rstrip('/')}/health",),
+    )
 
     app.include_router(api_router, prefix=app_settings.API_PREFIX)
 
