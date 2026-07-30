@@ -8,7 +8,7 @@ from loguru import logger
 from app.core.config import Settings
 
 LOG_FORMAT = (
-    "<green>{time:YYYY-MM-DDTHH:mm:ss.SSS!UTC}Z</green> | "
+    "<green>{time:YYYY-MM-DD HH:mm:ss.SSS!UTC} UTC</green> | "
     "<level>{level: <8}</level> | "
     "pid={process.id} | "
     "request_id={extra[request_id]} | "
