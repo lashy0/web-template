@@ -32,4 +32,4 @@ services:
       - .env
     environment:
       BACKEND_DEBUG: "false"
-      REDIS_PASSWORD: "${REDIS_PASSWORD:?REDIS_PASSWORD is required}"
+      BACKEND_REDIS_PASSWORD: "${REDIS_PASSWORD:?REDIS_PASSWORD is required}"

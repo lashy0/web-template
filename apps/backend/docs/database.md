@@ -65,6 +65,29 @@ transactions automatically. Code that writes data must define its transaction
 boundary explicitly. Do not add an implicit commit to the shared dependency
 without first establishing a project-wide transaction convention.
 
+## Configuration
+
+The backend reads the following client settings:
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `BACKEND_DATABASE_URL` | empty | Complete SQLAlchemy connection URL; overrides the individual connection fields |
+| `BACKEND_POSTGRES_HOST` | `localhost` | PostgreSQL server hostname |
+| `BACKEND_POSTGRES_PORT` | `5432` | PostgreSQL server port |
+| `BACKEND_POSTGRES_USER` | `postgres` | PostgreSQL username |
+| `BACKEND_POSTGRES_PASSWORD` | `changepassword` | PostgreSQL password |
+| `BACKEND_POSTGRES_DB` | `web_app` | PostgreSQL database name |
+
+Use `BACKEND_DATABASE_URL` for managed Postgres or TLS settings:
+
+```env
+BACKEND_DATABASE_URL=postgresql+psycopg://user:password@db.example.com:5432/web_app?sslmode=require
+```
+
+When `BACKEND_DATABASE_URL` is set, the individual `BACKEND_POSTGRES_*`
+fields are ignored. The legacy `POSTGRES_*` names remain accepted as a fallback
+for local commands and are used by the Postgres Docker image itself.
+
 ## Creating migrations
 
 Start the development PostgreSQL service from the repository root:

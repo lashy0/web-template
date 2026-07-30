@@ -7,12 +7,15 @@ x-default-logging: &default-logging
     max-file: "3"
 
 x-backend-environment: &backend-environment
-  POSTGRES_HOST: postgres
-  POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+  BACKEND_POSTGRES_HOST: postgres
+  BACKEND_POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+  BACKEND_POSTGRES_USER: ${POSTGRES_USER:-postgres}
+  BACKEND_POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+  BACKEND_POSTGRES_DB: ${POSTGRES_DB:-postgres}
 
-  REDIS_HOST: redis
-  REDIS_PORT: ${REDIS_PORT:-6379}
-  REDIS_DB: ${REDIS_DB:-0}
+  BACKEND_REDIS_HOST: redis
+  BACKEND_REDIS_PORT: ${REDIS_PORT:-6379}
+  BACKEND_REDIS_DB: ${BACKEND_REDIS_DB:-0}
 
 services:
 

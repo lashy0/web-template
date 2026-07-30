@@ -2,6 +2,7 @@ from functools import lru_cache
 from typing import Annotated, Any
 
 from pydantic import (
+    AliasChoices,
     AnyUrl,
     BeforeValidator,
     Field,
@@ -65,11 +66,45 @@ class Settings(BaseSettings):
     )
 
     # Postgres
-    POSTGRES_USER: str = "postgres"
-    POSTGRES_PASSWORD: SecretStr = SecretStr("")
-    POSTGRES_HOST: str = "localhost"
-    POSTGRES_PORT: int = 5432
-    POSTGRES_DB: str = "backend"
+    DATABASE_URL: PostgresDsn | None = Field(
+        default=None,
+        validation_alias="BACKEND_DATABASE_URL",
+    )
+    POSTGRES_USER: str = Field(
+        default="postgres",
+        validation_alias=AliasChoices(
+            "BACKEND_POSTGRES_USER",
+            "POSTGRES_USER",
+        ),
+    )
+    POSTGRES_PASSWORD: SecretStr = Field(
+        default=SecretStr("changepassword"),
+        validation_alias=AliasChoices(
+            "BACKEND_POSTGRES_PASSWORD",
+            "POSTGRES_PASSWORD",
+        ),
+    )
+    POSTGRES_HOST: str = Field(
+        default="localhost",
+        validation_alias=AliasChoices(
+            "BACKEND_POSTGRES_HOST",
+            "POSTGRES_HOST",
+        ),
+    )
+    POSTGRES_PORT: int = Field(
+        default=5432,
+        validation_alias=AliasChoices(
+            "BACKEND_POSTGRES_PORT",
+            "POSTGRES_PORT",
+        ),
+    )
+    POSTGRES_DB: str = Field(
+        default="web_app",
+        validation_alias=AliasChoices(
+            "BACKEND_POSTGRES_DB",
+            "POSTGRES_DB",
+        ),
+    )
 
     # SQLAlchemy connection pool
     DB_POOL_SIZE: int = Field(
@@ -98,14 +133,70 @@ class Settings(BaseSettings):
     )
 
     # Redis
-    REDIS_HOST: str = "localhost"
-    REDIS_PORT: int = 6379
-    REDIS_PASSWORD: SecretStr | None = None
-    REDIS_DB: int = 0
+    REDIS_URL: RedisDsn | None = Field(
+        default=None,
+        validation_alias="BACKEND_REDIS_URL",
+    )
+    REDIS_HOST: str = Field(
+        default="localhost",
+        validation_alias=AliasChoices(
+            "BACKEND_REDIS_HOST",
+            "REDIS_HOST",
+        ),
+    )
+    REDIS_PORT: int = Field(
+        default=6379,
+        validation_alias=AliasChoices(
+            "BACKEND_REDIS_PORT",
+            "REDIS_PORT",
+        ),
+    )
+    REDIS_PASSWORD: SecretStr | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "BACKEND_REDIS_PASSWORD",
+            "REDIS_PASSWORD",
+        ),
+    )
+    REDIS_DB: int = Field(
+        default=0,
+        validation_alias=AliasChoices(
+            "BACKEND_REDIS_DB",
+            "REDIS_DB",
+        ),
+    )
+    REDIS_PREFIX: str = Field(
+        default="web-app",
+        min_length=1,
+        validation_alias="BACKEND_REDIS_PREFIX",
+    )
+    REDIS_MAX_CONNECTIONS: int = Field(
+        default=20,
+        ge=1,
+        validation_alias="BACKEND_REDIS_MAX_CONNECTIONS",
+    )
+    REDIS_SOCKET_CONNECT_TIMEOUT: float = Field(
+        default=2.0,
+        gt=0,
+        validation_alias="BACKEND_REDIS_SOCKET_CONNECT_TIMEOUT",
+    )
+    REDIS_SOCKET_TIMEOUT: float = Field(
+        default=2.0,
+        gt=0,
+        validation_alias="BACKEND_REDIS_SOCKET_TIMEOUT",
+    )
+    REDIS_HEALTH_CHECK_INTERVAL: int = Field(
+        default=30,
+        ge=0,
+        validation_alias="BACKEND_REDIS_HEALTH_CHECK_INTERVAL",
+    )
 
     @computed_field  # type: ignore[prop-decorator]
     @property
     def database_url(self) -> PostgresDsn:
+        if self.DATABASE_URL is not None:
+            return self.DATABASE_URL
+
         return PostgresDsn.build(
             scheme="postgresql+psycopg",
             username=self.POSTGRES_USER,
@@ -118,10 +209,11 @@ class Settings(BaseSettings):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def redis_url(self) -> RedisDsn:
+        if self.REDIS_URL is not None:
+            return self.REDIS_URL
+
         password = (
-            self.REDIS_PASSWORD.get_secret_value()
-            if self.REDIS_PASSWORD is not None
-            else None
+            self.REDIS_PASSWORD.get_secret_value() if self.REDIS_PASSWORD is not None else None
         )
 
         return RedisDsn.build(
@@ -135,11 +227,7 @@ class Settings(BaseSettings):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def all_cors_origins(self) -> list[str]:
-        return [
-            str(origin).rstrip("/") for origin in self.CORS_ORIGINS
-        ] + [
-            self.FRONTEND_HOST
-        ]
+        return [str(origin).rstrip("/") for origin in self.CORS_ORIGINS] + [self.FRONTEND_HOST]
 
 
 @lru_cache(maxsize=1)

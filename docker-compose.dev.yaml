@@ -28,7 +28,7 @@ services:
     environment:
       BACKEND_DEBUG: "true"
       BACKEND_RELOAD: "true"
-      REDIS_PASSWORD: ""
+      BACKEND_REDIS_PASSWORD: ""
 
     develop:
       watch:

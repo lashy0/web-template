@@ -11,6 +11,7 @@ from app.core.config import Settings, get_settings
 from app.core.logging import setup_logging
 from app.database.session import create_database
 from app.middleware.request_context import RequestContextMiddleware
+from app.redis.client import create_redis_client
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
@@ -27,17 +28,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     database = create_database(settings)
     app.state.database = database
 
-    logger.bind(
-        event="application_startup"
-    ).info("Application startup")
+    redis = create_redis_client(settings)
+    app.state.redis = redis
+
+    logger.bind(event="application_startup").info("Application startup")
 
     try:
         yield
     finally:
-        logger.bind(
-            event="application_shutdown"
-        ).info("Application shutdown")
+        logger.bind(event="application_shutdown").info("Application shutdown")
 
+        await redis.aclose()
         await database.close()
         await logger.complete()
 
@@ -49,9 +50,7 @@ def create_app(
 
     app = FastAPI(
         title=app_settings.PROJECT_NAME,
-        openapi_url=(
-            f"{app_settings.API_PREFIX}/openapi.json"
-        ),
+        openapi_url=(f"{app_settings.API_PREFIX}/openapi.json"),
         generate_unique_id_function=custom_generate_unique_id,
         lifespan=lifespan,
         debug=app_settings.DEBUG,
@@ -70,9 +69,6 @@ def create_app(
 
     app.add_middleware(RequestContextMiddleware)
 
-    app.include_router(
-        api_router,
-        prefix=app_settings.API_PREFIX
-    )
+    app.include_router(api_router, prefix=app_settings.API_PREFIX)
 
     return app
