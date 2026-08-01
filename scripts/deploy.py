@@ -39,25 +39,47 @@ def read_backend_version(uv: str) -> str:
     return version
 
 
+def read_git_sha(git: str) -> str:
+    result = subprocess.run(
+        [git, "rev-parse", "--short", "HEAD"],
+        cwd=REPOSITORY_ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    git_sha = result.stdout.strip()
+    if not git_sha:
+        raise RuntimeError("Git SHA is missing")
+
+    return git_sha
+
+
 def main() -> None:
     uv = shutil.which("uv")
     if uv is None:
         raise RuntimeError("uv is not installed or is not available on PATH")
+
+    git = shutil.which("git")
+    if git is None:
+        raise RuntimeError("Git is not installed or is not available on PATH")
 
     docker = shutil.which("docker")
     if docker is None:
         raise RuntimeError("Docker CLI is not installed or is not available on PATH")
 
     version = read_backend_version(uv)
+    git_sha = read_git_sha(git)
+    tag = f"{version}-{git_sha}"
     environment = os.environ.copy()
-    environment["TAG"] = version
+    environment["TAG"] = tag
 
     command = [docker, "compose"]
     for compose_file in COMPOSE_FILES:
         command.extend(("-f", str(compose_file)))
     command.extend(("up", "-d", "--build"))
 
-    print(f"Deploying web-app-backend:{version}", flush=True)
+    print(f"Deploying web-app-backend:{tag}", flush=True)
 
     subprocess.run(
         command,

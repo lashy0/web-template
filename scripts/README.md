@@ -6,13 +6,13 @@ Repository-level scripts for development, maintenance and deployment.
 
 ### `deploy.py`
 
-Deploys the production stack. It uses `uv version` to read the backend version
-from `apps/backend/pyproject.toml`, uses it as the shared backend image tag, and
-starts Docker Compose.
+Deploys the production stack with Docker Compose. See the
+[deployment guide](../docs/deployment.md) for configuration and image tag details.
 
 Requirements:
 
 * Docker with the Compose plugin
+* Git
 * uv
 
 Run the deployment from the repository root:
