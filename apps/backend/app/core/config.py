@@ -10,6 +10,7 @@ from pydantic import (
     RedisDsn,
     SecretStr,
     computed_field,
+    field_validator,
 )
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -32,7 +33,7 @@ class Settings(BaseSettings):
     )
 
     API_PREFIX: str = Field(
-        default="/api",
+        default="",
         validation_alias="BACKEND_API_PREFIX",
     )
     PROJECT_NAME: str = Field(
@@ -190,6 +191,20 @@ class Settings(BaseSettings):
         ge=0,
         validation_alias="BACKEND_REDIS_HEALTH_CHECK_INTERVAL",
     )
+
+    @field_validator("API_PREFIX")
+    @classmethod
+    def validate_api_prefix(cls, value: str) -> str:
+        if value in {"", "/"}:
+            return ""
+
+        if not value.startswith("/"):
+            raise ValueError("API prefix must start with '/'")
+
+        if value.endswith("/"):
+            raise ValueError("API prefix must not end with '/'")
+
+        return value
 
     @computed_field  # type: ignore[prop-decorator]
     @property

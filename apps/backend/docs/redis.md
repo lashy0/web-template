@@ -86,9 +86,10 @@ class ExampleCache:
 
 ## Health checks
 
-`GET /api/health/ready` runs `PING` with a two-second timeout. The application
-is reported as not ready when Redis or Postgres is unavailable. The liveness
-endpoint does not access external dependencies.
+`GET /health/ready` runs `PING` with a two-second timeout. When `BACKEND_API_PREFIX`
+is configured, its value is prepended to the path. The application is reported as
+not ready when Redis or Postgres is unavailable. The liveness endpoint does not
+access external dependencies.
 
 ## Testing
 

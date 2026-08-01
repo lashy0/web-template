@@ -1,8 +1,10 @@
+import os
 import sys
 import urllib.error
 import urllib.request
 
-HEALTHCHECK_URL = "http://127.0.0.1:8000/api/health/live"
+API_PREFIX = (os.getenv("BACKEND_API_PREFIX") or "").rstrip("/")
+HEALTHCHECK_URL = f"http://127.0.0.1:8000{API_PREFIX}/health/live"
 
 
 def main() -> None:
