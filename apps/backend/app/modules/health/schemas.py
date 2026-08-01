@@ -1,10 +1,58 @@
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 DependencyStatus = Literal["up", "down"]
 ApplicationStatus = Literal["ready", "not_ready"]
 
+
+class LivenessResponse(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "status": "ok",
+                    "version": "0.1.0",
+                },
+            ],
+        },
+    )
+
+    status: Literal["ok"] = Field(
+        description="Application process status.",
+    )
+    version: str = Field(
+        description="Running backend version.",
+    )
+
+
+class ReadinessChecks(BaseModel):
+    postgres: DependencyStatus = Field(
+        description="PostgreSQL connection status.",
+    )
+    redis: DependencyStatus = Field(
+        description="Redis connection status.",
+    )
+
+
 class ReadinessResponse(BaseModel):
-    status: ApplicationStatus
-    checks: dict[str, DependencyStatus]
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "status": "ready",
+                    "checks": {
+                        "postgres": "up",
+                        "redis": "up",
+                    },
+                },
+            ],
+        },
+    )
+
+    status: ApplicationStatus = Field(
+        description="Overall application readiness.",
+    )
+    checks: ReadinessChecks = Field(
+        description="Readiness status of required dependencies.",
+    )

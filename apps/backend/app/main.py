@@ -53,6 +53,12 @@ def create_app(
         title=app_settings.PROJECT_NAME,
         version=APP_VERSION,
         openapi_url=(f"{app_settings.API_PREFIX}/openapi.json"),
+        openapi_tags=[
+            {
+                "name": "health",
+                "description": "Application liveness and dependency readiness checks.",
+            },
+        ],
         generate_unique_id_function=custom_generate_unique_id,
         lifespan=lifespan,
         debug=app_settings.DEBUG,
