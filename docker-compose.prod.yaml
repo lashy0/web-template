@@ -29,5 +29,6 @@ services:
     env_file:
       - .env
     environment:
+      BACKEND_CORS_ORIGINS: "${BACKEND_CORS_ORIGINS:?BACKEND_CORS_ORIGINS is required}"
       BACKEND_DEBUG: "false"
       BACKEND_REDIS_PASSWORD: "${REDIS_PASSWORD:?REDIS_PASSWORD is required}"

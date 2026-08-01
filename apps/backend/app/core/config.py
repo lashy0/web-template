@@ -1,10 +1,8 @@
 from functools import lru_cache
-from typing import Annotated, Any
 
 from pydantic import (
     AliasChoices,
-    AnyUrl,
-    BeforeValidator,
+    AnyHttpUrl,
     Field,
     PostgresDsn,
     RedisDsn,
@@ -13,16 +11,6 @@ from pydantic import (
     field_validator,
 )
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-
-def parse_cors(v: Any) -> list[str] | str:
-    if isinstance(v, str) and not v.startswith("["):
-        return [i.strip() for i in v.split(",") if i.strip()]
-
-    if isinstance(v, list | str):
-        return v
-
-    raise ValueError(v)
 
 
 class Settings(BaseSettings):
@@ -55,14 +43,8 @@ class Settings(BaseSettings):
         validation_alias="BACKEND_LOG_JSON",
     )
 
-    # Frontend / CORS
-    FRONTEND_HOST: str = "http://localhost:5173"
-
-    CORS_ORIGINS: Annotated[
-        list[AnyUrl] | str,
-        BeforeValidator(parse_cors),
-    ] = Field(
-        default=[],
+    CORS_ORIGINS: list[AnyHttpUrl] = Field(
+        default_factory=list,
         validation_alias="BACKEND_CORS_ORIGINS",
     )
 
@@ -206,6 +188,21 @@ class Settings(BaseSettings):
 
         return value
 
+    @field_validator("CORS_ORIGINS")
+    @classmethod
+    def validate_cors_origins(cls, value: list[AnyHttpUrl]) -> list[AnyHttpUrl]:
+        for origin in value:
+            if (
+                origin.username is not None
+                or origin.password is not None
+                or origin.path not in {None, "", "/"}
+                or origin.query is not None
+                or origin.fragment is not None
+            ):
+                raise ValueError("CORS origin must contain only a scheme, host, and optional port")
+
+        return value
+
     @computed_field  # type: ignore[prop-decorator]
     @property
     def database_url(self) -> PostgresDsn:
@@ -242,7 +239,7 @@ class Settings(BaseSettings):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def all_cors_origins(self) -> list[str]:
-        return [str(origin).rstrip("/") for origin in self.CORS_ORIGINS] + [self.FRONTEND_HOST]
+        return [str(origin).rstrip("/") for origin in self.CORS_ORIGINS]
 
 
 @lru_cache(maxsize=1)
