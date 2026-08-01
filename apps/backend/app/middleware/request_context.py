@@ -1,9 +1,27 @@
+import re
 from time import perf_counter
 from uuid import uuid4
 
 from loguru import logger
 from starlette.datastructures import Headers, MutableHeaders
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
+
+REQUEST_ID_MAX_LENGTH = 64
+REQUEST_ID_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]*")
+
+
+def resolve_request_id(headers: Headers) -> str:
+    request_ids = headers.getlist("x-request-id")
+
+    if len(request_ids) == 1:
+        request_id = request_ids[0]
+        if (
+            len(request_id) <= REQUEST_ID_MAX_LENGTH
+            and REQUEST_ID_PATTERN.fullmatch(request_id) is not None
+        ):
+            return request_id
+
+    return str(uuid4())
 
 
 class RequestContextMiddleware:
@@ -27,8 +45,7 @@ class RequestContextMiddleware:
 
         started_at = perf_counter()
 
-        headers = Headers(scope=scope)
-        request_id = headers.get("x-request-id", str(uuid4()))
+        request_id = resolve_request_id(Headers(scope=scope))
 
         status_code = 500
 
