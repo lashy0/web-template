@@ -51,6 +51,13 @@ BACKEND_PORT=8000
 BACKEND_WORKERS=4
 ```
 
+### Connection capacity
+
+Each Uvicorn worker has its own PostgreSQL and Redis connection pools. Before
+changing `BACKEND_WORKERS` or the number of backend replicas, review
+[PostgreSQL connection capacity](../apps/backend/docs/database.md#connection-capacity)
+and [Redis configuration](../apps/backend/docs/redis.md#configuration).
+
 Do not commit `.env` or copy the development passwords from `.env.example` to a
 deployed environment.
 

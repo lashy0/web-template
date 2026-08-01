@@ -77,6 +77,11 @@ The backend reads the following client settings:
 | `BACKEND_POSTGRES_USER` | `postgres` | PostgreSQL username |
 | `BACKEND_POSTGRES_PASSWORD` | `changepassword` | PostgreSQL password |
 | `BACKEND_POSTGRES_DB` | `web_app` | PostgreSQL database name |
+| `BACKEND_DB_POOL_SIZE` | `5` | Regular connections per application worker |
+| `BACKEND_DB_MAX_OVERFLOW` | `5` | Extra connections per worker during traffic bursts |
+| `BACKEND_DB_POOL_TIMEOUT` | `30` | Seconds to wait when all connections are busy |
+| `BACKEND_DB_POOL_RECYCLE` | `1800` | Replace connections older than this many seconds |
+| `BACKEND_DB_POOL_PRE_PING` | `true` | Check a connection before using it |
 
 Use `BACKEND_DATABASE_URL` for managed Postgres or TLS settings:
 
@@ -87,6 +92,28 @@ BACKEND_DATABASE_URL=postgresql+psycopg://user:password@db.example.com:5432/web_
 When `BACKEND_DATABASE_URL` is set, the individual `BACKEND_POSTGRES_*`
 fields are ignored. The legacy `POSTGRES_*` names remain accepted as a fallback
 for local commands and are used by the Postgres Docker image itself.
+
+## Connection capacity
+
+Each application worker has its own connection pool. `BACKEND_DB_POOL_SIZE`
+sets its regular size. `BACKEND_DB_MAX_OVERFLOW` allows extra connections during
+traffic bursts. These extra connections are closed after use.
+
+Calculate the maximum number of application connections as:
+
+```text
+replicas * workers * (DB_POOL_SIZE + DB_MAX_OVERFLOW)
+```
+
+For example, one backend replica with four workers and the default settings can
+open up to 40 PostgreSQL connections.
+
+Keep this number below PostgreSQL `max_connections`. Leave some connections for
+migrations, monitoring, administrative access, and other database clients. The
+`prestart` migration process opens one temporary connection.
+
+When all connections are busy, a request waits for up to
+`BACKEND_DB_POOL_TIMEOUT` seconds and then fails with a pool timeout.
 
 ## Creating migrations
 

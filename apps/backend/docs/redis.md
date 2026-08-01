@@ -40,8 +40,19 @@ The connection is configured with the following environment variables:
 | `BACKEND_REDIS_SOCKET_TIMEOUT` | `2` | Command timeout in seconds |
 | `BACKEND_REDIS_HEALTH_CHECK_INTERVAL` | `30` | Connection health check interval in seconds |
 
-`BACKEND_REDIS_MAX_CONNECTIONS` applies to each worker. For example, four workers with
-the default pool size can open up to 80 Redis connections in total.
+Each application worker has its own Redis connection pool. Calculate the maximum
+number of application connections as:
+
+```text
+replicas * workers * REDIS_MAX_CONNECTIONS
+```
+
+For example, one backend replica with four workers and the default settings can
+open up to 80 Redis connections. Connections are opened as needed.
+
+Keep this number below the Redis server or provider limit. Leave some connections
+for monitoring, administrative commands, background jobs, and other clients. If
+all connections in a worker pool are busy, Redis operations can fail.
 
 For local compatibility, `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`, and
 `REDIS_DB` are accepted as fallbacks for the corresponding connection fields.
