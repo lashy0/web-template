@@ -8,13 +8,13 @@ x-default-logging: &default-logging
 
 x-backend-environment: &backend-environment
   BACKEND_POSTGRES_HOST: postgres
-  BACKEND_POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+  BACKEND_POSTGRES_PORT: 5432
   BACKEND_POSTGRES_USER: ${POSTGRES_USER:-postgres}
   BACKEND_POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
   BACKEND_POSTGRES_DB: ${POSTGRES_DB:-postgres}
 
   BACKEND_REDIS_HOST: redis
-  BACKEND_REDIS_PORT: ${REDIS_PORT:-6379}
+  BACKEND_REDIS_PORT: 6379
   BACKEND_REDIS_DB: ${BACKEND_REDIS_DB:-0}
 
 x-backend-image: &backend-image

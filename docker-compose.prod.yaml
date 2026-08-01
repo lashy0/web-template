@@ -2,8 +2,6 @@ services:
   postgres:
     restart: unless-stopped
     mem_limit: "${POSTGRES_MEMORY_LIMIT:-2g}"
-    ports:
-      - "${POSTGRES_PORT:-5432}"
     environment:
       POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
       POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
@@ -12,8 +10,6 @@ services:
   redis:
     restart: unless-stopped
     mem_limit: "${REDIS_MEMORY_LIMIT:-512m}"
-    ports:
-      - "${REDIS_PORT:-6379}"
     command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?REDIS_PASSWORD is required}"]
     environment:
       REDISCLI_AUTH: "${REDIS_PASSWORD:?REDIS_PASSWORD is required}"
