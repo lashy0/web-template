@@ -10,6 +10,7 @@ Monorepository for the Web App services. Deployable applications live in
 .
 ├── apps/
 │   └── backend/                 FastAPI application
+├── docs/                        Project documentation
 ├── scripts/                     Repository automation and operational tools
 ├── docker-compose.yaml          Shared service definitions
 ├── docker-compose.dev.yaml      Development overrides
@@ -50,13 +51,7 @@ docker compose -f docker-compose.yaml -f docker-compose.dev.yaml down
 
 Read the application-specific README before changing an application.
 
-## Production
+## Deployment
 
-Install Docker with the Compose plugin and uv, then create `.env` with
-production values. Run the deployment script from the repository root:
-
-```console
-uv run --script scripts/deploy.py
-```
-
-Production secrets must not use the development defaults from `.env.example`.
+See the [deployment guide](docs/deployment.md) for production environment variables,
+Docker Compose configuration, deployment steps, and operational checks.
