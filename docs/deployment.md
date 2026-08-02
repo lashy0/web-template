@@ -32,9 +32,11 @@ The production Compose configuration uses these deployment variables:
 | `REDIS_MEMORY_LIMIT` | no | `512m` | Redis container memory limit |
 
 `BACKEND_DEBUG` is forced to `false` by the production Compose configuration. The
-deployment script sets `TAG` from the backend version in `apps/backend/pyproject.toml`
-and the short SHA of the current Git commit, for example `0.1.0-49eb4fd`. It does
-not need to be added to `.env` when the script is used.
+deployment script reads the application version from `apps/backend/pyproject.toml`
+and embeds it into the image as `BACKEND_VERSION`. Separately, it sets the Docker
+image `TAG` from that version and the short SHA of the current Git commit, for
+example `0.1.0-49eb4fd`. Neither variable needs to be added to `.env` when the
+script is used.
 
 Other backend settings are documented in
 [`apps/backend/docs/configuration.md`](../apps/backend/docs/configuration.md), with

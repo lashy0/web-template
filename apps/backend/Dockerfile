@@ -43,6 +43,9 @@ COPY --from=builder \
     /app/backend \
     /app/backend
 
+ARG BACKEND_VERSION=dev
+ENV BACKEND_VERSION="${BACKEND_VERSION}"
+
 ENTRYPOINT []
 
 USER nonroot

@@ -72,6 +72,7 @@ def main() -> None:
     git_sha = read_git_sha(git)
     tag = f"{version}-{git_sha}"
     environment = os.environ.copy()
+    environment["BACKEND_VERSION"] = version
     environment["TAG"] = tag
 
     command = [docker, "compose"]
