@@ -3,6 +3,7 @@ from fastapi import FastAPI, status
 from fastapi.testclient import TestClient
 from pytest_mock import MockerFixture
 
+from app.core.config import Settings
 from app.core.version import APP_VERSION
 
 
@@ -43,9 +44,11 @@ def test_liveness(app: FastAPI, client: TestClient, api_prefix: str) -> None:
     ],
 )
 def test_readiness(
+    app: FastAPI,
     client: TestClient,
     api_prefix: str,
     mocker: MockerFixture,
+    test_settings: Settings,
     postgres_ready: bool,
     redis_ready: bool,
     expected_code: int,
@@ -71,5 +74,11 @@ def test_readiness(
         },
     }
 
-    postgres_ready_mock.assert_awaited_once()
-    redis_ready_mock.assert_awaited_once()
+    postgres_ready_mock.assert_awaited_once_with(
+        app.state.database.engine,
+        timeout=test_settings.READINESS_TIMEOUT,
+    )
+    redis_ready_mock.assert_awaited_once_with(
+        app.state.redis,
+        timeout=test_settings.READINESS_TIMEOUT,
+    )

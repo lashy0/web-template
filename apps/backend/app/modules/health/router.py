@@ -3,6 +3,7 @@ import asyncio
 from fastapi import APIRouter, Request, Response, status
 
 from app.api.deps import DatabaseDep, RedisDep
+from app.core.config import Settings
 from app.modules.health.schemas import (
     ApplicationStatus,
     LivenessResponse,
@@ -21,9 +22,7 @@ router = APIRouter(
     "/live",
     response_model=LivenessResponse,
     summary="Check application liveness",
-    description=(
-        "Returns `200 OK` while the backend process is running. "
-    ),
+    description=("Returns `200 OK` while the backend process is running. "),
     response_description="The application process is alive.",
 )
 async def liveness(
@@ -64,13 +63,16 @@ async def liveness(
     },
 )
 async def readiness(
+    request: Request,
     response: Response,
     database: DatabaseDep,
     redis: RedisDep,
 ) -> ReadinessResponse:
+    settings: Settings = request.app.state.settings
+
     postgres_ready, redis_ready = await asyncio.gather(
-        is_postgres_ready(database.engine),
-        is_redis_ready(redis),
+        is_postgres_ready(database.engine, timeout=settings.READINESS_TIMEOUT),
+        is_redis_ready(redis, timeout=settings.READINESS_TIMEOUT),
     )
 
     checks_ready = {

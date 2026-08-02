@@ -48,6 +48,13 @@ class Settings(BaseSettings):
         validation_alias="BACKEND_CORS_ORIGINS",
     )
 
+    # Health checks
+    READINESS_TIMEOUT: float = Field(
+        default=2.0,
+        gt=0,
+        validation_alias="BACKEND_READINESS_TIMEOUT",
+    )
+
     # Postgres
     DATABASE_URL: PostgresDsn | None = Field(
         default=None,

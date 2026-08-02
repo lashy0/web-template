@@ -8,7 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 
-async def is_postgres_ready(engine: AsyncEngine, timeout: float = 2.0) -> bool:
+async def is_postgres_ready(engine: AsyncEngine, *, timeout: float) -> bool:
     try:
         async with asyncio.timeout(timeout):
             async with engine.begin() as conn:
@@ -18,7 +18,7 @@ async def is_postgres_ready(engine: AsyncEngine, timeout: float = 2.0) -> bool:
         return False
 
 
-async def is_redis_ready(client: Redis, timeout: float = 2.0) -> bool:
+async def is_redis_ready(client: Redis, *, timeout: float) -> bool:
     try:
         async with asyncio.timeout(timeout):
             return bool(await client.ping())

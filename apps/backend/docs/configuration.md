@@ -11,6 +11,7 @@ case-sensitive. Empty values are ignored, so the documented default is used inst
 | `BACKEND_LOG_LEVEL` | `INFO` | Minimum Loguru level written by the backend |
 | `BACKEND_LOG_JSON` | `false` | Writes serialized JSON logs when enabled |
 | `BACKEND_CORS_ORIGINS` | `[]` | JSON array of browser origins allowed to access the API cross-origin |
+| `BACKEND_READINESS_TIMEOUT` | `2.0` | Maximum duration in seconds for each PostgreSQL and Redis readiness check; must be greater than zero |
 
 Database settings are documented in [database.md](database.md#configuration).
 Redis settings are documented in [redis.md](redis.md#configuration).

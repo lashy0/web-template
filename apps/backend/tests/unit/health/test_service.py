@@ -5,6 +5,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.modules.health.service import is_postgres_ready, is_redis_ready
 from tests.unit.health.mocks import PostgresEngineMock, RedisClientMock
 
+READINESS_TIMEOUT = 2.0
+
 
 @pytest.mark.unit
 async def test_is_postgres_ready(
@@ -12,6 +14,7 @@ async def test_is_postgres_ready(
 ) -> None:
     result = await is_postgres_ready(
         postgres_engine_mock.engine,
+        timeout=READINESS_TIMEOUT,
     )
 
     assert result is True
@@ -26,6 +29,7 @@ async def test_is_redis_ready(
 ) -> None:
     result = await is_redis_ready(
         redis_client_mock.client,
+        timeout=READINESS_TIMEOUT,
     )
 
     assert result is True
@@ -55,6 +59,7 @@ async def test_is_redis_not_ready_on_expected_error(
 
     result = await is_redis_ready(
         redis_client_mock.client,
+        timeout=READINESS_TIMEOUT,
     )
 
     assert result is False
@@ -84,6 +89,7 @@ async def test_is_postgres_not_ready_on_expected_error(
 
     result = await is_postgres_ready(
         postgres_engine_mock.engine,
+        timeout=READINESS_TIMEOUT,
     )
 
     assert result is False

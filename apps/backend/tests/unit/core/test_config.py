@@ -5,6 +5,21 @@ from app.core.config import Settings
 
 
 @pytest.mark.unit
+def test_readiness_timeout_is_parsed_from_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("BACKEND_READINESS_TIMEOUT", "1.5")
+
+    assert Settings().READINESS_TIMEOUT == 1.5
+
+
+@pytest.mark.unit
+def test_readiness_timeout_must_be_positive() -> None:
+    with pytest.raises(ValidationError):
+        Settings.model_validate({"BACKEND_READINESS_TIMEOUT": 0})
+
+
+@pytest.mark.unit
 def test_api_prefix_is_empty_by_default() -> None:
     assert Settings().API_PREFIX == ""
 
