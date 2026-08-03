@@ -24,8 +24,10 @@ services:
   backend:
     image: "web-app-backend:${TAG:?TAG is required}"
     restart: unless-stopped
-    ports:
-      - "${BACKEND_PORT:-8000}:8000"
+    labels:
+      traefik.http.routers.api.entrypoints: https
+      traefik.http.routers.api.tls: "true"
+      traefik.http.routers.api.tls.certresolver: letsencrypt
     env_file:
       - .env
     environment:

@@ -6,8 +6,9 @@ Repository-level scripts for development, maintenance and deployment.
 
 ### `deploy.py`
 
-Deploys the production stack with Docker Compose. See the
-[deployment guide](../docs/deployment.md) for configuration and image tag details.
+Runs the development or production stack with Docker Compose. See the
+[deployment guide](../docs/deployment.md) for production configuration and image
+tag details.
 
 Requirements:
 
@@ -15,8 +16,21 @@ Requirements:
 * Git
 * uv
 
-Run the deployment from the repository root:
+Run the development stack with file watching from the repository root:
 
 ```console
-uv run --script scripts/deploy.py
+uv run --script scripts/deploy.py up dev
+```
+
+Build and run the production stack in the background:
+
+```console
+uv run --script scripts/deploy.py up prod
+```
+
+Show service status or stop the selected environment:
+
+```console
+uv run --script scripts/deploy.py status dev
+uv run --script scripts/deploy.py down dev
 ```

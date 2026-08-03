@@ -70,7 +70,7 @@ deployed environment.
 Run the deployment script from the repository root:
 
 ```console
-uv run --script scripts/deploy.py
+uv run --script scripts/deploy.py up prod
 ```
 
 The script performs the equivalent of starting the shared and production Compose
@@ -82,7 +82,7 @@ successfully before the backend service starts.
 Show service state:
 
 ```console
-docker compose -f docker-compose.yaml -f docker-compose.prod.yaml ps
+uv run --script scripts/deploy.py status prod
 ```
 
 Show backend logs:

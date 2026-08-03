@@ -1,0 +1,48 @@
+name: web-proxy
+
+x-default-logging: &default-logging
+  driver: local
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  traefik:
+    image: traefik:v3.7.9
+    logging: *default-logging
+    restart: unless-stopped
+    command:
+      - "--api.dashboard=true"
+      - "--api.insecure=false"
+      - "--ping=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=traefik-public"
+      - "--providers.docker.constraints=Label(`traefik.constraint-label`,`traefik-public`)"
+      - "--entrypoints.http.address=:80"
+      - "--accesslog=true"
+      - "--accesslog.addinternals=true"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - traefik-public
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 5s
+    labels:
+      traefik.enable: "true"
+      traefik.constraint-label: traefik-public
+      traefik.docker.network: traefik-public
+      traefik.http.routers.dashboard.rule: "Host(`traefik.${BASE_DOMAIN:?BASE_DOMAIN is required}`)"
+      traefik.http.routers.dashboard.entrypoints: http
+      traefik.http.routers.dashboard.service: api@internal
+      traefik.http.routers.dashboard.middlewares: dashboard-auth
+      traefik.http.middlewares.dashboard-auth.basicauth.users: "${TRAEFIK_USERNAME:?TRAEFIK_USERNAME is required}:${TRAEFIK_HASHED_PASSWORD:?TRAEFIK_HASHED_PASSWORD is required}"
+
+networks:
+  traefik-public:
+    name: traefik-public
+    external: true

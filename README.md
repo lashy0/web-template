@@ -29,7 +29,7 @@ Review the values in `.env`, then start the development stack from the
 repository root:
 
 ```console
-docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up --build --watch
+uv run --script scripts/deploy.py up dev
 ```
 
 The following services will be available:
@@ -41,7 +41,7 @@ The following services will be available:
 Stop the development stack:
 
 ```console
-docker compose -f docker-compose.yaml -f docker-compose.dev.yaml down
+uv run --script scripts/deploy.py down dev
 ```
 
 ## Applications

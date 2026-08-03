@@ -75,6 +75,14 @@ services:
     init: true
     networks:
       - default
+      - traefik-public
+    labels:
+      traefik.enable: "true"
+      traefik.constraint-label: traefik-public
+      traefik.docker.network: traefik-public
+      traefik.http.routers.api.rule: "Host(`api.${BASE_DOMAIN:?BASE_DOMAIN is required}`)"
+      traefik.http.routers.api.entrypoints: http
+      traefik.http.services.api.loadbalancer.server.port: "8000"
     depends_on:
       redis:
         condition: service_healthy
@@ -100,3 +108,6 @@ networks:
     driver: bridge
     driver_opts:
       com.docker.network.driver.mtu: "1400"
+  traefik-public:
+    name: traefik-public
+    external: true
