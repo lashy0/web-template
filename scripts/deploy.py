@@ -119,9 +119,9 @@ def read_git_sha(git: str) -> str:
 
 def command_environment(environment: Environment) -> dict[str, str]:
     values = os.environ.copy()
+    version = read_backend_version(get_tool("uv"))
+    values["BACKEND_VERSION"] = version
     if environment is Environment.PROD:
-        version = read_backend_version(get_tool("uv"))
-        values["BACKEND_VERSION"] = version
         values["TAG"] = f"{version}-{read_git_sha(get_tool('git'))}"
     return values
 
