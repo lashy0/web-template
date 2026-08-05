@@ -1,0 +1,35 @@
+services:
+  prestart:
+    environment:
+      BACKEND_DEBUG: "true"
+
+  backend:
+    restart: "no"
+    environment:
+      BACKEND_DEBUG: "true"
+      BACKEND_RELOAD: "true"
+
+    develop:
+      watch:
+        - action: sync
+          path: ../../apps/backend/app
+          target: /app/backend/app
+
+        - action: sync
+          path: ../../apps/backend/alembic
+          target: /app/backend/alembic
+
+        - action: sync
+          path: ../../apps/backend/scripts
+          target: /app/backend/scripts
+
+        - action: rebuild
+          path: ../../apps/backend/pyproject.toml
+
+        - action: rebuild
+          path: ../../apps/backend/uv.lock
+
+networks:
+  default:
+    driver_opts:
+      com.docker.network.bridge.host_binding_ipv4: "127.0.0.1"

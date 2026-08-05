@@ -9,73 +9,44 @@ x-default-logging: &default-logging
 x-backend-environment: &backend-environment
   BACKEND_POSTGRES_HOST: postgres
   BACKEND_POSTGRES_PORT: 5432
-  BACKEND_POSTGRES_USER: ${POSTGRES_USER:-postgres}
-  BACKEND_POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
-  BACKEND_POSTGRES_DB: ${POSTGRES_DB:-postgres}
-
+  BACKEND_POSTGRES_DB: web_app
   BACKEND_REDIS_HOST: redis
   BACKEND_REDIS_PORT: 6379
-  BACKEND_REDIS_DB: ${BACKEND_REDIS_DB:-0}
+  BACKEND_REDIS_DB: 0
+  BACKEND_REDIS_PREFIX: web-app
 
 x-backend-image: &backend-image
   image: "web-app-backend:${TAG:-dev}"
   build:
-    context: ./apps/backend
+    context: ../../apps/backend
     dockerfile: Dockerfile
     args:
       BACKEND_VERSION: ${BACKEND_VERSION:-dev}
 
 services:
-
-  postgres:
-    image: postgres:17-alpine
-    logging: *default-logging
-    restart: unless-stopped
-    volumes:
-      - app-postgres-data:/var/lib/postgresql/data/pgdata
-    environment:
-      PGDATA: /var/lib/postgresql/data/pgdata
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 20s
-      start_interval: 5s
-
-  redis:
-    image: redis:8-alpine
-    logging: *default-logging
-    restart: unless-stopped
-    volumes:
-      - app-redis-data:/data
-    command: ["redis-server", "--appendonly", "yes"]
-    healthcheck:
-      test: ["CMD", "redis-cli", "-e", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 20s
-      start_interval: 5s
-
   prestart:
     <<: *backend-image
+    env_file:
+      - ../../.env
     networks:
       - default
-    depends_on:
-      postgres:
-        condition: service_healthy
+      - web-database
     command: ["bash", "scripts/prestart.sh"]
     environment:
       <<: *backend-environment
+      BACKEND_POSTGRES_USER: web_app_migrator
+      BACKEND_POSTGRES_PASSWORD: ${POSTGRES_MIGRATOR_PASSWORD:?POSTGRES_MIGRATOR_PASSWORD is required}
 
   backend:
     <<: *backend-image
     logging: *default-logging
     init: true
+    env_file:
+      - ../../.env
     networks:
       - default
       - traefik-public
+      - web-database
     labels:
       traefik.enable: "true"
       traefik.constraint-label: traefik-public
@@ -84,13 +55,15 @@ services:
       traefik.http.routers.api.entrypoints: http
       traefik.http.services.api.loadbalancer.server.port: "8000"
     depends_on:
-      redis:
-        condition: service_healthy
       prestart:
         condition: service_completed_successfully
     command: ["bash", "scripts/start.sh"]
     environment:
       <<: *backend-environment
+      BACKEND_POSTGRES_USER: web_app_runtime
+      BACKEND_POSTGRES_PASSWORD: ${POSTGRES_RUNTIME_PASSWORD:?POSTGRES_RUNTIME_PASSWORD is required}
+      BACKEND_REDIS_USER: web_app_runtime
+      BACKEND_REDIS_PASSWORD: ${REDIS_RUNTIME_PASSWORD:?REDIS_RUNTIME_PASSWORD is required}
     healthcheck:
       test: ["CMD", "python", "scripts/healthcheck.py"]
       interval: 1m
@@ -99,10 +72,6 @@ services:
       start_period: 20s
       start_interval: 5s
 
-volumes:
-  app-postgres-data:
-  app-redis-data:
-
 networks:
   default:
     driver: bridge
@@ -110,4 +79,7 @@ networks:
       com.docker.network.driver.mtu: "1400"
   traefik-public:
     name: traefik-public
+    external: true
+  web-database:
+    name: web-database
     external: true

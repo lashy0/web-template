@@ -1,0 +1,16 @@
+services:
+  prestart:
+    image: "web-app-backend:${TAG:?TAG is required}"
+    environment:
+      BACKEND_DEBUG: "false"
+
+  backend:
+    image: "web-app-backend:${TAG:?TAG is required}"
+    restart: unless-stopped
+    labels:
+      traefik.http.routers.api.entrypoints: https
+      traefik.http.routers.api.tls: "true"
+      traefik.http.routers.api.tls.certresolver: letsencrypt
+    environment:
+      BACKEND_CORS_ORIGINS: "${BACKEND_CORS_ORIGINS:?BACKEND_CORS_ORIGINS is required}"
+      BACKEND_DEBUG: "false"
