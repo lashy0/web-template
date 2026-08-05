@@ -6,6 +6,7 @@ from app.core.config import Settings
 def create_redis_client(settings: Settings) -> Redis:
     return Redis.from_url(
         str(settings.redis_url),
+        protocol=2,
         encoding="utf-8",
         decode_responses=True,
         max_connections=settings.REDIS_MAX_CONNECTIONS,

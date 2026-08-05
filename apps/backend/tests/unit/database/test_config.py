@@ -52,3 +52,15 @@ def test_legacy_postgres_connection_fields_are_supported() -> None:
     assert (
         str(settings.database_url) == "postgresql+psycopg://postgres@postgres.internal:5432/app_db"
     )
+
+
+@pytest.mark.unit
+def test_runtime_password_from_shared_environment_is_supported() -> None:
+    settings = Settings.model_validate(
+        {
+            "POSTGRES_RUNTIME_PASSWORD": SecretStr("runtime-secret"),
+        }
+    )
+
+    assert settings.POSTGRES_USER == "web_app_runtime"
+    assert settings.POSTGRES_PASSWORD == SecretStr("runtime-secret")

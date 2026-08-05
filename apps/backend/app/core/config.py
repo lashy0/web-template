@@ -61,7 +61,7 @@ class Settings(BaseSettings):
         validation_alias="BACKEND_DATABASE_URL",
     )
     POSTGRES_USER: str = Field(
-        default="postgres",
+        default="web_app_runtime",
         validation_alias=AliasChoices(
             "BACKEND_POSTGRES_USER",
             "POSTGRES_USER",
@@ -71,6 +71,7 @@ class Settings(BaseSettings):
         default=SecretStr("changepassword"),
         validation_alias=AliasChoices(
             "BACKEND_POSTGRES_PASSWORD",
+            "POSTGRES_RUNTIME_PASSWORD",
             "POSTGRES_PASSWORD",
         ),
     )
@@ -141,10 +142,18 @@ class Settings(BaseSettings):
             "REDIS_PORT",
         ),
     )
+    REDIS_USER: str | None = Field(
+        default="web_app_runtime",
+        validation_alias=AliasChoices(
+            "BACKEND_REDIS_USER",
+            "REDIS_USER",
+        ),
+    )
     REDIS_PASSWORD: SecretStr | None = Field(
         default=None,
         validation_alias=AliasChoices(
             "BACKEND_REDIS_PASSWORD",
+            "REDIS_RUNTIME_PASSWORD",
             "REDIS_PASSWORD",
         ),
     )
@@ -237,6 +246,7 @@ class Settings(BaseSettings):
 
         return RedisDsn.build(
             scheme="redis",
+            username=self.REDIS_USER or None,
             host=self.REDIS_HOST,
             port=self.REDIS_PORT,
             password=password or None,

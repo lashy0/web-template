@@ -26,6 +26,7 @@ def test_redis_url_is_built_from_connection_fields() -> None:
             "BACKEND_REDIS_URL": None,
             "BACKEND_REDIS_HOST": "redis.internal",
             "BACKEND_REDIS_PORT": 6380,
+            "BACKEND_REDIS_USER": "runtime",
             "BACKEND_REDIS_PASSWORD": SecretStr("secret"),
             "BACKEND_REDIS_DB": 2,
         }
@@ -34,6 +35,7 @@ def test_redis_url_is_built_from_connection_fields() -> None:
     assert settings.redis_url.scheme == "redis"
     assert settings.redis_url.host == "redis.internal"
     assert settings.redis_url.port == 6380
+    assert settings.redis_url.username == "runtime"
     assert settings.redis_url.password == "secret"
     assert settings.redis_url.path == "/2"
 
@@ -44,6 +46,7 @@ def test_generic_redis_connection_fields_are_supported() -> None:
         {
             "REDIS_HOST": "redis.generic",
             "REDIS_PORT": 6381,
+            "REDIS_USER": "generic-user",
             "REDIS_PASSWORD": SecretStr("generic-secret"),
             "REDIS_DB": 3,
         }
@@ -51,6 +54,7 @@ def test_generic_redis_connection_fields_are_supported() -> None:
 
     assert settings.REDIS_HOST == "redis.generic"
     assert settings.REDIS_PORT == 6381
+    assert settings.REDIS_USER == "generic-user"
     assert settings.REDIS_PASSWORD == SecretStr("generic-secret")
     assert settings.REDIS_DB == 3
 
@@ -61,6 +65,8 @@ def test_backend_redis_connection_fields_take_precedence() -> None:
         {
             "BACKEND_REDIS_HOST": "redis.backend",
             "REDIS_HOST": "redis.generic",
+            "BACKEND_REDIS_USER": "backend-user",
+            "REDIS_USER": "generic-user",
             "BACKEND_REDIS_PORT": 6382,
             "REDIS_PORT": 6381,
             "BACKEND_REDIS_PASSWORD": SecretStr("backend-secret"),
@@ -71,6 +77,19 @@ def test_backend_redis_connection_fields_take_precedence() -> None:
     )
 
     assert settings.REDIS_HOST == "redis.backend"
+    assert settings.REDIS_USER == "backend-user"
     assert settings.REDIS_PORT == 6382
     assert settings.REDIS_PASSWORD == SecretStr("backend-secret")
     assert settings.REDIS_DB == 4
+
+
+@pytest.mark.unit
+def test_runtime_password_from_shared_environment_is_supported() -> None:
+    settings = Settings.model_validate(
+        {
+            "REDIS_RUNTIME_PASSWORD": SecretStr("runtime-secret"),
+        }
+    )
+
+    assert settings.REDIS_USER == "web_app_runtime"
+    assert settings.REDIS_PASSWORD == SecretStr("runtime-secret")
