@@ -1,0 +1,17 @@
+services:
+  postgres:
+    restart: unless-stopped
+    mem_limit: "${POSTGRES_MEMORY_LIMIT:-2g}"
+
+  redis:
+    restart: unless-stopped
+    mem_limit: 512m
+    command:
+      [
+        "--appendonly",
+        "yes",
+        "--maxmemory",
+        "384mb",
+        "--maxmemory-policy",
+        "volatile-ttl",
+      ]

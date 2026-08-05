@@ -1,0 +1,74 @@
+name: web-database
+
+x-default-logging: &default-logging
+  driver: local
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  postgres:
+    image: postgres:17-trixie
+    logging: *default-logging
+    restart: unless-stopped
+    env_file:
+      - ../../.env
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_DB: web_app
+      POSTGRES_USER: web_app_admin
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?POSTGRES_ADMIN_PASSWORD is required}
+      POSTGRES_MIGRATOR_PASSWORD: ${POSTGRES_MIGRATOR_PASSWORD:?POSTGRES_MIGRATOR_PASSWORD is required}
+      POSTGRES_RUNTIME_PASSWORD: ${POSTGRES_RUNTIME_PASSWORD:?POSTGRES_RUNTIME_PASSWORD is required}
+    command: ["postgres", "-c", "max_connections=100"]
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init-roles.sh:/docker-entrypoint-initdb.d/10-init-roles.sh:ro
+      - ./postgres/init-roles.sql:/usr/local/share/web-database/init-roles.sql:ro
+    networks:
+      - web-database
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U web_app_admin -d web_app"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+      start_interval: 5s
+
+  redis:
+    image: redis:8-trixie
+    logging: *default-logging
+    restart: unless-stopped
+    env_file:
+      - ../../.env
+    environment:
+      REDIS_ADMIN_PASSWORD: ${REDIS_ADMIN_PASSWORD:?REDIS_ADMIN_PASSWORD is required}
+      REDIS_RUNTIME_PASSWORD: ${REDIS_RUNTIME_PASSWORD:?REDIS_RUNTIME_PASSWORD is required}
+    entrypoint: ["bash", "/usr/local/bin/web-database-redis-entrypoint.sh"]
+    command: ["--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+      - ./redis/entrypoint.sh:/usr/local/bin/web-database-redis-entrypoint.sh:ro
+      - ./redis/users.acl.template:/usr/local/share/web-database/users.acl.template:ro
+    networks:
+      - web-database
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "REDISCLI_AUTH=\"$${REDIS_ADMIN_PASSWORD}\" redis-cli --user web_app_admin ping | grep -q PONG",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+      start_interval: 5s
+
+volumes:
+  postgres-data:
+  redis-data:
+
+networks:
+  web-database:
+    name: web-database
+    external: true

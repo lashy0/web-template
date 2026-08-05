@@ -1,0 +1,3 @@
+user default off
+user web_app_admin reset on #__ADMIN_PASSWORD_HASH__ ~* &* +@all
+user web_app_runtime reset on #__RUNTIME_PASSWORD_HASH__ ~web-app:* resetchannels -@all +ping +client|setinfo +get +set +del +unlink +exists +expire +pexpire +ttl +pttl
