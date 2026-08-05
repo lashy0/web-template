@@ -32,15 +32,8 @@ uv run pytest
 ```
 
 Integration tests are excluded by default because they require real Postgres
-and Redis services. Start the development infrastructure from the repository
-root:
-
-```console
-docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d postgres redis
-```
-
-Then run the integration suite from `apps/backend/` with the repository
-environment loaded:
+and Redis services. With those dependencies available, run the integration
+suite from `apps/backend/` with the repository environment loaded:
 
 ```console
 uv run --env-file ../../.env pytest -m integration
@@ -50,7 +43,7 @@ The available test markers are:
 
 * `unit` - isolated functions and classes with dependencies mocked.
 * `api` - in-process FastAPI HTTP tests with external dependencies mocked.
-* `integration` - tests against real external infrastructure.
+* `integration` - tests against real external services.
 * `slow` - tests intentionally excluded from time-sensitive workflows.
 
 Tests are organized by scope first and then by feature:
@@ -66,5 +59,11 @@ tests/
 
 Database migrations are managed with [Alembic](https://alembic.sqlalchemy.org/).
 
-When the application is started with Docker Compose, pending migrations are
-automatically applied by the `prestart` service before the backend starts.
+Apply pending migrations from `apps/backend/` with:
+
+```console
+uv run alembic upgrade head
+```
+
+Production migrations must follow expand-and-contract so the previous backend
+remains compatible throughout the rollback window.

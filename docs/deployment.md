@@ -1,98 +1,62 @@
 # Deployment
 
-The production stack is defined by the shared `docker-compose.yaml` file and the
-`docker-compose.prod.yaml` overrides. The deployment script builds the backend image,
-applies pending database migrations, and starts the services.
-
-## Requirements
-
-Install the following tools on the target host:
-
-* Docker with the Compose plugin;
-* Git;
-* uv.
+PostgreSQL/Redis, Traefik, and the application are separate Compose projects.
+One Docker host represents one environment; dev and prod are not run together
+on the same daemon.
 
 ## Environment
 
-Create a `.env` file in the repository root. Use `.env.example` as a structural
-reference, but replace development values and example secrets.
+Create `.env` in the repository root from `.env.example`. The important
+production variables are:
 
-The production Compose configuration uses these deployment variables:
+| Variable | Required | Description |
+| --- | --- | --- |
+| `POSTGRES_ADMIN_PASSWORD` | yes | PostgreSQL bootstrap and operations |
+| `POSTGRES_MIGRATOR_PASSWORD` | yes | Alembic DDL role |
+| `POSTGRES_RUNTIME_PASSWORD` | yes | Backend DML role |
+| `REDIS_ADMIN_PASSWORD` | yes | Redis operations and ACL management |
+| `REDIS_RUNTIME_PASSWORD` | yes | Backend session access |
+| `BACKEND_CORS_ORIGINS` | yes | JSON array of browser origins |
+| `BACKEND_WORKERS` | no | Uvicorn workers; current capacity contract is four |
+| `POSTGRES_MEMORY_LIMIT` | no | PostgreSQL container limit, default `2g` |
 
-| Variable | Required | Default | Description |
-| --- | --- | --- | --- |
-| `POSTGRES_DB` | yes | none | PostgreSQL database created for the application |
-| `POSTGRES_USER` | yes | none | PostgreSQL application user |
-| `POSTGRES_PASSWORD` | yes | none | PostgreSQL password |
-| `REDIS_PASSWORD` | yes | none | Redis password |
-| `BACKEND_CORS_ORIGINS` | yes | none | JSON array of allowed browser origins; use `[]` when CORS is not needed |
-| `BACKEND_PORT` | no | `8000` | Host port mapped to backend port `8000` |
-| `BACKEND_WORKERS` | no | `1` | Number of Uvicorn worker processes |
-| `POSTGRES_MEMORY_LIMIT` | no | `2g` | PostgreSQL container memory limit |
-| `REDIS_MEMORY_LIMIT` | no | `512m` | Redis container memory limit |
+The database and application services all receive the root `.env`; explicit
+service overrides choose migrator or runtime identities. This simplifies
+configuration but means privileged variables remain visible inside runtime
+containers. Never commit `.env` or print effective Compose configuration in
+production diagnostics.
 
-`BACKEND_DEBUG` is forced to `false` by the production Compose configuration. The
-deployment script reads the application version from `apps/backend/pyproject.toml`
-and embeds it into the image as `BACKEND_VERSION`. Separately, it sets the Docker
-image `TAG` from that version and the short SHA of the current Git commit, for
-example `0.1.0-49eb4fd`. Neither variable needs to be added to `.env` when the
-script is used.
+## Startup and shutdown
 
-Other backend settings are documented in
-[`apps/backend/docs/configuration.md`](../apps/backend/docs/configuration.md), with
-database and Redis client settings in their respective backend guides.
-
-Example:
-
-```env
-POSTGRES_DB=web_app
-POSTGRES_USER=web_app
-POSTGRES_PASSWORD=replace-with-a-secret
-REDIS_PASSWORD=replace-with-a-secret
-
-BACKEND_CORS_ORIGINS=["https://app.example.com"]
-BACKEND_PORT=8000
-BACKEND_WORKERS=4
-```
-
-### Connection capacity
-
-Each Uvicorn worker has its own PostgreSQL and Redis connection pools. Before
-changing `BACKEND_WORKERS` or the number of backend replicas, review
-[PostgreSQL connection capacity](../apps/backend/docs/database.md#connection-capacity)
-and [Redis configuration](../apps/backend/docs/redis.md#configuration).
-
-Do not commit `.env` or copy the development passwords from `.env.example` to a
-deployed environment.
-
-## Deploy
-
-Run the deployment script from the repository root:
+Deploy in this order:
 
 ```console
-uv run --script scripts/deploy.py up prod
+uv run --project infrastructure infra-database up prod
+uv run --project infrastructure infra-traefik up prod
+uv run --project infrastructure infra-application up prod
 ```
 
-The script performs the equivalent of starting the shared and production Compose
-files with `up -d --build`. The `prestart` service must finish the database migrations
-successfully before the backend service starts.
+The application command fails before build/start if the `web-database` network
+or either healthy data-service container is absent. It never invokes the
+database project. The `prestart` container then applies Alembic migrations as
+`web_app_migrator`; the backend connects as the runtime roles.
 
-## Inspect the deployment
+Shut down in reverse order. Database shutdown is guarded while application
+containers remain active.
 
-Show service state:
+## Schema releases and capacity
 
-```console
-uv run --script scripts/deploy.py status prod
-```
+Production migrations follow expand-and-contract: a release must not remove or
+rename objects required by the previous backend version. Destructive cleanup
+belongs in a later release after the rollback window.
 
-Show backend logs:
+One backend replica with four workers, pool size five, and overflow five can
+open 40 PostgreSQL connections. PostgreSQL permits 100. Adding replicas requires
+a capacity review; PgBouncer is not part of the current topology.
 
-```console
-docker compose -f docker-compose.yaml -f docker-compose.prod.yaml logs backend
-```
+## Recovery limitations
 
-Show migration logs:
-
-```console
-docker compose -f docker-compose.yaml -f docker-compose.prod.yaml logs prestart
-```
+There are no off-host backups, WAL archiving, point-in-time recovery, automated
+restore, replication, or failover. No RPO or RTO is guaranteed for host/storage
+loss. PostgreSQL volume loss can lose all business data; Redis volume loss can
+invalidate all sessions but must not lose business data.

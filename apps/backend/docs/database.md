@@ -74,7 +74,7 @@ The backend reads the following client settings:
 | `BACKEND_DATABASE_URL` | empty | Complete SQLAlchemy connection URL; overrides the individual connection fields |
 | `BACKEND_POSTGRES_HOST` | `localhost` | PostgreSQL server hostname |
 | `BACKEND_POSTGRES_PORT` | `5432` | PostgreSQL server port |
-| `BACKEND_POSTGRES_USER` | `postgres` | PostgreSQL username |
+| `BACKEND_POSTGRES_USER` | `web_app_runtime` | PostgreSQL username |
 | `BACKEND_POSTGRES_PASSWORD` | `changepassword` | PostgreSQL password |
 | `BACKEND_POSTGRES_DB` | `web_app` | PostgreSQL database name |
 | `BACKEND_DB_POOL_SIZE` | `5` | Regular connections per application worker |
@@ -90,8 +90,8 @@ BACKEND_DATABASE_URL=postgresql+psycopg://user:password@db.example.com:5432/web_
 ```
 
 When `BACKEND_DATABASE_URL` is set, the individual `BACKEND_POSTGRES_*`
-fields are ignored. The legacy `POSTGRES_*` names remain accepted as a fallback
-for local commands and are used by the Postgres Docker image itself.
+fields are ignored. The legacy `POSTGRES_*` names and
+`POSTGRES_RUNTIME_PASSWORD` remain accepted as fallbacks.
 
 ## Connection capacity
 
@@ -110,20 +110,14 @@ open up to 40 PostgreSQL connections.
 
 Keep this number below PostgreSQL `max_connections`. Leave some connections for
 migrations, monitoring, administrative access, and other database clients. The
-`prestart` migration process opens one temporary connection.
+migration process opens one temporary connection.
 
 When all connections are busy, a request waits for up to
 `BACKEND_DB_POOL_TIMEOUT` seconds and then fails with a pool timeout.
 
 ## Creating migrations
 
-Start the development PostgreSQL service from the repository root:
-
-```console
-docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d postgres
-```
-
-Then generate a migration from `apps/backend/`:
+With PostgreSQL available, generate a migration from `apps/backend/`:
 
 ```console
 uv run --env-file ../../.env alembic revision --autogenerate -m "describe the change"
@@ -170,9 +164,6 @@ Roll back the latest migration in a local development environment:
 uv run --env-file ../../.env alembic downgrade -1
 ```
 
-When the application is started with Docker Compose, the `prestart` service
-automatically runs `alembic upgrade head` before the backend starts.
-
 If the required database environment variables are already exported in the
 current shell, `--env-file ../../.env` can be omitted.
 
@@ -188,13 +179,8 @@ Run unit tests:
 uv run pytest -m unit
 ```
 
-Start the development Postgres and Redis services from the repository root:
-
-```console
-docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d postgres redis
-```
-
-Then run integration tests from `apps/backend/`:
+With the required external services available, run integration tests from
+`apps/backend/`:
 
 ```console
 uv run --env-file ../../.env pytest -m integration

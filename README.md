@@ -1,57 +1,54 @@
 # Web App
 
-Monorepository for the Web App services. Deployable applications live in
-`apps/`, while repository-wide automation and operational utilities live in
-`scripts/`.
+Monorepository for the Web App backend and its independently operated host
+infrastructure.
 
-## Repository structure
+## Project structure
 
 ```text
 .
-├── apps/
-│   └── backend/                 FastAPI application
-├── docs/                        Project documentation
-├── scripts/                     Repository automation and operational tools
-├── docker-compose.yaml          Shared service definitions
-├── docker-compose.dev.yaml      Development overrides
-└── docker-compose.prod.yaml     Production overrides
+├── apps/                  Application source code
+│   └── backend/           FastAPI application, migrations, and tests
+├── docs/                  Project and deployment documentation
+├── infrastructure/        Compose projects and operational CLI
+├── .env.example           Shared environment template
+└── README.md
 ```
+
+Detailed layouts and configuration are documented in:
+
+- [Backend](apps/backend/README.md)
+- [Infrastructure](infrastructure/README.md)
+- [Application](infrastructure/application/README.md)
+- [Database](infrastructure/database/README.md)
+- [Traefik](infrastructure/traefik/README.md)
 
 ## Local development
 
-Create the local environment file:
+Create and review the shared environment file:
 
 ```console
 cp .env.example .env
 ```
 
-Review the values in `.env`, then start the development stack from the
-repository root:
+Configure the separate `infrastructure/traefik/.env` as described in the
+[Traefik README](infrastructure/traefik/README.md).
+
+Start infrastructure and the application in operational order:
 
 ```console
-uv run --script scripts/deploy.py up dev
+uv run --project infrastructure infra-database up dev
+uv run --project infrastructure infra-traefik up dev
+uv run --project infrastructure infra-application up dev
 ```
 
-The following services will be available:
+PostgreSQL and Redis are exposed only on loopback in development. Application
+deployment checks their health but never starts or updates them.
 
-* Backend API: <http://localhost:8000>
-* PostgreSQL: `localhost:5432` by default
-* Redis: `localhost:6379` by default
-
-Stop the development stack:
+Normal shutdown uses the reverse order:
 
 ```console
-uv run --script scripts/deploy.py down dev
+uv run --project infrastructure infra-application down dev
+uv run --project infrastructure infra-traefik down dev
+uv run --project infrastructure infra-database down dev
 ```
-
-## Applications
-
-* [Backend](apps/backend/README.md) — FastAPI application, development setup,
-  tests, migrations and documentation.
-
-Read the application-specific README before changing an application.
-
-## Deployment
-
-See the [deployment guide](docs/deployment.md) for production environment variables,
-Docker Compose configuration, deployment steps, and operational checks.

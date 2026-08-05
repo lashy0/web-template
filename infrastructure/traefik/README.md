@@ -5,30 +5,30 @@ Traefik is the only public reverse proxy and owns the external
 `traefik-public` Docker network. Application stacks may join this network, but
 must not create or remove it.
 
-## Files
+## Structure
 
-- `docker-compose.yaml` defines the shared Traefik service, Docker provider,
-  dashboard route, health check, logging limits, and external network.
-- `docker-compose.dev.yaml` exposes HTTP on port 80 and enables debug logging.
-- `docker-compose.prod.yaml` exposes ports 80 and 443, redirects HTTP to HTTPS,
-  configures Let's Encrypt, and persists ACME state.
-- `.env.example` documents Traefik-specific environment variables.
-- [`scripts/`](scripts/README.md) contains the operational CLI.
+```text
+traefik/
+├── .env.example               Traefik-specific environment template
+├── docker-compose.yaml        Service, Docker provider, dashboard and network
+├── docker-compose.dev.yaml    Development HTTP port and debug logging
+├── docker-compose.prod.yaml   HTTPS, Let's Encrypt and persistent ACME state
+└── README.md
+```
+
+The base Compose file contains settings shared by both environments; dev and
+prod files provide the environment-specific overrides.
 
 ## Configuration
 
-Traefik reads configuration from two ignored environment files:
-
-- the repository `.env` provides `BASE_DOMAIN`;
-- `infrastructure/traefik/.env` provides `TRAEFIK_USERNAME`,
-  `TRAEFIK_HASHED_PASSWORD`, and `ACME_EMAIL`.
-
-Create them from their examples:
+Create the ignored Traefik environment file from its example:
 
 ```console
-cp .env.example .env
-cp infrastructure/traefik/.env.example infrastructure/traefik/.env
+cp .env.example traefik/.env
 ```
+
+Set `TRAEFIK_USERNAME`, `TRAEFIK_HASHED_PASSWORD`, and `ACME_EMAIL` in the
+created file.
 
 `TRAEFIK_HASHED_PASSWORD` must contain an htpasswd-compatible hash, never a
 plaintext password. Wrap hashes containing `$` in single quotes so Docker
@@ -38,8 +38,7 @@ Compose preserves them literally:
 TRAEFIK_HASHED_PASSWORD='$apr1$...'
 ```
 
-For development, use `BASE_DOMAIN=localhost`. For production, use the public
-base domain and set `ACME_EMAIL` to the certificate owner address.
+For production, set `ACME_EMAIL` to the certificate owner address.
 
 ## Development
 
@@ -69,5 +68,10 @@ application publishes `api.<BASE_DOMAIN>` when its stack joins
 
 ## Operations
 
-Use the [Traefik deployment CLI](scripts/README.md) to start, inspect, or stop
-the development and production configurations.
+Manage Traefik from the repository root:
+
+```console
+uv run --project infrastructure infra-traefik up dev
+uv run --project infrastructure infra-traefik status dev
+uv run --project infrastructure infra-traefik down dev
+```

@@ -32,6 +32,7 @@ The connection is configured with the following environment variables:
 | `BACKEND_REDIS_URL` | empty | Complete connection URL; overrides the individual connection fields |
 | `BACKEND_REDIS_HOST` | `localhost` | Redis server hostname |
 | `BACKEND_REDIS_PORT` | `6379` | Redis server port |
+| `BACKEND_REDIS_USER` | `web_app_runtime` | Redis ACL username |
 | `BACKEND_REDIS_PASSWORD` | empty | Redis password |
 | `BACKEND_REDIS_DB` | `0` | Logical Redis database |
 | `BACKEND_REDIS_PREFIX` | `web-app` | Prefix prepended to application-owned Redis keys |
@@ -54,8 +55,9 @@ Keep this number below the Redis server or provider limit. Leave some connection
 for monitoring, administrative commands, background jobs, and other clients. If
 all connections in a worker pool are busy, Redis operations can fail.
 
-For local compatibility, `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`, and
-`REDIS_DB` are accepted as fallbacks for the corresponding connection fields.
+For local compatibility, `REDIS_HOST`, `REDIS_PORT`, `REDIS_USER`,
+`REDIS_PASSWORD`, `REDIS_RUNTIME_PASSWORD`, and `REDIS_DB` are accepted as
+fallbacks.
 When both forms are set, the `BACKEND_REDIS_*` variable takes precedence.
 
 Use `BACKEND_REDIS_URL` for managed Redis or TLS connections:
@@ -69,6 +71,13 @@ When `BACKEND_REDIS_URL` is set, `BACKEND_REDIS_HOST`, `BACKEND_REDIS_PORT`,
 
 Build application-owned keys with `build_redis_key()` so the configured prefix
 and key format remain consistent between reads, writes, and invalidation.
+
+Every session write must set a TTL. The runtime ACL is restricted to
+`web-app:*` and the small command set needed by TTL-backed sessions. It excludes
+flush, configuration, scripting, Pub/Sub, and all other keys.
+
+The client explicitly uses RESP2 so its connection setup stays within the
+documented `PING` and `CLIENT SETINFO` ACL permissions.
 
 ```python
 from redis.asyncio import Redis
@@ -101,13 +110,8 @@ API tests mock Redis and Postgres readiness checks and use the `api` marker.
 The `integration` marker is reserved for tests that connect to real services.
 Integration tests are excluded from the default test run.
 
-Start the development services from the repository root:
-
-```console
-docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d postgres redis
-```
-
-Then run the integration suite from `apps/backend/`:
+With the required external services available, run the integration suite from
+`apps/backend/`:
 
 ```console
 uv run --env-file ../../.env pytest -m integration
