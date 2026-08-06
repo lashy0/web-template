@@ -4,6 +4,12 @@ PostgreSQL/Redis, Traefik, and the application are separate Compose projects.
 One Docker host represents one environment; dev and prod are not run together
 on the same daemon.
 
+The production application project builds two runtime images: the FastAPI
+backend and an unprivileged Nginx image containing the React SPA. Traefik serves
+the SPA at `app.${BASE_DOMAIN}` and routes `app.${BASE_DOMAIN}/api/*` to the
+backend after removing the `/api` prefix. The direct machine endpoint remains
+`api.${BASE_DOMAIN}`.
+
 ## Environment
 
 Create `.env` in the repository root from `.env.example`. The important

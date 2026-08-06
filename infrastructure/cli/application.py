@@ -131,7 +131,7 @@ def up(
         message = "Starting the development environment"
         arguments = ("up", "--build", "--watch")
     else:
-        message = f"Deploying web-app-backend:{values['TAG']}"
+        message = f"Deploying web-app release {values['TAG']}"
         arguments = ("up", "--detach", "--build")
 
     typer.secho(message, fg=typer.colors.CYAN, bold=True, err=True)
