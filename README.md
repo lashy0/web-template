@@ -8,7 +8,11 @@ infrastructure.
 ```text
 .
 ├── apps/                  Application source code
-│   └── backend/           FastAPI application, migrations, and tests
+│   ├── backend/           FastAPI application, migrations, and tests
+│   └── frontend/          React SPA, unit tests, and browser tests
+├── packages/              Private TypeScript source packages
+│   ├── api-client/        Generated OpenAPI client for the frontend
+│   └── ui/                Shared shadcn/Base UI components and tokens
 ├── docs/                  Project and deployment documentation
 ├── infrastructure/        Compose projects and operational CLI
 ├── .env.example           Shared environment template
@@ -18,6 +22,7 @@ infrastructure.
 Detailed layouts and configuration are documented in:
 
 - [Backend](apps/backend/README.md)
+- [Frontend](apps/frontend/README.md)
 - [Infrastructure](infrastructure/README.md)
 - [Application](infrastructure/application/README.md)
 - [Database](infrastructure/database/README.md)
@@ -33,6 +38,13 @@ cp .env.example .env
 
 Configure the separate `infrastructure/traefik/.env` as described in the
 [Traefik README](infrastructure/traefik/README.md).
+
+Install frontend workspace dependencies and start Vite on the host:
+
+```console
+corepack pnpm install
+pnpm dev
+```
 
 Start infrastructure and the application in operational order:
 
@@ -52,3 +64,7 @@ uv run --project infrastructure infra-application down dev
 uv run --project infrastructure infra-traefik down dev
 uv run --project infrastructure infra-database down dev
 ```
+
+Vite serves the development frontend on `http://localhost:5173` and proxies
+`/api` to the backend through Traefik. Production serves the built SPA from
+`app.${BASE_DOMAIN}`.

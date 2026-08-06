@@ -1,3 +1,22 @@
 # Environment variables
 .env*
 !.env.example
+
+# JavaScript dependencies and build artifacts
+node_modules/
+.pnpm-store/
+.playwright-browsers/
+dist/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+
+# Tool caches
+.vite/
+.vitest/
+.uv-cache/
+
+# Agents
+/.agents/
+skills-lock.json

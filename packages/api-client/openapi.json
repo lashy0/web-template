@@ -1,0 +1,167 @@
+{
+  "components": {
+    "schemas": {
+      "LivenessResponse": {
+        "examples": [
+          {
+            "status": "ok",
+            "version": "0.1.0"
+          }
+        ],
+        "properties": {
+          "status": {
+            "const": "ok",
+            "description": "Application process status.",
+            "title": "Status",
+            "type": "string"
+          },
+          "version": {
+            "description": "Running backend version.",
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "version"
+        ],
+        "title": "LivenessResponse",
+        "type": "object"
+      },
+      "ReadinessChecks": {
+        "properties": {
+          "postgres": {
+            "description": "PostgreSQL connection status.",
+            "enum": [
+              "up",
+              "down"
+            ],
+            "title": "Postgres",
+            "type": "string"
+          },
+          "redis": {
+            "description": "Redis connection status.",
+            "enum": [
+              "up",
+              "down"
+            ],
+            "title": "Redis",
+            "type": "string"
+          }
+        },
+        "required": [
+          "postgres",
+          "redis"
+        ],
+        "title": "ReadinessChecks",
+        "type": "object"
+      },
+      "ReadinessResponse": {
+        "examples": [
+          {
+            "checks": {
+              "postgres": "up",
+              "redis": "up"
+            },
+            "status": "ready"
+          }
+        ],
+        "properties": {
+          "checks": {
+            "$ref": "#/components/schemas/ReadinessChecks",
+            "description": "Readiness status of required dependencies."
+          },
+          "status": {
+            "description": "Overall application readiness.",
+            "enum": [
+              "ready",
+              "not_ready"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "checks"
+        ],
+        "title": "ReadinessResponse",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "backend",
+    "version": "dev"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/health/live": {
+      "get": {
+        "description": "Returns `200 OK` while the backend process is running.",
+        "operationId": "health-liveness",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LivenessResponse"
+                }
+              }
+            },
+            "description": "The application process is alive."
+          }
+        },
+        "summary": "Check application liveness",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "description": "Checks whether the backend can serve requests. PostgreSQL and Redis are checked concurrently. Returns `503 Service Unavailable` when at least one required dependency is unavailable.",
+        "operationId": "health-readiness",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessResponse"
+                }
+              }
+            },
+            "description": "Current readiness state and dependency checks."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "checks": {
+                    "postgres": "up",
+                    "redis": "down"
+                  },
+                  "status": "not_ready"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessResponse"
+                }
+              }
+            },
+            "description": "At least one required dependency is unavailable."
+          }
+        },
+        "summary": "Check application readiness",
+        "tags": [
+          "health"
+        ]
+      }
+    }
+  },
+  "tags": [
+    {
+      "description": "Application liveness and dependency readiness checks.",
+      "name": "health"
+    }
+  ]
+}

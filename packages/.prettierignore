@@ -1,0 +1,12 @@
+# Dependencies and tool caches
+**/node_modules/
+**/.vitest/
+
+# Build and test artifacts
+**/dist/
+**/coverage/
+**/*.tsbuildinfo
+
+# Generated API client
+api-client/openapi.json
+api-client/src/generated/
