@@ -12,11 +12,6 @@ playwright-report/
 test-results/
 *.tsbuildinfo
 
-# Tool caches
-.vite/
-.vitest/
-.uv-cache/
-
 # Agents
 /.agents/
 skills-lock.json
