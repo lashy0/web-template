@@ -1,0 +1,15 @@
+# Dependencies and tool caches
+node_modules/
+.vite/
+.vitest/
+.tanstack/
+
+# Build and test artifacts
+dist/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+
+# Generated sources
+src/routeTree.gen.ts

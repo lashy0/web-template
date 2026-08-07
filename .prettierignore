@@ -1,0 +1,11 @@
+# Package manager and local tool caches
+node_modules/
+.pnpm-store/
+.playwright-browsers/
+
+# Root build and test artifacts
+dist/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo

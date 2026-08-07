@@ -1,0 +1,24 @@
+{
+  "name": "@web-app/api-client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "generate:schema": "uv run --project ../../apps/backend --directory ../../apps/backend python -m tools.export_openapi --output ../../packages/api-client/openapi.json",
+    "generate:client": "openapi-ts",
+    "generate": "pnpm generate:schema && pnpm generate:client",
+    "check:generated": "pnpm generate && git diff --exit-code -- openapi.json src/generated",
+    "typecheck": "tsc --noEmit --pretty false"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.101.4",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@hey-api/openapi-ts": "0.99.0",
+    "typescript": "~6.0.2"
+  }
+}

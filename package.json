@@ -1,0 +1,26 @@
+{
+  "name": "web-app",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter @web-app/frontend dev",
+    "build": "pnpm --recursive --if-present run build",
+    "typecheck": "pnpm --recursive --if-present run typecheck",
+    "lint": "oxlint --allow react/only-export-components apps packages",
+    "lint:fix": "oxlint --allow react/only-export-components --fix apps packages",
+    "format": "oxfmt --ignore-path .prettierignore --ignore-path apps/frontend/.prettierignore --ignore-path packages/.prettierignore apps/frontend packages package.json pnpm-workspace.yaml .oxlintrc.json .oxfmtrc.json",
+    "format:check": "oxfmt --check --ignore-path .prettierignore --ignore-path apps/frontend/.prettierignore --ignore-path packages/.prettierignore apps/frontend packages package.json pnpm-workspace.yaml .oxlintrc.json .oxfmtrc.json",
+    "test": "pnpm --filter @web-app/frontend test",
+    "test:e2e": "pnpm --filter @web-app/frontend test:e2e",
+    "api:generate": "pnpm --filter @web-app/api-client generate",
+    "api:check": "pnpm --filter @web-app/api-client check:generated",
+    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test && pnpm build"
+  },
+  "devDependencies": {
+    "oxfmt": "^0.62.0",
+    "oxlint": "^1.77.0"
+  },
+  "engines": {
+    "node": "24.x"
+  },
+  "packageManager": "pnpm@11.17.0"
+}
