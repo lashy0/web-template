@@ -5,7 +5,7 @@ changes are managed with Alembic.
 
 ## Defining models
 
-All SQLAlchemy models must inherit from `app.database.base.Base`. The base provides
+All SQLAlchemy models must inherit from `app.infrastructure.database.base.Base`. The base provides
 the naming convention used for indexes and database constraints.
 
 Use SQLAlchemy 2 typed mappings:
@@ -13,7 +13,7 @@ Use SQLAlchemy 2 typed mappings:
 ```python
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.database.base import Base
+from app.infrastructure.database.base import Base
 
 
 class User(Base):
@@ -30,7 +30,7 @@ app/modules/users/models.py
 
 ## Registering models
 
-Every model module must be imported by `app/database/models.py`:
+Every model module must be imported by `app/infrastructure/database/models.py`:
 
 ```python
 from app.modules.users.models import User
@@ -38,14 +38,14 @@ from app.modules.users.models import User
 __all__ = ["User"]
 ```
 
-Alembic imports `app.database.models` before reading `Base.metadata`. A model that is
+Alembic imports `app.infrastructure.database.models` before reading `Base.metadata`. A model that is
 not registered there will not be detected by:
 
 ```console
 uv run alembic revision --autogenerate
 ```
 
-Keep model implementations in their feature modules. Use `app/database/models.py`
+Keep model implementations in their feature modules. Use `app/infrastructure/database/models.py`
 only as the central model registry.
 
 ## Engine and sessions
@@ -71,10 +71,11 @@ The backend reads the following client settings:
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `BACKEND_DATABASE_URL` | empty | Complete SQLAlchemy connection URL; overrides the individual connection fields |
+| `BACKEND_DATABASE_URL` | empty | Complete runtime SQLAlchemy connection URL; overrides the individual connection fields |
+| `BACKEND_MIGRATION_DATABASE_URL` | empty | Complete Alembic connection URL; overrides other migration connection settings |
+| `BACKEND_POSTGRES_MIGRATOR_PASSWORD` | empty | Password used by Alembic with the `web_app_migrator` role |
 | `BACKEND_POSTGRES_HOST` | `localhost` | PostgreSQL server hostname |
 | `BACKEND_POSTGRES_PORT` | `5432` | PostgreSQL server port |
-| `BACKEND_POSTGRES_USER` | `web_app_runtime` | PostgreSQL username |
 | `BACKEND_POSTGRES_PASSWORD` | `changepassword` | PostgreSQL password |
 | `BACKEND_POSTGRES_DB` | `web_app` | PostgreSQL database name |
 | `BACKEND_DB_POOL_SIZE` | `5` | Regular connections per application worker |
@@ -89,9 +90,11 @@ Use `BACKEND_DATABASE_URL` for managed Postgres or TLS settings:
 BACKEND_DATABASE_URL=postgresql+psycopg://user:password@db.example.com:5432/web_app?sslmode=require
 ```
 
-When `BACKEND_DATABASE_URL` is set, the individual `BACKEND_POSTGRES_*`
-fields are ignored. The legacy `POSTGRES_*` names and
-`POSTGRES_RUNTIME_PASSWORD` remain accepted as fallbacks.
+`BACKEND_DATABASE_URL` configures the runtime connection, and
+`BACKEND_MIGRATION_DATABASE_URL` configures Alembic. Without explicit URLs,
+the application connects as `web_app_runtime` and Alembic connects as
+`web_app_migrator`. The shared and legacy `POSTGRES_*` variables remain
+supported for component fields and passwords.
 
 ## Connection capacity
 
@@ -122,6 +125,9 @@ With PostgreSQL available, generate a migration from `apps/backend/`:
 ```console
 uv run --env-file ../../.env alembic revision --autogenerate -m "describe the change"
 ```
+
+Alembic uses the schema-owning `web_app_migrator` role, while the application
+continues to use the least-privileged `web_app_runtime` role.
 
 The post-write hooks in `alembic.ini` apply Ruff fixes and formatting to newly
 generated revisions.

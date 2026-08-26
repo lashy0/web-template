@@ -26,6 +26,7 @@ Detailed layouts and configuration are documented in:
 - [Infrastructure](infrastructure/README.md)
 - [Application](infrastructure/application/README.md)
 - [Database](infrastructure/database/README.md)
+- [Identity](infrastructure/identity/README.md)
 - [Traefik](infrastructure/traefik/README.md)
 
 ## Local development
@@ -38,6 +39,8 @@ cp .env.example .env
 
 Configure the separate `infrastructure/traefik/.env` as described in the
 [Traefik README](infrastructure/traefik/README.md).
+Create the persistent Kratos secrets in `infrastructure/identity/.env` as
+described in the [Identity README](infrastructure/identity/README.md).
 
 Install frontend workspace dependencies and start Vite on the host:
 
@@ -51,6 +54,7 @@ Start infrastructure and the application in operational order:
 ```console
 uv run --project infrastructure infra-database up dev
 uv run --project infrastructure infra-traefik up dev
+uv run --project infrastructure infra-identity up dev
 uv run --project infrastructure infra-application up dev
 ```
 
@@ -61,6 +65,7 @@ Normal shutdown uses the reverse order:
 
 ```console
 uv run --project infrastructure infra-application down dev
+uv run --project infrastructure infra-identity down dev
 uv run --project infrastructure infra-traefik down dev
 uv run --project infrastructure infra-database down dev
 ```

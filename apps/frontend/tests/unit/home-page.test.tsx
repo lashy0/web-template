@@ -1,13 +1,19 @@
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { cleanup, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it } from 'vitest'
 
-import { HomePage } from '@/routes/index'
+import { AccessDeniedPage } from '@/routes/_layout/index'
 
-describe('HomePage', () => {
-  it('renders the neutral application shell content', () => {
-    render(<HomePage />)
+describe('AccessDeniedPage', () => {
+  it('informs a signed-in user that no sections are available', () => {
+    render(<AccessDeniedPage />)
 
-    expect(screen.getByRole('heading', { level: 1, name: 'Web App' })).toBeInTheDocument()
-    expect(screen.getByText('Ready for the first product flow.')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Нет доступа' })).toBeInTheDocument()
+    expect(
+      screen.getByText('Для вашей учётной записи пока нет доступных разделов.'),
+    ).toBeInTheDocument()
   })
+})
+
+afterEach(() => {
+  cleanup()
 })

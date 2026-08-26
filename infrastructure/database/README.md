@@ -9,8 +9,11 @@ does not start, update, or stop either data service.
 ```text
 database/
 ├── postgres/
-│   ├── init-roles.sh          PostgreSQL bootstrap runner
-│   └── init-roles.sql         Roles, grants and default privileges
+│   ├── init.sh                New-cluster initialization runner
+│   ├── web-app/
+│   │   └── init.sql           Web App database, roles and privileges
+│   └── kratos/
+│       └── init.sql           Kratos database, roles and privileges
 ├── redis/
 │   ├── entrypoint.sh          Redis ACL rendering and server startup
 │   └── users.acl.template     Redis users, permissions and key patterns
@@ -20,8 +23,17 @@ database/
 └── README.md                  Database infrastructure documentation
 ```
 
-The bootstrap files are mounted read-only by the base Compose file. The dev
-and prod files only override environment-specific container settings.
+The PostgreSQL image runs `postgres/init.sh` from `/docker-entrypoint-initdb.d`
+only when it initializes an empty data directory. The runner passes each
+consumer's role passwords to its own SQL file. Those files explicitly create
+the `web_app` and `kratos` databases, their migrator and runtime roles, and the
+required privileges. The dev and prod files only override
+environment-specific container settings.
+
+Initialization does not run again for an existing PostgreSQL volume. Changing
+a role password or initialization SQL therefore requires an explicit database
+administration operation; restarting the stack does not reconcile existing
+roles or databases.
 
 ## Configuration
 
@@ -30,8 +42,15 @@ Copy `.env.example` to `.env` and replace every example credential before use.
 The fixed database and principal names are:
 
 - database: `web_app`;
-- PostgreSQL: `web_app_admin`, `web_app_migrator`, `web_app_runtime`;
+- PostgreSQL: `postgres_admin`, `web_app_migrator`, `web_app_runtime`;
+- identity database: `kratos`;
+- identity PostgreSQL: `kratos_migrator`, `kratos_runtime`;
 - Redis: `web_app_admin`, `web_app_runtime`.
+
+Each migrator role owns its database and public schema. The long-running
+runtime roles have no DDL rights; initialization grants only
+CONNECT, schema USAGE, table DML, sequence access, and matching default
+privileges.
 
 Because every service receives the shared environment file, runtime containers
 can see credentials they do not use. Role-specific `BACKEND_*` overrides still

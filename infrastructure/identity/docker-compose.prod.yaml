@@ -1,0 +1,27 @@
+services:
+  kratos-migrate:
+    mem_limit: 512m
+    environment:
+      LOG_FORMAT: json
+      LOG_LEVEL: info
+
+  kratos:
+    mem_limit: 1g
+    restart: unless-stopped
+    environment:
+      SERVE_PUBLIC_BASE_URL: "https://app.${BASE_DOMAIN:?BASE_DOMAIN is required}/"
+      SELFSERVICE_DEFAULT_BROWSER_RETURN_URL: "https://app.${BASE_DOMAIN:?BASE_DOMAIN is required}/"
+      SELFSERVICE_ALLOWED_RETURN_URLS: "https://app.${BASE_DOMAIN:?BASE_DOMAIN is required}"
+      SELFSERVICE_FLOWS_ERROR_UI_URL: "https://app.${BASE_DOMAIN:?BASE_DOMAIN is required}/auth/error"
+      SELFSERVICE_FLOWS_LOGIN_UI_URL: "https://app.${BASE_DOMAIN:?BASE_DOMAIN is required}/login"
+      SELFSERVICE_FLOWS_LOGOUT_AFTER_DEFAULT_BROWSER_RETURN_URL: "https://app.${BASE_DOMAIN:?BASE_DOMAIN is required}/login"
+      COOKIES_SECURE: "true"
+      LOG_FORMAT: json
+      LOG_LEVEL: info
+    labels:
+      traefik.http.routers.kratos-login.entrypoints: https
+      traefik.http.routers.kratos-login.tls: "true"
+      traefik.http.routers.kratos-login.tls.certresolver: letsencrypt
+      traefik.http.routers.kratos-browser.entrypoints: https
+      traefik.http.routers.kratos-browser.tls: "true"
+      traefik.http.routers.kratos-browser.tls.certresolver: letsencrypt

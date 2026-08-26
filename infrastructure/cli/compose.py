@@ -94,15 +94,16 @@ def network_exists(docker: str, name: str) -> bool:
     return result.returncode == 0
 
 
-def ensure_network(docker: str, name: str, *, internal: bool = False) -> None:
+def require_network(docker: str, name: str, recovery: str) -> None:
+    if not network_exists(docker, name):
+        raise DeploymentError(f"Required Docker network '{name}' does not exist. {recovery}")
+
+
+def ensure_network(docker: str, name: str) -> None:
     if network_exists(docker, name):
         return
 
-    command = [docker, "network", "create", "--driver", "bridge"]
-    if internal:
-        command.append("--internal")
-    command.append(name)
-    run_command(command)
+    run_command([docker, "network", "create", "--driver", "bridge", name])
 
 
 def run_cli(app: typer.Typer) -> None:

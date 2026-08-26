@@ -3,3 +3,588 @@
 export type ClientOptions = {
     baseUrl: `${string}://${string}` | (string & {});
 };
+
+/**
+ * AuditEventResponse
+ */
+export type AuditEventResponse = {
+    /**
+     * Action
+     */
+    action: string;
+    /**
+     * Actor Display Name
+     */
+    actor_display_name: string | null;
+    /**
+     * Actor Id
+     */
+    actor_id: string | null;
+    /**
+     * Actor Identifier
+     */
+    actor_identifier: string | null;
+    /**
+     * Actor Type
+     */
+    actor_type: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Entity Display Name
+     */
+    entity_display_name: string | null;
+    /**
+     * Entity Id
+     */
+    entity_id: string | null;
+    /**
+     * Entity Identifier
+     */
+    entity_identifier: string | null;
+    /**
+     * Entity Type
+     */
+    entity_type: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * New Data
+     */
+    new_data: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Old Data
+     */
+    old_data: {
+        [key: string]: unknown;
+    } | null;
+};
+
+/**
+ * AuditListResponse
+ */
+export type AuditListResponse = {
+    /**
+     * Items
+     */
+    items: Array<AuditEventResponse>;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
+ * CreateUserRequest
+ */
+export type CreateUserRequest = {
+    /**
+     * Active
+     */
+    active: boolean;
+    /**
+     * Login
+     */
+    login: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Password
+     */
+    password: string;
+    role: Role;
+};
+
+/**
+ * HTTPValidationError
+ */
+export type HttpValidationError = {
+    /**
+     * Detail
+     */
+    detail?: Array<ValidationError>;
+};
+
+/**
+ * Role
+ */
+export type Role = 'administrator' | 'manager' | 'engineer' | 'packer' | 'operator';
+
+/**
+ * UpdateActiveRequest
+ */
+export type UpdateActiveRequest = {
+    /**
+     * Active
+     */
+    active: boolean;
+};
+
+/**
+ * UpdateArchivedRequest
+ */
+export type UpdateArchivedRequest = {
+    /**
+     * Archived
+     */
+    archived: boolean;
+};
+
+/**
+ * UpdatePasswordRequest
+ */
+export type UpdatePasswordRequest = {
+    /**
+     * Password
+     */
+    password: string;
+};
+
+/**
+ * UpdateUserRequest
+ */
+export type UpdateUserRequest = {
+    /**
+     * Login
+     */
+    login?: string | null;
+    /**
+     * Name
+     */
+    name?: string | null;
+    role?: Role | null;
+};
+
+/**
+ * UserListResponse
+ */
+export type UserListResponse = {
+    /**
+     * Items
+     */
+    items: Array<UserResponse>;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
+ * UserResponse
+ */
+export type UserResponse = {
+    /**
+     * Archived At
+     */
+    archived_at: string | null;
+    /**
+     * Auth State
+     */
+    auth_state: 'active' | 'inactive';
+    /**
+     * Auth State Synced At
+     */
+    auth_state_synced_at: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Identity Id
+     */
+    identity_id: string;
+    /**
+     * Login
+     */
+    login: string | null;
+    /**
+     * Name
+     */
+    name: string;
+    role: Role;
+};
+
+/**
+ * ValidationError
+ */
+export type ValidationError = {
+    /**
+     * Context
+     */
+    ctx?: {
+        [key: string]: unknown;
+    };
+    /**
+     * Input
+     */
+    input?: unknown;
+    /**
+     * Location
+     */
+    loc: Array<string | number>;
+    /**
+     * Message
+     */
+    msg: string;
+    /**
+     * Error Type
+     */
+    type: string;
+};
+
+export type AuditListAuditEventsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Entity Type
+         */
+        entity_type?: string | null;
+        /**
+         * Created From
+         */
+        created_from?: string | null;
+        /**
+         * Created To
+         */
+        created_to?: string | null;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+        /**
+         * Sort
+         */
+        sort?: 'created_at' | 'actor_display_name';
+        /**
+         * Order
+         */
+        order?: 'asc' | 'desc';
+    };
+    url: '/audit';
+};
+
+export type AuditListAuditEventsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AuditListAuditEventsError = AuditListAuditEventsErrors[keyof AuditListAuditEventsErrors];
+
+export type AuditListAuditEventsResponses = {
+    /**
+     * Successful Response
+     */
+    200: AuditListResponse;
+};
+
+export type AuditListAuditEventsResponse = AuditListAuditEventsResponses[keyof AuditListAuditEventsResponses];
+
+export type AuthMeData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/auth/me';
+};
+
+export type AuthMeResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserResponse;
+};
+
+export type AuthMeResponse = AuthMeResponses[keyof AuthMeResponses];
+
+export type UsersListUsersData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Q
+         */
+        q?: string | null;
+        /**
+         * Role
+         */
+        role?: Role | null;
+        /**
+         * Auth State
+         */
+        auth_state?: 'active' | 'inactive' | null;
+        /**
+         * Archived
+         */
+        archived?: boolean;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+        /**
+         * Sort
+         */
+        sort?: 'name' | 'login' | 'created_at' | 'archived_at';
+        /**
+         * Order
+         */
+        order?: 'asc' | 'desc';
+    };
+    url: '/users';
+};
+
+export type UsersListUsersErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UsersListUsersError = UsersListUsersErrors[keyof UsersListUsersErrors];
+
+export type UsersListUsersResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserListResponse;
+};
+
+export type UsersListUsersResponse = UsersListUsersResponses[keyof UsersListUsersResponses];
+
+export type UsersCreateUserData = {
+    body: CreateUserRequest;
+    path?: never;
+    query?: never;
+    url: '/users';
+};
+
+export type UsersCreateUserErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UsersCreateUserError = UsersCreateUserErrors[keyof UsersCreateUserErrors];
+
+export type UsersCreateUserResponses = {
+    /**
+     * Successful Response
+     */
+    201: UserResponse;
+};
+
+export type UsersCreateUserResponse = UsersCreateUserResponses[keyof UsersCreateUserResponses];
+
+export type UsersDeleteUserData = {
+    body?: never;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/users/{user_id}';
+};
+
+export type UsersDeleteUserErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UsersDeleteUserError = UsersDeleteUserErrors[keyof UsersDeleteUserErrors];
+
+export type UsersDeleteUserResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type UsersDeleteUserResponse = UsersDeleteUserResponses[keyof UsersDeleteUserResponses];
+
+export type UsersGetUserData = {
+    body?: never;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/users/{user_id}';
+};
+
+export type UsersGetUserErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UsersGetUserError = UsersGetUserErrors[keyof UsersGetUserErrors];
+
+export type UsersGetUserResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserResponse;
+};
+
+export type UsersGetUserResponse = UsersGetUserResponses[keyof UsersGetUserResponses];
+
+export type UsersUpdateUserData = {
+    body: UpdateUserRequest;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/users/{user_id}';
+};
+
+export type UsersUpdateUserErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UsersUpdateUserError = UsersUpdateUserErrors[keyof UsersUpdateUserErrors];
+
+export type UsersUpdateUserResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserResponse;
+};
+
+export type UsersUpdateUserResponse = UsersUpdateUserResponses[keyof UsersUpdateUserResponses];
+
+export type UsersUpdateActiveData = {
+    body: UpdateActiveRequest;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/users/{user_id}/active';
+};
+
+export type UsersUpdateActiveErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UsersUpdateActiveError = UsersUpdateActiveErrors[keyof UsersUpdateActiveErrors];
+
+export type UsersUpdateActiveResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserResponse;
+};
+
+export type UsersUpdateActiveResponse = UsersUpdateActiveResponses[keyof UsersUpdateActiveResponses];
+
+export type UsersUpdateArchivedData = {
+    body: UpdateArchivedRequest;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/users/{user_id}/archived';
+};
+
+export type UsersUpdateArchivedErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UsersUpdateArchivedError = UsersUpdateArchivedErrors[keyof UsersUpdateArchivedErrors];
+
+export type UsersUpdateArchivedResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserResponse;
+};
+
+export type UsersUpdateArchivedResponse = UsersUpdateArchivedResponses[keyof UsersUpdateArchivedResponses];
+
+export type UsersUpdatePasswordData = {
+    body: UpdatePasswordRequest;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/users/{user_id}/password';
+};
+
+export type UsersUpdatePasswordErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UsersUpdatePasswordError = UsersUpdatePasswordErrors[keyof UsersUpdatePasswordErrors];
+
+export type UsersUpdatePasswordResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type UsersUpdatePasswordResponse = UsersUpdatePasswordResponses[keyof UsersUpdatePasswordResponses];

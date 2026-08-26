@@ -32,7 +32,6 @@ The connection is configured with the following environment variables:
 | `BACKEND_REDIS_URL` | empty | Complete connection URL; overrides the individual connection fields |
 | `BACKEND_REDIS_HOST` | `localhost` | Redis server hostname |
 | `BACKEND_REDIS_PORT` | `6379` | Redis server port |
-| `BACKEND_REDIS_USER` | `web_app_runtime` | Redis ACL username |
 | `BACKEND_REDIS_PASSWORD` | empty | Redis password |
 | `BACKEND_REDIS_DB` | `0` | Logical Redis database |
 | `BACKEND_REDIS_PREFIX` | `web-app` | Prefix prepended to application-owned Redis keys |
@@ -55,9 +54,9 @@ Keep this number below the Redis server or provider limit. Leave some connection
 for monitoring, administrative commands, background jobs, and other clients. If
 all connections in a worker pool are busy, Redis operations can fail.
 
-For local compatibility, `REDIS_HOST`, `REDIS_PORT`, `REDIS_USER`,
-`REDIS_PASSWORD`, `REDIS_RUNTIME_PASSWORD`, and `REDIS_DB` are accepted as
-fallbacks.
+For local compatibility, `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`,
+`REDIS_RUNTIME_PASSWORD`, and `REDIS_DB` are accepted as fallbacks. Component
+fields always use the fixed `web_app_runtime` ACL user.
 When both forms are set, the `BACKEND_REDIS_*` variable takes precedence.
 
 Use `BACKEND_REDIS_URL` for managed Redis or TLS connections:
@@ -83,7 +82,7 @@ documented `PING` and `CLIENT SETINFO` ACL permissions.
 from redis.asyncio import Redis
 
 from app.core.config import Settings
-from app.redis.keys import build_redis_key
+from app.infrastructure.redis.keys import build_redis_key
 
 
 class ExampleCache:

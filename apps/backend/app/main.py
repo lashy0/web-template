@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -6,13 +7,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
 from loguru import logger
 
+from app.api.errors import install_error_handlers
 from app.api.main import api_router
 from app.core.config import Settings, get_settings
 from app.core.logging import setup_logging
 from app.core.version import APP_VERSION
-from app.database.session import create_database
+from app.infrastructure.database.session import create_database
+from app.infrastructure.kratos.client import KratosIdentityManager, KratosSessionVerifier
+from app.infrastructure.redis.client import create_redis_client
+from app.middleware.csrf import JsonOriginMiddleware
 from app.middleware.request_context import RequestContextMiddleware
-from app.redis.client import create_redis_client
+from app.modules.users.service import UserManagementService
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
@@ -29,16 +34,42 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     database = create_database(settings)
     app.state.database = database
 
+    app.state.session_verifier = KratosSessionVerifier(settings)
+    app.state.identity_manager = KratosIdentityManager(settings)
+    app.state.user_management = UserManagementService(
+        database.session_factory, app.state.identity_manager
+    )
+
     redis = create_redis_client(settings)
     app.state.redis = redis
 
     logger.bind(event="application_startup").info("Application startup")
+
+    reconcile_task = None
+
+    async def reconcile_forever() -> None:
+        while True:
+            try:
+                await app.state.user_management.reconcile()
+            except Exception:
+                logger.bind(event="kratos.reconcile_failed").exception(
+                    "Kratos reconciliation failed"
+                )
+            await asyncio.sleep(settings.KRATOS_RECONCILE_INTERVAL)
+
+    reconcile_task = asyncio.create_task(reconcile_forever())
 
     try:
         yield
     finally:
         logger.bind(event="application_shutdown").info("Application shutdown")
 
+        if reconcile_task is not None:
+            reconcile_task.cancel()
+            try:
+                await reconcile_task
+            except asyncio.CancelledError:
+                pass
         await redis.aclose()
         await database.close()
         await logger.complete()
@@ -52,7 +83,9 @@ def create_app(
     app = FastAPI(
         title=app_settings.PROJECT_NAME,
         version=APP_VERSION,
-        openapi_url=(f"{app_settings.API_PREFIX}/openapi.json"),
+        openapi_url=(f"{app_settings.API_PREFIX}/openapi.json" if app_settings.DEBUG else None),
+        docs_url=(f"{app_settings.API_PREFIX}/docs" if app_settings.DEBUG else None),
+        redoc_url=None,
         openapi_tags=[
             {
                 "name": "health",
@@ -76,10 +109,16 @@ def create_app(
     )
 
     app.add_middleware(
+        JsonOriginMiddleware,
+        allowed_origins=tuple(app_settings.all_cors_origins),
+    )
+
+    app.add_middleware(
         RequestContextMiddleware,
         quiet_path_prefixes=(f"{app_settings.API_PREFIX.rstrip('/')}/health",),
     )
 
     app.include_router(api_router, prefix=app_settings.API_PREFIX)
+    install_error_handlers(app)
 
     return app

@@ -14,6 +14,8 @@ x-backend-environment: &backend-environment
   BACKEND_REDIS_PORT: 6379
   BACKEND_REDIS_DB: 0
   BACKEND_REDIS_PREFIX: web-app
+  BACKEND_KRATOS_PUBLIC_URL: http://kratos:4433
+  BACKEND_KRATOS_ADMIN_URL: http://kratos:4434
 
 x-backend-image: &backend-image
   image: "web-app-backend:${TAG:-dev}"
@@ -31,11 +33,11 @@ services:
     networks:
       - default
       - web-database
+      - web-identity
     command: ["bash", "scripts/prestart.sh"]
     environment:
       <<: *backend-environment
-      BACKEND_POSTGRES_USER: web_app_migrator
-      BACKEND_POSTGRES_PASSWORD: ${POSTGRES_MIGRATOR_PASSWORD:?POSTGRES_MIGRATOR_PASSWORD is required}
+      BACKEND_POSTGRES_MIGRATOR_PASSWORD: ${POSTGRES_MIGRATOR_PASSWORD:?POSTGRES_MIGRATOR_PASSWORD is required}
 
   backend:
     <<: *backend-image
@@ -47,6 +49,7 @@ services:
       - default
       - traefik-public
       - web-database
+      - web-identity
     labels:
       traefik.enable: "true"
       traefik.constraint-label: traefik-public
@@ -60,9 +63,7 @@ services:
     command: ["bash", "scripts/start.sh"]
     environment:
       <<: *backend-environment
-      BACKEND_POSTGRES_USER: web_app_runtime
       BACKEND_POSTGRES_PASSWORD: ${POSTGRES_RUNTIME_PASSWORD:?POSTGRES_RUNTIME_PASSWORD is required}
-      BACKEND_REDIS_USER: web_app_runtime
       BACKEND_REDIS_PASSWORD: ${REDIS_RUNTIME_PASSWORD:?REDIS_RUNTIME_PASSWORD is required}
     healthcheck:
       test: ["CMD", "python", "scripts/healthcheck.py"]
@@ -82,4 +83,7 @@ networks:
     external: true
   web-database:
     name: web-database
+    external: true
+  web-identity:
+    name: web-identity
     external: true

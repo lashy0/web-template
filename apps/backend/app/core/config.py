@@ -1,4 +1,7 @@
+import json
 from functools import lru_cache
+from pathlib import Path
+from typing import Annotated
 
 from pydantic import (
     AliasChoices,
@@ -10,7 +13,15 @@ from pydantic import (
     computed_field,
     field_validator,
 )
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+
+_CORS_ORIGINS_FORMAT_ERROR = (
+    "BACKEND_CORS_ORIGINS must be a JSON array of HTTP or HTTPS origins, "
+    "for example '[\"http://localhost:5173\"]'"
+)
+_POSTGRES_MIGRATOR_USER = "web_app_migrator"
+_POSTGRES_RUNTIME_USER = "web_app_runtime"
+_REDIS_RUNTIME_USER = "web_app_runtime"
 
 
 class Settings(BaseSettings):
@@ -43,7 +54,7 @@ class Settings(BaseSettings):
         validation_alias="BACKEND_LOG_JSON",
     )
 
-    CORS_ORIGINS: list[AnyHttpUrl] = Field(
+    CORS_ORIGINS: Annotated[list[AnyHttpUrl], NoDecode] = Field(
         default_factory=list,
         validation_alias="BACKEND_CORS_ORIGINS",
     )
@@ -55,16 +66,74 @@ class Settings(BaseSettings):
         validation_alias="BACKEND_READINESS_TIMEOUT",
     )
 
+    # Ory Kratos
+    KRATOS_PUBLIC_URL: str = Field(
+        default="http://kratos:4433",
+        validation_alias="BACKEND_KRATOS_PUBLIC_URL",
+    )
+    KRATOS_ADMIN_URL: str = Field(
+        default="http://kratos:4434",
+        validation_alias="BACKEND_KRATOS_ADMIN_URL",
+    )
+    KRATOS_SESSION_COOKIE: str = Field(
+        default="ory_kratos_session", min_length=1, validation_alias="BACKEND_KRATOS_SESSION_COOKIE"
+    )
+    KRATOS_PUBLIC_TIMEOUT: float = Field(
+        default=2.0, gt=0, validation_alias="BACKEND_KRATOS_PUBLIC_TIMEOUT"
+    )
+    KRATOS_ADMIN_TIMEOUT: float = Field(
+        default=10.0, gt=0, validation_alias="BACKEND_KRATOS_ADMIN_TIMEOUT"
+    )
+    KRATOS_PUBLIC_CONCURRENCY: int = Field(
+        default=20, ge=1, validation_alias="BACKEND_KRATOS_PUBLIC_CONCURRENCY"
+    )
+    KRATOS_ADMIN_CONCURRENCY: int = Field(
+        default=4, ge=1, validation_alias="BACKEND_KRATOS_ADMIN_CONCURRENCY"
+    )
+    KRATOS_RECONCILE_INTERVAL: float = Field(
+        default=300.0, gt=0, validation_alias="BACKEND_KRATOS_RECONCILE_INTERVAL"
+    )
+    KRATOS_RECONCILE_BATCH_SIZE: int = Field(
+        default=500, ge=1, le=500, validation_alias="BACKEND_KRATOS_RECONCILE_BATCH_SIZE"
+    )
+
+    # First administrator bootstrap
+    BOOTSTRAP_ADMIN_LOGIN: str = Field(
+        default="admin",
+        min_length=3,
+        max_length=64,
+        pattern=r"^[a-z0-9][a-z0-9._-]{2,63}$",
+        validation_alias="BACKEND_BOOTSTRAP_ADMIN_LOGIN",
+    )
+    BOOTSTRAP_ADMIN_NAME: str = Field(
+        default="Администратор",
+        min_length=1,
+        max_length=128,
+        validation_alias="BACKEND_BOOTSTRAP_ADMIN_NAME",
+    )
+    BOOTSTRAP_ADMIN_PASSWORD: SecretStr | None = Field(
+        default=None,
+        validation_alias="BACKEND_BOOTSTRAP_ADMIN_PASSWORD",
+    )
+    BOOTSTRAP_ADMIN_PASSWORD_FILE: Path | None = Field(
+        default=None,
+        validation_alias="BACKEND_BOOTSTRAP_ADMIN_PASSWORD_FILE",
+    )
+
     # Postgres
     DATABASE_URL: PostgresDsn | None = Field(
         default=None,
         validation_alias="BACKEND_DATABASE_URL",
     )
-    POSTGRES_USER: str = Field(
-        default="web_app_runtime",
+    MIGRATION_DATABASE_URL: PostgresDsn | None = Field(
+        default=None,
+        validation_alias="BACKEND_MIGRATION_DATABASE_URL",
+    )
+    POSTGRES_MIGRATOR_PASSWORD: SecretStr | None = Field(
+        default=None,
         validation_alias=AliasChoices(
-            "BACKEND_POSTGRES_USER",
-            "POSTGRES_USER",
+            "BACKEND_POSTGRES_MIGRATOR_PASSWORD",
+            "POSTGRES_MIGRATOR_PASSWORD",
         ),
     )
     POSTGRES_PASSWORD: SecretStr = Field(
@@ -142,13 +211,6 @@ class Settings(BaseSettings):
             "REDIS_PORT",
         ),
     )
-    REDIS_USER: str | None = Field(
-        default="web_app_runtime",
-        validation_alias=AliasChoices(
-            "BACKEND_REDIS_USER",
-            "REDIS_USER",
-        ),
-    )
     REDIS_PASSWORD: SecretStr | None = Field(
         default=None,
         validation_alias=AliasChoices(
@@ -204,6 +266,22 @@ class Settings(BaseSettings):
 
         return value
 
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, value: object) -> object:
+        if not isinstance(value, str):
+            return value
+
+        try:
+            origins: object = json.loads(value)
+        except json.JSONDecodeError as error:
+            raise ValueError(_CORS_ORIGINS_FORMAT_ERROR) from error
+
+        if not isinstance(origins, list):
+            raise ValueError(_CORS_ORIGINS_FORMAT_ERROR)
+
+        return origins
+
     @field_validator("CORS_ORIGINS")
     @classmethod
     def validate_cors_origins(cls, value: list[AnyHttpUrl]) -> list[AnyHttpUrl]:
@@ -225,10 +303,34 @@ class Settings(BaseSettings):
         if self.DATABASE_URL is not None:
             return self.DATABASE_URL
 
+        return self._build_database_url(
+            username=_POSTGRES_RUNTIME_USER,
+            password=self.POSTGRES_PASSWORD,
+        )
+
+    @property
+    def migration_database_url(self) -> PostgresDsn:
+        if self.MIGRATION_DATABASE_URL is not None:
+            return self.MIGRATION_DATABASE_URL
+
+        if self.DATABASE_URL is not None:
+            return self.DATABASE_URL
+
+        if self.POSTGRES_MIGRATOR_PASSWORD is None:
+            raise ValueError(
+                "POSTGRES_MIGRATOR_PASSWORD is required when no migration database URL is set"
+            )
+
+        return self._build_database_url(
+            username=_POSTGRES_MIGRATOR_USER,
+            password=self.POSTGRES_MIGRATOR_PASSWORD,
+        )
+
+    def _build_database_url(self, *, username: str, password: SecretStr) -> PostgresDsn:
         return PostgresDsn.build(
             scheme="postgresql+psycopg",
-            username=self.POSTGRES_USER,
-            password=self.POSTGRES_PASSWORD.get_secret_value(),
+            username=username,
+            password=password.get_secret_value(),
             host=self.POSTGRES_HOST,
             port=self.POSTGRES_PORT,
             path=self.POSTGRES_DB,
@@ -246,7 +348,7 @@ class Settings(BaseSettings):
 
         return RedisDsn.build(
             scheme="redis",
-            username=self.REDIS_USER or None,
+            username=_REDIS_RUNTIME_USER,
             host=self.REDIS_HOST,
             port=self.REDIS_PORT,
             password=password or None,
@@ -257,6 +359,27 @@ class Settings(BaseSettings):
     @property
     def all_cors_origins(self) -> list[str]:
         return [str(origin).rstrip("/") for origin in self.CORS_ORIGINS]
+
+    def bootstrap_admin_password(self) -> str | None:
+        password = (
+            self.BOOTSTRAP_ADMIN_PASSWORD.get_secret_value()
+            if self.BOOTSTRAP_ADMIN_PASSWORD
+            else None
+        )
+        password_file = self.BOOTSTRAP_ADMIN_PASSWORD_FILE
+        if password is not None and password_file is not None:
+            raise ValueError(
+                "Set only one of BACKEND_BOOTSTRAP_ADMIN_PASSWORD or "
+                "BACKEND_BOOTSTRAP_ADMIN_PASSWORD_FILE"
+            )
+        if password_file is not None:
+            try:
+                password = password_file.read_text(encoding="utf-8").rstrip("\r\n")
+            except OSError as error:
+                raise ValueError("Cannot read BACKEND_BOOTSTRAP_ADMIN_PASSWORD_FILE") from error
+        if password is not None and len(password) < 12:
+            raise ValueError("BACKEND_BOOTSTRAP_ADMIN_PASSWORD must contain at least 12 characters")
+        return password
 
 
 @lru_cache(maxsize=1)

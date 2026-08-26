@@ -1,6 +1,6 @@
 import asyncio
 import sys
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from typing import Any
 
 import pytest
@@ -9,6 +9,22 @@ from fastapi.testclient import TestClient
 
 from app.core.config import Settings
 from app.main import create_app
+
+
+def _selector_event_loop() -> asyncio.AbstractEventLoop:
+    return asyncio.SelectorEventLoop()
+
+
+def pytest_asyncio_loop_factories(
+    config: pytest.Config,
+    item: pytest.Item,
+) -> dict[str, Callable[[], asyncio.AbstractEventLoop]]:
+    del config, item
+
+    if sys.platform == "win32":
+        return {"selector": _selector_event_loop}
+
+    return {"default": asyncio.new_event_loop}
 
 
 @pytest.fixture(scope="session")

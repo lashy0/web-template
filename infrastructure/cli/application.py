@@ -11,7 +11,7 @@ from cli.compose import (
     DeploymentError,
     Environment,
     find_tool,
-    network_exists,
+    require_network,
     run_cli,
     run_command,
 )
@@ -30,20 +30,8 @@ app = typer.Typer(
 )
 
 
-def require_traefik_network(docker: str) -> None:
-    if not network_exists(docker, TRAEFIK_NETWORK):
-        raise DeploymentError(
-            f"Required Docker network '{TRAEFIK_NETWORK}' does not exist. "
-            "Deploy Traefik infrastructure first."
-        )
-
-
 def require_database_stack(docker: str) -> None:
-    if not network_exists(docker, DATABASE_NETWORK):
-        raise DeploymentError(
-            f"Required Docker network '{DATABASE_NETWORK}' does not exist. "
-            "Start database infrastructure first."
-        )
+    require_network(docker, DATABASE_NETWORK, "Start database infrastructure first.")
 
     failures: list[str] = []
     for service in ("postgres", "redis"):
@@ -124,7 +112,7 @@ def up(
     docker = find_tool("docker")
     values = command_environment(environment)
     command = PROJECT.prepare(docker, environment, process_environment=values)
-    require_traefik_network(docker)
+    require_network(docker, TRAEFIK_NETWORK, "Deploy Traefik infrastructure first.")
     require_database_stack(docker)
 
     if environment is Environment.DEV:

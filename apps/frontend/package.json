@@ -15,14 +15,20 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.9.1",
+    "@ory/client-fetch": "^1.22.66",
     "@tanstack/react-query": "^5.101.4",
     "@tanstack/react-query-devtools": "^5.101.4",
     "@tanstack/react-router": "^1.170.19",
     "@tanstack/react-router-devtools": "^1.167.1",
+    "@tanstack/react-table": "^9.1.2",
     "@web-app/api-client": "workspace:*",
     "@web-app/ui": "workspace:*",
+    "lucide-react": "^1.31.0",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "react-hook-form": "^7.85.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",

@@ -30,13 +30,7 @@ class InterceptHandler(logging.Handler):
             frame = cast("FrameType", frame.f_back)
             depth += 1
 
-        logger.opt(
-            depth=depth,
-            exception=record.exc_info
-        ).log(
-            level,
-            record.getMessage()
-        )
+        logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
 
 
 def setup_logging(settings: Settings) -> None:
@@ -65,11 +59,7 @@ def setup_logging(settings: Settings) -> None:
 
     intercept_handler = InterceptHandler()
 
-    logging.basicConfig(
-        handlers=[intercept_handler],
-        level=0,
-        force=True
-    )
+    logging.basicConfig(handlers=[intercept_handler], level=0, force=True)
 
     for logger_name in (
         "uvicorn",

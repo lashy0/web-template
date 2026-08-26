@@ -16,5 +16,6 @@ def test_readiness_with_real_dependencies(
         "checks": {
             "postgres": "up",
             "redis": "up",
+            "kratos": "up",
         },
     }

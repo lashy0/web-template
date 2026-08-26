@@ -1,5 +1,5 @@
 # Builder stage
-FROM ghcr.io/astral-sh/uv:0.11.32-python3.13-trixie-slim AS builder
+FROM ghcr.io/astral-sh/uv:0.11.32-python3.13-trixie AS builder
 
 ENV \
     # Compile bytecode

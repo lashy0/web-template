@@ -1,14 +1,16 @@
 import asyncio
 from logging.config import fileConfig
 
+from pydantic import ValidationError
+from pydantic_settings import SettingsError
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from alembic import context
+from alembic import context, util
 from app.core.config import get_settings
-from app.database import models  # noqa: F401
-from app.database.base import Base
+from app.infrastructure.database import models  # noqa: F401
+from app.infrastructure.database.base import Base
 
 config = context.config
 
@@ -19,13 +21,16 @@ target_metadata = Base.metadata
 
 
 def get_database_url() -> str:
-    """Return the SQLAlchemy database URL from application settings.
+    """Return the migration database URL from application settings.
 
     Returns:
-        The asynchronous SQLAlchemy database URL.
+        The asynchronous SQLAlchemy URL with schema migration privileges.
     """
-    settings = get_settings()
-    return str(settings.database_url)
+    try:
+        settings = get_settings()
+        return str(settings.migration_database_url)
+    except (SettingsError, ValidationError, ValueError) as error:
+        raise util.CommandError(f"Invalid backend configuration:\n{error}") from None
 
 
 config.set_main_option(
@@ -108,7 +113,10 @@ def run_migrations_online() -> None:
     Alembic itself exposes a synchronous migration API. The asynchronous
     migration coroutine is therefore started through ``asyncio.run()``.
     """
-    asyncio.run(run_async_migrations())
+    asyncio.run(
+        run_async_migrations(),
+        loop_factory=asyncio.SelectorEventLoop,
+    )
 
 
 if context.is_offline_mode():

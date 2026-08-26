@@ -24,7 +24,7 @@ prod files provide the environment-specific overrides.
 Create the ignored Traefik environment file from its example:
 
 ```console
-cp .env.example traefik/.env
+cp .env.example .env
 ```
 
 Set `TRAEFIK_USERNAME`, `TRAEFIK_HASHED_PASSWORD`, and `ACME_EMAIL` in the

@@ -1,8 +1,8 @@
 # Deployment
 
-PostgreSQL/Redis, Traefik, and the application are separate Compose projects.
-One Docker host represents one environment; dev and prod are not run together
-on the same daemon.
+PostgreSQL/Redis, Traefik, Ory Kratos, and the application are separate Compose
+projects. One Docker host represents one environment; dev and prod are not run
+together on the same daemon.
 
 The production application project builds two runtime images: the FastAPI
 backend and an unprivileged Nginx image containing the React SPA. Traefik serves
@@ -17,9 +17,11 @@ production variables are:
 
 | Variable | Required | Description |
 | --- | --- | --- |
-| `POSTGRES_ADMIN_PASSWORD` | yes | PostgreSQL bootstrap and operations |
+| `POSTGRES_ADMIN_PASSWORD` | yes | Password for the `postgres_admin` bootstrap and operations role |
 | `POSTGRES_MIGRATOR_PASSWORD` | yes | Alembic DDL role |
 | `POSTGRES_RUNTIME_PASSWORD` | yes | Backend DML role |
+| `KRATOS_POSTGRES_MIGRATOR_PASSWORD` | yes | Kratos database owner and migration role |
+| `KRATOS_POSTGRES_RUNTIME_PASSWORD` | yes | Least-privileged Kratos runtime role |
 | `REDIS_ADMIN_PASSWORD` | yes | Redis operations and ACL management |
 | `REDIS_RUNTIME_PASSWORD` | yes | Backend session access |
 | `BACKEND_CORS_ORIGINS` | yes | JSON array of browser origins |
@@ -32,6 +34,10 @@ configuration but means privileged variables remain visible inside runtime
 containers. Never commit `.env` or print effective Compose configuration in
 production diagnostics.
 
+Kratos cookie and cipher secrets are stored separately in the ignored
+`infrastructure/identity/.env`. Generate them once from its `.env.example` and
+preserve them across deployments.
+
 ## Startup and shutdown
 
 Deploy in this order:
@@ -39,13 +45,16 @@ Deploy in this order:
 ```console
 uv run --project infrastructure infra-database up prod
 uv run --project infrastructure infra-traefik up prod
+uv run --project infrastructure infra-identity up prod
 uv run --project infrastructure infra-application up prod
 ```
 
-The application command fails before build/start if the `web-database` network
-or either healthy data-service container is absent. It never invokes the
-database project. The `prestart` container then applies Alembic migrations as
-`web_app_migrator`; the backend connects as the runtime roles.
+The identity command checks its database and Traefik networks, applies Kratos
+migrations, and waits for readiness. The application command fails before
+build/start if the `web-database` network or either healthy data-service
+container is absent. It never invokes the database project. The `prestart`
+container then applies Alembic migrations as `web_app_migrator`; the backend
+connects as the runtime roles.
 
 Shut down in reverse order. Database shutdown is guarded while application
 containers remain active.
@@ -64,5 +73,7 @@ a capacity review; PgBouncer is not part of the current topology.
 
 There are no off-host backups, WAL archiving, point-in-time recovery, automated
 restore, replication, or failover. No RPO or RTO is guaranteed for host/storage
-loss. PostgreSQL volume loss can lose all business data; Redis volume loss can
-invalidate all sessions but must not lose business data.
+loss. PostgreSQL volume loss can lose both application and identity data;
+production backups must include the `web_app` and `kratos` databases, and a
+backup is required before upgrading Kratos. Redis volume loss can invalidate
+all sessions but must not lose business data.

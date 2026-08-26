@@ -9,50 +9,213 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as LayoutRouteImport } from './routes/_layout'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
+import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
+import { Route as AuthErrorRouteImport } from './routes/auth/error'
+import { Route as LayoutAdminIndexRouteImport } from './routes/_layout/admin/index'
+import { Route as LayoutAdminUserAuditRouteImport } from './routes/_layout/admin/user/audit'
+import { Route as LayoutAdminUserUsersRouteImport } from './routes/_layout/admin/user/users'
 
-const IndexRoute = IndexRouteImport.update({
+const LayoutRoute = LayoutRouteImport.update({
+  id: '/_layout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LayoutIndexRoute = LayoutIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutAdminRoute = LayoutAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const AuthErrorRoute = AuthErrorRouteImport.update({
+  id: '/auth/error',
+  path: '/auth/error',
   getParentRoute: () => rootRouteImport,
+} as any)
+const LayoutAdminIndexRoute = LayoutAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => LayoutAdminRoute,
+} as any)
+const LayoutAdminUserAuditRoute = LayoutAdminUserAuditRouteImport.update({
+  id: '/user/audit',
+  path: '/user/audit',
+  getParentRoute: () => LayoutAdminRoute,
+} as any)
+const LayoutAdminUserUsersRoute = LayoutAdminUserUsersRouteImport.update({
+  id: '/user/users',
+  path: '/user/users',
+  getParentRoute: () => LayoutAdminRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/': typeof LayoutIndexRoute
+  '/login': typeof LoginRoute
+  '/admin': typeof LayoutAdminRouteWithChildren
+  '/auth/error': typeof AuthErrorRoute
+  '/admin/': typeof LayoutAdminIndexRoute
+  '/admin/user/audit': typeof LayoutAdminUserAuditRoute
+  '/admin/user/users': typeof LayoutAdminUserUsersRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/auth/error': typeof AuthErrorRoute
+  '/': typeof LayoutIndexRoute
+  '/admin': typeof LayoutAdminIndexRoute
+  '/admin/user/audit': typeof LayoutAdminUserAuditRoute
+  '/admin/user/users': typeof LayoutAdminUserUsersRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
+  '/_layout': typeof LayoutRouteWithChildren
+  '/login': typeof LoginRoute
+  '/_layout/admin': typeof LayoutAdminRouteWithChildren
+  '/auth/error': typeof AuthErrorRoute
+  '/_layout/': typeof LayoutIndexRoute
+  '/_layout/admin/': typeof LayoutAdminIndexRoute
+  '/_layout/admin/user/audit': typeof LayoutAdminUserAuditRoute
+  '/_layout/admin/user/users': typeof LayoutAdminUserUsersRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/admin'
+    | '/auth/error'
+    | '/admin/'
+    | '/admin/user/audit'
+    | '/admin/user/users'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/login'
+    | '/auth/error'
+    | '/'
+    | '/admin'
+    | '/admin/user/audit'
+    | '/admin/user/users'
+  id:
+    | '__root__'
+    | '/_layout'
+    | '/login'
+    | '/_layout/admin'
+    | '/auth/error'
+    | '/_layout/'
+    | '/_layout/admin/'
+    | '/_layout/admin/user/audit'
+    | '/_layout/admin/user/users'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  LayoutRoute: typeof LayoutRouteWithChildren
+  LoginRoute: typeof LoginRoute
+  AuthErrorRoute: typeof AuthErrorRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
+    '/_layout': {
+      id: '/_layout'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof LayoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_layout/': {
+      id: '/_layout/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+      preLoaderRoute: typeof LayoutIndexRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/admin': {
+      id: '/_layout/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof LayoutAdminRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/auth/error': {
+      id: '/auth/error'
+      path: '/auth/error'
+      fullPath: '/auth/error'
+      preLoaderRoute: typeof AuthErrorRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_layout/admin/': {
+      id: '/_layout/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof LayoutAdminIndexRouteImport
+      parentRoute: typeof LayoutAdminRoute
+    }
+    '/_layout/admin/user/audit': {
+      id: '/_layout/admin/user/audit'
+      path: '/user/audit'
+      fullPath: '/admin/user/audit'
+      preLoaderRoute: typeof LayoutAdminUserAuditRouteImport
+      parentRoute: typeof LayoutAdminRoute
+    }
+    '/_layout/admin/user/users': {
+      id: '/_layout/admin/user/users'
+      path: '/user/users'
+      fullPath: '/admin/user/users'
+      preLoaderRoute: typeof LayoutAdminUserUsersRouteImport
+      parentRoute: typeof LayoutAdminRoute
     }
   }
 }
 
+interface LayoutAdminRouteChildren {
+  LayoutAdminIndexRoute: typeof LayoutAdminIndexRoute
+  LayoutAdminUserAuditRoute: typeof LayoutAdminUserAuditRoute
+  LayoutAdminUserUsersRoute: typeof LayoutAdminUserUsersRoute
+}
+
+const LayoutAdminRouteChildren: LayoutAdminRouteChildren = {
+  LayoutAdminIndexRoute: LayoutAdminIndexRoute,
+  LayoutAdminUserAuditRoute: LayoutAdminUserAuditRoute,
+  LayoutAdminUserUsersRoute: LayoutAdminUserUsersRoute,
+}
+
+const LayoutAdminRouteWithChildren = LayoutAdminRoute._addFileChildren(
+  LayoutAdminRouteChildren,
+)
+
+interface LayoutRouteChildren {
+  LayoutAdminRoute: typeof LayoutAdminRouteWithChildren
+  LayoutIndexRoute: typeof LayoutIndexRoute
+}
+
+const LayoutRouteChildren: LayoutRouteChildren = {
+  LayoutAdminRoute: LayoutAdminRouteWithChildren,
+  LayoutIndexRoute: LayoutIndexRoute,
+}
+
+const LayoutRouteWithChildren =
+  LayoutRoute._addFileChildren(LayoutRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  LayoutRoute: LayoutRouteWithChildren,
+  LoginRoute: LoginRoute,
+  AuthErrorRoute: AuthErrorRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

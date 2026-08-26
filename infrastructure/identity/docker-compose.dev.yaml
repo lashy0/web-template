@@ -1,0 +1,21 @@
+services:
+  kratos-migrate:
+    environment:
+      LOG_FORMAT: text
+      LOG_LEVEL: debug
+
+  kratos:
+    restart: "no"
+    ports:
+      - "127.0.0.1:${KRATOS_PUBLIC_PORT:-4433}:4433"
+      - "127.0.0.1:${KRATOS_ADMIN_PORT:-4434}:4434"
+    environment:
+      SERVE_PUBLIC_BASE_URL: http://localhost:5173/
+      SELFSERVICE_DEFAULT_BROWSER_RETURN_URL: http://localhost:5173/
+      SELFSERVICE_ALLOWED_RETURN_URLS: http://localhost:5173
+      SELFSERVICE_FLOWS_ERROR_UI_URL: http://localhost:5173/auth/error
+      SELFSERVICE_FLOWS_LOGIN_UI_URL: http://localhost:5173/login
+      SELFSERVICE_FLOWS_LOGOUT_AFTER_DEFAULT_BROWSER_RETURN_URL: http://localhost:5173/login
+      COOKIES_SECURE: "false"
+      LOG_FORMAT: text
+      LOG_LEVEL: debug

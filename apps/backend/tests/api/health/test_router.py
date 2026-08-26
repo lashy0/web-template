@@ -62,6 +62,11 @@ def test_readiness(
         "app.modules.health.router.is_redis_ready",
         return_value=redis_ready,
     )
+    kratos_ready_mock = mocker.patch.object(
+        app.state.identity_manager,
+        "is_ready",
+        return_value=True,
+    )
 
     response = client.get(f"{api_prefix}/health/ready")
 
@@ -71,6 +76,7 @@ def test_readiness(
         "checks": {
             "postgres": "up" if postgres_ready else "down",
             "redis": "up" if redis_ready else "down",
+            "kratos": "up",
         },
     }
 
@@ -82,3 +88,4 @@ def test_readiness(
         app.state.redis,
         timeout=test_settings.READINESS_TIMEOUT,
     )
+    kratos_ready_mock.assert_awaited_once_with()

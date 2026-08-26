@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 
@@ -95,6 +97,55 @@ def test_cors_origins_are_parsed_from_environment(monkeypatch: pytest.MonkeyPatc
     settings = Settings()
 
     assert settings.all_cors_origins == ["https://app.example.com", "http://localhost:5173"]
+
+
+@pytest.mark.unit
+def test_cors_origins_report_the_expected_environment_format(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("BACKEND_CORS_ORIGINS", "[http://localhost]")
+
+    with pytest.raises(
+        ValidationError,
+        match=r"BACKEND_CORS_ORIGINS must be a JSON array.*http://localhost:5173",
+    ):
+        Settings()
+
+
+@pytest.mark.unit
+def test_bootstrap_password_accepts_one_environment_secret() -> None:
+    settings = Settings.model_validate(
+        {"BACKEND_BOOTSTRAP_ADMIN_PASSWORD": "correct-horse-battery-staple"}
+    )
+
+    assert settings.bootstrap_admin_password() == "correct-horse-battery-staple"
+
+
+@pytest.mark.unit
+def test_bootstrap_password_rejects_two_sources() -> None:
+    password_file = Path("bootstrap-password")
+    settings = Settings.model_validate(
+        {
+            "BACKEND_BOOTSTRAP_ADMIN_PASSWORD": "correct-horse-battery-staple",
+            "BACKEND_BOOTSTRAP_ADMIN_PASSWORD_FILE": password_file,
+        }
+    )
+
+    with pytest.raises(ValueError, match="Set only one"):
+        settings.bootstrap_admin_password()
+
+
+@pytest.mark.unit
+def test_bootstrap_password_reads_a_secret_file_without_its_final_newline(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    password_file = Path("bootstrap-password")
+    monkeypatch.setattr(
+        Path, "read_text", lambda *_args, **_kwargs: "correct-horse-battery-staple\n"
+    )
+    settings = Settings.model_validate({"BACKEND_BOOTSTRAP_ADMIN_PASSWORD_FILE": password_file})
+
+    assert settings.bootstrap_admin_password() == "correct-horse-battery-staple"
 
 
 @pytest.mark.unit

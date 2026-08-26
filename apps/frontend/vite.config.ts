@@ -9,6 +9,9 @@ const repositoryRoot = fileURLToPath(new URL('../..', import.meta.url))
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, repositoryRoot, '')
   const baseDomain = env.BASE_DOMAIN || 'localhost'
+  const kratosPublicPort = env.KRATOS_PUBLIC_PORT || '4433'
+  const apiHost = `api.${baseDomain}`
+  const apiTarget = baseDomain === 'localhost' ? 'http://127.0.0.1' : `http://${apiHost}`
 
   return {
     envDir: repositoryRoot,
@@ -28,9 +31,25 @@ export default defineConfig(({ mode }) => {
     server: {
       proxy: {
         '/api': {
-          target: `http://api.${baseDomain}`,
+          target: apiTarget,
           changeOrigin: true,
+          configure:
+            baseDomain === 'localhost'
+              ? (proxy) => {
+                  proxy.on('proxyReq', (request) => {
+                    request.setHeader('host', apiHost)
+                  })
+                }
+              : undefined,
           rewrite: (path) => path.replace(/^\/api/, ''),
+        },
+        '/self-service': {
+          target: `http://127.0.0.1:${kratosPublicPort}`,
+          changeOrigin: true,
+        },
+        '/sessions': {
+          target: `http://127.0.0.1:${kratosPublicPort}`,
+          changeOrigin: true,
         },
       },
     },

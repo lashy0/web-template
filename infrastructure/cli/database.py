@@ -29,11 +29,11 @@ def up(
         typer.Argument(help="Configuration: dev or prod."),
     ],
 ) -> None:
-    """Start the database containers and wait until they are healthy."""
+    """Start the PostgreSQL and Redis data services."""
     docker = find_tool("docker")
-    ensure_network(docker, DATABASE_NETWORK, internal=True)
+    ensure_network(docker, DATABASE_NETWORK)
     command = PROJECT.prepare(docker, environment)
-    run_command([*command, "up", "--detach", "--wait"])
+    run_command([*command, "up", "--detach", "--wait", "postgres", "redis"])
 
 
 @app.command()

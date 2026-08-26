@@ -8,6 +8,7 @@ dependencies = [
     "alembic[tz]>=1.18.5,<2.0.0",
     "fastapi[standard]>=0.139.0",
     "loguru<8.0.0,>=0.7.3",
+    "ory-kratos-client==26.2.0",
     "psycopg[binary]<4.0.0,>=3.3.4",
     "pydantic<3.0.0,>=2.13.4",
     "pydantic-settings<3.0.0,>=2.14.2",
@@ -29,6 +30,9 @@ dev = [
 
 [tool.uv]
 package = false
+
+[tool.uv.sources]
+ory-kratos-client = { git = "https://github.com/ory/kratos-client-python.git", rev = "v26.2.0" }
 
 [tool.mypy]
 strict = true

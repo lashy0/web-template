@@ -70,14 +70,16 @@ async def readiness(
 ) -> ReadinessResponse:
     settings: Settings = request.app.state.settings
 
-    postgres_ready, redis_ready = await asyncio.gather(
+    postgres_ready, redis_ready, kratos_ready = await asyncio.gather(
         is_postgres_ready(database.engine, timeout=settings.READINESS_TIMEOUT),
         is_redis_ready(redis, timeout=settings.READINESS_TIMEOUT),
+        request.app.state.identity_manager.is_ready(),
     )
 
     checks_ready = {
         "postgres": postgres_ready,
         "redis": redis_ready,
+        "kratos": kratos_ready,
     }
 
     application_ready = all(checks_ready.values())
@@ -87,6 +89,7 @@ async def readiness(
     dependency_statuses = ReadinessChecks(
         postgres="up" if postgres_ready else "down",
         redis="up" if redis_ready else "down",
+        kratos="up" if kratos_ready else "down",
     )
 
     if not application_ready:

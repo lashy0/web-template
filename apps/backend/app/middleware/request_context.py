@@ -46,6 +46,7 @@ class RequestContextMiddleware:
         started_at = perf_counter()
 
         request_id = resolve_request_id(Headers(scope=scope))
+        scope.setdefault("state", {})["request_id"] = request_id
 
         status_code = 500
 

@@ -33,6 +33,9 @@ class ReadinessChecks(BaseModel):
     redis: DependencyStatus = Field(
         description="Redis connection status.",
     )
+    kratos: DependencyStatus = Field(
+        description="Ory Kratos Admin API status.",
+    )
 
 
 class ReadinessResponse(BaseModel):
@@ -44,6 +47,7 @@ class ReadinessResponse(BaseModel):
                     "checks": {
                         "postgres": "up",
                         "redis": "up",
+                        "kratos": "up",
                     },
                 },
             ],

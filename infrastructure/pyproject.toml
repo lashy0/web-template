@@ -9,6 +9,7 @@ dependencies = ["typer>=0.27.0,<1.0.0"]
 [project.scripts]
 infra-application = "cli.application:main"
 infra-database = "cli.database:main"
+infra-identity = "cli.identity:main"
 infra-traefik = "cli.traefik:main"
 
 [build-system]
