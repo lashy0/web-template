@@ -4,9 +4,10 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, Request, status
 
 from app.api.auth_deps import CurrentPrincipalDep, require_permission
-from app.auth.permissions import Permission
 from app.auth.roles import Role
+from app.modules.users.exceptions import UserNotFoundError
 from app.modules.users.models import User
+from app.modules.users.permissions import UserPermission
 from app.modules.users.schemas import (
     AuthState,
     CreateUserRequest,
@@ -41,7 +42,7 @@ def _service(request: Request) -> UserManagementService:
 
 @router.get("", response_model=UserListResponse)
 async def list_users(
-    _: Annotated[CurrentPrincipalDep, Depends(require_permission(Permission.USER_READ))],
+    _: Annotated[CurrentPrincipalDep, Depends(require_permission(UserPermission.READ))],
     request: Request,
     q: str | None = None,
     role: Role | None = None,
@@ -62,29 +63,33 @@ async def list_users(
         sort=sort,
         order=order,
     )
+
     return UserListResponse(
-        items=[_response(user) for user in users], total=total, page=page, page_size=page_size
+        items=[_response(user) for user in users],
+        total=total,
+        page=page,
+        page_size=page_size,
     )
 
 
 @router.get("/{user_id}", response_model=UserResponse)
 async def get_user(
     user_id: UUID,
-    _: Annotated[CurrentPrincipalDep, Depends(require_permission(Permission.USER_READ))],
+    _: Annotated[CurrentPrincipalDep, Depends(require_permission(UserPermission.READ))],
     request: Request,
 ) -> UserResponse:
     user = await _service(request).get(user_id)
-    if user is None:
-        from app.auth.exceptions import IdentityNotFoundError
 
-        raise IdentityNotFoundError
+    if user is None:
+        raise UserNotFoundError
+
     return _response(user)
 
 
 @router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def create_user(
     payload: CreateUserRequest,
-    principal: Annotated[CurrentPrincipalDep, Depends(require_permission(Permission.USER_CREATE))],
+    principal: Annotated[CurrentPrincipalDep, Depends(require_permission(UserPermission.CREATE))],
     request: Request,
 ) -> UserResponse:
     user = await _service(request).create(
@@ -95,6 +100,7 @@ async def create_user(
         password=payload.password,
         active=payload.active,
     )
+
     return _response(user)
 
 
@@ -102,7 +108,7 @@ async def create_user(
 async def update_user(
     user_id: UUID,
     payload: UpdateUserRequest,
-    principal: Annotated[CurrentPrincipalDep, Depends(require_permission(Permission.USER_UPDATE))],
+    principal: Annotated[CurrentPrincipalDep, Depends(require_permission(UserPermission.UPDATE))],
     request: Request,
 ) -> UserResponse:
     return _response(
@@ -125,7 +131,7 @@ async def update_password(
     payload: UpdatePasswordRequest,
     principal: Annotated[
         CurrentPrincipalDep,
-        Depends(require_permission(Permission.USER_SET_PASSWORD)),
+        Depends(require_permission(UserPermission.SET_PASSWORD)),
     ],
     request: Request,
 ) -> None:
@@ -141,7 +147,7 @@ async def update_active(
     user_id: UUID,
     payload: UpdateActiveRequest,
     principal: Annotated[
-        CurrentPrincipalDep, Depends(require_permission(Permission.USER_SET_ACTIVE))
+        CurrentPrincipalDep, Depends(require_permission(UserPermission.SET_ACTIVE))
     ],
     request: Request,
 ) -> UserResponse:
@@ -154,7 +160,7 @@ async def update_active(
 async def update_archived(
     user_id: UUID,
     payload: UpdateArchivedRequest,
-    principal: Annotated[CurrentPrincipalDep, Depends(require_permission(Permission.USER_ARCHIVE))],
+    principal: Annotated[CurrentPrincipalDep, Depends(require_permission(UserPermission.ARCHIVE))],
     request: Request,
 ) -> UserResponse:
     return _response(
@@ -167,7 +173,7 @@ async def update_archived(
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(
     user_id: UUID,
-    principal: Annotated[CurrentPrincipalDep, Depends(require_permission(Permission.USER_DELETE))],
+    principal: Annotated[CurrentPrincipalDep, Depends(require_permission(UserPermission.DELETE))],
     request: Request,
 ) -> None:
     await _service(request).delete(actor=principal, user_id=user_id)

@@ -97,6 +97,39 @@ class Settings(BaseSettings):
         default=500, ge=1, le=500, validation_alias="BACKEND_KRATOS_RECONCILE_BATCH_SIZE"
     )
 
+    # Ory Hydra
+    HYDRA_PUBLIC_URL: str = Field(
+        default="http://hydra:4444",
+        validation_alias="BACKEND_HYDRA_PUBLIC_URL",
+    )
+    HYDRA_ADMIN_URL: str = Field(
+        default="http://hydra:4445",
+        validation_alias="BACKEND_HYDRA_ADMIN_URL",
+    )
+    HYDRA_PUBLIC_TIMEOUT: float = Field(
+        default=2.0,
+        gt=0,
+        validation_alias="BACKEND_HYDRA_PUBLIC_TIMEOUT",
+    )
+    HYDRA_ADMIN_TIMEOUT: float = Field(
+        default=10.0,
+        gt=0,
+        validation_alias="BACKEND_HYDRA_ADMIN_TIMEOUT",
+    )
+    HYDRA_ADMIN_CONCURRENCY: int = Field(
+        default=4,
+        ge=1,
+        validation_alias="BACKEND_HYDRA_ADMIN_CONCURRENCY",
+    )
+
+    # PAK access keys are encrypted with Fernet before they are stored locally.
+    # This value deliberately has no default: deployments must supply a stable,
+    # 32-byte URL-safe base64 Fernet key through their secret manager.
+    PAK_ACCESS_KEY_ENCRYPTION_KEY: SecretStr | None = Field(
+        default=None,
+        validation_alias="BACKEND_PAK_ACCESS_KEY_ENCRYPTION_KEY",
+    )
+
     # First administrator bootstrap
     BOOTSTRAP_ADMIN_LOGIN: str = Field(
         default="admin",

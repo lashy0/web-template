@@ -17,11 +17,11 @@ from app.auth.contracts import AuthSession, Identity
 from app.auth.exceptions import (
     IdentityAlreadyExistsError,
     IdentityNotFoundError,
-    UserProvisioningError,
 )
 from app.auth.roles import Role
 from app.core.config import Settings
 from app.main import create_app
+from app.modules.users.exceptions import UserProvisioningError
 from app.modules.users.models import User
 
 _ALLOWED_ORIGIN = "https://admin.example"

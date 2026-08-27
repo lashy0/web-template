@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Query
 
 from app.api.auth_deps import CurrentPrincipalDep, require_permission
 from app.api.deps import DatabaseDep
-from app.auth.permissions import Permission
+from app.modules.audit.permissions import AuditPermission
 from app.modules.audit.repository import AuditRepository
 from app.modules.audit.schemas import AuditEventResponse, AuditListResponse
 
@@ -14,7 +14,7 @@ router = APIRouter(prefix="/audit", tags=["audit"])
 
 @router.get("", response_model=AuditListResponse)
 async def list_audit_events(
-    _: Annotated[CurrentPrincipalDep, Depends(require_permission(Permission.AUDIT_READ))],
+    _: Annotated[CurrentPrincipalDep, Depends(require_permission(AuditPermission.READ))],
     database: DatabaseDep,
     entity_type: str | None = None,
     created_from: datetime | None = None,
@@ -34,6 +34,7 @@ async def list_audit_events(
             page_size=page_size,
             sort=sort,
         )
+
     return AuditListResponse(
         items=[
             AuditEventResponse(

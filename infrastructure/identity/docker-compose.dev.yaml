@@ -19,3 +19,16 @@ services:
       COOKIES_SECURE: "false"
       LOG_FORMAT: text
       LOG_LEVEL: debug
+
+  hydra-migrate:
+    environment:
+      LOG_FORMAT: text
+      LOG_LEVEL: debug
+
+  hydra:
+    restart: "no"
+    command: ["serve", "all", "--dev", "--sqa-opt-out", "--config", "/etc/config/hydra/hydra.yaml"]
+    environment:
+      URLS_SELF_ISSUER: "http://oauth.${BASE_DOMAIN:?BASE_DOMAIN is required}"
+      LOG_FORMAT: text
+      LOG_LEVEL: debug

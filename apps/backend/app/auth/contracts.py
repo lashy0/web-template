@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Literal, Protocol
 from uuid import UUID
@@ -17,6 +17,28 @@ class AuthSession:
     id: UUID
     identity: Identity
     expires_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class OAuthClient:
+    client_id: str
+    name: str | None
+    grant_types: tuple[str, ...]
+    scopes: tuple[str, ...]
+    token_endpoint_auth_method: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class OAuthClientCredentials:
+    client: OAuthClient
+    client_secret: str = field(repr=False)
+
+
+@dataclass(frozen=True, slots=True)
+class AccessTokenIntrospection:
+    active: bool
+    client_id: str | None
+    scopes: tuple[str, ...]
 
 
 class SessionProvider(Protocol):
@@ -116,4 +138,39 @@ class IdentityManager(Protocol):
 
     async def list_identities(self, *, page_size: int) -> list[Identity]:
         """List identities for reconciliation."""
+        raise NotImplementedError
+
+
+class OAuthClientManager(Protocol):
+    async def create_client(
+        self,
+        *,
+        client_id: str | None = None,
+        name: str | None = None,
+        scopes: tuple[str, ...] = (),
+    ) -> OAuthClientCredentials:
+        """Create a confidential client for the client-credentials grant."""
+        raise NotImplementedError
+
+    async def get_client(self, client_id: str) -> OAuthClient:
+        """Retrieve a client without exposing its secret."""
+        raise NotImplementedError
+
+    async def delete_client(self, client_id: str) -> None:
+        """Delete a client and revoke its credentials."""
+        raise NotImplementedError
+
+    async def rotate_client_credentials(self, client_id: str) -> OAuthClientCredentials:
+        """Replace a client's secret and return it exactly once."""
+        raise NotImplementedError
+
+
+class TokenIntrospector(Protocol):
+    async def introspect_access_token(
+        self,
+        access_token: str,
+        *,
+        required_scopes: tuple[str, ...] = (),
+    ) -> AccessTokenIntrospection:
+        """Return the active state and OAuth client data for an access token."""
         raise NotImplementedError

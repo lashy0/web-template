@@ -13,10 +13,12 @@ from app.core.config import Settings, get_settings
 from app.core.logging import setup_logging
 from app.core.version import APP_VERSION
 from app.infrastructure.database.session import create_database
+from app.infrastructure.hydra.client import HydraOAuthClientManager, HydraTokenIntrospector
 from app.infrastructure.kratos.client import KratosIdentityManager, KratosSessionVerifier
 from app.infrastructure.redis.client import create_redis_client
 from app.middleware.csrf import JsonOriginMiddleware
 from app.middleware.request_context import RequestContextMiddleware
+from app.modules.pak.service import PakManagementService
 from app.modules.users.service import UserManagementService
 
 
@@ -38,6 +40,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     app.state.identity_manager = KratosIdentityManager(settings)
     app.state.user_management = UserManagementService(
         database.session_factory, app.state.identity_manager
+    )
+
+    app.state.hydra_client_manager = HydraOAuthClientManager(settings)
+    app.state.pak_management = PakManagementService(
+        database.session_factory,
+        app.state.hydra_client_manager,
+        HydraTokenIntrospector(settings),
+        settings.PAK_ACCESS_KEY_ENCRYPTION_KEY,
     )
 
     redis = create_redis_client(settings)

@@ -8,45 +8,58 @@ from app.auth.exceptions import (
     IdentityNotFoundError,
     IdentityProviderUnavailableError,
     InvalidSessionError,
+    OAuthClientAlreadyExistsError,
+    OAuthClientNotFoundError,
+    OAuthProviderUnavailableError,
     UserNotProvisionedError,
-    UserProvisioningError,
 )
+from app.core.exceptions import AppError
+from app.modules.pak.exceptions import (
+    InvalidMachineAccessTokenError,
+    PakAccessKeyConfigurationError,
+    PakAlreadyExistsError,
+    PakNotFoundError,
+    PakProvisioningError,
+)
+from app.modules.users.exceptions import UserNotFoundError, UserProvisioningError
 
 
-def _error(request: Request, code: str, message: str, status_code: int) -> JSONResponse:
+def _error(request: Request, error: AppError, status_code: int) -> JSONResponse:
     return JSONResponse(
         status_code=status_code,
         content={
-            "code": code,
-            "message": message,
+            "code": error.code,
+            "message": str(error) or error.code.replace("_", " "),
             "request_id": getattr(request.state, "request_id", ""),
         },
     )
 
 
 def install_error_handlers(app: FastAPI) -> None:
-    mappings: list[tuple[type[Exception], str, int]] = [
-        (InvalidSessionError, "invalid_session", status.HTTP_401_UNAUTHORIZED),
-        (AccountDisabledError, "account_disabled", status.HTTP_403_FORBIDDEN),
-        (UserNotProvisionedError, "user_not_provisioned", status.HTTP_403_FORBIDDEN),
-        (ForbiddenError, "forbidden", status.HTTP_403_FORBIDDEN),
-        (IdentityAlreadyExistsError, "login_already_exists", status.HTTP_409_CONFLICT),
-        (
-            UserProvisioningError,
-            "user_provisioning_failed",
-            status.HTTP_503_SERVICE_UNAVAILABLE,
-        ),
-        (IdentityNotFoundError, "user_not_found", status.HTTP_404_NOT_FOUND),
+    mappings: list[tuple[type[AppError], int]] = [
+        (InvalidSessionError, status.HTTP_401_UNAUTHORIZED),
+        (InvalidMachineAccessTokenError, status.HTTP_401_UNAUTHORIZED),
+        (AccountDisabledError, status.HTTP_403_FORBIDDEN),
+        (UserNotProvisionedError, status.HTTP_403_FORBIDDEN),
+        (ForbiddenError, status.HTTP_403_FORBIDDEN),
+        (IdentityAlreadyExistsError, status.HTTP_409_CONFLICT),
+        (OAuthClientAlreadyExistsError, status.HTTP_409_CONFLICT),
+        (UserProvisioningError, status.HTTP_503_SERVICE_UNAVAILABLE),
+        (IdentityNotFoundError, status.HTTP_404_NOT_FOUND),
+        (OAuthClientNotFoundError, status.HTTP_404_NOT_FOUND),
+        (UserNotFoundError, status.HTTP_404_NOT_FOUND),
+        (PakNotFoundError, status.HTTP_404_NOT_FOUND),
+        (PakAlreadyExistsError, status.HTTP_409_CONFLICT),
+        (PakAccessKeyConfigurationError, status.HTTP_503_SERVICE_UNAVAILABLE),
+        (PakProvisioningError, status.HTTP_503_SERVICE_UNAVAILABLE),
         (
             IdentityProviderUnavailableError,
-            "identity_provider_unavailable",
             status.HTTP_503_SERVICE_UNAVAILABLE,
         ),
+        (OAuthProviderUnavailableError, status.HTTP_503_SERVICE_UNAVAILABLE),
     ]
-    for exception, code, status_code in mappings:
+    for exception, status_code in mappings:
         app.add_exception_handler(
             exception,
-            lambda request, exc, code=code, status_code=status_code: _error(
-                request, code, str(exc) or code.replace("_", " "), status_code
-            ),
+            lambda request, exc, status_code=status_code: _error(request, exc, status_code),
         )

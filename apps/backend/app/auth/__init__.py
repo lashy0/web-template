@@ -14,9 +14,9 @@ from app.auth.exceptions import (
     IdentityProviderError,
     IdentityProviderUnavailableError,
     InvalidSessionError,
-    UserProvisioningError,
 )
 from app.auth.permissions import (
+    ALL_PERMISSIONS,
     ROLE_PERMISSIONS,
     Permission,
     permissions_for_role,
@@ -39,7 +39,7 @@ __all__ = [
     "IdentityProviderError",
     "IdentityProviderUnavailableError",
     "InvalidSessionError",
-    "UserProvisioningError",
+    "ALL_PERMISSIONS",
     "Permission",
     "ROLE_PERMISSIONS",
     "Role",

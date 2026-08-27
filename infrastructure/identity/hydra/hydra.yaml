@@ -1,0 +1,16 @@
+# $schema: https://raw.githubusercontent.com/ory/hydra/v26.2.0/.schema/config.schema.json
+
+serve:
+  public:
+    port: 4444
+  admin:
+    port: 4445
+
+strategies:
+  access_token: opaque
+
+ttl:
+  access_token: 1h
+
+oauth2:
+  expose_internal_errors: false

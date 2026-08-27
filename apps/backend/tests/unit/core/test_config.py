@@ -22,6 +22,14 @@ def test_readiness_timeout_must_be_positive() -> None:
 
 
 @pytest.mark.unit
+def test_hydra_urls_have_internal_service_defaults() -> None:
+    settings = Settings()
+
+    assert settings.HYDRA_PUBLIC_URL == "http://hydra:4444"
+    assert settings.HYDRA_ADMIN_URL == "http://hydra:4445"
+
+
+@pytest.mark.unit
 def test_api_prefix_is_empty_by_default() -> None:
     assert Settings().API_PREFIX == ""
 

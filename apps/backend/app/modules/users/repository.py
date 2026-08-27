@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from datetime import datetime
 from uuid import UUID, uuid4
 
@@ -36,6 +34,7 @@ class UserRepository:
         )
 
         self._session.add(user)
+
         await self._session.flush()
         await self._session.refresh(user)
 
@@ -73,14 +72,18 @@ class UserRepository:
         user.identity_login = login
         user.auth_state = state
         user.auth_state_synced_at = synced_at
+
         await self._session.flush()
         await self._session.refresh(user)
+
         return user
 
     async def update_archived(self, user: User, *, archived_at: datetime | None) -> User:
         user.archived_at = archived_at
+
         await self._session.flush()
         await self._session.refresh(user)
+
         return user
 
     async def delete(self, user: User) -> None:
@@ -103,25 +106,32 @@ class UserRepository:
         order: str,
     ) -> tuple[list[User], int]:
         filters = [User.archived_at.is_not(None) if archived else User.archived_at.is_(None)]
+
         if q:
             pattern = f"%{q}%"
             filters.append(or_(User.name.ilike(pattern), User.identity_login.ilike(pattern)))
+
         if role is not None:
             filters.append(User.role == role)
+
         if auth_state is not None:
             filters.append(User.auth_state == auth_state)
+
         statement = select(User).where(*filters)
+
         column = {
             "name": User.name,
             "login": User.identity_login,
             "created_at": User.created_at,
             "archived_at": User.archived_at,
         }[sort]
+
         sorted_column = column.desc().nulls_last() if order == "desc" else column.asc().nulls_last()
         statement = statement.order_by(sorted_column, User.id.asc())
         statement = statement.offset((page - 1) * page_size).limit(page_size)
         count = await self._session.scalar(select(func.count()).select_from(User).where(*filters))
         result = await self._session.execute(statement)
+
         return list(result.scalars()), int(count or 0)
 
     async def list_all(self) -> list[User]:

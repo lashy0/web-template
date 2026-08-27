@@ -20,6 +20,12 @@ case-sensitive. Empty values are ignored, so the documented default is used inst
 | `BACKEND_KRATOS_PUBLIC_CONCURRENCY` | `20` | Maximum concurrent Public API calls |
 | `BACKEND_KRATOS_ADMIN_CONCURRENCY` | `4` | Maximum concurrent Admin API calls |
 | `BACKEND_KRATOS_RECONCILE_INTERVAL` | `300` | Identity projection reconciliation interval in seconds |
+| `BACKEND_HYDRA_PUBLIC_URL` | `http://hydra:4444` | Internal Hydra Public API URL; OAuth2 clients use its `/oauth2/token` endpoint |
+| `BACKEND_HYDRA_ADMIN_URL` | `http://hydra:4445` | Internal Hydra Admin API URL used for client management and token introspection |
+| `BACKEND_HYDRA_PUBLIC_TIMEOUT` | `2.0` | Public API timeout in seconds for OAuth2 smoke clients |
+| `BACKEND_HYDRA_ADMIN_TIMEOUT` | `10.0` | Admin API timeout in seconds |
+| `BACKEND_HYDRA_ADMIN_CONCURRENCY` | `4` | Maximum concurrent blocking Hydra Admin SDK calls |
+| `BACKEND_PAK_ACCESS_KEY_ENCRYPTION_KEY` | empty | Required Fernet key for encrypted PAK access-key storage; provide it via the deployment secret manager and keep it stable across restarts |
 | `BACKEND_BOOTSTRAP_ADMIN_LOGIN` | `admin` | Lowercase login for the first administrator |
 | `BACKEND_BOOTSTRAP_ADMIN_NAME` | `Администратор` | Display name for the first administrator |
 | `BACKEND_BOOTSTRAP_ADMIN_PASSWORD` | empty | Development-only initial password; use this or `*_PASSWORD_FILE`, never both |

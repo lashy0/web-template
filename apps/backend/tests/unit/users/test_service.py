@@ -15,11 +15,11 @@ from app.auth.exceptions import (
     ForbiddenError,
     IdentityNotFoundError,
     IdentityProviderUnavailableError,
-    UserProvisioningError,
 )
 from app.auth.principal import CurrentPrincipal
 from app.auth.roles import Role
 from app.modules.audit.types import AuditActor, AuditEntity
+from app.modules.users.exceptions import UserProvisioningError
 from app.modules.users.models import User
 from app.modules.users.service import BOOTSTRAP_ADMIN_USER_ID, UserManagementService
 
@@ -165,7 +165,12 @@ async def test_create_provisions_an_inactive_identity_before_activating_it(
         actor=AuditActor.system(),
         action="user.created",
         entity=AuditEntity.user(user.id, name=user.name, login=user.identity_login),
-        new_data={"name": user.name, "role": user.role.value, "login": user.identity_login, "active": True},
+        new_data={
+            "name": user.name,
+            "role": user.role.value,
+            "login": user.identity_login,
+            "active": True,
+        },
     )
 
 

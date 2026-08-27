@@ -7,11 +7,12 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.auth.contracts import Identity, IdentityManager
-from app.auth.exceptions import ForbiddenError, IdentityNotFoundError, UserProvisioningError
+from app.auth.exceptions import ForbiddenError, IdentityNotFoundError
 from app.auth.principal import CurrentPrincipal
 from app.auth.roles import Role
 from app.modules.audit.service import AuditService
 from app.modules.audit.types import AuditActor, AuditEntity
+from app.modules.users.exceptions import UserProvisioningError
 from app.modules.users.models import User
 from app.modules.users.repository import UserRepository
 
@@ -22,7 +23,9 @@ class UserManagementService:
     """The only coordinator for Kratos identities, local projections, and audit."""
 
     def __init__(
-        self, session_factory: async_sessionmaker[AsyncSession], identities: IdentityManager
+        self,
+        session_factory: async_sessionmaker[AsyncSession],
+        identities: IdentityManager,
     ) -> None:
         self._session_factory = session_factory
         self._identities = identities
@@ -61,16 +64,19 @@ class UserManagementService:
                 active=active,
                 record_created=not active,
             )
+
             if not active:
                 return user
 
             identity = await self._identities.set_active(identity.id, active=True)
+
             return await self._complete_active_user_creation(
                 actor=actor,
                 user_id=user_id,
                 identity=identity,
                 active=active,
             )
+
         except Exception as exc:
             logger.bind(
                 event="user.provisioning_failed",
@@ -78,7 +84,9 @@ class UserManagementService:
                 identity_id=str(identity.id),
                 error_type=type(exc).__name__,
             ).opt(exception=exc).error("User provisioning failed")
+
             await self._rollback_user_creation(user_id=user_id, identity_id=identity.id)
+
             raise UserProvisioningError from exc
 
     async def _create_local_user(
@@ -102,6 +110,7 @@ class UserManagementService:
                 auth_state="inactive",
                 synced_at=datetime.now(UTC),
             )
+
             if record_created:
                 await self._record_user_created(
                     session=session,
@@ -109,6 +118,7 @@ class UserManagementService:
                     user=user,
                     active=active,
                 )
+
             return user
 
     async def _complete_active_user_creation(
@@ -122,15 +132,19 @@ class UserManagementService:
         async with self._session_factory() as session, session.begin():
             repository = UserRepository(session)
             user = await repository.get_by_id(user_id)
+
             if user is None:
                 raise RuntimeError("Local user disappeared during provisioning")
+
             user = await repository.update_identity_projection(
                 user,
                 login=identity.login,
                 state="active",
                 synced_at=datetime.now(UTC),
             )
+
             await self._record_user_created(session=session, actor=actor, user=user, active=active)
+
             return user
 
     async def _record_user_created(
@@ -146,6 +160,7 @@ class UserManagementService:
             if actor
             else AuditActor.system()
         )
+
         await AuditService.from_session(session).record(
             actor=audit_actor,
             action="user.created",
@@ -161,6 +176,7 @@ class UserManagementService:
     async def _rollback_user_creation(self, *, user_id: UUID, identity_id: UUID) -> None:
         try:
             await self._identities.delete_identity(identity_id)
+
         except Exception as exc:
             logger.bind(
                 event="user.provisioning_rollback_failed",
@@ -173,6 +189,7 @@ class UserManagementService:
         try:
             async with self._session_factory() as session, session.begin():
                 await UserRepository(session).delete_if_exists(user_id)
+
         except Exception as exc:
             logger.bind(
                 event="user.provisioning_rollback_failed",
@@ -190,12 +207,15 @@ class UserManagementService:
             await session.execute(
                 text("SELECT pg_advisory_xact_lock(hashtext('bootstrap-administrator'))")
             )
+
             repository = UserRepository(session)
             user = await repository.get_by_id(BOOTSTRAP_ADMIN_USER_ID)
+
             if user is None and await repository.count() > 0:
                 return None
 
             identity = await self._bootstrap_identity(login=login, password_loader=password_loader)
+
             if user is None:
                 user = await repository.create(
                     user_id=BOOTSTRAP_ADMIN_USER_ID,
@@ -206,6 +226,7 @@ class UserManagementService:
                     auth_state="active" if identity.active else "inactive",
                     synced_at=datetime.now(UTC),
                 )
+
                 await AuditService.from_session(session).record(
                     actor=AuditActor.system(),
                     action="user.bootstrap_created",
@@ -228,6 +249,7 @@ class UserManagementService:
                     state="active",
                     synced_at=datetime.now(UTC),
                 )
+
                 await AuditService.from_session(session).record(
                     actor=AuditActor.system(),
                     action="user.bootstrap_completed",
@@ -238,6 +260,7 @@ class UserManagementService:
                         "auth_state": "active",
                     },
                 )
+
             return user
 
     async def update(
@@ -260,17 +283,24 @@ class UserManagementService:
         async with self._session_factory() as session, session.begin():
             await self._lock_admins(session)
             repository = UserRepository(session)
+
             user = await self._required_user(repository, user_id)
             self._ensure_not_archived(user)
+
             old_values = {"name": user.name, "role": user.role.value, "login": user.identity_login}
+
             if role is not None and user.id == actor.user_id and role != Role.ADMINISTRATOR:
                 raise ForbiddenError("Cannot remove your own administrator role")
+
             if role is not None and user.role == Role.ADMINISTRATOR and role != Role.ADMINISTRATOR:
                 await self._ensure_not_last_active_admin(repository, user)
+
             if name is not None and name != user.name:
                 await repository.update_name(user, name=name)
+
             if role is not None and role != user.role:
                 await repository.update_role(user, role=role)
+
             if identity is not None:
                 user = await repository.update_identity_projection(
                     user,
@@ -278,10 +308,13 @@ class UserManagementService:
                     state="active" if identity.active else "inactive",
                     synced_at=datetime.now(UTC),
                 )
+
             new_values = {"name": user.name, "role": user.role.value, "login": user.identity_login}
             new_data = {key: value for key, value in new_values.items() if value != old_values[key]}
+
             if new_data:
                 old_data = {key: old_values[key] for key in new_data}
+
                 await AuditService.from_session(session).record(
                     actor=AuditActor.user(
                         actor.user_id,
@@ -293,6 +326,7 @@ class UserManagementService:
                     old_data=old_data,
                     new_data=new_data,
                 )
+
             return user
 
     async def set_password(
@@ -342,17 +376,24 @@ class UserManagementService:
     async def set_active(self, *, actor: CurrentPrincipal, user_id: UUID, active: bool) -> User:
         async with self._session_factory() as session, session.begin():
             await self._lock_admins(session)
+
             user = await self._required_user(UserRepository(session), user_id)
             self._ensure_not_archived(user)
+
             old_active = user.auth_state == "active"
+
             if old_active == active:
                 return user
+
             if not active:
                 if user.id == actor.user_id:
                     raise ForbiddenError("Cannot deactivate yourself")
+
                 if user.role == Role.ADMINISTRATOR:
                     await self._ensure_not_last_active_admin(UserRepository(session), user)
+
         identity = await self._identities.set_active(user.identity_id, active=active)
+
         async with self._session_factory() as session, session.begin():
             user = await self._required_user(UserRepository(session), user_id)
             user = await UserRepository(session).update_identity_projection(
@@ -361,6 +402,7 @@ class UserManagementService:
                 state="active" if active else "inactive",
                 synced_at=datetime.now(UTC),
             )
+
             await AuditService.from_session(session).record(
                 actor=AuditActor.user(
                     actor.user_id,
@@ -372,8 +414,10 @@ class UserManagementService:
                 old_data={"active": old_active},
                 new_data={"active": active},
             )
+
         if not active:
             await self._identities.revoke_all_sessions(user.identity_id)
+
         return user
 
     async def set_archived(self, *, actor: CurrentPrincipal, user_id: UUID, archived: bool) -> User:
@@ -381,9 +425,12 @@ class UserManagementService:
             async with self._session_factory() as session, session.begin():
                 repository = UserRepository(session)
                 user = await self._required_user(repository, user_id)
+
                 if user.archived_at is None:
                     return user
+
                 user = await repository.update_archived(user, archived_at=None)
+
                 await AuditService.from_session(session).record(
                     actor=AuditActor.user(
                         actor.user_id,
@@ -394,23 +441,30 @@ class UserManagementService:
                     entity=self._audit_entity(user),
                     new_data={"name": user.name, "login": user.identity_login},
                 )
+
                 return user
 
         async with self._session_factory() as session, session.begin():
             await self._lock_admins(session)
+
             repository = UserRepository(session)
             user = await self._required_user(repository, user_id)
+
             if user.archived_at is not None:
                 return user
+
             if user.id == actor.user_id:
                 raise ForbiddenError("Cannot archive yourself")
+
             if user.role == Role.ADMINISTRATOR:
                 await self._ensure_not_last_active_admin(repository, user)
 
         identity = await self._identities.set_active(user.identity_id, active=False)
         archived_at = datetime.now(UTC)
+
         async with self._session_factory() as session, session.begin():
             repository = UserRepository(session)
+
             user = await self._required_user(repository, user_id)
             user = await repository.update_identity_projection(
                 user,
@@ -418,6 +472,7 @@ class UserManagementService:
                 state="inactive",
                 synced_at=archived_at,
             )
+
             user = await repository.update_archived(user, archived_at=archived_at)
             await AuditService.from_session(session).record(
                 actor=AuditActor.user(
@@ -429,16 +484,21 @@ class UserManagementService:
                 entity=self._audit_entity(user),
                 new_data={"name": user.name, "login": user.identity_login},
             )
+
         await self._identities.revoke_all_sessions(user.identity_id)
+
         return user
 
     async def delete(self, *, actor: CurrentPrincipal, user_id: UUID) -> None:
         async with self._session_factory() as session, session.begin():
             await self._lock_admins(session)
+
             repository = UserRepository(session)
             user = await self._required_user(repository, user_id)
+
             if user.id == actor.user_id:
                 raise ForbiddenError("Cannot delete yourself")
+
             if user.role == Role.ADMINISTRATOR:
                 await self._ensure_not_last_active_admin(repository, user)
             identity_id = user.identity_id
@@ -448,6 +508,7 @@ class UserManagementService:
         async with self._session_factory() as session, session.begin():
             repository = UserRepository(session)
             user = await self._required_user(repository, user_id)
+
             await AuditService.from_session(session).record(
                 actor=AuditActor.user(
                     actor.user_id,
@@ -458,6 +519,7 @@ class UserManagementService:
                 entity=self._audit_entity(user),
                 old_data={"name": user.name, "role": user.role.value, "login": user.identity_login},
             )
+
             await repository.delete(user)
 
     async def reconcile(self) -> None:
@@ -466,16 +528,21 @@ class UserManagementService:
             item.id: item for item in await self._identities.list_identities(page_size=500)
         }
         current_sync_issues: set[tuple[str, UUID]] = set()
+
         async with self._session_factory() as session, session.begin():
             await session.execute(
                 text("SELECT pg_advisory_xact_lock(hashtext('kratos-reconciler'))")
             )
+
             repository = UserRepository(session)
+
             for user in await repository.list_all():
                 identity = identities.pop(user.identity_id, None)
+
                 if identity is None:
                     issue = ("db_user_without_kratos_identity", user.id)
                     current_sync_issues.add(issue)
+
                     if issue not in self._known_sync_issues:
                         logger.bind(
                             event="identity.sync_mismatch_detected",
@@ -483,6 +550,7 @@ class UserManagementService:
                             user_id=str(user.id),
                             identity_id=str(user.identity_id),
                         ).error("Local user has no Kratos identity")
+
                     if user.auth_state != "inactive":
                         await repository.update_identity_projection(
                             user,
@@ -493,31 +561,38 @@ class UserManagementService:
                     continue
 
                 state = "active" if identity.active else "inactive"
+
                 if (user.auth_state, user.identity_login) != (state, identity.login):
                     await repository.update_identity_projection(
                         user, login=identity.login, state=state, synced_at=datetime.now(UTC)
                     )
+
                     await AuditService.from_session(session).record(
                         actor=AuditActor.system(),
                         action="user.reconciled",
                         entity=self._audit_entity(user),
                         new_data={"name": user.name, "auth_state": state, "login": identity.login},
                     )
+
             for identity in identities.values():
                 issue = ("kratos_identity_without_db_user", identity.id)
                 current_sync_issues.add(issue)
+
                 if issue not in self._known_sync_issues:
                     logger.bind(
                         event="identity.sync_mismatch_detected",
                         mismatch="kratos_identity_without_db_user",
                         identity_id=str(identity.id),
                     ).error("Kratos identity has no local user")
+
         self._known_sync_issues = current_sync_issues
 
     async def _required_user(self, repository: UserRepository, user_id: UUID) -> User:
         user = await repository.get_by_id(user_id)
+
         if user is None:
             raise IdentityNotFoundError
+
         return user
 
     @staticmethod
@@ -579,9 +654,11 @@ class UserManagementService:
             order="asc",
         )
         active_administrator_ids: set[UUID] = set()
+
         for administrator in admins:
             identity = await self._identities.get_identity(administrator.identity_id)
             if identity.active:
                 active_administrator_ids.add(administrator.id)
+
         if active_administrator_ids == {user.id}:
             raise ForbiddenError("Cannot change the last active administrator")

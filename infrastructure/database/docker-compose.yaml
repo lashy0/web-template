@@ -22,12 +22,15 @@ services:
       POSTGRES_RUNTIME_PASSWORD: ${POSTGRES_RUNTIME_PASSWORD:?POSTGRES_RUNTIME_PASSWORD is required}
       KRATOS_POSTGRES_MIGRATOR_PASSWORD: ${KRATOS_POSTGRES_MIGRATOR_PASSWORD:?KRATOS_POSTGRES_MIGRATOR_PASSWORD is required}
       KRATOS_POSTGRES_RUNTIME_PASSWORD: ${KRATOS_POSTGRES_RUNTIME_PASSWORD:?KRATOS_POSTGRES_RUNTIME_PASSWORD is required}
+      HYDRA_POSTGRES_MIGRATOR_PASSWORD: ${HYDRA_POSTGRES_MIGRATOR_PASSWORD:?HYDRA_POSTGRES_MIGRATOR_PASSWORD is required}
+      HYDRA_POSTGRES_RUNTIME_PASSWORD: ${HYDRA_POSTGRES_RUNTIME_PASSWORD:?HYDRA_POSTGRES_RUNTIME_PASSWORD is required}
     command: ["postgres", "-c", "max_connections=100"]
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./postgres/init.sh:/docker-entrypoint-initdb.d/10-web-database-init.sh:ro
       - ./postgres/web-app/init.sql:/usr/local/share/web-database/web-app/init.sql:ro
       - ./postgres/kratos/init.sql:/usr/local/share/web-database/kratos/init.sql:ro
+      - ./postgres/hydra/init.sql:/usr/local/share/web-database/hydra/init.sql:ro
     networks:
       - web-database
     healthcheck:

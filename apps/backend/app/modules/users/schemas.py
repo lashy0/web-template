@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -7,6 +7,11 @@ from pydantic import BaseModel, Field
 from app.auth.roles import Role
 
 AuthState = Literal["active", "inactive"]
+UserName = Annotated[str, Field(min_length=1, max_length=128)]
+UserLogin = Annotated[
+    str,
+    Field(min_length=3, max_length=64, pattern=r"^[a-z0-9][a-z0-9._-]{2,63}$"),
+]
 
 
 class UserResponse(BaseModel):
@@ -28,21 +33,16 @@ class UserListResponse(BaseModel):
 
 
 class CreateUserRequest(BaseModel):
-    name: str = Field(min_length=1, max_length=128)
+    name: UserName
     role: Role
-    login: str = Field(min_length=3, max_length=64, pattern=r"^[a-z0-9][a-z0-9._-]{2,63}$")
+    login: UserLogin
     password: str = Field(min_length=12)
     active: bool
 
 
 class UpdateUserRequest(BaseModel):
-    login: str | None = Field(
-        default=None,
-        min_length=3,
-        max_length=64,
-        pattern=r"^[a-z0-9][a-z0-9._-]{2,63}$",
-    )
-    name: str | None = Field(default=None, min_length=1, max_length=128)
+    login: UserLogin | None = None
+    name: UserName | None = None
     role: Role | None = None
 
 

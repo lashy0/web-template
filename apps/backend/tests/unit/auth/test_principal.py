@@ -6,6 +6,7 @@ import pytest
 from app.auth.permissions import Permission, permissions_for_role
 from app.auth.principal import CurrentPrincipal
 from app.auth.roles import Role
+from app.modules.users.permissions import UserPermission
 
 
 @pytest.mark.unit
@@ -14,13 +15,13 @@ from app.auth.roles import Role
     [
         pytest.param(
             Role.ADMINISTRATOR,
-            Permission.USER_READ,
+            UserPermission.READ,
             True,
             id="allowed",
         ),
         pytest.param(
             Role.OPERATOR,
-            Permission.USER_READ,
+            UserPermission.READ,
             False,
             id="forbidden",
         ),

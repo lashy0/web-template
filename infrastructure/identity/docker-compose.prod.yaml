@@ -25,3 +25,21 @@ services:
       traefik.http.routers.kratos-browser.entrypoints: https
       traefik.http.routers.kratos-browser.tls: "true"
       traefik.http.routers.kratos-browser.tls.certresolver: letsencrypt
+
+  hydra-migrate:
+    mem_limit: 512m
+    environment:
+      LOG_FORMAT: json
+      LOG_LEVEL: info
+
+  hydra:
+    mem_limit: 1g
+    restart: unless-stopped
+    environment:
+      URLS_SELF_ISSUER: "https://oauth.${BASE_DOMAIN:?BASE_DOMAIN is required}"
+      LOG_FORMAT: json
+      LOG_LEVEL: info
+    labels:
+      traefik.http.routers.hydra-public.entrypoints: https
+      traefik.http.routers.hydra-public.tls: "true"
+      traefik.http.routers.hydra-public.tls.certresolver: letsencrypt

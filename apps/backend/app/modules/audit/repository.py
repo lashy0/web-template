@@ -59,8 +59,10 @@ class AuditRepository:
         sort: str,
     ) -> tuple[list[AuditEvent], int]:
         filters = [AuditEvent.entity_type == entity_type] if entity_type else []
+
         if created_from is not None:
             filters.append(AuditEvent.created_at >= created_from)
+
         if created_to is not None:
             filters.append(AuditEvent.created_at < created_to)
 

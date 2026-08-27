@@ -13,6 +13,13 @@ x-kratos-image: &kratos-image
 x-kratos-dsn: &kratos-dsn
   DSN: "postgres://kratos_runtime:${KRATOS_POSTGRES_RUNTIME_PASSWORD:?KRATOS_POSTGRES_RUNTIME_PASSWORD is required}@postgres:5432/kratos?sslmode=disable"
 
+x-hydra-image: &hydra-image
+  image: oryd/hydra:v26.2.0
+  logging: *default-logging
+
+x-hydra-dsn: &hydra-dsn
+  DSN: "postgres://hydra_runtime:${HYDRA_POSTGRES_RUNTIME_PASSWORD:?HYDRA_POSTGRES_RUNTIME_PASSWORD is required}@postgres:5432/hydra?sslmode=disable"
+
 services:
   kratos-migrate:
     <<: *kratos-image
@@ -78,6 +85,57 @@ services:
       traefik.http.routers.kratos-browser.entrypoints: http
       traefik.http.routers.kratos-browser.priority: "200"
       traefik.http.routers.kratos-browser.service: kratos-public
+
+  hydra-migrate:
+    <<: *hydra-image
+    restart: "no"
+    command: ["migrate", "sql", "-e", "--yes"]
+    environment:
+      DSN: "postgres://hydra_migrator:${HYDRA_POSTGRES_MIGRATOR_PASSWORD:?HYDRA_POSTGRES_MIGRATOR_PASSWORD is required}@postgres:5432/hydra?sslmode=disable"
+      SQA_OPT_OUT: "true"
+    networks:
+      - web-identity
+      - web-database
+
+  hydra:
+    <<: *hydra-image
+    restart: unless-stopped
+    command: ["serve", "all", "--sqa-opt-out", "--config", "/etc/config/hydra/hydra.yaml"]
+    environment:
+      <<: *hydra-dsn
+      SECRETS_SYSTEM: ${HYDRA_SYSTEM_SECRET:?HYDRA_SYSTEM_SECRET is required}
+      URLS_SELF_ISSUER: "http://oauth.${BASE_DOMAIN:?BASE_DOMAIN is required}"
+      LOG_LEAK_SENSITIVE_VALUES: "false"
+    volumes:
+      - ./hydra/hydra.yaml:/etc/config/hydra/hydra.yaml:ro
+    networks:
+      - web-identity
+      - web-database
+      - traefik-public
+    depends_on:
+      hydra-migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-q",
+          "--spider",
+          "http://127.0.0.1:4445/health/ready",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    labels:
+      traefik.enable: "true"
+      traefik.constraint-label: traefik-public
+      traefik.docker.network: traefik-public
+      traefik.http.services.hydra-public.loadbalancer.server.port: "4444"
+      traefik.http.routers.hydra-public.rule: "Host(`oauth.${BASE_DOMAIN:?BASE_DOMAIN is required}`)"
+      traefik.http.routers.hydra-public.entrypoints: http
+      traefik.http.routers.hydra-public.service: hydra-public
 
 networks:
   web-identity:

@@ -2,22 +2,19 @@ from enum import StrEnum
 from typing import Final
 
 from app.auth.roles import Role
+from app.modules.audit.permissions import AuditPermission
+from app.modules.pak.permissions import PakPermission
+from app.modules.users.permissions import UserPermission
 
+type Permission = StrEnum
 
-class Permission(StrEnum):
-    USER_READ = "user:read"
-    USER_CREATE = "user:create"
-    USER_UPDATE = "user:update"
-    USER_SET_PASSWORD = "user:set_password"
-    USER_SET_ACTIVE = "user:set_active"
-    USER_ARCHIVE = "user:archive"
-    USER_DELETE = "user:delete"
-
-    AUDIT_READ = "audit:read"
+ALL_PERMISSIONS: Final[frozenset[Permission]] = frozenset(
+    (*UserPermission, *PakPermission, *AuditPermission)
+)
 
 
 ROLE_PERMISSIONS: Final[dict[Role, frozenset[Permission]]] = {
-    Role.ADMINISTRATOR: frozenset(Permission),
+    Role.ADMINISTRATOR: ALL_PERMISSIONS,
     Role.MANAGER: frozenset(),
     Role.ENGINEER: frozenset(),
     Role.PACKER: frozenset(),

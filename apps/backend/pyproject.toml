@@ -6,8 +6,10 @@ readme = "README.md"
 requires-python = ">=3.13,<4.0"
 dependencies = [
     "alembic[tz]>=1.18.5,<2.0.0",
+    "cryptography>=46.0.0,<47.0.0",
     "fastapi[standard]>=0.139.0",
     "loguru<8.0.0,>=0.7.3",
+    "ory-hydra-client==26.2.0",
     "ory-kratos-client==26.2.0",
     "psycopg[binary]<4.0.0,>=3.3.4",
     "pydantic<3.0.0,>=2.13.4",
@@ -32,6 +34,7 @@ dev = [
 package = false
 
 [tool.uv.sources]
+ory-hydra-client = { git = "https://github.com/ory/hydra-client-python.git", rev = "v26.2.0" }
 ory-kratos-client = { git = "https://github.com/ory/kratos-client-python.git", rev = "v26.2.0" }
 
 [tool.mypy]
