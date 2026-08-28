@@ -1,6 +1,6 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-import { Button } from "@web-app/ui/components/button";
+import { Button } from '@web-app/ui/components/button'
 import {
   Dialog,
   DialogContent,
@@ -8,22 +8,22 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@web-app/ui/components/dialog";
-import { Spinner } from "@web-app/ui/components/spinner";
+} from '@web-app/ui/components/dialog'
+import { Spinner } from '@web-app/ui/components/spinner'
 
-import { updateUserArchived, type User } from "@/features/users/users-api";
-import useCustomToast from "@/hooks/useCustomToast";
+import { updateUserArchived, type User } from '@/features/users/users-api'
+import useCustomToast from '@/hooks/useCustomToast'
 
 export function RestoreUser({
   onOpenChange,
   onSuccess,
   open,
   user,
-} : Readonly<{
-  onOpenChange: (open: boolean) => void;
-  onSuccess: () => void;
-  open: boolean;
-  user: User;
+}: Readonly<{
+  onOpenChange: (open: boolean) => void
+  onSuccess: () => void
+  open: boolean
+  user: User
 }>) {
   const queryClient = useQueryClient()
   const { showErrorToast, showSuccessToast } = useCustomToast()

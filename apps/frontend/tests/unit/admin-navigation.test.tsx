@@ -37,10 +37,7 @@ describe('AdminNavigation', () => {
       'href',
       '/admin/user/users',
     )
-    expect(screen.getByRole('link', { name: 'Аудит' })).toHaveAttribute(
-      'href',
-      '/admin/user/audit',
-    )
+    expect(screen.getByRole('link', { name: 'Аудит' })).toHaveAttribute('href', '/admin/user/audit')
 
     await user.click(screen.getByRole('button', { name: 'Пользователи' }))
 
@@ -64,11 +61,10 @@ describe('AdminNavigation', () => {
     )
 
     const usersLink = screen.getByRole('link', { name: 'Пользователи' })
-    expect(usersLink).toHaveAttribute(
-      'href',
-      '/admin/user/users',
+    expect(usersLink).toHaveAttribute('href', '/admin/user/users')
+    expect(screen.getByRole('tooltip', { name: 'Пользователи' })).toHaveTextContent(
+      'Пользователи',
     )
-    expect(screen.getByRole('tooltip')).toHaveTextContent('Пользователи')
   })
 })
 

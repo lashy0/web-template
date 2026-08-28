@@ -32,6 +32,58 @@ export const zAuditListResponse = z.object({
 });
 
 /**
+ * PakAccessKeyResponse
+ */
+export const zPakAccessKeyResponse = z.object({
+    access_key: z.string()
+});
+
+/**
+ * PakDeviceKind
+ */
+export const zPakDeviceKind = z.enum(['ENGINEERING', 'OTK_LINE']);
+
+/**
+ * CreatePakDeviceRequest
+ */
+export const zCreatePakDeviceRequest = z.object({
+    active: z.boolean().optional().default(true),
+    code: z.string().min(1).max(255).regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/),
+    kind: zPakDeviceKind
+});
+
+/**
+ * PakDeviceResponse
+ */
+export const zPakDeviceResponse = z.object({
+    active: z.boolean(),
+    archived_at: z.iso.datetime().nullable(),
+    code: z.string(),
+    id: z.uuid(),
+    kind: zPakDeviceKind,
+    last_seen_at: z.iso.datetime().nullable(),
+    oauth_client_id: z.string()
+});
+
+/**
+ * CreatePakDeviceResponse
+ */
+export const zCreatePakDeviceResponse = z.object({
+    access_key: z.string(),
+    device: zPakDeviceResponse
+});
+
+/**
+ * PakDeviceListResponse
+ */
+export const zPakDeviceListResponse = z.object({
+    items: z.array(zPakDeviceResponse),
+    page: z.int(),
+    page_size: z.int(),
+    total: z.int()
+});
+
+/**
  * Role
  */
 export const zRole = z.enum([
@@ -65,6 +117,14 @@ export const zUpdateActiveRequest = z.object({
  */
 export const zUpdateArchivedRequest = z.object({
     archived: z.boolean()
+});
+
+/**
+ * UpdatePakDeviceRequest
+ */
+export const zUpdatePakDeviceRequest = z.object({
+    code: z.string().min(1).max(255).regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/).nullish(),
+    kind: zPakDeviceKind.nullish()
 });
 
 /**
@@ -144,6 +204,104 @@ export const zAuditListAuditEventsResponse = zAuditListResponse;
  * Successful Response
  */
 export const zAuthMeResponse = zUserResponse;
+
+export const zPakListPakQuery = z.object({
+    q: z.string().nullish(),
+    kind: zPakDeviceKind.nullish(),
+    active: z.boolean().nullish(),
+    archived: z.boolean().optional().default(false),
+    page: z.int().gte(1).optional().default(1),
+    page_size: z.int().gte(1).lte(100).optional().default(25),
+    sort: z.enum([
+        'code',
+        'kind',
+        'created_at',
+        'last_seen_at',
+        'archived_at'
+    ]).optional().default('code'),
+    order: z.enum(['asc', 'desc']).optional().default('asc')
+});
+
+/**
+ * Successful Response
+ */
+export const zPakListPakResponse = zPakDeviceListResponse;
+
+export const zPakCreatePakBody = zCreatePakDeviceRequest;
+
+/**
+ * Successful Response
+ */
+export const zPakCreatePakResponse = zCreatePakDeviceResponse;
+
+export const zPakDeletePakPath = z.object({
+    pak_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zPakDeletePakResponse = z.void();
+
+export const zPakGetPakPath = z.object({
+    pak_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zPakGetPakResponse = zPakDeviceResponse;
+
+export const zPakUpdatePakBody = zUpdatePakDeviceRequest;
+
+export const zPakUpdatePakPath = z.object({
+    pak_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zPakUpdatePakResponse = zPakDeviceResponse;
+
+export const zPakGetAccessKeyPath = z.object({
+    pak_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zPakGetAccessKeyResponse = zPakAccessKeyResponse;
+
+export const zPakRotateAccessKeyPath = z.object({
+    pak_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zPakRotateAccessKeyResponse = zPakAccessKeyResponse;
+
+export const zPakUpdateActiveBody = zUpdateActiveRequest;
+
+export const zPakUpdateActivePath = z.object({
+    pak_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zPakUpdateActiveResponse = zPakDeviceResponse;
+
+export const zPakUpdateArchivedBody = zUpdateArchivedRequest;
+
+export const zPakUpdateArchivedPath = z.object({
+    pak_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zPakUpdateArchivedResponse = zPakDeviceResponse;
 
 export const zUsersListUsersQuery = z.object({
     q: z.string().nullish(),

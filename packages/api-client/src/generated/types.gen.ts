@@ -89,6 +89,32 @@ export type AuditListResponse = {
 };
 
 /**
+ * CreatePakDeviceRequest
+ */
+export type CreatePakDeviceRequest = {
+    /**
+     * Active
+     */
+    active?: boolean;
+    /**
+     * Code
+     */
+    code: string;
+    kind: PakDeviceKind;
+};
+
+/**
+ * CreatePakDeviceResponse
+ */
+export type CreatePakDeviceResponse = {
+    /**
+     * Access Key
+     */
+    access_key: string;
+    device: PakDeviceResponse;
+};
+
+/**
  * CreateUserRequest
  */
 export type CreateUserRequest = {
@@ -122,6 +148,74 @@ export type HttpValidationError = {
 };
 
 /**
+ * PakAccessKeyResponse
+ */
+export type PakAccessKeyResponse = {
+    /**
+     * Access Key
+     */
+    access_key: string;
+};
+
+/**
+ * PakDeviceKind
+ */
+export type PakDeviceKind = 'ENGINEERING' | 'OTK_LINE';
+
+/**
+ * PakDeviceListResponse
+ */
+export type PakDeviceListResponse = {
+    /**
+     * Items
+     */
+    items: Array<PakDeviceResponse>;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
+ * PakDeviceResponse
+ */
+export type PakDeviceResponse = {
+    /**
+     * Active
+     */
+    active: boolean;
+    /**
+     * Archived At
+     */
+    archived_at: string | null;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Id
+     */
+    id: string;
+    kind: PakDeviceKind;
+    /**
+     * Last Seen At
+     */
+    last_seen_at: string | null;
+    /**
+     * Oauth Client Id
+     */
+    oauth_client_id: string;
+};
+
+/**
  * Role
  */
 export type Role = 'administrator' | 'manager' | 'engineer' | 'packer' | 'operator';
@@ -144,6 +238,17 @@ export type UpdateArchivedRequest = {
      * Archived
      */
     archived: boolean;
+};
+
+/**
+ * UpdatePakDeviceRequest
+ */
+export type UpdatePakDeviceRequest = {
+    /**
+     * Code
+     */
+    code?: string | null;
+    kind?: PakDeviceKind | null;
 };
 
 /**
@@ -325,6 +430,299 @@ export type AuthMeResponses = {
 };
 
 export type AuthMeResponse = AuthMeResponses[keyof AuthMeResponses];
+
+export type PakListPakData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Q
+         */
+        q?: string | null;
+        /**
+         * Kind
+         */
+        kind?: PakDeviceKind | null;
+        /**
+         * Active
+         */
+        active?: boolean | null;
+        /**
+         * Archived
+         */
+        archived?: boolean;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+        /**
+         * Sort
+         */
+        sort?: 'code' | 'kind' | 'created_at' | 'last_seen_at' | 'archived_at';
+        /**
+         * Order
+         */
+        order?: 'asc' | 'desc';
+    };
+    url: '/pak';
+};
+
+export type PakListPakErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PakListPakError = PakListPakErrors[keyof PakListPakErrors];
+
+export type PakListPakResponses = {
+    /**
+     * Successful Response
+     */
+    200: PakDeviceListResponse;
+};
+
+export type PakListPakResponse = PakListPakResponses[keyof PakListPakResponses];
+
+export type PakCreatePakData = {
+    body: CreatePakDeviceRequest;
+    path?: never;
+    query?: never;
+    url: '/pak';
+};
+
+export type PakCreatePakErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PakCreatePakError = PakCreatePakErrors[keyof PakCreatePakErrors];
+
+export type PakCreatePakResponses = {
+    /**
+     * Successful Response
+     */
+    201: CreatePakDeviceResponse;
+};
+
+export type PakCreatePakResponse = PakCreatePakResponses[keyof PakCreatePakResponses];
+
+export type PakDeletePakData = {
+    body?: never;
+    path: {
+        /**
+         * Pak Id
+         */
+        pak_id: string;
+    };
+    query?: never;
+    url: '/pak/{pak_id}';
+};
+
+export type PakDeletePakErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PakDeletePakError = PakDeletePakErrors[keyof PakDeletePakErrors];
+
+export type PakDeletePakResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type PakDeletePakResponse = PakDeletePakResponses[keyof PakDeletePakResponses];
+
+export type PakGetPakData = {
+    body?: never;
+    path: {
+        /**
+         * Pak Id
+         */
+        pak_id: string;
+    };
+    query?: never;
+    url: '/pak/{pak_id}';
+};
+
+export type PakGetPakErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PakGetPakError = PakGetPakErrors[keyof PakGetPakErrors];
+
+export type PakGetPakResponses = {
+    /**
+     * Successful Response
+     */
+    200: PakDeviceResponse;
+};
+
+export type PakGetPakResponse = PakGetPakResponses[keyof PakGetPakResponses];
+
+export type PakUpdatePakData = {
+    body: UpdatePakDeviceRequest;
+    path: {
+        /**
+         * Pak Id
+         */
+        pak_id: string;
+    };
+    query?: never;
+    url: '/pak/{pak_id}';
+};
+
+export type PakUpdatePakErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PakUpdatePakError = PakUpdatePakErrors[keyof PakUpdatePakErrors];
+
+export type PakUpdatePakResponses = {
+    /**
+     * Successful Response
+     */
+    200: PakDeviceResponse;
+};
+
+export type PakUpdatePakResponse = PakUpdatePakResponses[keyof PakUpdatePakResponses];
+
+export type PakGetAccessKeyData = {
+    body?: never;
+    path: {
+        /**
+         * Pak Id
+         */
+        pak_id: string;
+    };
+    query?: never;
+    url: '/pak/{pak_id}/access-key';
+};
+
+export type PakGetAccessKeyErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PakGetAccessKeyError = PakGetAccessKeyErrors[keyof PakGetAccessKeyErrors];
+
+export type PakGetAccessKeyResponses = {
+    /**
+     * Successful Response
+     */
+    200: PakAccessKeyResponse;
+};
+
+export type PakGetAccessKeyResponse = PakGetAccessKeyResponses[keyof PakGetAccessKeyResponses];
+
+export type PakRotateAccessKeyData = {
+    body?: never;
+    path: {
+        /**
+         * Pak Id
+         */
+        pak_id: string;
+    };
+    query?: never;
+    url: '/pak/{pak_id}/access-key/rotate';
+};
+
+export type PakRotateAccessKeyErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PakRotateAccessKeyError = PakRotateAccessKeyErrors[keyof PakRotateAccessKeyErrors];
+
+export type PakRotateAccessKeyResponses = {
+    /**
+     * Successful Response
+     */
+    200: PakAccessKeyResponse;
+};
+
+export type PakRotateAccessKeyResponse = PakRotateAccessKeyResponses[keyof PakRotateAccessKeyResponses];
+
+export type PakUpdateActiveData = {
+    body: UpdateActiveRequest;
+    path: {
+        /**
+         * Pak Id
+         */
+        pak_id: string;
+    };
+    query?: never;
+    url: '/pak/{pak_id}/active';
+};
+
+export type PakUpdateActiveErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PakUpdateActiveError = PakUpdateActiveErrors[keyof PakUpdateActiveErrors];
+
+export type PakUpdateActiveResponses = {
+    /**
+     * Successful Response
+     */
+    200: PakDeviceResponse;
+};
+
+export type PakUpdateActiveResponse = PakUpdateActiveResponses[keyof PakUpdateActiveResponses];
+
+export type PakUpdateArchivedData = {
+    body: UpdateArchivedRequest;
+    path: {
+        /**
+         * Pak Id
+         */
+        pak_id: string;
+    };
+    query?: never;
+    url: '/pak/{pak_id}/archived';
+};
+
+export type PakUpdateArchivedErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PakUpdateArchivedError = PakUpdateArchivedErrors[keyof PakUpdateArchivedErrors];
+
+export type PakUpdateArchivedResponses = {
+    /**
+     * Successful Response
+     */
+    200: PakDeviceResponse;
+};
+
+export type PakUpdateArchivedResponse = PakUpdateArchivedResponses[keyof PakUpdateArchivedResponses];
 
 export type UsersListUsersData = {
     body?: never;

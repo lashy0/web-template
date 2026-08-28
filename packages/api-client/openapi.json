@@ -165,6 +165,48 @@
         "title": "AuditListResponse",
         "type": "object"
       },
+      "CreatePakDeviceRequest": {
+        "properties": {
+          "active": {
+            "default": true,
+            "title": "Active",
+            "type": "boolean"
+          },
+          "code": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+            "title": "Code",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/PakDeviceKind"
+          }
+        },
+        "required": [
+          "code",
+          "kind"
+        ],
+        "title": "CreatePakDeviceRequest",
+        "type": "object"
+      },
+      "CreatePakDeviceResponse": {
+        "properties": {
+          "access_key": {
+            "title": "Access Key",
+            "type": "string"
+          },
+          "device": {
+            "$ref": "#/components/schemas/PakDeviceResponse"
+          }
+        },
+        "required": [
+          "device",
+          "access_key"
+        ],
+        "title": "CreatePakDeviceResponse",
+        "type": "object"
+      },
       "CreateUserRequest": {
         "properties": {
           "active": {
@@ -241,6 +283,117 @@
           "version"
         ],
         "title": "LivenessResponse",
+        "type": "object"
+      },
+      "PakAccessKeyResponse": {
+        "properties": {
+          "access_key": {
+            "title": "Access Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "access_key"
+        ],
+        "title": "PakAccessKeyResponse",
+        "type": "object"
+      },
+      "PakDeviceKind": {
+        "enum": [
+          "ENGINEERING",
+          "OTK_LINE"
+        ],
+        "title": "PakDeviceKind",
+        "type": "string"
+      },
+      "PakDeviceListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PakDeviceResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_size": {
+            "title": "Page Size",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "title": "PakDeviceListResponse",
+        "type": "object"
+      },
+      "PakDeviceResponse": {
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "archived_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archived At"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/PakDeviceKind"
+          },
+          "last_seen_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen At"
+          },
+          "oauth_client_id": {
+            "title": "Oauth Client Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "kind",
+          "oauth_client_id",
+          "active",
+          "last_seen_at",
+          "archived_at"
+        ],
+        "title": "PakDeviceResponse",
         "type": "object"
       },
       "ReadinessChecks": {
@@ -349,6 +502,36 @@
           "archived"
         ],
         "title": "UpdateArchivedRequest",
+        "type": "object"
+      },
+      "UpdatePakDeviceRequest": {
+        "properties": {
+          "code": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PakDeviceKind"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "UpdatePakDeviceRequest",
         "type": "object"
       },
       "UpdatePasswordRequest": {
@@ -776,6 +959,510 @@
         "summary": "Check application readiness",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/pak": {
+      "get": {
+        "operationId": "pak-list_pak",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/PakDeviceKind"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "in": "query",
+            "name": "active",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Active"
+            }
+          },
+          {
+            "in": "query",
+            "name": "archived",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Archived",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Page Size",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "code",
+              "enum": [
+                "code",
+                "kind",
+                "created_at",
+                "last_seen_at",
+                "archived_at"
+              ],
+              "title": "Sort",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "required": false,
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "title": "Order",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PakDeviceListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Pak",
+        "tags": [
+          "pak"
+        ]
+      },
+      "post": {
+        "operationId": "pak-create_pak",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePakDeviceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatePakDeviceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Pak",
+        "tags": [
+          "pak"
+        ]
+      }
+    },
+    "/pak/{pak_id}": {
+      "delete": {
+        "operationId": "pak-delete_pak",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pak_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Pak Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Pak",
+        "tags": [
+          "pak"
+        ]
+      },
+      "get": {
+        "operationId": "pak-get_pak",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pak_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Pak Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PakDeviceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Pak",
+        "tags": [
+          "pak"
+        ]
+      },
+      "patch": {
+        "operationId": "pak-update_pak",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pak_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Pak Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePakDeviceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PakDeviceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Pak",
+        "tags": [
+          "pak"
+        ]
+      }
+    },
+    "/pak/{pak_id}/access-key": {
+      "get": {
+        "operationId": "pak-get_access_key",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pak_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Pak Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PakAccessKeyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Access Key",
+        "tags": [
+          "pak"
+        ]
+      }
+    },
+    "/pak/{pak_id}/access-key/rotate": {
+      "post": {
+        "operationId": "pak-rotate_access_key",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pak_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Pak Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PakAccessKeyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Rotate Access Key",
+        "tags": [
+          "pak"
+        ]
+      }
+    },
+    "/pak/{pak_id}/active": {
+      "put": {
+        "operationId": "pak-update_active",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pak_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Pak Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateActiveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PakDeviceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Active",
+        "tags": [
+          "pak"
+        ]
+      }
+    },
+    "/pak/{pak_id}/archived": {
+      "put": {
+        "operationId": "pak-update_archived",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pak_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Pak Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateArchivedRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PakDeviceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Archived",
+        "tags": [
+          "pak"
         ]
       }
     },

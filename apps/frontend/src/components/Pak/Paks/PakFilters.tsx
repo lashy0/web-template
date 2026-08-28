@@ -9,50 +9,47 @@ import {
   SelectValue,
 } from '@web-app/ui/components/select'
 
-import { roleOptions, type AuthState, type Role } from '@/features/users/users-api'
+import { pakKindOptions, type PakKind } from '@/features/paks/paks-api'
 
-type RoleFilter = Role | 'all'
-type AuthStateFilter = AuthState | 'all'
+type KindFilter = PakKind | 'all'
+type StatusFilter = 'active' | 'all' | 'inactive'
 
-export function UserFilters({
+export function PakFilters({
   archived,
-  authState,
-  onAuthStateChange,
+  kind,
+  onKindChange,
   onQueryChange,
-  onRoleChange,
+  onStatusChange,
   query,
-  role,
+  status,
 }: Readonly<{
   archived: boolean
-  authState: AuthStateFilter
-  onAuthStateChange: (value: AuthStateFilter) => void
+  kind: KindFilter
+  onKindChange: (value: KindFilter) => void
   onQueryChange: (value: string) => void
-  onRoleChange: (value: RoleFilter) => void
+  onStatusChange: (value: StatusFilter) => void
   query: string
-  role: RoleFilter
+  status: StatusFilter
 }>) {
-  const roleLabel =
-    role === 'all' ? 'Все роли' : roleOptions.find((option) => option.value === role)?.label
-
-  const authStateLabels: Record<AuthStateFilter, string> = {
+  const kindLabel =
+    kind === 'all' ? 'Все типы' : pakKindOptions.find((item) => item.value === kind)?.label
+  const statusLabels: Record<StatusFilter, string> = {
+    active: 'Разрешён',
     all: 'Все статусы',
-    active: 'Активен',
-    inactive: 'Неактивен',
+    inactive: 'Отключён',
   }
 
   return (
     <div className="flex w-full flex-col gap-2 @[40rem]:flex-row @[56rem]:w-auto">
       <div className="relative w-full @[40rem]:min-w-0 @[40rem]:flex-1 @[56rem]:w-72 @[56rem]:flex-none">
         <SearchIcon className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-
         <Input
           className="w-full px-8"
           onChange={(event) => onQueryChange(event.target.value)}
-          placeholder="Поиск по имени или логину..."
+          placeholder="Поиск по коду или клиенту..."
           value={query}
         />
-
-        {query && (
+        {query ? (
           <button
             aria-label="Очистить поиск"
             className="absolute right-2 top-1/2 flex size-5 -translate-y-1/2 cursor-pointer items-center justify-center rounded-sm text-muted-foreground hover:text-foreground"
@@ -61,42 +58,34 @@ export function UserFilters({
           >
             <XIcon className="size-4" />
           </button>
-        )}
+        ) : null}
       </div>
-
       <div className="flex flex-wrap items-center gap-2 @[40rem]:flex-nowrap">
-        <Select onValueChange={(value) => onRoleChange(value as RoleFilter)} value={role}>
+        <Select onValueChange={(value) => onKindChange(value as KindFilter)} value={kind}>
           <SelectTrigger className="w-40 cursor-pointer">
-            <SelectValue>{roleLabel}</SelectValue>
+            <SelectValue>{kindLabel}</SelectValue>
           </SelectTrigger>
-
           <SelectContent>
-            <SelectItem value="all">Все роли</SelectItem>
-
-            {roleOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
+            <SelectItem value="all">Все типы</SelectItem>
+            {pakKindOptions.map((item) => (
+              <SelectItem key={item.value} value={item.value}>
+                {item.label}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-
-        {!archived && (
-          <Select
-            onValueChange={(value) => onAuthStateChange(value as AuthStateFilter)}
-            value={authState}
-          >
+        {!archived ? (
+          <Select onValueChange={(value) => onStatusChange(value as StatusFilter)} value={status}>
             <SelectTrigger className="w-40 cursor-pointer">
-              <SelectValue>{authStateLabels[authState]}</SelectValue>
+              <SelectValue>{statusLabels[status]}</SelectValue>
             </SelectTrigger>
-
             <SelectContent>
               <SelectItem value="all">Все статусы</SelectItem>
-              <SelectItem value="active">Активен</SelectItem>
-              <SelectItem value="inactive">Неактивен</SelectItem>
+              <SelectItem value="active">Разрешён</SelectItem>
+              <SelectItem value="inactive">Отключён</SelectItem>
             </SelectContent>
           </Select>
-        )}
+        ) : null}
       </div>
     </div>
   )

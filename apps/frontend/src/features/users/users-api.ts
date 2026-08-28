@@ -138,14 +138,11 @@ export async function updateUser(userId: string, input: UpdateUserInput): Promis
   return toUser(requireData(result.data, result.response?.status, result.error))
 }
 
-export async function updateUserPassword(userId: string,password: string,): Promise<void> {
+export async function updateUserPassword(userId: string, password: string): Promise<void> {
   const result = await usersUpdatePassword({ body: { password }, path: { user_id: userId } })
 
   if (result.error !== undefined) {
-    throw new RequestError(
-      result.response?.status ?? 0,
-      errorCode(result.error),
-    )
+    throw new RequestError(result.response?.status ?? 0, errorCode(result.error))
   }
 }
 

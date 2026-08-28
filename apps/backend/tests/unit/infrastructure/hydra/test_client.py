@@ -90,9 +90,9 @@ async def test_client_manager_creates_client_credentials_client() -> None:
         call=AsyncMock(side_effect=lambda operation: operation()),
     )
     oauth2 = MagicMock()
-    oauth2.create_o_auth2_client.return_value = HydraOAuth2Client(
+    oauth2.create_o_auth2_client.side_effect = lambda **kwargs: HydraOAuth2Client(
         client_id="machine-client",
-        client_secret="cleartext-returned-once",
+        client_secret=kwargs["o_auth2_client"].client_secret,
         grant_types=["client_credentials"],
         scope="orders:read",
     )
@@ -110,6 +110,9 @@ async def test_client_manager_creates_client_credentials_client() -> None:
     assert body.grant_types == ["client_credentials"]
     assert body.scope == "orders:read"
     assert body.token_endpoint_auth_method == "client_secret_basic"
+    assert body.client_secret is not None
+    assert len(body.client_secret) >= 64
+    assert credentials.client_secret == body.client_secret
 
 
 @pytest.mark.unit

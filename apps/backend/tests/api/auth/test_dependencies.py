@@ -130,8 +130,12 @@ def test_user_route_rejects_authenticated_role_without_permission(
 
 
 @pytest.mark.api
-def test_user_creation_requires_json_content_type(client: TestClient, api_prefix: str) -> None:
-    response = client.post(f"{api_prefix}/users")
+def test_user_creation_with_body_requires_json_content_type(client: TestClient, api_prefix: str) -> None:
+    response = client.post(
+        f"{api_prefix}/users",
+        content="not-json",
+        headers={"content-type": "text/plain"},
+    )
 
     assert response.status_code == status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
     assert response.json()["code"] == "json_required"

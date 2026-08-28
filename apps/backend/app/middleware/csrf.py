@@ -17,7 +17,13 @@ class JsonOriginMiddleware:
         headers = Headers(scope=scope)
         content_type = headers.get("content-type", "").split(";", 1)[0]
         origin = headers.get("origin")
-        if scope["method"] in {"POST", "PUT", "PATCH"} and content_type != "application/json":
+        content_length = headers.get("content-length")
+        has_body = content_length not in {None, "0"} or headers.get("transfer-encoding") is not None
+        if (
+            scope["method"] in {"POST", "PUT", "PATCH"}
+            and has_body
+            and content_type != "application/json"
+        ):
             response = JSONResponse(
                 {
                     "code": "json_required",

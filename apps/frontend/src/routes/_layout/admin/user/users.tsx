@@ -24,6 +24,7 @@ import { Button } from '@web-app/ui/components/button'
 
 export const Route = createFileRoute('/_layout/admin/user/users')({
   component: Users,
+  pendingComponent: () => <PendingUsers showPageHeader />,
 })
 
 type UsersQuery = Readonly<{

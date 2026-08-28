@@ -15,6 +15,8 @@ import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
 import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
 import { Route as AuthErrorRouteImport } from './routes/auth/error'
 import { Route as LayoutAdminIndexRouteImport } from './routes/_layout/admin/index'
+import { Route as LayoutAdminPakAuditRouteImport } from './routes/_layout/admin/pak/audit'
+import { Route as LayoutAdminPakPaksRouteImport } from './routes/_layout/admin/pak/paks'
 import { Route as LayoutAdminUserAuditRouteImport } from './routes/_layout/admin/user/audit'
 import { Route as LayoutAdminUserUsersRouteImport } from './routes/_layout/admin/user/users'
 
@@ -47,6 +49,16 @@ const LayoutAdminIndexRoute = LayoutAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => LayoutAdminRoute,
 } as any)
+const LayoutAdminPakAuditRoute = LayoutAdminPakAuditRouteImport.update({
+  id: '/pak/audit',
+  path: '/pak/audit',
+  getParentRoute: () => LayoutAdminRoute,
+} as any)
+const LayoutAdminPakPaksRoute = LayoutAdminPakPaksRouteImport.update({
+  id: '/pak/paks',
+  path: '/pak/paks',
+  getParentRoute: () => LayoutAdminRoute,
+} as any)
 const LayoutAdminUserAuditRoute = LayoutAdminUserAuditRouteImport.update({
   id: '/user/audit',
   path: '/user/audit',
@@ -64,6 +76,8 @@ export interface FileRoutesByFullPath {
   '/admin': typeof LayoutAdminRouteWithChildren
   '/auth/error': typeof AuthErrorRoute
   '/admin/': typeof LayoutAdminIndexRoute
+  '/admin/pak/audit': typeof LayoutAdminPakAuditRoute
+  '/admin/pak/paks': typeof LayoutAdminPakPaksRoute
   '/admin/user/audit': typeof LayoutAdminUserAuditRoute
   '/admin/user/users': typeof LayoutAdminUserUsersRoute
 }
@@ -72,6 +86,8 @@ export interface FileRoutesByTo {
   '/auth/error': typeof AuthErrorRoute
   '/': typeof LayoutIndexRoute
   '/admin': typeof LayoutAdminIndexRoute
+  '/admin/pak/audit': typeof LayoutAdminPakAuditRoute
+  '/admin/pak/paks': typeof LayoutAdminPakPaksRoute
   '/admin/user/audit': typeof LayoutAdminUserAuditRoute
   '/admin/user/users': typeof LayoutAdminUserUsersRoute
 }
@@ -83,6 +99,8 @@ export interface FileRoutesById {
   '/auth/error': typeof AuthErrorRoute
   '/_layout/': typeof LayoutIndexRoute
   '/_layout/admin/': typeof LayoutAdminIndexRoute
+  '/_layout/admin/pak/audit': typeof LayoutAdminPakAuditRoute
+  '/_layout/admin/pak/paks': typeof LayoutAdminPakPaksRoute
   '/_layout/admin/user/audit': typeof LayoutAdminUserAuditRoute
   '/_layout/admin/user/users': typeof LayoutAdminUserUsersRoute
 }
@@ -94,6 +112,8 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth/error'
     | '/admin/'
+    | '/admin/pak/audit'
+    | '/admin/pak/paks'
     | '/admin/user/audit'
     | '/admin/user/users'
   fileRoutesByTo: FileRoutesByTo
@@ -102,6 +122,8 @@ export interface FileRouteTypes {
     | '/auth/error'
     | '/'
     | '/admin'
+    | '/admin/pak/audit'
+    | '/admin/pak/paks'
     | '/admin/user/audit'
     | '/admin/user/users'
   id:
@@ -112,6 +134,8 @@ export interface FileRouteTypes {
     | '/auth/error'
     | '/_layout/'
     | '/_layout/admin/'
+    | '/_layout/admin/pak/audit'
+    | '/_layout/admin/pak/paks'
     | '/_layout/admin/user/audit'
     | '/_layout/admin/user/users'
   fileRoutesById: FileRoutesById
@@ -166,6 +190,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutAdminIndexRouteImport
       parentRoute: typeof LayoutAdminRoute
     }
+    '/_layout/admin/pak/audit': {
+      id: '/_layout/admin/pak/audit'
+      path: '/pak/audit'
+      fullPath: '/admin/pak/audit'
+      preLoaderRoute: typeof LayoutAdminPakAuditRouteImport
+      parentRoute: typeof LayoutAdminRoute
+    }
+    '/_layout/admin/pak/paks': {
+      id: '/_layout/admin/pak/paks'
+      path: '/pak/paks'
+      fullPath: '/admin/pak/paks'
+      preLoaderRoute: typeof LayoutAdminPakPaksRouteImport
+      parentRoute: typeof LayoutAdminRoute
+    }
     '/_layout/admin/user/audit': {
       id: '/_layout/admin/user/audit'
       path: '/user/audit'
@@ -185,12 +223,16 @@ declare module '@tanstack/react-router' {
 
 interface LayoutAdminRouteChildren {
   LayoutAdminIndexRoute: typeof LayoutAdminIndexRoute
+  LayoutAdminPakAuditRoute: typeof LayoutAdminPakAuditRoute
+  LayoutAdminPakPaksRoute: typeof LayoutAdminPakPaksRoute
   LayoutAdminUserAuditRoute: typeof LayoutAdminUserAuditRoute
   LayoutAdminUserUsersRoute: typeof LayoutAdminUserUsersRoute
 }
 
 const LayoutAdminRouteChildren: LayoutAdminRouteChildren = {
   LayoutAdminIndexRoute: LayoutAdminIndexRoute,
+  LayoutAdminPakAuditRoute: LayoutAdminPakAuditRoute,
+  LayoutAdminPakPaksRoute: LayoutAdminPakPaksRoute,
   LayoutAdminUserAuditRoute: LayoutAdminUserAuditRoute,
   LayoutAdminUserUsersRoute: LayoutAdminUserUsersRoute,
 }

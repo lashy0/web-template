@@ -163,7 +163,7 @@ def test_rotate_access_key_uses_dedicated_service_method(
     service = SimpleNamespace(rotate_access_key=AsyncMock(return_value="rotated-access-key"))
     actor_id = _configure_principal(app, mocker, service, Role.ADMINISTRATOR)
 
-    response = client.post(f"/pak/{pak_id}/access-key/rotate", headers=_headers(), json={})
+    response = client.post(f"/pak/{pak_id}/access-key/rotate", headers=_headers())
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {"access_key": "rotated-access-key"}

@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AuditListAuditEventsData, AuditListAuditEventsErrors, AuditListAuditEventsResponses, AuthMeData, AuthMeResponses, UsersCreateUserData, UsersCreateUserErrors, UsersCreateUserResponses, UsersDeleteUserData, UsersDeleteUserErrors, UsersDeleteUserResponses, UsersGetUserData, UsersGetUserErrors, UsersGetUserResponses, UsersListUsersData, UsersListUsersErrors, UsersListUsersResponses, UsersUpdateActiveData, UsersUpdateActiveErrors, UsersUpdateActiveResponses, UsersUpdateArchivedData, UsersUpdateArchivedErrors, UsersUpdateArchivedResponses, UsersUpdatePasswordData, UsersUpdatePasswordErrors, UsersUpdatePasswordResponses, UsersUpdateUserData, UsersUpdateUserErrors, UsersUpdateUserResponses } from './types.gen';
+import type { AuditListAuditEventsData, AuditListAuditEventsErrors, AuditListAuditEventsResponses, AuthMeData, AuthMeResponses, PakCreatePakData, PakCreatePakErrors, PakCreatePakResponses, PakDeletePakData, PakDeletePakErrors, PakDeletePakResponses, PakGetAccessKeyData, PakGetAccessKeyErrors, PakGetAccessKeyResponses, PakGetPakData, PakGetPakErrors, PakGetPakResponses, PakListPakData, PakListPakErrors, PakListPakResponses, PakRotateAccessKeyData, PakRotateAccessKeyErrors, PakRotateAccessKeyResponses, PakUpdateActiveData, PakUpdateActiveErrors, PakUpdateActiveResponses, PakUpdateArchivedData, PakUpdateArchivedErrors, PakUpdateArchivedResponses, PakUpdatePakData, PakUpdatePakErrors, PakUpdatePakResponses, UsersCreateUserData, UsersCreateUserErrors, UsersCreateUserResponses, UsersDeleteUserData, UsersDeleteUserErrors, UsersDeleteUserResponses, UsersGetUserData, UsersGetUserErrors, UsersGetUserResponses, UsersListUsersData, UsersListUsersErrors, UsersListUsersResponses, UsersUpdateActiveData, UsersUpdateActiveErrors, UsersUpdateActiveResponses, UsersUpdateArchivedData, UsersUpdateArchivedErrors, UsersUpdateArchivedResponses, UsersUpdatePasswordData, UsersUpdatePasswordErrors, UsersUpdatePasswordResponses, UsersUpdateUserData, UsersUpdateUserErrors, UsersUpdateUserResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -27,6 +27,79 @@ export const auditListAuditEvents = <ThrowOnError extends boolean = false>(optio
  * Me
  */
 export const authMe = <ThrowOnError extends boolean = false>(options?: Options<AuthMeData, ThrowOnError>): RequestResult<AuthMeResponses, unknown, ThrowOnError> => (options?.client ?? client).get<AuthMeResponses, unknown, ThrowOnError>({ url: '/auth/me', ...options });
+
+/**
+ * List Pak
+ */
+export const pakListPak = <ThrowOnError extends boolean = false>(options?: Options<PakListPakData, ThrowOnError>): RequestResult<PakListPakResponses, PakListPakErrors, ThrowOnError> => (options?.client ?? client).get<PakListPakResponses, PakListPakErrors, ThrowOnError>({ url: '/pak', ...options });
+
+/**
+ * Create Pak
+ */
+export const pakCreatePak = <ThrowOnError extends boolean = false>(options: Options<PakCreatePakData, ThrowOnError>): RequestResult<PakCreatePakResponses, PakCreatePakErrors, ThrowOnError> => (options.client ?? client).post<PakCreatePakResponses, PakCreatePakErrors, ThrowOnError>({
+    url: '/pak',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Delete Pak
+ */
+export const pakDeletePak = <ThrowOnError extends boolean = false>(options: Options<PakDeletePakData, ThrowOnError>): RequestResult<PakDeletePakResponses, PakDeletePakErrors, ThrowOnError> => (options.client ?? client).delete<PakDeletePakResponses, PakDeletePakErrors, ThrowOnError>({ url: '/pak/{pak_id}', ...options });
+
+/**
+ * Get Pak
+ */
+export const pakGetPak = <ThrowOnError extends boolean = false>(options: Options<PakGetPakData, ThrowOnError>): RequestResult<PakGetPakResponses, PakGetPakErrors, ThrowOnError> => (options.client ?? client).get<PakGetPakResponses, PakGetPakErrors, ThrowOnError>({ url: '/pak/{pak_id}', ...options });
+
+/**
+ * Update Pak
+ */
+export const pakUpdatePak = <ThrowOnError extends boolean = false>(options: Options<PakUpdatePakData, ThrowOnError>): RequestResult<PakUpdatePakResponses, PakUpdatePakErrors, ThrowOnError> => (options.client ?? client).patch<PakUpdatePakResponses, PakUpdatePakErrors, ThrowOnError>({
+    url: '/pak/{pak_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Get Access Key
+ */
+export const pakGetAccessKey = <ThrowOnError extends boolean = false>(options: Options<PakGetAccessKeyData, ThrowOnError>): RequestResult<PakGetAccessKeyResponses, PakGetAccessKeyErrors, ThrowOnError> => (options.client ?? client).get<PakGetAccessKeyResponses, PakGetAccessKeyErrors, ThrowOnError>({ url: '/pak/{pak_id}/access-key', ...options });
+
+/**
+ * Rotate Access Key
+ */
+export const pakRotateAccessKey = <ThrowOnError extends boolean = false>(options: Options<PakRotateAccessKeyData, ThrowOnError>): RequestResult<PakRotateAccessKeyResponses, PakRotateAccessKeyErrors, ThrowOnError> => (options.client ?? client).post<PakRotateAccessKeyResponses, PakRotateAccessKeyErrors, ThrowOnError>({ url: '/pak/{pak_id}/access-key/rotate', ...options });
+
+/**
+ * Update Active
+ */
+export const pakUpdateActive = <ThrowOnError extends boolean = false>(options: Options<PakUpdateActiveData, ThrowOnError>): RequestResult<PakUpdateActiveResponses, PakUpdateActiveErrors, ThrowOnError> => (options.client ?? client).put<PakUpdateActiveResponses, PakUpdateActiveErrors, ThrowOnError>({
+    url: '/pak/{pak_id}/active',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Update Archived
+ */
+export const pakUpdateArchived = <ThrowOnError extends boolean = false>(options: Options<PakUpdateArchivedData, ThrowOnError>): RequestResult<PakUpdateArchivedResponses, PakUpdateArchivedErrors, ThrowOnError> => (options.client ?? client).put<PakUpdateArchivedResponses, PakUpdateArchivedErrors, ThrowOnError>({
+    url: '/pak/{pak_id}/archived',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
  * List Users

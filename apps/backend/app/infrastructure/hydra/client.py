@@ -18,6 +18,11 @@ from app.auth.exceptions import (
 from app.core.config import Settings
 
 T = TypeVar("T")
+_CLIENT_SECRET_BYTES = 48
+
+
+def _new_client_secret() -> str:
+    return token_urlsafe(_CLIENT_SECRET_BYTES)
 
 
 def _oauth_client(value: HydraOAuth2Client) -> OAuthClient:
@@ -85,6 +90,7 @@ class HydraOAuthClientManager:
         scopes: tuple[str, ...] = (),
     ) -> OAuthClientCredentials:
         client = HydraOAuth2Client(
+            client_secret=_new_client_secret(),
             client_id=client_id,
             client_name=name,
             grant_types=["client_credentials"],
@@ -124,7 +130,7 @@ class HydraOAuthClientManager:
                 _request_timeout=self._client.timeout,
             )
         )
-        replacement_secret = token_urlsafe(48)
+        replacement_secret = _new_client_secret()
         replacement = current.model_copy(update={"client_secret": replacement_secret})
         result = await self._client.call(
             lambda: self._oauth2.set_o_auth2_client(

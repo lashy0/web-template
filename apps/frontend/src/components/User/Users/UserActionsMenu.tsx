@@ -47,7 +47,9 @@ export function UserActionsMenu({ user }: Readonly<{ user: User }>) {
 
   return (
     <DropdownMenu onOpenChange={setOpen} open={open}>
-      <DropdownMenuTrigger render={<Button className="cursor-pointer" size="icon-sm" variant="ghost" />}>
+      <DropdownMenuTrigger
+        render={<Button className="cursor-pointer" size="icon-sm" variant="ghost" />}
+      >
         <EllipsisVerticalIcon />
         <span className="sr-only">Действия с пользователем {user.name}</span>
       </DropdownMenuTrigger>

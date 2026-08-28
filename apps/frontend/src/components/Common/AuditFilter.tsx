@@ -13,8 +13,6 @@ import {
   type DatePeriodSelection,
 } from '@/lib/date'
 
-export type { DatePeriod as AuditPeriod } from '@/lib/date'
-
 export function AuditFilter({
   onApply,
   value,

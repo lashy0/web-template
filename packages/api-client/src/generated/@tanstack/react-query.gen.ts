@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { auditListAuditEvents, authMe, type Options, usersCreateUser, usersDeleteUser, usersGetUser, usersListUsers, usersUpdateActive, usersUpdateArchived, usersUpdatePassword, usersUpdateUser } from '../sdk.gen';
-import type { AuditListAuditEventsData, AuditListAuditEventsError, AuditListAuditEventsResponse, AuthMeData, AuthMeResponse, UsersCreateUserData, UsersCreateUserError, UsersCreateUserResponse, UsersDeleteUserData, UsersDeleteUserError, UsersDeleteUserResponse, UsersGetUserData, UsersGetUserError, UsersGetUserResponse, UsersListUsersData, UsersListUsersError, UsersListUsersResponse, UsersUpdateActiveData, UsersUpdateActiveError, UsersUpdateActiveResponse, UsersUpdateArchivedData, UsersUpdateArchivedError, UsersUpdateArchivedResponse, UsersUpdatePasswordData, UsersUpdatePasswordError, UsersUpdatePasswordResponse, UsersUpdateUserData, UsersUpdateUserError, UsersUpdateUserResponse } from '../types.gen';
+import { auditListAuditEvents, authMe, type Options, pakCreatePak, pakDeletePak, pakGetAccessKey, pakGetPak, pakListPak, pakRotateAccessKey, pakUpdateActive, pakUpdateArchived, pakUpdatePak, usersCreateUser, usersDeleteUser, usersGetUser, usersListUsers, usersUpdateActive, usersUpdateArchived, usersUpdatePassword, usersUpdateUser } from '../sdk.gen';
+import type { AuditListAuditEventsData, AuditListAuditEventsError, AuditListAuditEventsResponse, AuthMeData, AuthMeResponse, PakCreatePakData, PakCreatePakError, PakCreatePakResponse, PakDeletePakData, PakDeletePakError, PakDeletePakResponse, PakGetAccessKeyData, PakGetAccessKeyError, PakGetAccessKeyResponse, PakGetPakData, PakGetPakError, PakGetPakResponse, PakListPakData, PakListPakError, PakListPakResponse, PakRotateAccessKeyData, PakRotateAccessKeyError, PakRotateAccessKeyResponse, PakUpdateActiveData, PakUpdateActiveError, PakUpdateActiveResponse, PakUpdateArchivedData, PakUpdateArchivedError, PakUpdateArchivedResponse, PakUpdatePakData, PakUpdatePakError, PakUpdatePakResponse, UsersCreateUserData, UsersCreateUserError, UsersCreateUserResponse, UsersDeleteUserData, UsersDeleteUserError, UsersDeleteUserResponse, UsersGetUserData, UsersGetUserError, UsersGetUserResponse, UsersListUsersData, UsersListUsersError, UsersListUsersResponse, UsersUpdateActiveData, UsersUpdateActiveError, UsersUpdateActiveResponse, UsersUpdateArchivedData, UsersUpdateArchivedError, UsersUpdateArchivedResponse, UsersUpdatePasswordData, UsersUpdatePasswordError, UsersUpdatePasswordResponse, UsersUpdateUserData, UsersUpdateUserError, UsersUpdateUserResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -133,6 +133,192 @@ export const authMeOptions = (options?: Options<AuthMeData>) => queryOptions<Aut
     },
     queryKey: authMeQueryKey(options)
 });
+
+export const pakListPakQueryKey = (options?: Options<PakListPakData>) => createQueryKey('pakListPak', options);
+
+/**
+ * List Pak
+ */
+export const pakListPakOptions = (options?: Options<PakListPakData>) => queryOptions<PakListPakResponse, PakListPakError, PakListPakResponse, ReturnType<typeof pakListPakQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await pakListPak({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: pakListPakQueryKey(options)
+});
+
+export const pakListPakInfiniteQueryKey = (options?: Options<PakListPakData>): QueryKey<Options<PakListPakData>> => createQueryKey('pakListPak', options, true);
+
+/**
+ * List Pak
+ */
+export const pakListPakInfiniteOptions = (options?: Options<PakListPakData>) => {
+    const opts = infiniteQueryOptions<PakListPakResponse, PakListPakError, InfiniteData<PakListPakResponse>, QueryKey<Options<PakListPakData>>, number | Pick<QueryKey<Options<PakListPakData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<PakListPakData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    page: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await pakListPak({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: pakListPakInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+/**
+ * Create Pak
+ */
+export const pakCreatePakMutation = (options?: Partial<Options<PakCreatePakData>>): UseMutationOptions<PakCreatePakResponse, PakCreatePakError, Options<PakCreatePakData>> => {
+    const mutationOptions: UseMutationOptions<PakCreatePakResponse, PakCreatePakError, Options<PakCreatePakData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await pakCreatePak({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Delete Pak
+ */
+export const pakDeletePakMutation = (options?: Partial<Options<PakDeletePakData>>): UseMutationOptions<PakDeletePakResponse, PakDeletePakError, Options<PakDeletePakData>> => {
+    const mutationOptions: UseMutationOptions<PakDeletePakResponse, PakDeletePakError, Options<PakDeletePakData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await pakDeletePak({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const pakGetPakQueryKey = (options: Options<PakGetPakData>) => createQueryKey('pakGetPak', options);
+
+/**
+ * Get Pak
+ */
+export const pakGetPakOptions = (options: Options<PakGetPakData>) => queryOptions<PakGetPakResponse, PakGetPakError, PakGetPakResponse, ReturnType<typeof pakGetPakQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await pakGetPak({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: pakGetPakQueryKey(options)
+});
+
+/**
+ * Update Pak
+ */
+export const pakUpdatePakMutation = (options?: Partial<Options<PakUpdatePakData>>): UseMutationOptions<PakUpdatePakResponse, PakUpdatePakError, Options<PakUpdatePakData>> => {
+    const mutationOptions: UseMutationOptions<PakUpdatePakResponse, PakUpdatePakError, Options<PakUpdatePakData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await pakUpdatePak({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const pakGetAccessKeyQueryKey = (options: Options<PakGetAccessKeyData>) => createQueryKey('pakGetAccessKey', options);
+
+/**
+ * Get Access Key
+ */
+export const pakGetAccessKeyOptions = (options: Options<PakGetAccessKeyData>) => queryOptions<PakGetAccessKeyResponse, PakGetAccessKeyError, PakGetAccessKeyResponse, ReturnType<typeof pakGetAccessKeyQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await pakGetAccessKey({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: pakGetAccessKeyQueryKey(options)
+});
+
+/**
+ * Rotate Access Key
+ */
+export const pakRotateAccessKeyMutation = (options?: Partial<Options<PakRotateAccessKeyData>>): UseMutationOptions<PakRotateAccessKeyResponse, PakRotateAccessKeyError, Options<PakRotateAccessKeyData>> => {
+    const mutationOptions: UseMutationOptions<PakRotateAccessKeyResponse, PakRotateAccessKeyError, Options<PakRotateAccessKeyData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await pakRotateAccessKey({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Update Active
+ */
+export const pakUpdateActiveMutation = (options?: Partial<Options<PakUpdateActiveData>>): UseMutationOptions<PakUpdateActiveResponse, PakUpdateActiveError, Options<PakUpdateActiveData>> => {
+    const mutationOptions: UseMutationOptions<PakUpdateActiveResponse, PakUpdateActiveError, Options<PakUpdateActiveData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await pakUpdateActive({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Update Archived
+ */
+export const pakUpdateArchivedMutation = (options?: Partial<Options<PakUpdateArchivedData>>): UseMutationOptions<PakUpdateArchivedResponse, PakUpdateArchivedError, Options<PakUpdateArchivedData>> => {
+    const mutationOptions: UseMutationOptions<PakUpdateArchivedResponse, PakUpdateArchivedError, Options<PakUpdateArchivedData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await pakUpdateArchived({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
 
 export const usersListUsersQueryKey = (options?: Options<UsersListUsersData>) => createQueryKey('usersListUsers', options);
 
