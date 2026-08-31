@@ -2,7 +2,6 @@
   "name": "web-app",
   "private": true,
   "scripts": {
-    "dev": "pnpm --filter @web-app/frontend dev",
     "build": "pnpm --recursive --if-present run build",
     "typecheck": "pnpm --recursive --if-present run typecheck",
     "lint": "oxlint --allow react/only-export-components apps packages",

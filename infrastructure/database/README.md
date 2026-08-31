@@ -59,7 +59,7 @@ silently altering credentials. Hydra's own schema migration then runs as the
 
 ## Configuration
 
-Both the database and application projects load the repository `.env` file.
+Both the database and backend projects load the repository `.env` file.
 Copy `.env.example` to `.env` and replace every example credential before use.
 The fixed database and principal names are:
 

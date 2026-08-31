@@ -1,0 +1,28 @@
+name: web-frontend
+
+x-default-logging: &default-logging
+  driver: local
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-frontend-image: &frontend-image
+  image: "web-app-frontend:${FRONTEND_TAG:-dev}"
+  build:
+    context: ../../apps/frontend
+    dockerfile: Dockerfile
+    additional_contexts:
+      workspace: ../..
+      api_client: ../../packages/api-client
+      ui: ../../packages/ui
+
+services:
+  frontend:
+    <<: *frontend-image
+    logging: *default-logging
+    init: true
+
+networks:
+  traefik-public:
+    name: traefik-public
+    external: true

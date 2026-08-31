@@ -94,7 +94,7 @@ export function AddPak() {
     >
       <DialogTrigger render={<Button className="my-4 cursor-pointer" />}>
         <PlusIcon data-icon="inline-start" />
-        Добавить ПАК
+        Добавить
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg" showCloseButton={!mutation.isPending}>
         {created ? (

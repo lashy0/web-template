@@ -1,0 +1,17 @@
+services:
+  frontend:
+    build:
+      target: development
+    ports:
+      - "127.0.0.1:5173:5173"
+    environment:
+      DEV_API_PROXY_TARGET: http://host.docker.internal
+      DEV_KRATOS_PUBLIC_PROXY_TARGET: http://host.docker.internal:${KRATOS_PUBLIC_PORT:-4433}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    working_dir: /app/apps/frontend
+    command: ["./node_modules/.bin/vite", "--host", "0.0.0.0"]
+    volumes:
+      - ../../apps/frontend/src:/app/apps/frontend/src
+      - ../../packages/api-client/src:/app/packages/api-client/src
+      - ../../packages/ui/src:/app/packages/ui/src

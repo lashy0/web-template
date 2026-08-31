@@ -31,6 +31,7 @@ class PakRepository:
         )
 
         self._session.add(pak)
+
         await self._session.flush()
         await self._session.refresh(pak)
 

@@ -1,26 +1,22 @@
 # Frontend
 
 The frontend is a React SPA served at `app.${BASE_DOMAIN}` in production. Vite
-runs on the host during development; production uses a multi-stage image and an
-unprivileged Nginx runtime.
+runs in its own Docker Compose project during development; production uses a
+multi-stage image and an unprivileged Nginx runtime.
 
 ## Requirements
 
-- Node.js 24 LTS
-- Corepack with the repository's pinned pnpm version
-- The backend and Traefik development infrastructure for API proxying
+- Docker Desktop with Docker Compose
+- The backend, identity, and Traefik development infrastructure
 
-Install workspace dependencies from the repository root:
-
-```console
-corepack pnpm install
-```
-
-Start Vite:
+Start the frontend after the backend, Traefik, and identity development stacks:
 
 ```console
-pnpm dev
+uv run --project infrastructure infra-application frontend up dev
 ```
+
+Open <http://localhost:5173>. The container runs Vite and reloads changes in
+the frontend and shared TypeScript packages automatically.
 
 Browser requests to `/api/*` are proxied to `http://api.${BASE_DOMAIN}` with the
 `/api` prefix removed. The application does not read a build-time API host.

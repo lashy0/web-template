@@ -14,6 +14,8 @@ from app.auth.exceptions import (
     UserNotProvisionedError,
 )
 from app.core.exceptions import AppError
+from app.modules.batch.exceptions import BatchNotFoundError
+from app.modules.kg.exceptions import KgAlreadyExistsError, KgCannotBeDeletedError, KgNotFoundError
 from app.modules.pak.exceptions import (
     InvalidMachineAccessTokenError,
     PakAccessKeyConfigurationError,
@@ -48,7 +50,11 @@ def install_error_handlers(app: FastAPI) -> None:
         (IdentityNotFoundError, status.HTTP_404_NOT_FOUND),
         (OAuthClientNotFoundError, status.HTTP_404_NOT_FOUND),
         (UserNotFoundError, status.HTTP_404_NOT_FOUND),
+        (BatchNotFoundError, status.HTTP_404_NOT_FOUND),
+        (KgNotFoundError, status.HTTP_404_NOT_FOUND),
         (PakNotFoundError, status.HTTP_404_NOT_FOUND),
+        (KgAlreadyExistsError, status.HTTP_409_CONFLICT),
+        (KgCannotBeDeletedError, status.HTTP_409_CONFLICT),
         (PakAlreadyExistsError, status.HTTP_409_CONFLICT),
         (PakAccessKeyConfigurationError, status.HTTP_503_SERVICE_UNAVAILABLE),
         (PakProvisioningError, status.HTTP_503_SERVICE_UNAVAILABLE),

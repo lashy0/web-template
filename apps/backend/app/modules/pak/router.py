@@ -63,7 +63,10 @@ async def list_pak(
     )
 
     return PakDeviceListResponse(
-        items=[_response(pak) for pak in paks], total=total, page=page, page_size=page_size
+        items=[_response(pak) for pak in paks],
+        total=total,
+        page=page,
+        page_size=page_size,
     )
 
 

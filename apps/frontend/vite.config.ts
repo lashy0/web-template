@@ -11,7 +11,11 @@ export default defineConfig(({ mode }) => {
   const baseDomain = env.BASE_DOMAIN || 'localhost'
   const kratosPublicPort = env.KRATOS_PUBLIC_PORT || '4433'
   const apiHost = `api.${baseDomain}`
-  const apiTarget = baseDomain === 'localhost' ? 'http://127.0.0.1' : `http://${apiHost}`
+  const apiTarget =
+    env.DEV_API_PROXY_TARGET ||
+    (baseDomain === 'localhost' ? 'http://127.0.0.1' : `http://${apiHost}`)
+  const kratosPublicTarget =
+    env.DEV_KRATOS_PUBLIC_PROXY_TARGET || `http://127.0.0.1:${kratosPublicPort}`
 
   return {
     envDir: repositoryRoot,
@@ -44,11 +48,11 @@ export default defineConfig(({ mode }) => {
           rewrite: (path) => path.replace(/^\/api/, ''),
         },
         '/self-service': {
-          target: `http://127.0.0.1:${kratosPublicPort}`,
+          target: kratosPublicTarget,
           changeOrigin: true,
         },
         '/sessions': {
-          target: `http://127.0.0.1:${kratosPublicPort}`,
+          target: kratosPublicTarget,
           changeOrigin: true,
         },
       },

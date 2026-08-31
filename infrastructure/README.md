@@ -1,6 +1,6 @@
 # Infrastructure
 
-The application, database, identity, and Traefik stacks are independent Docker
+The frontend, backend, database, identity, and Traefik stacks are independent Docker
 Compose projects managed through one uv environment.
 
 ## Requirements
@@ -24,14 +24,16 @@ projects in operational order:
 uv run infra-database up dev
 uv run infra-traefik up dev
 uv run infra-identity up dev
-uv run infra-application up dev
+uv run infra-application backend up dev
+uv run infra-application frontend up dev
 ```
 
 Use `status` with the same environment argument to inspect a project. Stop the
 projects in reverse order:
 
 ```console
-uv run infra-application down dev
+uv run infra-application frontend down dev
+uv run infra-application backend down dev
 uv run infra-identity down dev
 uv run infra-traefik down dev
 uv run infra-database down dev
@@ -43,7 +45,8 @@ Replace `dev` with `prod` when managing the production configuration.
 
 Each independently operated project documents its configuration and lifecycle:
 
-* [Application](application/README.md)
+* [Backend](backend/README.md)
+* [Frontend](frontend/README.md)
 * [Database](database/README.md)
 * [Identity](identity/README.md)
 * [Traefik](traefik/README.md)
@@ -54,8 +57,9 @@ Each independently operated project documents its configuration and lifecycle:
 ```text
 infrastructure/
 ├── cli/                    Shared lifecycle CLI
-├── application/            Web application stack
+├── backend/                Backend stack
 ├── database/               PostgreSQL and Redis stack
+├── frontend/               Frontend stack
 ├── identity/               Ory Kratos stack
 └── traefik/                Reverse-proxy stack
 ```

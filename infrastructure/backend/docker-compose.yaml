@@ -1,4 +1,4 @@
-name: web-app
+name: web-backend
 
 x-default-logging: &default-logging
   driver: local
@@ -20,7 +20,7 @@ x-backend-environment: &backend-environment
   BACKEND_HYDRA_ADMIN_URL: http://hydra:4445
 
 x-backend-image: &backend-image
-  image: "web-app-backend:${TAG:-dev}"
+  image: "web-app-backend:${BACKEND_TAG:-dev}"
   build:
     context: ../../apps/backend
     dockerfile: Dockerfile

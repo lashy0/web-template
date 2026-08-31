@@ -24,7 +24,8 @@ Detailed layouts and configuration are documented in:
 - [Backend](apps/backend/README.md)
 - [Frontend](apps/frontend/README.md)
 - [Infrastructure](infrastructure/README.md)
-- [Application](infrastructure/application/README.md)
+- [Backend infrastructure](infrastructure/backend/README.md)
+- [Frontend infrastructure](infrastructure/frontend/README.md)
 - [Database](infrastructure/database/README.md)
 - [Identity](infrastructure/identity/README.md)
 - [Traefik](infrastructure/traefik/README.md)
@@ -42,21 +43,18 @@ Configure the separate `infrastructure/traefik/.env` as described in the
 Create the persistent Kratos secrets in `infrastructure/identity/.env` as
 described in the [Identity README](infrastructure/identity/README.md).
 
-Install frontend workspace dependencies and start Vite on the host:
-
-```console
-corepack pnpm install
-pnpm dev
-```
-
-Start infrastructure and the application in operational order:
+Start infrastructure, then deploy the backend and frontend independently:
 
 ```console
 uv run --project infrastructure infra-database up dev
 uv run --project infrastructure infra-traefik up dev
 uv run --project infrastructure infra-identity up dev
-uv run --project infrastructure infra-application up dev
+uv run --project infrastructure infra-application backend up dev
+uv run --project infrastructure infra-application frontend up dev
 ```
+
+Open <http://localhost:5173>. The frontend source and shared TypeScript package
+changes reload automatically. Docker Desktop must be running.
 
 PostgreSQL and Redis are exposed only on loopback in development. Application
 deployment checks their health but never starts or updates them.
@@ -64,7 +62,8 @@ deployment checks their health but never starts or updates them.
 Normal shutdown uses the reverse order:
 
 ```console
-uv run --project infrastructure infra-application down dev
+uv run --project infrastructure infra-application frontend down dev
+uv run --project infrastructure infra-application backend down dev
 uv run --project infrastructure infra-identity down dev
 uv run --project infrastructure infra-traefik down dev
 uv run --project infrastructure infra-database down dev

@@ -20,6 +20,8 @@ from app.middleware.csrf import JsonOriginMiddleware
 from app.middleware.request_context import RequestContextMiddleware
 from app.modules.pak.service import PakManagementService
 from app.modules.users.service import UserManagementService
+from app.modules.kg.service import KgManagementService, KgDevEuiPrefixManagementService
+from app.modules.batch.service import BatchManagementService
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
@@ -50,6 +52,19 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         settings.PAK_ACCESS_KEY_ENCRYPTION_KEY,
     )
 
+    app.state.kg_management = KgManagementService(
+        database.session_factory,
+    )
+
+    app.state.kg_dev_eui_prefix_management = KgDevEuiPrefixManagementService(
+        database.session_factory,
+    )
+
+    app.state.batch_management = BatchManagementService(
+        database.session_factory,
+    )
+
+
     redis = create_redis_client(settings)
     app.state.redis = redis
 
@@ -61,16 +76,19 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         while True:
             try:
                 await app.state.user_management.reconcile()
+
             except Exception:
                 logger.bind(event="kratos.reconcile_failed").exception(
                     "Kratos reconciliation failed"
                 )
+
             await asyncio.sleep(settings.KRATOS_RECONCILE_INTERVAL)
 
     reconcile_task = asyncio.create_task(reconcile_forever())
 
     try:
         yield
+
     finally:
         logger.bind(event="application_shutdown").info("Application shutdown")
 
@@ -80,6 +98,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
                 await reconcile_task
             except asyncio.CancelledError:
                 pass
+
         await redis.aclose()
         await database.close()
         await logger.complete()

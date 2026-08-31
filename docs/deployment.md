@@ -1,14 +1,14 @@
 # Deployment
 
-PostgreSQL/Redis, Traefik, Ory Kratos, and the application are separate Compose
+PostgreSQL/Redis, Traefik, Ory Kratos, the backend, and the frontend are separate Compose
 projects. One Docker host represents one environment; dev and prod are not run
 together on the same daemon.
 
-The production application project builds two runtime images: the FastAPI
-backend and an unprivileged Nginx image containing the React SPA. Traefik serves
-the SPA at `app.${BASE_DOMAIN}` and routes `app.${BASE_DOMAIN}/api/*` to the
-backend after removing the `/api` prefix. The direct machine endpoint remains
-`api.${BASE_DOMAIN}`.
+The backend and frontend have their own runtime images and release tags. The
+frontend image is an unprivileged Nginx image containing the React SPA. Traefik
+serves the SPA at `app.${BASE_DOMAIN}` and routes
+`app.${BASE_DOMAIN}/api/*` to the backend after removing the `/api` prefix. The
+direct machine endpoint remains `api.${BASE_DOMAIN}`.
 
 ## Environment
 
@@ -28,7 +28,7 @@ production variables are:
 | `BACKEND_WORKERS` | no | Uvicorn workers; current capacity contract is four |
 | `POSTGRES_MEMORY_LIMIT` | no | PostgreSQL container limit, default `2g` |
 
-The database and application services all receive the root `.env`; explicit
+The database and backend services all receive the root `.env`; explicit
 service overrides choose migrator or runtime identities. This simplifies
 configuration but means privileged variables remain visible inside runtime
 containers. Never commit `.env` or print effective Compose configuration in
@@ -46,11 +46,12 @@ Deploy in this order:
 uv run --project infrastructure infra-database up prod
 uv run --project infrastructure infra-traefik up prod
 uv run --project infrastructure infra-identity up prod
-uv run --project infrastructure infra-application up prod
+uv run --project infrastructure infra-application backend up prod
+uv run --project infrastructure infra-application frontend up prod
 ```
 
 The identity command checks its database and Traefik networks, applies Kratos
-migrations, and waits for readiness. The application command fails before
+migrations, and waits for readiness. The backend command fails before
 build/start if the `web-database` network or either healthy data-service
 container is absent. It never invokes the database project. The `prestart`
 container then applies Alembic migrations as `web_app_migrator`; the backend

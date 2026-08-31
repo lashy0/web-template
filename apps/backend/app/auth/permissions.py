@@ -5,17 +5,42 @@ from app.auth.roles import Role
 from app.modules.audit.permissions import AuditPermission
 from app.modules.pak.permissions import PakPermission
 from app.modules.users.permissions import UserPermission
+from app.modules.kg.permissions import KgPermission
+from app.modules.batch.permissions import BatchPermission
 
 type Permission = StrEnum
 
 ALL_PERMISSIONS: Final[frozenset[Permission]] = frozenset(
-    (*UserPermission, *PakPermission, *AuditPermission)
+    (*UserPermission, *PakPermission, *AuditPermission, *KgPermission, *BatchPermission,)
+)
+
+MANAGER_PERMISSIONS: Final[frozenset[Permission]] = frozenset(
+    (
+        BatchPermission.CREATE,
+        BatchPermission.READ,
+        BatchPermission.UPDATE,
+        BatchPermission.ARCHIVE,
+        BatchPermission.COMPLETE,
+        BatchPermission.DELETE,
+
+        BatchPermission.RECEIPT_CREATE,
+        BatchPermission.RECEIPT_UPDATE,
+        BatchPermission.RECEIPT_VOID,
+
+        BatchPermission.SHIPMENT_CREATE,
+        BatchPermission.SHIPMENT_UPDATE,
+        BatchPermission.SHIPMENT_COMPLETE,
+        BatchPermission.SHIPMENT_VOID,
+
+        KgPermission.READ,
+        KgPermission.PREFIX_READ,
+    )
 )
 
 
 ROLE_PERMISSIONS: Final[dict[Role, frozenset[Permission]]] = {
     Role.ADMINISTRATOR: ALL_PERMISSIONS,
-    Role.MANAGER: frozenset(),
+    Role.MANAGER: MANAGER_PERMISSIONS,
     Role.ENGINEER: frozenset(),
     Role.PACKER: frozenset(),
     Role.OPERATOR: frozenset(),
