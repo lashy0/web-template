@@ -3,6 +3,7 @@ import pytest
 from app.auth.permissions import (
     ALL_PERMISSIONS,
     MANAGER_PERMISSIONS,
+    ENGINEER_PERMISSIONS,
     ROLE_PERMISSIONS,
     permissions_for_role,
     role_has_permission,
@@ -13,6 +14,7 @@ from app.modules.batch.permissions import BatchPermission
 from app.modules.kg.permissions import KgPermission
 from app.modules.pak.permissions import PakPermission
 from app.modules.users.permissions import UserPermission
+from app.modules.verification.permissions import VerificationPermission
 
 
 @pytest.mark.unit
@@ -33,7 +35,14 @@ def test_administrator_has_every_permission() -> None:
 @pytest.mark.unit
 def test_all_permissions_are_declared_by_modules() -> None:
     assert ALL_PERMISSIONS == frozenset(
-        (*UserPermission, *PakPermission, *AuditPermission, *KgPermission, *BatchPermission)
+        (
+            *UserPermission,
+            *PakPermission,
+            *AuditPermission,
+            *KgPermission,
+            *BatchPermission,
+            *VerificationPermission,
+        )
     )
 
 
@@ -42,7 +51,7 @@ def test_all_permissions_are_declared_by_modules() -> None:
     ("role", "expected_permissions"),
     [
         pytest.param(Role.MANAGER, MANAGER_PERMISSIONS, id="manager"),
-        pytest.param(Role.ENGINEER, frozenset(), id="engineer"),
+        pytest.param(Role.ENGINEER, ENGINEER_PERMISSIONS, id="engineer"),
         pytest.param(Role.PACKER, frozenset(), id="packer"),
         pytest.param(Role.OPERATOR, frozenset(), id="operator"),
     ],

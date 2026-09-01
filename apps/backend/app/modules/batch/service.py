@@ -48,8 +48,8 @@ from app.modules.batch.repository import (
     BatchShipmentRepository,
 )
 from app.modules.kg.models import KgStatus
-from app.modules.kg.repository import KgRepository, KgDevEuiPrefixRepository
-
+from app.modules.kg.repository import KgDevEuiPrefixRepository, KgRepository
+from app.modules.verification.repository import VerificationSessionRepository
 
 BATCH_EDIT_WINDOW = timedelta(minutes=60)
 
@@ -323,11 +323,9 @@ class BatchManagementService:
             receipt_repository = BatchReceiptRepository(session)
             shipment_repository = BatchShipmentRepository(session)
             kg_repository = KgRepository(session)
+            verification_repository = VerificationSessionRepository(session)
 
-            batch = await self._required_batch(
-                batch_repository,
-                batch_id,
-            )
+            batch = await self._required_batch(batch_repository, batch_id)
 
             self._ensure_batch_edit_allowed(
                 batch,
@@ -345,6 +343,9 @@ class BatchManagementService:
                 raise BatchCannotBeDeletedError
 
             if await kg_repository.has_non_registered_by_batch(batch.id):
+                raise BatchCannotBeDeletedError
+
+            if await verification_repository.exists_by_batch_id(batch.id):
                 raise BatchCannotBeDeletedError
 
             await AuditService.from_session(session).record(

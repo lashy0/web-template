@@ -35,3 +35,9 @@ class InvalidMachineAccessTokenError(PakError):
     """A machine access token is missing, invalid, or does not identify a PAK."""
 
     code = "invalid_machine_access_token"
+
+
+class PakCannotBeDeletedError(PakError):
+    """The PAK cannot be deleted because it has verification history."""
+
+    code = "pak_cannot_be_deleted"

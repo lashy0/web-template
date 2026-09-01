@@ -7,11 +7,20 @@ from app.modules.pak.permissions import PakPermission
 from app.modules.users.permissions import UserPermission
 from app.modules.kg.permissions import KgPermission
 from app.modules.batch.permissions import BatchPermission
+from app.modules.verification.permissions import VerificationPermission
+
 
 type Permission = StrEnum
 
 ALL_PERMISSIONS: Final[frozenset[Permission]] = frozenset(
-    (*UserPermission, *PakPermission, *AuditPermission, *KgPermission, *BatchPermission,)
+    (
+        *UserPermission,
+        *PakPermission,
+        *AuditPermission,
+        *KgPermission,
+        *BatchPermission,
+        *VerificationPermission,
+    )
 )
 
 MANAGER_PERMISSIONS: Final[frozenset[Permission]] = frozenset(
@@ -34,6 +43,15 @@ MANAGER_PERMISSIONS: Final[frozenset[Permission]] = frozenset(
 
         KgPermission.READ,
         KgPermission.PREFIX_READ,
+
+        VerificationPermission.READ,
+    )
+)
+
+ENGINEER_PERMISSIONS: Final[frozenset[Permission]] = frozenset(
+    (
+        KgPermission.READ,
+        VerificationPermission.READ,
     )
 )
 
@@ -41,7 +59,7 @@ MANAGER_PERMISSIONS: Final[frozenset[Permission]] = frozenset(
 ROLE_PERMISSIONS: Final[dict[Role, frozenset[Permission]]] = {
     Role.ADMINISTRATOR: ALL_PERMISSIONS,
     Role.MANAGER: MANAGER_PERMISSIONS,
-    Role.ENGINEER: frozenset(),
+    Role.ENGINEER: ENGINEER_PERMISSIONS,
     Role.PACKER: frozenset(),
     Role.OPERATOR: frozenset(),
 }

@@ -30,6 +30,25 @@ def test_hydra_urls_have_internal_service_defaults() -> None:
 
 
 @pytest.mark.unit
+def test_verification_timeout_defaults_are_consistent() -> None:
+    settings = Settings()
+
+    assert settings.VERIFICATION_SESSION_REOPEN_INACTIVITY_MINUTES == 60
+    assert settings.VERIFICATION_SESSION_TTL_MINUTES == 120
+
+
+@pytest.mark.unit
+def test_verification_reopen_timeout_must_be_shorter_than_session_ttl() -> None:
+    with pytest.raises(ValidationError, match="must be less than"):
+        Settings.model_validate(
+            {
+                "BACKEND_VERIFICATION_SESSION_REOPEN_INACTIVITY_MINUTES": 120,
+                "BACKEND_VERIFICATION_SESSION_TTL_MINUTES": 120,
+            }
+        )
+
+
+@pytest.mark.unit
 def test_api_prefix_is_empty_by_default() -> None:
     assert Settings().API_PREFIX == ""
 

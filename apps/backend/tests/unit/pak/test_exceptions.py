@@ -5,6 +5,7 @@ from app.modules.pak.exceptions import (
     InvalidMachineAccessTokenError,
     PakAccessKeyConfigurationError,
     PakAlreadyExistsError,
+    PakCannotBeDeletedError,
     PakError,
     PakNotFoundError,
     PakProvisioningError,
@@ -17,6 +18,7 @@ from app.modules.pak.exceptions import (
     [
         PakNotFoundError,
         PakAlreadyExistsError,
+        PakCannotBeDeletedError,
         PakProvisioningError,
         PakAccessKeyConfigurationError,
         InvalidMachineAccessTokenError,

@@ -13,12 +13,15 @@ class JsonOriginMiddleware:
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http" or scope["method"] in {"GET", "HEAD", "OPTIONS"}:
             await self.app(scope, receive, send)
+
             return
+
         headers = Headers(scope=scope)
         content_type = headers.get("content-type", "").split(";", 1)[0]
         origin = headers.get("origin")
         content_length = headers.get("content-length")
         has_body = content_length not in {None, "0"} or headers.get("transfer-encoding") is not None
+
         if (
             scope["method"] in {"POST", "PUT", "PATCH"}
             and has_body
@@ -32,8 +35,16 @@ class JsonOriginMiddleware:
                 },
                 415,
             )
+
             await response(scope, receive, send)
+
             return
+
+        if headers.get("cookie") is None:
+            await self.app(scope, receive, send)
+
+            return
+
         if origin is None or origin not in self.allowed_origins:
             response = JSONResponse(
                 {
@@ -43,6 +54,9 @@ class JsonOriginMiddleware:
                 },
                 403,
             )
+
             await response(scope, receive, send)
+
             return
+
         await self.app(scope, receive, send)

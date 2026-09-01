@@ -35,6 +35,14 @@ class OAuthClientCredentials:
 
 
 @dataclass(frozen=True, slots=True)
+class OAuthAccessToken:
+    access_token: str = field(repr=False)
+    token_type: str
+    expires_in: int
+    scopes: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
 class AccessTokenIntrospection:
     active: bool
     client_id: str | None
@@ -173,4 +181,16 @@ class TokenIntrospector(Protocol):
         required_scopes: tuple[str, ...] = (),
     ) -> AccessTokenIntrospection:
         """Return the active state and OAuth client data for an access token."""
+        raise NotImplementedError
+
+
+class MachineTokenIssuer(Protocol):
+    async def issue_client_credentials_token(
+        self,
+        *,
+        client_id: str,
+        client_secret: str,
+        scopes: tuple[str, ...] = (),
+    ) -> OAuthAccessToken:
+        """Issue an access token using the OAuth client-credentials grant."""
         raise NotImplementedError

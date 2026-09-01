@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 from loguru import logger
@@ -6,8 +6,13 @@ from pydantic import SecretStr
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.auth.contracts import OAuthClientManager, TokenIntrospector
-from app.auth.exceptions import ForbiddenError
+from app.auth.contracts import (
+    MachineTokenIssuer,
+    OAuthAccessToken,
+    OAuthClientManager,
+    TokenIntrospector,
+)
+from app.auth.exceptions import ForbiddenError, InvalidMachineCredentialsError
 from app.auth.principal import CurrentPrincipal
 from app.modules.audit.service import AuditService
 from app.modules.audit.types import AuditActor, AuditEntity
@@ -15,13 +20,16 @@ from app.modules.pak.crypto import PakAccessKeyCipher
 from app.modules.pak.exceptions import (
     InvalidMachineAccessTokenError,
     PakAlreadyExistsError,
+    PakCannotBeDeletedError,
     PakNotFoundError,
     PakProvisioningError,
 )
 from app.modules.pak.models import PakDevice, PakDeviceKind
 from app.modules.pak.repository import PakRepository
+from app.modules.verification.repository import VerificationSessionRepository
 
 PAK_OAUTH_SCOPES = ("pak:api",)
+PAK_LAST_SEEN_UPDATE_INTERVAL = timedelta(seconds=15)
 
 
 class PakManagementService:
@@ -32,11 +40,13 @@ class PakManagementService:
         session_factory: async_sessionmaker[AsyncSession],
         oauth_clients: OAuthClientManager,
         token_introspector: TokenIntrospector,
+        token_issuer: MachineTokenIssuer,
         access_key_encryption_key: SecretStr | None,
     ) -> None:
         self._session_factory = session_factory
         self._oauth_clients = oauth_clients
         self._token_introspector = token_introspector
+        self._token_issuer = token_issuer
         self._access_key_encryption_key = access_key_encryption_key
 
     async def get(self, pak_id: UUID) -> PakDevice | None:
@@ -79,6 +89,7 @@ class PakManagementService:
                     encrypted_access_key=encrypted_access_key,
                     active=active,
                 )
+
                 await AuditService.from_session(session).record(
                     actor=self._audit_actor(actor),
                     action="pak.created",
@@ -90,10 +101,12 @@ class PakManagementService:
                         "active": pak.is_active,
                     },
                 )
+
                 return pak, credentials.client_secret
 
         except IntegrityError as exc:
             await self._rollback_pak_creation(pak_id=pak_id, oauth_client_id=oauth_client_id)
+
             raise PakAlreadyExistsError from exc
 
         except Exception as exc:
@@ -103,6 +116,7 @@ class PakManagementService:
                 oauth_client_id=oauth_client_id,
                 error_type=type(exc).__name__,
             ).opt(exception=exc).error("PAK provisioning failed")
+
             await self._rollback_pak_creation(pak_id=pak_id, oauth_client_id=oauth_client_id)
 
             raise PakProvisioningError from exc
@@ -266,6 +280,14 @@ class PakManagementService:
     async def delete(self, *, actor: CurrentPrincipal, pak_id: UUID) -> None:
         async with self._session_factory() as session:
             pak = await self._required_pak(PakRepository(session), pak_id)
+
+            has_verification_history = await VerificationSessionRepository(
+                session
+            ).exists_by_pak_id(pak.id)
+
+            if has_verification_history:
+                raise PakCannotBeDeletedError
+
             oauth_client_id = pak.oauth_client_id
 
         await self._oauth_clients.delete_client(oauth_client_id)
@@ -287,6 +309,31 @@ class PakManagementService:
 
             await repository.delete(pak)
 
+    async def issue_machine_access_token(
+        self,
+        *,
+        client_id: str,
+        access_key: str,
+    ) -> OAuthAccessToken:
+        token = await self._token_issuer.issue_client_credentials_token(
+            client_id=client_id,
+            client_secret=access_key,
+            scopes=PAK_OAUTH_SCOPES,
+        )
+
+        async with self._session_factory() as session:
+            pak = await PakRepository(session).get_by_oauth_client_id(client_id)
+
+        if pak is None:
+            raise InvalidMachineCredentialsError
+
+        if not pak.is_active or pak.archived_at is not None:
+            raise ForbiddenError(
+                "PAK is inactive or archived"
+            )
+
+        return token
+
     async def authorize_machine_access_token(self, access_token: str) -> PakDevice:
         """Authorize a PAK token against live local active/archive state."""
         introspection = await self._token_introspector.introspect_access_token(
@@ -296,16 +343,29 @@ class PakManagementService:
         if not introspection.active or not introspection.client_id:
             raise InvalidMachineAccessTokenError
 
-        async with self._session_factory() as session:
-            pak = await PakRepository(session).get_by_oauth_client_id(introspection.client_id)
+        async with self._session_factory() as session, session.begin():
+            repository = PakRepository(session)
 
-        if pak is None:
-            raise InvalidMachineAccessTokenError
+            pak = await repository.get_by_oauth_client_id(introspection.client_id)
 
-        if not pak.is_active or pak.archived_at is not None:
-            raise ForbiddenError("PAK is inactive or archived")
+            if pak is None:
+                raise InvalidMachineAccessTokenError
 
-        return pak
+            if not pak.is_active or pak.archived_at is not None:
+                raise ForbiddenError(
+                    "PAK is inactive or archived"
+                )
+
+            now = datetime.now(UTC)
+
+            if (
+                pak.last_seen_at is None
+                or now - pak.last_seen_at
+                >= PAK_LAST_SEEN_UPDATE_INTERVAL
+            ):
+                pak = await repository.update_last_seen(pak, last_seen_at=now)
+
+            return pak
 
     async def _rollback_pak_creation(self, *, pak_id: UUID, oauth_client_id: str) -> None:
         try:

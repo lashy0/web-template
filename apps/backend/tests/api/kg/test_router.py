@@ -160,7 +160,7 @@ def test_kg_read_requires_permission(
 ) -> None:
     app, client = kg_client
     service = SimpleNamespace(list=AsyncMock())
-    _configure_principal(app, mocker, service, Role.ENGINEER)
+    _configure_principal(app, mocker, service, Role.PACKER)
 
     response = client.get("/kg", headers=_headers())
 

@@ -12,6 +12,7 @@ from pydantic import (
     SecretStr,
     computed_field,
     field_validator,
+    model_validator,
 )
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
@@ -128,6 +129,31 @@ class Settings(BaseSettings):
     PAK_ACCESS_KEY_ENCRYPTION_KEY: SecretStr | None = Field(
         default=None,
         validation_alias="BACKEND_PAK_ACCESS_KEY_ENCRYPTION_KEY",
+    )
+
+    # Verification
+    VERIFICATION_SESSION_REOPEN_INACTIVITY_MINUTES: int = Field(
+        default=60,
+        ge=1,
+        validation_alias=(
+            "BACKEND_VERIFICATION_SESSION_REOPEN_INACTIVITY_MINUTES"
+        ),
+    )
+
+    VERIFICATION_SESSION_TTL_MINUTES: int = Field(
+        default=120,
+        ge=1,
+        validation_alias=(
+            "BACKEND_VERIFICATION_SESSION_TTL_MINUTES"
+        ),
+    )
+
+    VERIFICATION_SWEEP_INTERVAL_SECONDS: float = Field(
+        default=60.0,
+        gt=0,
+        validation_alias=(
+            "BACKEND_VERIFICATION_SWEEP_INTERVAL_SECONDS"
+        ),
     )
 
     # First administrator bootstrap
@@ -329,6 +355,20 @@ class Settings(BaseSettings):
                 raise ValueError("CORS origin must contain only a scheme, host, and optional port")
 
         return value
+
+    @model_validator(mode="after")
+    def validate_verification_timeouts(self) -> "Settings":
+        if (
+            self.VERIFICATION_SESSION_REOPEN_INACTIVITY_MINUTES
+            >= self.VERIFICATION_SESSION_TTL_MINUTES
+        ):
+            raise ValueError(
+                "VERIFICATION_SESSION_REOPEN_INACTIVITY_MINUTES "
+                "must be less than "
+                "VERIFICATION_SESSION_TTL_MINUTES"
+            )
+
+        return self
 
     @computed_field  # type: ignore[prop-decorator]
     @property

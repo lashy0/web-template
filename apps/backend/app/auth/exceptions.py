@@ -81,3 +81,9 @@ class UserNotProvisionedError(AuthenticationError):
     """The authenticated identity has no local user projection."""
 
     code = "user_not_provisioned"
+
+
+class InvalidMachineCredentialsError(AuthenticationError):
+    """The supplied machine credentials are invalid."""
+
+    code = "invalid_machine_credentials"

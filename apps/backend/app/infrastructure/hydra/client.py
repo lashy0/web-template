@@ -3,14 +3,23 @@ from secrets import token_urlsafe
 from typing import TypeVar
 
 import anyio
+import httpx2
 import ory_hydra_client as hydra
+from authlib.integrations.httpx_client import AsyncOAuth2Client
+from authlib.oauth2.rfc6749.errors import OAuth2Error
 from ory_hydra_client.api.o_auth2_api import OAuth2Api
 from ory_hydra_client.exceptions import ApiException
 from ory_hydra_client.models.introspected_o_auth2_token import IntrospectedOAuth2Token
 from ory_hydra_client.models.o_auth2_client import OAuth2Client as HydraOAuth2Client
 
-from app.auth.contracts import AccessTokenIntrospection, OAuthClient, OAuthClientCredentials
+from app.auth.contracts import (
+    AccessTokenIntrospection,
+    OAuthAccessToken,
+    OAuthClient,
+    OAuthClientCredentials,
+)
 from app.auth.exceptions import (
+    InvalidMachineCredentialsError,
     OAuthClientAlreadyExistsError,
     OAuthClientNotFoundError,
     OAuthProviderUnavailableError,
@@ -63,12 +72,16 @@ class _SdkClient:
         try:
             async with self.limiter:
                 return await anyio.to_thread.run_sync(operation)
+
         except ApiException as exc:
             if exc.status == 404:
                 raise OAuthClientNotFoundError from exc
+
             if exc.status == 409:
                 raise OAuthClientAlreadyExistsError from exc
+
             raise OAuthProviderUnavailableError from exc
+
         except (OSError, TimeoutError) as exc:
             raise OAuthProviderUnavailableError from exc
 
@@ -104,6 +117,7 @@ class HydraOAuthClientManager:
                 _request_timeout=self._client.timeout,
             )
         )
+
         return _credentials(result)
 
     async def get_client(self, client_id: str) -> OAuthClient:
@@ -113,6 +127,7 @@ class HydraOAuthClientManager:
                 _request_timeout=self._client.timeout,
             )
         )
+
         return _oauth_client(result)
 
     async def delete_client(self, client_id: str) -> None:
@@ -139,6 +154,7 @@ class HydraOAuthClientManager:
                 _request_timeout=self._client.timeout,
             )
         )
+
         return _credentials(result)
 
 
@@ -164,4 +180,47 @@ class HydraTokenIntrospector:
                 _request_timeout=self._client.timeout,
             )
         )
+
         return _introspection(result)
+
+
+class HydraMachineTokenIssuer:
+    def __init__(self, settings: Settings) -> None:
+        self._token_url = (
+            f"{settings.HYDRA_PUBLIC_URL.rstrip('/')}/oauth2/token"
+        )
+        self._timeout = settings.HYDRA_PUBLIC_TIMEOUT
+
+    async def issue_client_credentials_token(
+        self,
+        *,
+        client_id: str,
+        client_secret: str,
+        scopes: tuple[str, ...] = (),
+    ) -> OAuthAccessToken:
+        try:
+            async with AsyncOAuth2Client(
+                client_id=client_id,
+                client_secret=client_secret,
+                scope=" ".join(scopes),
+                timeout=self._timeout,
+            ) as client:
+                token = await client.fetch_token(
+                    self._token_url,
+                    grant_type="client_credentials",
+                )
+
+        except OAuth2Error as exc:
+            raise InvalidMachineCredentialsError from exc
+
+        except httpx2.HTTPError as exc:
+            raise OAuthProviderUnavailableError from exc
+
+        return OAuthAccessToken(
+            access_token=token["access_token"],
+            token_type=token.get("token_type", "Bearer"),
+            expires_in=token["expires_in"],
+            scopes=tuple(
+                str(token.get("scope", "")).split()
+            ),
+        )

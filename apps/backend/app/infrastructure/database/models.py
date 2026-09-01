@@ -5,6 +5,7 @@ from app.modules.batch.models import Batch, BatchReceipt, BatchShipment, BatchSh
 from app.modules.kg.models import KgDevEuiPrefix, KgUnit
 from app.modules.pak.models import PakDevice
 from app.modules.users.models import User
+from app.modules.verification.models import VerificationSession, VerificationStep
 
 __all__: list[str] = [
     "User",
@@ -16,4 +17,6 @@ __all__: list[str] = [
     "BatchShipmentItem",
     "KgUnit",
     "KgDevEuiPrefix",
+    "VerificationSession",
+    "VerificationStep",
 ]

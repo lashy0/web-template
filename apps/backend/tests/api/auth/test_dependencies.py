@@ -146,7 +146,7 @@ def test_user_creation_rejects_untrusted_origin(client: TestClient, api_prefix: 
     response = client.post(
         f"{api_prefix}/users",
         json={},
-        headers={"origin": "https://untrusted.example"},
+        headers={"origin": "https://untrusted.example", "cookie": "ory_kratos_session=opaque"},
     )
 
     assert response.status_code == status.HTTP_403_FORBIDDEN

@@ -13,6 +13,7 @@ from app.auth.principal import CurrentPrincipal
 from app.auth.roles import Role
 from app.modules.batch.exceptions import (
     BatchAlreadyCompletedError,
+    BatchCannotBeDeletedError,
     BatchEditNotAllowedError,
     BatchShipmentEmptyError,
     BatchShipmentKgNotPackedError,
@@ -129,12 +130,14 @@ def dependencies(
     batches.return_value.create = AsyncMock()
     batches.return_value.update_details = AsyncMock()
     batches.return_value.update_completed = AsyncMock()
+    batches.return_value.delete = AsyncMock()
 
     receipts = mocker.patch("app.modules.batch.service.BatchReceiptRepository")
     receipts.return_value.get_by_id = AsyncMock()
     receipts.return_value.create = AsyncMock()
     receipts.return_value.update_details = AsyncMock()
     receipts.return_value.void = AsyncMock()
+    receipts.return_value.exists_by_batch = AsyncMock(return_value=False)
 
     shipments = mocker.patch("app.modules.batch.service.BatchShipmentRepository")
     shipments.return_value.get_by_id = AsyncMock()
@@ -144,6 +147,7 @@ def dependencies(
     shipments.return_value.complete = AsyncMock()
     shipments.return_value.void = AsyncMock()
     shipments.return_value.find_non_voided_by_kg = AsyncMock()
+    shipments.return_value.exists_by_batch = AsyncMock(return_value=False)
 
     kg_units = mocker.patch("app.modules.batch.service.KgRepository")
     kg_units.return_value.get_by_dev_eui = AsyncMock()
@@ -152,6 +156,13 @@ def dependencies(
     kg_units.return_value.lock_dev_eui_allocation = AsyncMock()
     kg_units.return_value.get_max_dev_eui_by_prefix = AsyncMock(return_value=None)
     kg_units.return_value.create_many = AsyncMock()
+    kg_units.return_value.has_non_registered_by_batch = AsyncMock(return_value=False)
+    kg_units.return_value.delete_by_batch = AsyncMock()
+
+    verification_sessions = mocker.patch(
+        "app.modules.batch.service.VerificationSessionRepository"
+    )
+    verification_sessions.return_value.exists_by_batch_id = AsyncMock(return_value=False)
 
     prefixes = mocker.patch("app.modules.batch.service.KgDevEuiPrefixRepository")
     prefixes.return_value.get = AsyncMock(
@@ -317,6 +328,28 @@ async def test_complete_updates_status_and_records_audit_event(
     assert completed.status is BatchStatus.COMPLETED
     assert completed.completed_at is not None
     assert audits.from_session.return_value.record.await_args.kwargs["action"] == "batch.completed"
+
+
+@pytest.mark.unit
+async def test_delete_rejects_batch_with_verification_history(
+    dependencies: tuple[MagicMock, MagicMock, MagicMock, MagicMock, MagicMock, MagicMock],
+    mocker: MockerFixture,
+) -> None:
+    batches, _, _, kg_units, _, audits = dependencies
+    batch = _batch()
+    batches.return_value.get_by_id.return_value = batch
+    verification_sessions = mocker.patch(
+        "app.modules.batch.service.VerificationSessionRepository"
+    )
+    verification_sessions.return_value.exists_by_batch_id = AsyncMock(return_value=True)
+
+    with pytest.raises(BatchCannotBeDeletedError):
+        await _service().delete(actor=_principal(), batch_id=batch.id)
+
+    verification_sessions.return_value.exists_by_batch_id.assert_awaited_once_with(batch.id)
+    kg_units.return_value.delete_by_batch.assert_not_awaited()
+    batches.return_value.delete.assert_not_awaited()
+    audits.from_session.return_value.record.assert_not_awaited()
 
 
 @pytest.mark.unit

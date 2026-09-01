@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, SecretStr
 
 from app.modules.pak.models import PakDeviceKind
 
@@ -36,6 +36,18 @@ class CreatePakDeviceResponse(BaseModel):
 
 class PakAccessKeyResponse(BaseModel):
     access_key: str
+
+
+class PakTokenRequest(BaseModel):
+    client_id: str = Field(min_length=1, max_length=255)
+    access_key: SecretStr = Field(min_length=1)
+
+
+class PakTokenResponse(BaseModel):
+    access_token: str
+    token_type: str
+    expires_in: int
+    scope: str
 
 
 class UpdatePakDeviceRequest(BaseModel):

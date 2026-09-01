@@ -16,6 +16,7 @@ from app.modules.kg.exceptions import (
 )
 from app.modules.kg.models import KgDevEuiPrefix, KgStatus, KgUnit
 from app.modules.kg.repository import KgDevEuiPrefixRepository, KgRepository
+from app.modules.verification.repository import VerificationSessionRepository
 
 
 class KgManagementService:
@@ -80,6 +81,11 @@ class KgManagementService:
             kg = await self._required_kg(repository, dev_eui)
 
             self._ensure_can_delete(kg)
+
+            if await VerificationSessionRepository(
+                session
+            ).exists_by_kg_dev_eui(kg.dev_eui):
+                raise KgCannotBeDeletedError
 
             await AuditService.from_session(session).record(
                 actor=self._audit_actor(actor),

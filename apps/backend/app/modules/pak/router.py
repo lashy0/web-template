@@ -13,6 +13,8 @@ from app.modules.pak.schemas import (
     PakAccessKeyResponse,
     PakDeviceListResponse,
     PakDeviceResponse,
+    PakTokenRequest,
+    PakTokenResponse,
     UpdateActiveRequest,
     UpdateArchivedRequest,
     UpdatePakDeviceRequest,
@@ -67,6 +69,24 @@ async def list_pak(
         total=total,
         page=page,
         page_size=page_size,
+    )
+
+
+@router.post("/token", response_model=PakTokenResponse,)
+async def issue_token(
+    payload: PakTokenRequest,
+    request: Request,
+) -> PakTokenResponse:
+    token = await _service(request).issue_machine_access_token(
+        client_id=payload.client_id,
+        access_key=payload.access_key.get_secret_value(),
+    )
+
+    return PakTokenResponse(
+        access_token=token.access_token,
+        token_type=token.token_type,
+        expires_in=token.expires_in,
+        scope=" ".join(token.scopes),
     )
 
 

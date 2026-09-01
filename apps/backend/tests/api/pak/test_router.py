@@ -13,11 +13,16 @@ from fastapi import FastAPI, status
 from fastapi.testclient import TestClient
 from pytest_mock import MockerFixture
 
-from app.auth.contracts import AuthSession, Identity
+from app.auth.contracts import AuthSession, Identity, OAuthAccessToken
 from app.auth.roles import Role
 from app.core.config import Settings
 from app.main import create_app
-from app.modules.pak.exceptions import PakAlreadyExistsError, PakNotFoundError, PakProvisioningError
+from app.modules.pak.exceptions import (
+    PakAlreadyExistsError,
+    PakCannotBeDeletedError,
+    PakNotFoundError,
+    PakProvisioningError,
+)
 from app.modules.pak.models import PakDevice, PakDeviceKind
 
 _ALLOWED_ORIGIN = "https://admin.example"
@@ -105,6 +110,33 @@ def test_create_returns_access_key_without_oauth_secret_field(
     assert "credentials" not in response.json()
     assert "client_secret" not in response.text
     assert service.create.await_args.kwargs["actor"].user_id == actor_id
+
+
+@pytest.mark.api
+def test_issue_machine_token_forwards_access_key_without_requiring_browser_auth(
+    pak_client: tuple[FastAPI, TestClient], mocker: MockerFixture
+) -> None:
+    app, client = pak_client
+    token = OAuthAccessToken("machine-access-token", "Bearer", 3600, ("pak:api",))
+    service = SimpleNamespace(issue_machine_access_token=AsyncMock(return_value=token))
+    mocker.patch.object(app.state, "pak_management", service)
+
+    response = client.post(
+        "/pak/token",
+        json={"client_id": "pak-test", "access_key": "machine-access-key"},
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() == {
+        "access_token": "machine-access-token",
+        "token_type": "Bearer",
+        "expires_in": 3600,
+        "scope": "pak:api",
+    }
+    service.issue_machine_access_token.assert_awaited_once_with(
+        client_id="pak-test",
+        access_key="machine-access-key",
+    )
 
 
 @pytest.mark.api
@@ -258,6 +290,16 @@ def test_delete_pak_forwards_requested_device(
             status.HTTP_409_CONFLICT,
             "pak_already_exists",
             id="code-conflict",
+        ),
+        pytest.param(
+            "delete",
+            f"/pak/{uuid4()}",
+            None,
+            "delete",
+            PakCannotBeDeletedError,
+            status.HTTP_409_CONFLICT,
+            "pak_cannot_be_deleted",
+            id="verification-history",
         ),
         pytest.param(
             "get",

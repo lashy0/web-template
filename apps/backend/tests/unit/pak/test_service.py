@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import cast
 from unittest.mock import AsyncMock, MagicMock
@@ -13,6 +14,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.auth.contracts import (
     AccessTokenIntrospection,
+    MachineTokenIssuer,
+    OAuthAccessToken,
     OAuthClient,
     OAuthClientCredentials,
     OAuthClientManager,
@@ -22,7 +25,11 @@ from app.auth.exceptions import ForbiddenError
 from app.auth.principal import CurrentPrincipal
 from app.auth.roles import Role
 from app.modules.pak.crypto import PakAccessKeyCipher
-from app.modules.pak.exceptions import InvalidMachineAccessTokenError, PakProvisioningError
+from app.modules.pak.exceptions import (
+    InvalidMachineAccessTokenError,
+    PakCannotBeDeletedError,
+    PakProvisioningError,
+)
 from app.modules.pak.models import PakDevice, PakDeviceKind
 from app.modules.pak.service import PakManagementService
 
@@ -71,8 +78,15 @@ def dependencies(mocker: MockerFixture) -> tuple[MagicMock, MagicMock]:
     repositories.return_value.update_active = AsyncMock()
     repositories.return_value.update_archived = AsyncMock()
     repositories.return_value.update_access_key = AsyncMock()
+    repositories.return_value.update_last_seen = AsyncMock(
+        side_effect=lambda pak, *, last_seen_at: _set_last_seen_at(pak, last_seen_at)
+    )
     repositories.return_value.get_by_oauth_client_id = AsyncMock()
     repositories.return_value.delete = AsyncMock()
+    verification_sessions = mocker.patch(
+        "app.modules.pak.service.VerificationSessionRepository"
+    )
+    verification_sessions.return_value.exists_by_pak_id = AsyncMock(return_value=False)
     audits = mocker.patch("app.modules.pak.service.AuditService")
     audits.from_session.return_value.record = AsyncMock()
     return repositories, audits
@@ -81,6 +95,7 @@ def dependencies(mocker: MockerFixture) -> tuple[MagicMock, MagicMock]:
 def _service(
     oauth_clients: object,
     token_introspector: object | None = None,
+    token_issuer: object | None = None,
 ) -> PakManagementService:
     return PakManagementService(
         cast(async_sessionmaker[AsyncSession], _SessionFactory()),
@@ -88,6 +103,10 @@ def _service(
         cast(
             TokenIntrospector,
             token_introspector or SimpleNamespace(introspect_access_token=AsyncMock()),
+        ),
+        cast(
+            MachineTokenIssuer,
+            token_issuer or SimpleNamespace(issue_client_credentials_token=AsyncMock()),
         ),
         SecretStr(Fernet.generate_key().decode("ascii")),
     )
@@ -161,6 +180,7 @@ async def test_access_key_view_decrypts_key_and_audits_without_exposing_it(
         cast(async_sessionmaker[AsyncSession], _SessionFactory()),
         cast(OAuthClientManager, SimpleNamespace()),
         cast(TokenIntrospector, SimpleNamespace()),
+        cast(MachineTokenIssuer, SimpleNamespace()),
         SecretStr(encryption_key),
     )
 
@@ -273,6 +293,29 @@ async def test_delete_removes_oauth_client_before_local_pak(
 
 
 @pytest.mark.unit
+async def test_delete_rejects_pak_with_verification_history(
+    dependencies: tuple[MagicMock, MagicMock], mocker: MockerFixture
+) -> None:
+    repositories, audits = dependencies
+    pak = _pak()
+    repositories.return_value.get_by_id.return_value = pak
+    verification_sessions = mocker.patch(
+        "app.modules.pak.service.VerificationSessionRepository"
+    )
+    verification_sessions.return_value.exists_by_pak_id = AsyncMock(return_value=True)
+    oauth_clients = SimpleNamespace(delete_client=AsyncMock())
+    service = _service(oauth_clients)
+
+    with pytest.raises(PakCannotBeDeletedError):
+        await service.delete(actor=_principal(), pak_id=pak.id)
+
+    verification_sessions.return_value.exists_by_pak_id.assert_awaited_once_with(pak.id)
+    oauth_clients.delete_client.assert_not_awaited()
+    repositories.return_value.delete.assert_not_awaited()
+    audits.from_session.return_value.record.assert_not_awaited()
+
+
+@pytest.mark.unit
 async def test_failed_local_pak_creation_rolls_back_oauth_client(
     dependencies: tuple[MagicMock, MagicMock],
 ) -> None:
@@ -336,7 +379,7 @@ async def test_machine_token_is_rejected_when_pak_is_archived(
 
 
 @pytest.mark.unit
-async def test_machine_token_is_authorized_for_active_unarchived_pak(
+async def test_machine_token_is_authorized_and_updates_missing_last_seen_at(
     dependencies: tuple[MagicMock, MagicMock],
 ) -> None:
     repositories, _ = dependencies
@@ -355,6 +398,30 @@ async def test_machine_token_is_authorized_for_active_unarchived_pak(
     introspector.introspect_access_token.assert_awaited_once_with(
         "valid-token", required_scopes=("pak:api",)
     )
+    repositories.return_value.update_last_seen.assert_awaited_once()
+    assert repositories.return_value.update_last_seen.await_args.args == (pak,)
+    assert repositories.return_value.update_last_seen.await_args.kwargs["last_seen_at"] is not None
+
+
+@pytest.mark.unit
+async def test_machine_token_authorization_does_not_update_recent_last_seen_at(
+    dependencies: tuple[MagicMock, MagicMock],
+) -> None:
+    repositories, _ = dependencies
+    pak = _pak()
+    pak.last_seen_at = datetime.now(UTC)
+    repositories.return_value.get_by_oauth_client_id.return_value = pak
+    introspector = SimpleNamespace(
+        introspect_access_token=AsyncMock(
+            return_value=AccessTokenIntrospection(True, pak.oauth_client_id, ("pak:api",))
+        )
+    )
+    service = _service(SimpleNamespace(), introspector)
+
+    authorized = await service.authorize_machine_access_token("valid-token")
+
+    assert authorized is pak
+    repositories.return_value.update_last_seen.assert_not_awaited()
 
 
 @pytest.mark.unit
@@ -375,6 +442,35 @@ async def test_machine_token_without_active_oauth_session_is_rejected(
     repositories.return_value.get_by_oauth_client_id.assert_not_awaited()
 
 
+@pytest.mark.unit
+async def test_issue_machine_access_token_forwards_client_credentials_request(
+    dependencies: tuple[MagicMock, MagicMock],
+) -> None:
+    repositories, _ = dependencies
+    pak = _pak()
+    repositories.return_value.get_by_oauth_client_id.return_value = pak
+    token = OAuthAccessToken("access-token", "Bearer", 3600, ("pak:api",))
+    issuer = SimpleNamespace(issue_client_credentials_token=AsyncMock(return_value=token))
+    service = _service(SimpleNamespace(), token_issuer=issuer)
+
+    issued = await service.issue_machine_access_token(
+        client_id=pak.oauth_client_id,
+        access_key="plain-access-key",
+    )
+
+    assert issued is token
+    issuer.issue_client_credentials_token.assert_awaited_once_with(
+        client_id=pak.oauth_client_id,
+        client_secret="plain-access-key",
+        scopes=("pak:api",),
+    )
+
+
 def _set_archived_at(pak: PakDevice, archived_at: object) -> PakDevice:
     pak.archived_at = archived_at  # type: ignore[assignment]
+    return pak
+
+
+def _set_last_seen_at(pak: PakDevice, last_seen_at: datetime) -> PakDevice:
+    pak.last_seen_at = last_seen_at
     return pak
