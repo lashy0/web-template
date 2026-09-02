@@ -532,6 +532,28 @@ export type DefectGroupResponse = {
 };
 
 /**
+ * DefectGroupSummaryResponse
+ */
+export type DefectGroupSummaryResponse = {
+    /**
+     * Archived At
+     */
+    archived_at: string | null;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
  * DefectTypeListResponse
  */
 export type DefectTypeListResponse = {
@@ -577,6 +599,7 @@ export type DefectTypeResponse = {
      * Engineer Action
      */
     engineer_action: string | null;
+    group: DefectGroupSummaryResponse;
     /**
      * Group Id
      */

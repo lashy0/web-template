@@ -207,6 +207,16 @@ export const zDefectGroupListResponse = z.object({
 });
 
 /**
+ * DefectGroupSummaryResponse
+ */
+export const zDefectGroupSummaryResponse = z.object({
+    archived_at: z.iso.datetime().nullable(),
+    code: z.string(),
+    id: z.uuid(),
+    name: z.string()
+});
+
+/**
  * DefectTypeResponse
  */
 export const zDefectTypeResponse = z.object({
@@ -215,6 +225,7 @@ export const zDefectTypeResponse = z.object({
     created_at: z.iso.datetime(),
     description: z.string(),
     engineer_action: z.string().nullable(),
+    group: zDefectGroupSummaryResponse,
     group_id: z.uuid(),
     id: z.uuid(),
     name: z.string(),

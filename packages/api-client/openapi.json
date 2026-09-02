@@ -960,6 +960,43 @@
         "title": "DefectGroupResponse",
         "type": "object"
       },
+      "DefectGroupSummaryResponse": {
+        "properties": {
+          "archived_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archived At"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "archived_at"
+        ],
+        "title": "DefectGroupSummaryResponse",
+        "type": "object"
+      },
       "DefectTypeListResponse": {
         "properties": {
           "items": {
@@ -1029,6 +1066,9 @@
             ],
             "title": "Engineer Action"
           },
+          "group": {
+            "$ref": "#/components/schemas/DefectGroupSummaryResponse"
+          },
           "group_id": {
             "format": "uuid",
             "title": "Group Id",
@@ -1063,6 +1103,7 @@
         "required": [
           "id",
           "group_id",
+          "group",
           "code",
           "name",
           "description",
