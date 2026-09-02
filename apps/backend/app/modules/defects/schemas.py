@@ -70,9 +70,17 @@ class UpdateDefectGroupArchivedRequest(BaseModel):
     archived: bool
 
 
+class DefectGroupSummaryResponse(BaseModel):
+    id: UUID
+    code: str
+    name: str
+    archived_at: datetime | None
+
+
 class DefectTypeResponse(BaseModel):
     id: UUID
     group_id: UUID
+    group: DefectGroupSummaryResponse
     code: str
     name: str
     description: str

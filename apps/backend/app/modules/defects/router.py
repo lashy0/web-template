@@ -15,6 +15,7 @@ from app.modules.defects.schemas import (
     CreateDefectTypeRequest,
     DefectGroupListResponse,
     DefectGroupResponse,
+    DefectGroupSummaryResponse,
     DefectTypeListResponse,
     DefectTypeResponse,
     UpdateDefectGroupArchivedRequest,
@@ -23,7 +24,6 @@ from app.modules.defects.schemas import (
     UpdateDefectTypeRequest,
 )
 from app.modules.defects.service import DefectManagementService
-
 
 router = APIRouter(prefix="/defects", tags=["defects"])
 
@@ -51,6 +51,12 @@ def _type_response(defect_type: DefectType) -> DefectTypeResponse:
     return DefectTypeResponse(
         id=defect_type.id,
         group_id=defect_type.group_id,
+        group=DefectGroupSummaryResponse(
+            id=defect_type.group.id,
+            code=defect_type.group.code,
+            name=defect_type.group.name,
+            archived_at=defect_type.group.archived_at,
+        ),
         code=defect_type.code,
         name=defect_type.name,
         description=defect_type.description,
