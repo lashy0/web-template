@@ -450,113 +450,132 @@ class PakTestCatalogService:
         observed_at = seen_at or datetime.now(UTC)
 
         async with self._session_factory() as session, session.begin():
-            group_repository = DefectGroupRepository(session)
-            test_repository = PakTestRepository(session)
-
-            group = await group_repository.get_by_code(defect_group_code)
-
-            if group is None:
-                self._log_configuration_error(
-                    pak=pak,
-                    test_name=test_name,
-                    defect_group_code=defect_group_code,
-                    reason="unknown_defect_group",
-                )
-
-                raise PakTestConfigurationError(
-                    "PAK test references an unknown defect group",
-                    details={
-                        "pak_id": str(pak.id),
-                        "pak_code": pak.code,
-                        "test_name": test_name,
-                        "defect_group_code": defect_group_code,
-                    },
-                )
-
-            if group.archived_at is not None:
-                self._log_configuration_error(
-                    pak=pak,
-                    test_name=test_name,
-                    defect_group_code=defect_group_code,
-                    reason="archived_defect_group",
-                )
-
-                raise PakTestConfigurationError(
-                    "PAK test references an archived defect group",
-                    details={
-                        "pak_id": str(pak.id),
-                        "pak_code": pak.code,
-                        "test_name": test_name,
-                        "defect_group_code": defect_group_code,
-                    },
-                )
-
-            test = await test_repository.get_by_test_name(test_name)
-
-            if test is None:
-                test = await test_repository.create(
-                    test_name=test_name,
-                    test_label=test_label,
-                    defect_group_id=group.id,
-                    last_seen_at=observed_at,
-                )
-
-                await AuditService.from_session(session).record(
-                    actor=self._audit_actor(pak),
-                    action="pak_test.created",
-                    entity=self._audit_entity(test),
-                    new_data={
-                        "test_name": test.test_name,
-                        "test_label": test.test_label,
-                        "defect_group_id": str(
-                            test.defect_group_id
-                        ),
-                        "defect_group_code": group.code,
-                    },
-                )
-
-                return test
-
-            old_data: dict[str, object] = {}
-            new_data: dict[str, object] = {}
-
-            if test.test_label != test_label:
-                old_data["test_label"] = test.test_label
-                new_data["test_label"] = test_label
-
-            if test.defect_group_id != group.id:
-                old_data["defect_group_id"] = str(
-                    test.defect_group_id
-                )
-                new_data["defect_group_id"] = str(
-                    group.id
-                )
-
-                old_data["defect_group_code"] = (
-                    await self._get_group_code(
-                        group_repository,
-                        test.defect_group_id,
-                    )
-                )
-                new_data["defect_group_code"] = group.code
-
-            test = await test_repository.update_observation(
-                test,
+            return await self.observe_in_session(
+                session,
+                pak=pak,
+                test_name=test_name,
                 test_label=test_label,
-                defect_group_id=group.id,
-                last_seen_at=observed_at,
+                defect_group_code=defect_group_code,
+                seen_at=observed_at,
             )
 
-            if new_data:
-                await AuditService.from_session(session).record(
-                    actor=self._audit_actor(pak),
-                    action="pak_test.updated",
-                    entity=self._audit_entity(test),
-                    old_data=old_data,
-                    new_data=new_data,
-                )
+    async def observe_in_session(
+        self,
+        session: AsyncSession,
+        *,
+        pak: PakDevice,
+        test_name: str,
+        test_label: str,
+        defect_group_code: str,
+        seen_at: datetime,
+    ) -> PakTest:
+        group_repository = DefectGroupRepository(session)
+        test_repository = PakTestRepository(session)
+
+        group = await group_repository.get_by_code(defect_group_code)
+
+        if group is None:
+            self._log_configuration_error(
+                pak=pak,
+                test_name=test_name,
+                defect_group_code=defect_group_code,
+                reason="unknown_defect_group",
+            )
+
+            raise PakTestConfigurationError(
+                "PAK test references an unknown defect group",
+                details={
+                    "pak_id": str(pak.id),
+                    "pak_code": pak.code,
+                    "test_name": test_name,
+                    "defect_group_code": defect_group_code,
+                },
+            )
+
+        if group.archived_at is not None:
+            self._log_configuration_error(
+                pak=pak,
+                test_name=test_name,
+                defect_group_code=defect_group_code,
+                reason="archived_defect_group",
+            )
+
+            raise PakTestConfigurationError(
+                "PAK test references an archived defect group",
+                details={
+                    "pak_id": str(pak.id),
+                    "pak_code": pak.code,
+                    "test_name": test_name,
+                    "defect_group_code": defect_group_code,
+                },
+            )
+
+        test = await test_repository.get_by_test_name(test_name)
+
+        if test is None:
+            test = await test_repository.create(
+                test_name=test_name,
+                test_label=test_label,
+                defect_group_id=group.id,
+                last_seen_at=seen_at,
+            )
+
+            await AuditService.from_session(session).record(
+                actor=self._audit_actor(pak),
+                action="pak_test.created",
+                entity=self._audit_entity(test),
+                new_data={
+                    "test_name": test.test_name,
+                    "test_label": test.test_label,
+                    "defect_group_id": str(
+                        test.defect_group_id
+                    ),
+                    "defect_group_code": group.code,
+                },
+            )
 
             return test
+
+        old_data: dict[str, object] = {}
+        new_data: dict[str, object] = {}
+
+        if test.test_label != test_label:
+            old_data["test_label"] = test.test_label
+            new_data["test_label"] = test_label
+
+        if test.defect_group_id != group.id:
+            old_data["defect_group_id"] = str(
+                test.defect_group_id
+            )
+            new_data["defect_group_id"] = str(
+                group.id
+            )
+
+            old_data["defect_group_code"] = (
+                await self._get_group_code(
+                    group_repository,
+                    test.defect_group_id,
+                )
+            )
+            new_data["defect_group_code"] = group.code
+
+        test = await test_repository.update_observation(
+            test,
+            test_label=test_label,
+            defect_group_id=group.id,
+            last_seen_at=seen_at,
+        )
+
+        if new_data:
+            await AuditService.from_session(session).record(
+                actor=self._audit_actor(pak),
+                action="pak_test.updated",
+                entity=self._audit_entity(test),
+                old_data=old_data,
+                new_data=new_data,
+            )
+
+        return test
 
     async def require(self, test_id: UUID) -> PakTest:
         test = await self.get(test_id)

@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import (
 from app.modules.kg.models import KgStatus, KgUnit
 from app.modules.kg.repository import KgRepository
 from app.modules.pak.models import PakDevice
+from app.modules.pak.service import PakTestCatalogService
 from app.modules.verification.exceptions import (
     VerificationKgNotFoundError,
     VerificationKgNotReadyError,
@@ -66,6 +67,9 @@ class VerificationManagementService:
             )
 
         self._session_factory = session_factory
+
+        self._pak_test_catalog = PakTestCatalogService(session_factory)
+
         self._reopen_inactivity = timedelta(minutes=reopen_inactivity_minutes)
         self._session_ttl = timedelta(minutes=session_ttl_minutes)
 
@@ -202,7 +206,8 @@ class VerificationManagementService:
         session_id: UUID,
         step_no: int,
         test_name: str,
-        test_label: str | None,
+        test_label: str,
+        error_group_code: str,
     ) -> VerificationStep:
         now = datetime.now(UTC)
 
@@ -228,6 +233,7 @@ class VerificationManagementService:
                 if (
                     existing.test_name == test_name
                     and existing.test_label == test_label
+                    and existing.error_group_code == error_group_code
                 ):
                     # Safe retry of the same start request
                     await verification_repository.touch_activity(
@@ -242,11 +248,23 @@ class VerificationManagementService:
             if await step_repository.exists_running_by_session(verification_session.id):
                 raise VerificationStepInProgressError
 
+            pak_test = await self._pak_test_catalog.observe_in_session(
+                session,
+                pak=pak,
+                test_name=test_name,
+                test_label=test_label,
+                defect_group_code=error_group_code,
+                seen_at=now,
+            )
+
             step = await step_repository.create(
                 session_id=verification_session.id,
                 step_no=step_no,
+                pak_test_id=pak_test.id,
+                defect_group_id=pak_test.defect_group_id,
                 test_name=test_name,
                 test_label=test_label,
+                error_group_code=error_group_code,
             )
 
             await verification_repository.touch_activity(
@@ -267,7 +285,6 @@ class VerificationManagementService:
         measurement_min_value: float | None,
         measurement_max_value: float | None,
         measurement_unit: str | None,
-        error_group_code: str | None,
     ) -> VerificationStep:
         if status not in {
             VerificationStepStatus.PASSED,
@@ -308,7 +325,6 @@ class VerificationManagementService:
                     measurement_min_value=measurement_min_value,
                     measurement_max_value=measurement_max_value,
                     measurement_unit=measurement_unit,
-                    error_group_code=error_group_code,
                 ):
                     # Response may have been lost and PAK repeated the same request
                     await verification_repository.touch_activity(
@@ -327,7 +343,6 @@ class VerificationManagementService:
                 measurement_min_value=measurement_min_value,
                 measurement_max_value=measurement_max_value,
                 measurement_unit=measurement_unit,
-                error_group_code=error_group_code,
                 completed_at=now,
             )
 
@@ -515,7 +530,6 @@ class VerificationManagementService:
             measurement_min_value=step.measurement_min_value,
             measurement_max_value=step.measurement_max_value,
             measurement_unit=step.measurement_unit,
-            error_group_code=step.error_group_code,
             completed_at=completed_at,
         )
 
@@ -598,7 +612,6 @@ class VerificationManagementService:
         measurement_min_value: float | None,
         measurement_max_value: float | None,
         measurement_unit: str | None,
-        error_group_code: str | None,
     ) -> bool:
         return (
             step.status == status
@@ -610,6 +623,4 @@ class VerificationManagementService:
             == measurement_max_value
             and step.measurement_unit
             == measurement_unit
-            and step.error_group_code
-            == error_group_code
         )

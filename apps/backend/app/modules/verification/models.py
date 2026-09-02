@@ -166,9 +166,25 @@ class VerificationStep(Base):
         ),
         nullable=False,
     )
+    pak_test_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey(
+            "pak_tests.id",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+    defect_group_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey(
+            "defect_groups.id",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
     step_no: Mapped[int] = mapped_column(Integer, nullable=False)
     test_name: Mapped[str] = mapped_column(String(128), nullable=False)
-    test_label: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    test_label: Mapped[str] = mapped_column(String(255), nullable=False)
     status: Mapped[VerificationStepStatus] = mapped_column(
         VERIFICATION_STEP_STATUS_DB_TYPE,
         nullable=False,
@@ -178,7 +194,7 @@ class VerificationStep(Base):
     measurement_min_value: Mapped[float | None] = mapped_column(Float, nullable=True)
     measurement_max_value: Mapped[float | None] = mapped_column(Float, nullable=True)
     measurement_unit: Mapped[str | None] = mapped_column(String(32), nullable=True)
-    error_group_code: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    error_group_code: Mapped[str] = mapped_column(String(32), nullable=False)
     started_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

@@ -266,14 +266,20 @@ class VerificationStepRepository:
         *,
         session_id: UUID,
         step_no: int,
+        pak_test_id: UUID,
+        defect_group_id: UUID,
         test_name: str,
-        test_label: str | None,
+        test_label: str,
+        error_group_code: str,
     ) -> VerificationStep:
         step = VerificationStep(
             session_id=session_id,
             step_no=step_no,
+            pak_test_id=pak_test_id,
+            defect_group_id=defect_group_id,
             test_name=test_name,
             test_label=test_label,
+            error_group_code=error_group_code,
             status=VerificationStepStatus.RUNNING,
         )
 
@@ -355,7 +361,6 @@ class VerificationStepRepository:
         measurement_min_value: float | None,
         measurement_max_value: float | None,
         measurement_unit: str | None,
-        error_group_code: str | None,
         completed_at: datetime,
     ) -> VerificationStep:
         step.status = status
@@ -364,8 +369,6 @@ class VerificationStepRepository:
         step.measurement_min_value = measurement_min_value
         step.measurement_max_value = measurement_max_value
         step.measurement_unit = measurement_unit
-
-        step.error_group_code = error_group_code
 
         step.completed_at = completed_at
 

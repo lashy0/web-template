@@ -29,9 +29,10 @@ class OpenVerificationSessionRequest(BaseModel):
 class StartVerificationStepRequest(BaseModel):
     step_no: int = Field(gt=0)
     test_name: str = Field(min_length=1, max_length=128)
-    test_label: str | None = Field(default=None, min_length=1, max_length=255)
+    test_label: str = Field(min_length=1, max_length=255)
+    error_group_code: str = Field(min_length=1, max_length=32)
 
-    @field_validator("test_name", "test_label", mode="before")
+    @field_validator("test_name", "test_label", "error_group_code", mode="before")
     @classmethod
     def normalize_test_text(cls, value: object) -> object:
         if isinstance(value, str):
@@ -46,7 +47,6 @@ class CompleteVerificationStepRequest(BaseModel):
     measurement_min_value: float | None = Field(default=None, allow_inf_nan=False)
     measurement_max_value: float | None = Field(default=None, allow_inf_nan=False)
     measurement_unit: str | None = Field(default=None, min_length=1, max_length=32)
-    error_group_code: str | None = Field(default=None, min_length=1, max_length=32)
 
     @field_validator("status")
     @classmethod
@@ -61,7 +61,7 @@ class CompleteVerificationStepRequest(BaseModel):
 
         return value
 
-    @field_validator("measurement_unit", "error_group_code", mode="before")
+    @field_validator("measurement_unit", mode="before")
     @classmethod
     def normalize_optional_text(cls, value: object) -> object:
         if isinstance(value, str):
@@ -106,14 +106,16 @@ class VerificationStepResponse(BaseModel):
     id: UUID
     session_id: UUID
     step_no: int
+    pak_test_id: UUID
+    defect_group_id: UUID
     test_name: str
-    test_label: str | None
+    test_label: str
+    error_group_code: str
     status: VerificationStepStatus
     measurement_value: float | None
     measurement_min_value: float | None
     measurement_max_value: float | None
     measurement_unit: str | None
-    error_group_code: str | None
     started_at: datetime
     completed_at: datetime | None
     created_at: datetime
