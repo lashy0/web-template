@@ -242,4 +242,12 @@ class VerificationStep(Base):
             "ix_verification_steps_status",
             "status",
         ),
+        Index(
+            "ix_verification_steps_pak_test_id",
+            "pak_test_id",
+        ),
+        Index(
+            "ix_verification_steps_defect_group_id",
+            "defect_group_id",
+        ),
     )
