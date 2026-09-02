@@ -4,8 +4,8 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, Request, status
 
 from app.api.auth_deps import CurrentPrincipalDep, require_permission
-from app.modules.pak.exceptions import PakNotFoundError
-from app.modules.pak.models import PakDevice, PakDeviceKind
+from app.modules.pak.exceptions import PakNotFoundError, PakTestNotFoundError
+from app.modules.pak.models import PakDevice, PakDeviceKind, PakTest
 from app.modules.pak.permissions import PakPermission
 from app.modules.pak.schemas import (
     CreatePakDeviceRequest,
@@ -13,13 +13,15 @@ from app.modules.pak.schemas import (
     PakAccessKeyResponse,
     PakDeviceListResponse,
     PakDeviceResponse,
+    PakTestListResponse,
+    PakTestResponse,
     PakTokenRequest,
     PakTokenResponse,
     UpdateActiveRequest,
     UpdateArchivedRequest,
     UpdatePakDeviceRequest,
 )
-from app.modules.pak.service import PakManagementService
+from app.modules.pak.service import PakManagementService, PakTestCatalogService
 
 router = APIRouter(prefix="/pak", tags=["pak"])
 
@@ -38,6 +40,22 @@ def _response(pak: PakDevice) -> PakDeviceResponse:
 
 def _service(request: Request) -> PakManagementService:
     return cast(PakManagementService, request.app.state.pak_management)
+
+
+def _test_response(test: PakTest) -> PakTestResponse:
+    return PakTestResponse(
+        id=test.id,
+        test_name=test.test_name,
+        test_label=test.test_label,
+        defect_group_id=test.defect_group_id,
+        last_seen_at=test.last_seen_at,
+        created_at=test.created_at,
+        updated_at=test.updated_at,
+    )
+
+
+def _test_service(request: Request) -> PakTestCatalogService:
+    return cast(PakTestCatalogService, request.app.state.pak_test_catalog)
 
 
 @router.get("", response_model=PakDeviceListResponse)
@@ -72,7 +90,59 @@ async def list_pak(
     )
 
 
-@router.post("/token", response_model=PakTokenResponse,)
+@router.get("/tests", response_model=PakTestListResponse)
+async def list_pak_tests(
+    _: Annotated[CurrentPrincipalDep, Depends(require_permission(PakPermission.READ))],
+    request: Request,
+    q: str | None = None,
+    defect_group_id: UUID | None = None,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=25, ge=1, le=100),
+    sort: Literal[
+        "test_name",
+        "test_label",
+        "last_seen_at",
+        "created_at",
+        "updated_at",
+    ] = "test_name",
+    order: Literal["asc", "desc"] = "asc",
+) -> PakTestListResponse:
+    tests, total = await _test_service(request).list(
+        q=q,
+        defect_group_id=defect_group_id,
+        page=page,
+        page_size=page_size,
+        sort=sort,
+        order=order,
+    )
+
+    return PakTestListResponse(
+        items=[
+            _test_response(test)
+            for test in tests
+        ],
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
+
+
+@router.get("/tests/{test_id}", response_model=PakTestResponse)
+async def get_pak_test(
+    test_id: UUID,
+    _: Annotated[CurrentPrincipalDep, Depends(require_permission(PakPermission.READ)),
+    ],
+    request: Request,
+) -> PakTestResponse:
+    test = await _test_service(request).get(test_id)
+
+    if test is None:
+        raise PakTestNotFoundError
+
+    return _test_response(test)
+
+
+@router.post("/token", response_model=PakTokenResponse)
 async def issue_token(
     payload: PakTokenRequest,
     request: Request,

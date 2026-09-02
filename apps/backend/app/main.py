@@ -22,7 +22,7 @@ from app.infrastructure.kratos.client import KratosIdentityManager, KratosSessio
 from app.infrastructure.redis.client import create_redis_client
 from app.middleware.csrf import JsonOriginMiddleware
 from app.middleware.request_context import RequestContextMiddleware
-from app.modules.pak.service import PakManagementService
+from app.modules.pak.service import PakManagementService, PakTestCatalogService
 from app.modules.users.service import UserManagementService
 from app.modules.kg.service import KgManagementService, KgDevEuiPrefixManagementService
 from app.modules.batch.service import BatchManagementService
@@ -46,17 +46,22 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
     app.state.session_verifier = KratosSessionVerifier(settings)
     app.state.identity_manager = KratosIdentityManager(settings)
+
     app.state.user_management = UserManagementService(
         database.session_factory, app.state.identity_manager
     )
 
     app.state.hydra_client_manager = HydraOAuthClientManager(settings)
+
     app.state.pak_management = PakManagementService(
         database.session_factory,
         app.state.hydra_client_manager,
         HydraTokenIntrospector(settings),
         HydraMachineTokenIssuer(settings),
         settings.PAK_ACCESS_KEY_ENCRYPTION_KEY,
+    )
+    app.state.pak_test_catalog = PakTestCatalogService(
+        database.session_factory,
     )
 
     app.state.kg_management = KgManagementService(
