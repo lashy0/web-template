@@ -28,7 +28,12 @@ def test_open_session_normalizes_kg_and_firmware_version() -> None:
 def test_start_step_rejects_text_that_becomes_empty_after_normalization() -> None:
     with pytest.raises(ValidationError):
         StartVerificationStepRequest.model_validate(
-            {"step_no": 1, "test_name": "   ", "test_label": "Voltage"}
+            {
+                "step_no": 1,
+                "test_name": "   ",
+                "test_label": "Voltage",
+                "error_group_code": "POWER",
+            }
         )
 
 

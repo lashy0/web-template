@@ -74,9 +74,12 @@ def _step(verification_session: VerificationSession) -> VerificationStep:
     return VerificationStep(
         id=uuid4(),
         session_id=verification_session.id,
+        pak_test_id=uuid4(),
+        defect_group_id=uuid4(),
         step_no=1,
         test_name="voltage",
         test_label="Supply voltage",
+        error_group_code="POWER",
         status=VerificationStepStatus.RUNNING,
         started_at=now,
         created_at=now,
@@ -174,6 +177,8 @@ def test_get_session_returns_ordered_step_detail(
             "id": str(step.id),
             "session_id": str(verification_session.id),
             "step_no": 1,
+            "pak_test_id": str(step.pak_test_id),
+            "defect_group_id": str(step.defect_group_id),
             "test_name": "voltage",
             "test_label": "Supply voltage",
             "status": "RUNNING",
@@ -181,7 +186,7 @@ def test_get_session_returns_ordered_step_detail(
             "measurement_min_value": None,
             "measurement_max_value": None,
             "measurement_unit": None,
-            "error_group_code": None,
+            "error_group_code": "POWER",
             "started_at": step.started_at.isoformat().replace("+00:00", "Z"),
             "completed_at": None,
             "created_at": step.created_at.isoformat().replace("+00:00", "Z"),
@@ -227,7 +232,12 @@ def test_pak_lifecycle_routes_forward_normalized_payloads(
     started = client.post(
         f"/verification/sessions/{verification_session.id}/steps",
         headers=token_headers,
-        json={"step_no": 1, "test_name": " voltage ", "test_label": " Supply voltage "},
+        json={
+            "step_no": 1,
+            "test_name": " voltage ",
+            "test_label": " Supply voltage ",
+            "error_group_code": " POWER ",
+        },
     )
     completed_step = client.put(
         f"/verification/sessions/{verification_session.id}/steps/1",
@@ -259,6 +269,7 @@ def test_pak_lifecycle_routes_forward_normalized_payloads(
         step_no=1,
         test_name="voltage",
         test_label="Supply voltage",
+        error_group_code="POWER",
     )
     service.complete_step.assert_awaited_once_with(
         pak=pak,
@@ -269,7 +280,6 @@ def test_pak_lifecycle_routes_forward_normalized_payloads(
         measurement_min_value=None,
         measurement_max_value=None,
         measurement_unit="V",
-        error_group_code=None,
     )
     service.complete_session.assert_awaited_once_with(
         pak=pak,

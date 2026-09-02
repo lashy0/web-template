@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 from typing import cast
 from unittest.mock import ANY, AsyncMock, MagicMock
 from uuid import uuid4
@@ -101,9 +102,12 @@ def _step(
     return VerificationStep(
         id=uuid4(),
         session_id=verification_session.id,
+        pak_test_id=uuid4(),
+        defect_group_id=uuid4(),
         step_no=step_no,
         test_name="voltage",
         test_label="Supply voltage",
+        error_group_code="POWER",
         status=status,
         started_at=now,
         created_at=now,
@@ -290,9 +294,60 @@ async def test_start_step_rejects_parallel_running_step(
             step_no=1,
             test_name="voltage",
             test_label="Supply voltage",
+            error_group_code="POWER",
         )
 
     step_repository.return_value.create.assert_not_awaited()
+
+
+@pytest.mark.unit
+async def test_start_step_records_observed_catalog_references(
+    repositories: tuple[MagicMock, MagicMock, MagicMock],
+    mocker: MockerFixture,
+) -> None:
+    session_repository, step_repository, _ = repositories
+    pak = _pak()
+    verification_session = _verification_session(pak)
+    pak_test = SimpleNamespace(id=uuid4(), defect_group_id=uuid4())
+    step = _step(verification_session)
+    service = _service()
+    observe_in_session = mocker.patch.object(
+        service._pak_test_catalog,
+        "observe_in_session",
+        new_callable=AsyncMock,
+        return_value=pak_test,
+    )
+    session_repository.return_value.get_by_id_for_update.return_value = verification_session
+    step_repository.return_value.exists_running_by_session.return_value = False
+    step_repository.return_value.create.return_value = step
+
+    result = await service.start_step(
+        pak=pak,
+        session_id=verification_session.id,
+        step_no=1,
+        test_name="voltage",
+        test_label="Supply voltage",
+        error_group_code="POWER",
+    )
+
+    assert result is step
+    observe_in_session.assert_awaited_once_with(
+        ANY,
+        pak=pak,
+        test_name="voltage",
+        test_label="Supply voltage",
+        defect_group_code="POWER",
+        seen_at=ANY,
+    )
+    step_repository.return_value.create.assert_awaited_once_with(
+        session_id=verification_session.id,
+        step_no=1,
+        pak_test_id=pak_test.id,
+        defect_group_id=pak_test.defect_group_id,
+        test_name="voltage",
+        test_label="Supply voltage",
+        error_group_code="POWER",
+    )
 
 
 @pytest.mark.unit
@@ -307,7 +362,6 @@ async def test_complete_step_is_idempotent_only_for_the_same_measurement(
     step.measurement_min_value = 11.5
     step.measurement_max_value = 12.5
     step.measurement_unit = "V"
-    step.error_group_code = None
     session_repository.return_value.get_by_id_for_update.return_value = verification_session
     step_repository.return_value.get_by_session_and_step_no_for_update.return_value = step
 
@@ -320,7 +374,6 @@ async def test_complete_step_is_idempotent_only_for_the_same_measurement(
         measurement_min_value=11.5,
         measurement_max_value=12.5,
         measurement_unit="V",
-        error_group_code=None,
     )
 
     assert result is step
@@ -337,7 +390,6 @@ async def test_complete_step_is_idempotent_only_for_the_same_measurement(
             measurement_min_value=11.5,
             measurement_max_value=12.5,
             measurement_unit="V",
-            error_group_code=None,
         )
 
 
@@ -421,7 +473,6 @@ async def test_expire_stale_sessions_closes_run_and_aborts_active_step(
         measurement_min_value=None,
         measurement_max_value=None,
         measurement_unit=None,
-        error_group_code=None,
         completed_at=ANY,
     )
     session_repository.return_value.complete.assert_awaited_once_with(

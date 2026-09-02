@@ -6,8 +6,10 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.batch.models import Batch, BatchStatus
+from app.modules.defects.repository import DefectGroupRepository
 from app.modules.kg.models import KgDevEuiPrefix, KgStatus, KgUnit
-from app.modules.pak.models import PakDevice, PakDeviceKind
+from app.modules.pak.models import PakDevice, PakDeviceKind, PakTest
+from app.modules.pak.repository import PakTestRepository
 from app.modules.verification.models import VerificationSessionStatus
 from app.modules.verification.repository import (
     VerificationSessionRepository,
@@ -66,6 +68,21 @@ async def _pak(session: AsyncSession) -> PakDevice:
     session.add(pak)
     await session.flush()
     return pak
+
+
+async def _pak_test(session: AsyncSession) -> tuple[PakTest, str]:
+    suffix = uuid4().hex[:8]
+    group = await DefectGroupRepository(session).create(
+        code=f"POWER_{suffix}",
+        name="Power supply",
+        description=None,
+    )
+    return await PakTestRepository(session).create(
+        test_name=f"power_{suffix}",
+        test_label="Supply voltage",
+        defect_group_id=group.id,
+        last_seen_at=datetime.now(UTC),
+    ), group.code
 
 
 @pytest.mark.integration
@@ -142,6 +159,7 @@ async def test_step_number_is_unique_within_a_verification_session(
     first_kg = await _kg(db_session, batch_id=batch.id)
     second_kg = await _kg(db_session, batch_id=batch.id)
     pak = await _pak(db_session)
+    pak_test, defect_group_code = await _pak_test(db_session)
     session_repository = VerificationSessionRepository(db_session)
     step_repository = VerificationStepRepository(db_session)
     first_session = await session_repository.create(
@@ -161,8 +179,11 @@ async def test_step_number_is_unique_within_a_verification_session(
     await step_repository.create(
         session_id=first_session.id,
         step_no=1,
-        test_name="power",
-        test_label=None,
+        pak_test_id=pak_test.id,
+        defect_group_id=pak_test.defect_group_id,
+        test_name=pak_test.test_name,
+        test_label=pak_test.test_label,
+        error_group_code=defect_group_code,
     )
 
     with pytest.raises(IntegrityError):
@@ -170,18 +191,26 @@ async def test_step_number_is_unique_within_a_verification_session(
             await step_repository.create(
                 session_id=first_session.id,
                 step_no=1,
+                pak_test_id=pak_test.id,
+                defect_group_id=pak_test.defect_group_id,
                 test_name="power retry",
-                test_label=None,
+                test_label="Supply voltage retry",
+                error_group_code=defect_group_code,
             )
 
     allowed = await step_repository.create(
         session_id=second_session.id,
         step_no=1,
-        test_name="power",
-        test_label=None,
+        pak_test_id=pak_test.id,
+        defect_group_id=pak_test.defect_group_id,
+        test_name=pak_test.test_name,
+        test_label=pak_test.test_label,
+        error_group_code=defect_group_code,
     )
 
     assert allowed.session_id == second_session.id
+    assert allowed.pak_test_id == pak_test.id
+    assert allowed.defect_group_id == pak_test.defect_group_id
 
 
 @pytest.mark.integration
