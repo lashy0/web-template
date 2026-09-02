@@ -7,7 +7,7 @@ from app.api.auth_deps import CurrentPrincipalDep, require_permission
 from app.modules.pak.exceptions import PakNotFoundError, PakTestNotFoundError
 from app.modules.pak.models import PakDevice, PakDeviceKind, PakTest
 from app.modules.pak.permissions import PakPermission
-from app.modules.pak.schemas import (
+from app.modules.pak.schemas.common import (
     CreatePakDeviceRequest,
     CreatePakDeviceResponse,
     PakAccessKeyResponse,
@@ -15,12 +15,11 @@ from app.modules.pak.schemas import (
     PakDeviceResponse,
     PakTestListResponse,
     PakTestResponse,
-    PakTokenRequest,
-    PakTokenResponse,
     UpdateActiveRequest,
     UpdateArchivedRequest,
     UpdatePakDeviceRequest,
 )
+from app.modules.pak.schemas.machine import PakTokenRequest, PakTokenResponse
 from app.modules.pak.service import PakManagementService, PakTestCatalogService
 
 router = APIRouter(prefix="/pak", tags=["pak"])

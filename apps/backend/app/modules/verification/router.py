@@ -12,15 +12,17 @@ from app.modules.verification.models import (
     VerificationStep,
 )
 from app.modules.verification.permissions import VerificationPermission
-from app.modules.verification.schemas import (
-    CompleteVerificationSessionRequest,
-    CompleteVerificationStepRequest,
-    OpenVerificationSessionRequest,
-    StartVerificationStepRequest,
+from app.modules.verification.schemas.common import (
     VerificationSessionDetailResponse,
     VerificationSessionListResponse,
     VerificationSessionResponse,
     VerificationStepResponse,
+)
+from app.modules.verification.schemas.machine import (
+    CompleteVerificationSessionRequest,
+    CompleteVerificationStepRequest,
+    OpenVerificationSessionRequest,
+    StartVerificationStepRequest,
 )
 from app.modules.verification.service import VerificationManagementService
 

@@ -1,6 +1,3 @@
-from datetime import datetime
-from uuid import UUID
-
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.modules.kg.schemas import DevEui
@@ -23,7 +20,6 @@ class OpenVerificationSessionRequest(BaseModel):
             return value.strip()
 
         return value
-
 
 
 class StartVerificationStepRequest(BaseModel):
@@ -55,9 +51,7 @@ class CompleteVerificationStepRequest(BaseModel):
             VerificationStepStatus.PASSED,
             VerificationStepStatus.FAILED,
         }:
-            raise ValueError(
-                "Completed step status must be PASSED or FAILED"
-            )
+            raise ValueError("Completed step status must be PASSED or FAILED")
 
         return value
 
@@ -74,12 +68,9 @@ class CompleteVerificationStepRequest(BaseModel):
         if (
             self.measurement_min_value is not None
             and self.measurement_max_value is not None
-            and self.measurement_min_value
-            > self.measurement_max_value
+            and self.measurement_min_value > self.measurement_max_value
         ):
-            raise ValueError(
-                "Measurement minimum value must not exceed maximum value"
-            )
+            raise ValueError("Measurement minimum value must not exceed maximum value")
 
         return self
 
@@ -95,56 +86,6 @@ class CompleteVerificationSessionRequest(BaseModel):
             VerificationSessionStatus.FAILED,
             VerificationSessionStatus.ABORTED,
         }:
-            raise ValueError(
-                "Completed session status must be PASSED, FAILED or ABORTED"
-            )
+            raise ValueError("Completed session status must be PASSED, FAILED or ABORTED")
 
         return value
-
-
-class VerificationStepResponse(BaseModel):
-    id: UUID
-    session_id: UUID
-    step_no: int
-    pak_test_id: UUID
-    defect_group_id: UUID
-    test_name: str
-    test_label: str
-    error_group_code: str
-    status: VerificationStepStatus
-    measurement_value: float | None
-    measurement_min_value: float | None
-    measurement_max_value: float | None
-    measurement_unit: str | None
-    started_at: datetime
-    completed_at: datetime | None
-    created_at: datetime
-    updated_at: datetime
-
-
-class VerificationSessionResponse(BaseModel):
-    id: UUID
-    kg_dev_eui: DevEui
-    pak_id: UUID
-    slot_no: int
-    firmware_version: str
-    total_steps: int
-    status: VerificationSessionStatus
-    started_at: datetime
-    last_activity_at: datetime
-    completed_at: datetime | None
-    created_at: datetime
-    updated_at: datetime
-
-
-class VerificationSessionDetailResponse(
-    VerificationSessionResponse
-):
-    steps: list[VerificationStepResponse]
-
-
-class VerificationSessionListResponse(BaseModel):
-    items: list[VerificationSessionResponse]
-    total: int
-    page: int
-    page_size: int
