@@ -9,6 +9,8 @@ from app.modules.pak.exceptions import (
     PakError,
     PakNotFoundError,
     PakProvisioningError,
+    PakTestConfigurationError,
+    PakTestNotFoundError,
 )
 
 
@@ -22,6 +24,8 @@ from app.modules.pak.exceptions import (
         PakProvisioningError,
         PakAccessKeyConfigurationError,
         InvalidMachineAccessTokenError,
+        PakTestNotFoundError,
+        PakTestConfigurationError,
     ],
 )
 def test_pak_errors_are_application_errors(error: type[PakError]) -> None:

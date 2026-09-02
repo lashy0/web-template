@@ -23,7 +23,7 @@ from app.modules.pak.exceptions import (
     PakNotFoundError,
     PakProvisioningError,
 )
-from app.modules.pak.models import PakDevice, PakDeviceKind
+from app.modules.pak.models import PakDevice, PakDeviceKind, PakTest
 
 _ALLOWED_ORIGIN = "https://admin.example"
 _SESSION_COOKIE = "ory_kratos_session=opaque"
@@ -60,6 +60,19 @@ def _pak(*, pak_id: UUID | None = None) -> PakDevice:
         is_active=True,
         last_seen_at=None,
         archived_at=None,
+    )
+
+
+def _pak_test(*, test_id: UUID | None = None) -> PakTest:
+    now = datetime.now(UTC)
+    return PakTest(
+        id=test_id or uuid4(),
+        test_name="INSULATION_RESISTANCE",
+        test_label="Insulation resistance",
+        defect_group_id=uuid4(),
+        last_seen_at=now,
+        created_at=now,
+        updated_at=now,
     )
 
 
@@ -170,6 +183,53 @@ def test_pak_list_never_exposes_access_key(
     assert response.json()["items"][0]["code"] == pak.code
     assert "access_key" not in response.json()["items"][0]
     assert "encrypted_access_key" not in response.json()["items"][0]
+
+
+@pytest.mark.api
+def test_pak_test_list_forwards_filters_and_returns_catalog_fields(
+    pak_client: tuple[FastAPI, TestClient], mocker: MockerFixture
+) -> None:
+    app, client = pak_client
+    test = _pak_test()
+    catalog = SimpleNamespace(list=AsyncMock(return_value=([test], 1)))
+    _configure_principal(app, mocker, SimpleNamespace(), Role.ADMINISTRATOR)
+    mocker.patch.object(app.state, "pak_test_catalog", catalog)
+
+    response = client.get(
+        f"/pak/tests?q=insulation&defect_group_id={test.defect_group_id}"
+        "&page=2&page_size=10&sort=last_seen_at&order=desc",
+        headers=_headers(),
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["items"][0]["test_name"] == test.test_name
+    assert response.json()["items"][0]["defect_group_id"] == str(test.defect_group_id)
+    assert response.json()["total"] == 1
+    catalog.list.assert_awaited_once_with(
+        q="insulation",
+        defect_group_id=test.defect_group_id,
+        page=2,
+        page_size=10,
+        sort="last_seen_at",
+        order="desc",
+    )
+
+
+@pytest.mark.api
+def test_missing_pak_test_returns_not_found(
+    pak_client: tuple[FastAPI, TestClient], mocker: MockerFixture
+) -> None:
+    app, client = pak_client
+    test_id = uuid4()
+    catalog = SimpleNamespace(get=AsyncMock(return_value=None))
+    _configure_principal(app, mocker, SimpleNamespace(), Role.ADMINISTRATOR)
+    mocker.patch.object(app.state, "pak_test_catalog", catalog)
+
+    response = client.get(f"/pak/tests/{test_id}", headers=_headers())
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.json()["code"] == "pak_test_not_found"
+    catalog.get.assert_awaited_once_with(test_id)
 
 
 @pytest.mark.api

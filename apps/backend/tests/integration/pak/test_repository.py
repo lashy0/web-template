@@ -1,10 +1,12 @@
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.modules.defects.repository import DefectGroupRepository
 from app.modules.pak.models import PakDeviceKind
-from app.modules.pak.repository import PakRepository
+from app.modules.pak.repository import PakRepository, PakTestRepository
 
 
 @pytest.mark.integration
@@ -93,3 +95,48 @@ async def test_pak_can_be_archived_and_restored_without_becoming_active(
     assert restored is not None
     assert restored.archived_at is None
     assert not restored.is_active
+
+
+@pytest.mark.integration
+async def test_pak_tests_can_be_created_updated_and_searched(
+    db_session: AsyncSession,
+) -> None:
+    group_repository = DefectGroupRepository(db_session)
+    test_repository = PakTestRepository(db_session)
+    suffix = uuid4().hex[:8]
+    group = await group_repository.create(
+        code=f"POWER_{suffix}", name="Power supply", description=None
+    )
+    observed_at = datetime.now(UTC)
+    test = await test_repository.create(
+        test_name=f"INSULATION_{suffix}",
+        test_label="Insulation resistance",
+        defect_group_id=group.id,
+        last_seen_at=observed_at,
+    )
+
+    updated_at = datetime.now(UTC)
+    updated = await test_repository.update_observation(
+        test,
+        test_label="Insulation check",
+        defect_group_id=group.id,
+        last_seen_at=updated_at,
+    )
+    by_id = await test_repository.get_by_id(test.id)
+    by_name = await test_repository.get_by_test_name(test.test_name)
+    found, total = await test_repository.search(
+        q="insulation",
+        defect_group_id=group.id,
+        page=1,
+        page_size=25,
+        sort="test_name",
+        order="asc",
+    )
+
+    assert updated.test_label == "Insulation check"
+    assert updated.last_seen_at == updated_at
+    assert by_id is not None
+    assert by_name is not None
+    assert by_name.id == test.id
+    assert total == 1
+    assert [item.id for item in found] == [test.id]

@@ -24,6 +24,7 @@ from app.modules.pak.exceptions import (
     PakCannotBeDeletedError,
     PakNotFoundError,
     PakProvisioningError,
+    PakTestNotFoundError,
 )
 from app.modules.users.exceptions import UserNotFoundError, UserProvisioningError
 from app.modules.verification.exceptions import (
@@ -69,6 +70,7 @@ def install_error_handlers(app: FastAPI) -> None:
         (BatchNotFoundError, status.HTTP_404_NOT_FOUND),
         (KgNotFoundError, status.HTTP_404_NOT_FOUND),
         (PakNotFoundError, status.HTTP_404_NOT_FOUND),
+        (PakTestNotFoundError, status.HTTP_404_NOT_FOUND),
         (KgAlreadyExistsError, status.HTTP_409_CONFLICT),
         (KgCannotBeDeletedError, status.HTTP_409_CONFLICT),
         (PakAlreadyExistsError, status.HTTP_409_CONFLICT),
