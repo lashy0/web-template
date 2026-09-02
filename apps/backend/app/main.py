@@ -27,6 +27,7 @@ from app.modules.users.service import UserManagementService
 from app.modules.kg.service import KgManagementService, KgDevEuiPrefixManagementService
 from app.modules.batch.service import BatchManagementService
 from app.modules.verification.service import VerificationManagementService
+from app.modules.defects.service import DefectManagementService
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
@@ -78,6 +79,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         session_ttl_minutes=(
             settings.VERIFICATION_SESSION_TTL_MINUTES
         ),
+    )
+
+    app.state.defect_management = DefectManagementService(
+        database.session_factory,
     )
 
     redis = create_redis_client(settings)

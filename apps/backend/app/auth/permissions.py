@@ -8,6 +8,7 @@ from app.modules.users.permissions import UserPermission
 from app.modules.kg.permissions import KgPermission
 from app.modules.batch.permissions import BatchPermission
 from app.modules.verification.permissions import VerificationPermission
+from app.modules.defects.permissions import DefectPermission
 
 
 type Permission = StrEnum
@@ -20,6 +21,7 @@ ALL_PERMISSIONS: Final[frozenset[Permission]] = frozenset(
         *KgPermission,
         *BatchPermission,
         *VerificationPermission,
+        *DefectPermission,
     )
 )
 
@@ -45,13 +47,18 @@ MANAGER_PERMISSIONS: Final[frozenset[Permission]] = frozenset(
         KgPermission.PREFIX_READ,
 
         VerificationPermission.READ,
+
+        DefectPermission.READ,
     )
 )
 
 ENGINEER_PERMISSIONS: Final[frozenset[Permission]] = frozenset(
     (
         KgPermission.READ,
+
         VerificationPermission.READ,
+
+        DefectPermission.READ,
     )
 )
 

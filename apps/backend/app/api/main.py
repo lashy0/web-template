@@ -8,8 +8,11 @@ from app.modules.users.router import router as users_router
 from app.modules.kg.router import router as kg_router
 from app.modules.batch.router import router as batch_router
 from app.modules.verification.router import router as verification_router
+from app.modules.defects.router import router as defects_router
+
 
 api_router = APIRouter()
+
 api_router.include_router(health_router)
 api_router.include_router(auth_router)
 api_router.include_router(audit_router)
@@ -18,3 +21,4 @@ api_router.include_router(pak_router)
 api_router.include_router(kg_router)
 api_router.include_router(batch_router)
 api_router.include_router(verification_router)
+api_router.include_router(defects_router)
