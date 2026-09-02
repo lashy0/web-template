@@ -41,3 +41,15 @@ class PakCannotBeDeletedError(PakError):
     """The PAK cannot be deleted because it has verification history."""
 
     code = "pak_cannot_be_deleted"
+
+
+class PakTestNotFoundError(PakError):
+    """The requested PAK test does not exist."""
+
+    code = "pak_test_not_found"
+
+
+class PakTestConfigurationError(PakError):
+    """A PAK test references an invalid defect configuration."""
+
+    code = "pak_test_configuration_error"

@@ -66,3 +66,20 @@ class UpdateActiveRequest(BaseModel):
 
 class UpdateArchivedRequest(BaseModel):
     archived: bool
+
+
+class PakTestResponse(BaseModel):
+    id: UUID
+    test_name: str
+    test_label: str
+    defect_group_id: UUID
+    last_seen_at: datetime
+    created_at: datetime
+    updated_at: datetime
+
+
+class PakTestListResponse(BaseModel):
+    items: list[PakTestResponse]
+    total: int
+    page: int
+    page_size: int
