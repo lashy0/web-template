@@ -24,6 +24,8 @@ from app.modules.pak.service import PakManagementService, PakTestCatalogService
 
 router = APIRouter(prefix="/pak", tags=["pak"])
 
+machine_router = APIRouter(prefix="/pak", tags=["pak-machine"])
+
 
 def _response(pak: PakDevice) -> PakDeviceResponse:
     return PakDeviceResponse(
@@ -141,7 +143,7 @@ async def get_pak_test(
     return _test_response(test)
 
 
-@router.post("/token", response_model=PakTokenResponse)
+@machine_router.post("/token", response_model=PakTokenResponse)
 async def issue_token(
     payload: PakTokenRequest,
     request: Request,

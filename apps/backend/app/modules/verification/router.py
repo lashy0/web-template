@@ -26,8 +26,9 @@ from app.modules.verification.schemas.machine import (
 )
 from app.modules.verification.service import VerificationManagementService
 
-
 router = APIRouter(prefix="/verification", tags=["verification"])
+
+machine_router = APIRouter(prefix="/verification", tags=["verification-machine"])
 
 
 def _service(request: Request) -> VerificationManagementService:
@@ -140,7 +141,7 @@ async def get_session(
     )
 
 
-@router.post(
+@machine_router.post(
     "/sessions",
     response_model=VerificationSessionResponse,
     status_code=status.HTTP_201_CREATED,
@@ -161,7 +162,7 @@ async def open_session(
     return _session_response(session)
 
 
-@router.post(
+@machine_router.post(
     "/sessions/{session_id}/steps",
     response_model=VerificationStepResponse,
     status_code=status.HTTP_201_CREATED,
@@ -184,7 +185,7 @@ async def start_step(
     return _step_response(step)
 
 
-@router.put(
+@machine_router.put(
     "/sessions/{session_id}/steps/{step_no}",
     response_model=VerificationStepResponse,
 )
@@ -209,7 +210,7 @@ async def complete_step(
     return _step_response(step)
 
 
-@router.post(
+@machine_router.post(
     "/sessions/{session_id}/complete",
     response_model=VerificationSessionResponse,
 )
