@@ -5,6 +5,16 @@ export type ClientOptions = {
 };
 
 /**
+ * AddBatchShipmentItemRequest
+ */
+export type AddBatchShipmentItemRequest = {
+    /**
+     * Dev Eui
+     */
+    dev_eui: string;
+};
+
+/**
  * AuditEventResponse
  */
 export type AuditEventResponse = {
@@ -89,6 +99,334 @@ export type AuditListResponse = {
 };
 
 /**
+ * BatchListResponse
+ */
+export type BatchListResponse = {
+    /**
+     * Items
+     */
+    items: Array<BatchResponse>;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
+ * BatchReceiptListResponse
+ */
+export type BatchReceiptListResponse = {
+    /**
+     * Items
+     */
+    items: Array<BatchReceiptResponse>;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
+ * BatchReceiptResponse
+ */
+export type BatchReceiptResponse = {
+    /**
+     * Batch Id
+     */
+    batch_id: string;
+    /**
+     * Comment
+     */
+    comment: string | null;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Created By User Id
+     */
+    created_by_user_id: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Quantity
+     */
+    quantity: number;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
+     * Void Reason
+     */
+    void_reason: string | null;
+    /**
+     * Voided At
+     */
+    voided_at: string | null;
+};
+
+/**
+ * BatchResponse
+ */
+export type BatchResponse = {
+    /**
+     * Archived At
+     */
+    archived_at: string | null;
+    /**
+     * Completed At
+     */
+    completed_at: string | null;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Created By User Id
+     */
+    created_by_user_id: string | null;
+    /**
+     * Day Plan Qty
+     */
+    day_plan_qty: number;
+    /**
+     * Description
+     */
+    description: string | null;
+    /**
+     * Dev Eui Prefix
+     */
+    dev_eui_prefix: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Planned Qty
+     */
+    planned_qty: number;
+    status: BatchStatus;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
+ * BatchShipmentItemResponse
+ */
+export type BatchShipmentItemResponse = {
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Kg Dev Eui
+     */
+    kg_dev_eui: string;
+    /**
+     * Shipment Id
+     */
+    shipment_id: string;
+};
+
+/**
+ * BatchShipmentListResponse
+ */
+export type BatchShipmentListResponse = {
+    /**
+     * Items
+     */
+    items: Array<BatchShipmentResponse>;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
+ * BatchShipmentResponse
+ */
+export type BatchShipmentResponse = {
+    /**
+     * Batch Id
+     */
+    batch_id: string;
+    /**
+     * Comment
+     */
+    comment: string | null;
+    /**
+     * Completed At
+     */
+    completed_at: string | null;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Created By User Id
+     */
+    created_by_user_id: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Quantity
+     */
+    quantity: number;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
+     * Void Reason
+     */
+    void_reason: string | null;
+    /**
+     * Voided At
+     */
+    voided_at: string | null;
+};
+
+/**
+ * BatchStatus
+ */
+export type BatchStatus = 'IN_PRODUCTION' | 'COMPLETED';
+
+/**
+ * CreateBatchReceiptRequest
+ */
+export type CreateBatchReceiptRequest = {
+    /**
+     * Comment
+     */
+    comment?: string | null;
+    /**
+     * Quantity
+     */
+    quantity: number;
+};
+
+/**
+ * CreateBatchRequest
+ */
+export type CreateBatchRequest = {
+    /**
+     * Day Plan Qty
+     */
+    day_plan_qty: number;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Dev Eui Prefix
+     */
+    dev_eui_prefix: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Planned Qty
+     */
+    planned_qty: number;
+};
+
+/**
+ * CreateBatchShipmentRequest
+ */
+export type CreateBatchShipmentRequest = {
+    /**
+     * Comment
+     */
+    comment?: string | null;
+};
+
+/**
+ * CreateDefectGroupRequest
+ */
+export type CreateDefectGroupRequest = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
+ * CreateDefectTypeRequest
+ */
+export type CreateDefectTypeRequest = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Engineer Action
+     */
+    engineer_action?: string | null;
+    /**
+     * Group Id
+     */
+    group_id: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Possible Cause
+     */
+    possible_cause?: string | null;
+};
+
+/**
+ * CreateKgDevEuiPrefixRequest
+ */
+export type CreateKgDevEuiPrefixRequest = {
+    /**
+     * Name
+     */
+    name?: string | null;
+    /**
+     * Prefix
+     */
+    prefix: string;
+    /**
+     * Short Code
+     */
+    short_code: string;
+};
+
+/**
  * CreatePakDeviceRequest
  */
 export type CreatePakDeviceRequest = {
@@ -138,6 +476,130 @@ export type CreateUserRequest = {
 };
 
 /**
+ * DefectGroupListResponse
+ */
+export type DefectGroupListResponse = {
+    /**
+     * Items
+     */
+    items: Array<DefectGroupResponse>;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
+ * DefectGroupResponse
+ */
+export type DefectGroupResponse = {
+    /**
+     * Archived At
+     */
+    archived_at: string | null;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Description
+     */
+    description: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
+ * DefectTypeListResponse
+ */
+export type DefectTypeListResponse = {
+    /**
+     * Items
+     */
+    items: Array<DefectTypeResponse>;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
+ * DefectTypeResponse
+ */
+export type DefectTypeResponse = {
+    /**
+     * Archived At
+     */
+    archived_at: string | null;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Description
+     */
+    description: string;
+    /**
+     * Engineer Action
+     */
+    engineer_action: string | null;
+    /**
+     * Group Id
+     */
+    group_id: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Possible Cause
+     */
+    possible_cause: string | null;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
  * HTTPValidationError
  */
 export type HttpValidationError = {
@@ -146,6 +608,96 @@ export type HttpValidationError = {
      */
     detail?: Array<ValidationError>;
 };
+
+/**
+ * KgDevEuiPrefixListResponse
+ */
+export type KgDevEuiPrefixListResponse = {
+    /**
+     * Items
+     */
+    items: Array<KgDevEuiPrefixResponse>;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
+ * KgDevEuiPrefixResponse
+ */
+export type KgDevEuiPrefixResponse = {
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Name
+     */
+    name: string | null;
+    /**
+     * Prefix
+     */
+    prefix: string;
+    /**
+     * Short Code
+     */
+    short_code: string;
+};
+
+/**
+ * KgListResponse
+ */
+export type KgListResponse = {
+    /**
+     * Items
+     */
+    items: Array<KgResponse>;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
+ * KgResponse
+ */
+export type KgResponse = {
+    /**
+     * Batch Id
+     */
+    batch_id: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Dev Eui
+     */
+    dev_eui: string;
+    /**
+     * Short Id
+     */
+    short_id: string;
+    status: KgStatus;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
+ * KgStatus
+ */
+export type KgStatus = 'REGISTERED' | 'TESTING' | 'TEST_FAILED' | 'IN_ENGINEER_REPAIR' | 'IN_PRODUCTION_REPAIR' | 'READY_FOR_RETEST' | 'READY_FOR_PACKING' | 'PACKED' | 'SHIPPED' | 'SCRAPPED';
 
 /**
  * PakAccessKeyResponse
@@ -216,6 +768,62 @@ export type PakDeviceResponse = {
 };
 
 /**
+ * PakTestListResponse
+ */
+export type PakTestListResponse = {
+    /**
+     * Items
+     */
+    items: Array<PakTestResponse>;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
+ * PakTestResponse
+ */
+export type PakTestResponse = {
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Defect Group Id
+     */
+    defect_group_id: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Last Seen At
+     */
+    last_seen_at: string;
+    /**
+     * Test Label
+     */
+    test_label: string;
+    /**
+     * Test Name
+     */
+    test_name: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
  * Role
  */
 export type Role = 'administrator' | 'manager' | 'engineer' | 'packer' | 'operator';
@@ -238,6 +846,124 @@ export type UpdateArchivedRequest = {
      * Archived
      */
     archived: boolean;
+};
+
+/**
+ * UpdateBatchArchivedRequest
+ */
+export type UpdateBatchArchivedRequest = {
+    /**
+     * Archived
+     */
+    archived: boolean;
+};
+
+/**
+ * UpdateBatchReceiptRequest
+ */
+export type UpdateBatchReceiptRequest = {
+    /**
+     * Comment
+     */
+    comment?: string | null;
+    /**
+     * Quantity
+     */
+    quantity?: number | null;
+};
+
+/**
+ * UpdateBatchRequest
+ */
+export type UpdateBatchRequest = {
+    /**
+     * Day Plan Qty
+     */
+    day_plan_qty?: number | null;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Name
+     */
+    name?: string | null;
+};
+
+/**
+ * UpdateBatchShipmentRequest
+ */
+export type UpdateBatchShipmentRequest = {
+    /**
+     * Comment
+     */
+    comment?: string | null;
+};
+
+/**
+ * UpdateDefectGroupArchivedRequest
+ */
+export type UpdateDefectGroupArchivedRequest = {
+    /**
+     * Archived
+     */
+    archived: boolean;
+};
+
+/**
+ * UpdateDefectGroupRequest
+ */
+export type UpdateDefectGroupRequest = {
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Name
+     */
+    name?: string | null;
+};
+
+/**
+ * UpdateDefectTypeArchivedRequest
+ */
+export type UpdateDefectTypeArchivedRequest = {
+    /**
+     * Archived
+     */
+    archived: boolean;
+};
+
+/**
+ * UpdateDefectTypeRequest
+ */
+export type UpdateDefectTypeRequest = {
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Engineer Action
+     */
+    engineer_action?: string | null;
+    /**
+     * Name
+     */
+    name?: string | null;
+    /**
+     * Possible Cause
+     */
+    possible_cause?: string | null;
+};
+
+/**
+ * UpdateKgDevEuiPrefixRequest
+ */
+export type UpdateKgDevEuiPrefixRequest = {
+    /**
+     * Name
+     */
+    name?: string | null;
 };
 
 /**
@@ -361,6 +1087,235 @@ export type ValidationError = {
     type: string;
 };
 
+/**
+ * VerificationSessionDetailResponse
+ */
+export type VerificationSessionDetailResponse = {
+    /**
+     * Completed At
+     */
+    completed_at: string | null;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Firmware Version
+     */
+    firmware_version: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Kg Dev Eui
+     */
+    kg_dev_eui: string;
+    /**
+     * Last Activity At
+     */
+    last_activity_at: string;
+    /**
+     * Pak Id
+     */
+    pak_id: string;
+    /**
+     * Slot No
+     */
+    slot_no: number;
+    /**
+     * Started At
+     */
+    started_at: string;
+    status: VerificationSessionStatus;
+    /**
+     * Steps
+     */
+    steps: Array<VerificationStepResponse>;
+    /**
+     * Total Steps
+     */
+    total_steps: number;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
+ * VerificationSessionListResponse
+ */
+export type VerificationSessionListResponse = {
+    /**
+     * Items
+     */
+    items: Array<VerificationSessionResponse>;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
+ * VerificationSessionResponse
+ */
+export type VerificationSessionResponse = {
+    /**
+     * Completed At
+     */
+    completed_at: string | null;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Firmware Version
+     */
+    firmware_version: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Kg Dev Eui
+     */
+    kg_dev_eui: string;
+    /**
+     * Last Activity At
+     */
+    last_activity_at: string;
+    /**
+     * Pak Id
+     */
+    pak_id: string;
+    /**
+     * Slot No
+     */
+    slot_no: number;
+    /**
+     * Started At
+     */
+    started_at: string;
+    status: VerificationSessionStatus;
+    /**
+     * Total Steps
+     */
+    total_steps: number;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
+ * VerificationSessionStatus
+ */
+export type VerificationSessionStatus = 'RUNNING' | 'PASSED' | 'FAILED' | 'ABORTED' | 'INCOMPLETE';
+
+/**
+ * VerificationStepResponse
+ */
+export type VerificationStepResponse = {
+    /**
+     * Completed At
+     */
+    completed_at: string | null;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Defect Group Id
+     */
+    defect_group_id: string;
+    /**
+     * Error Group Code
+     */
+    error_group_code: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Measurement Max Value
+     */
+    measurement_max_value: number | null;
+    /**
+     * Measurement Min Value
+     */
+    measurement_min_value: number | null;
+    /**
+     * Measurement Unit
+     */
+    measurement_unit: string | null;
+    /**
+     * Measurement Value
+     */
+    measurement_value: number | null;
+    /**
+     * Pak Test Id
+     */
+    pak_test_id: string;
+    /**
+     * Session Id
+     */
+    session_id: string;
+    /**
+     * Started At
+     */
+    started_at: string;
+    status: VerificationStepStatus;
+    /**
+     * Step No
+     */
+    step_no: number;
+    /**
+     * Test Label
+     */
+    test_label: string;
+    /**
+     * Test Name
+     */
+    test_name: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
+ * VerificationStepStatus
+ */
+export type VerificationStepStatus = 'RUNNING' | 'PASSED' | 'FAILED' | 'ABORTED';
+
+/**
+ * VoidBatchReceiptRequest
+ */
+export type VoidBatchReceiptRequest = {
+    /**
+     * Reason
+     */
+    reason: string;
+};
+
+/**
+ * VoidBatchShipmentRequest
+ */
+export type VoidBatchShipmentRequest = {
+    /**
+     * Reason
+     */
+    reason: string;
+};
+
 export type AuditListAuditEventsData = {
     body?: never;
     path?: never;
@@ -430,6 +1385,1222 @@ export type AuthMeResponses = {
 };
 
 export type AuthMeResponse = AuthMeResponses[keyof AuthMeResponses];
+
+export type BatchCreateBatchData = {
+    body: CreateBatchRequest;
+    path?: never;
+    query?: never;
+    url: '/batches';
+};
+
+export type BatchCreateBatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type BatchCreateBatchError = BatchCreateBatchErrors[keyof BatchCreateBatchErrors];
+
+export type BatchCreateBatchResponses = {
+    /**
+     * Successful Response
+     */
+    201: BatchResponse;
+};
+
+export type BatchCreateBatchResponse = BatchCreateBatchResponses[keyof BatchCreateBatchResponses];
+
+export type BatchListBatchesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Q
+         */
+        q?: string | null;
+        /**
+         * Status
+         */
+        status?: BatchStatus | null;
+        /**
+         * Archived
+         */
+        archived?: boolean;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+        /**
+         * Sort
+         */
+        sort?: 'name' | 'planned_qty' | 'day_plan_qty' | 'status' | 'created_at' | 'updated_at' | 'completed_at' | 'archived_at';
+        /**
+         * Order
+         */
+        order?: 'asc' | 'desc';
+    };
+    url: '/batches/';
+};
+
+export type BatchListBatchesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type BatchListBatchesError = BatchListBatchesErrors[keyof BatchListBatchesErrors];
+
+export type BatchListBatchesResponses = {
+    /**
+     * Successful Response
+     */
+    200: BatchListResponse;
+};
+
+export type BatchListBatchesResponse = BatchListBatchesResponses[keyof BatchListBatchesResponses];
+
+export type BatchDeleteBatchData = {
+    body?: never;
+    path: {
+        /**
+         * Batch Id
+         */
+        batch_id: string;
+    };
+    query?: never;
+    url: '/batches/{batch_id}';
+};
+
+export type BatchDeleteBatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type BatchDeleteBatchError = BatchDeleteBatchErrors[keyof BatchDeleteBatchErrors];
+
+export type BatchDeleteBatchResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type BatchDeleteBatchResponse = BatchDeleteBatchResponses[keyof BatchDeleteBatchResponses];
+
+export type BatchGetBatchData = {
+    body?: never;
+    path: {
+        /**
+         * Batch Id
+         */
+        batch_id: string;
+    };
+    query?: never;
+    url: '/batches/{batch_id}';
+};
+
+export type BatchGetBatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type BatchGetBatchError = BatchGetBatchErrors[keyof BatchGetBatchErrors];
+
+export type BatchGetBatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: BatchResponse;
+};
+
+export type BatchGetBatchResponse = BatchGetBatchResponses[keyof BatchGetBatchResponses];
+
+export type BatchUpdateBatchData = {
+    body: UpdateBatchRequest;
+    path: {
+        /**
+         * Batch Id
+         */
+        batch_id: string;
+    };
+    query?: never;
+    url: '/batches/{batch_id}';
+};
+
+export type BatchUpdateBatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type BatchUpdateBatchError = BatchUpdateBatchErrors[keyof BatchUpdateBatchErrors];
+
+export type BatchUpdateBatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: BatchResponse;
+};
+
+export type BatchUpdateBatchResponse = BatchUpdateBatchResponses[keyof BatchUpdateBatchResponses];
+
+export type BatchUpdateBatchArchivedData = {
+    body: UpdateBatchArchivedRequest;
+    path: {
+        /**
+         * Batch Id
+         */
+        batch_id: string;
+    };
+    query?: never;
+    url: '/batches/{batch_id}/archived';
+};
+
+export type BatchUpdateBatchArchivedErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type BatchUpdateBatchArchivedError = BatchUpdateBatchArchivedErrors[keyof BatchUpdateBatchArchivedErrors];
+
+export type BatchUpdateBatchArchivedResponses = {
+    /**
+     * Successful Response
+     */
+    200: BatchResponse;
+};
+
+export type BatchUpdateBatchArchivedResponse = BatchUpdateBatchArchivedResponses[keyof BatchUpdateBatchArchivedResponses];
+
+export type BatchCompleteBatchData = {
+    body?: never;
+    path: {
+        /**
+         * Batch Id
+         */
+        batch_id: string;
+    };
+    query?: never;
+    url: '/batches/{batch_id}/complete';
+};
+
+export type BatchCompleteBatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type BatchCompleteBatchError = BatchCompleteBatchErrors[keyof BatchCompleteBatchErrors];
+
+export type BatchCompleteBatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: BatchResponse;
+};
+
+export type BatchCompleteBatchResponse = BatchCompleteBatchResponses[keyof BatchCompleteBatchResponses];
+
+export type BatchListBatchReceiptsData = {
+    body?: never;
+    path: {
+        /**
+         * Batch Id
+         */
+        batch_id: string;
+    };
+    query?: {
+        /**
+         * Include Voided
+         */
+        include_voided?: boolean;
+    };
+    url: '/batches/{batch_id}/receipts';
+};
+
+export type BatchListBatchReceiptsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type BatchListBatchReceiptsError = BatchListBatchReceiptsErrors[keyof BatchListBatchReceiptsErrors];
+
+export type BatchListBatchReceiptsResponses = {
+    /**
+     * Successful Response
+     */
+    200: BatchReceiptListResponse;
+};
+
+export type BatchListBatchReceiptsResponse = BatchListBatchReceiptsResponses[keyof BatchListBatchReceiptsResponses];
+
+export type BatchCreateBatchReceiptData = {
+    body: CreateBatchReceiptRequest;
+    path: {
+        /**
+         * Batch Id
+         */
+        batch_id: string;
+    };
+    query?: never;
+    url: '/batches/{batch_id}/receipts';
+};
+
+export type BatchCreateBatchReceiptErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type BatchCreateBatchReceiptError = BatchCreateBatchReceiptErrors[keyof BatchCreateBatchReceiptErrors];
+
+export type BatchCreateBatchReceiptResponses = {
+    /**
+     * Successful Response
+     */
+    201: BatchReceiptResponse;
+};
+
+export type BatchCreateBatchReceiptResponse = BatchCreateBatchReceiptResponses[keyof BatchCreateBatchReceiptResponses];
+
+export type BatchUpdateBatchReceiptData = {
+    body: UpdateBatchReceiptRequest;
+    path: {
+        /**
+         * Batch Id
+         */
+        batch_id: string;
+        /**
+         * Receipt Id
+         */
+        receipt_id: string;
+    };
+    query?: never;
+    url: '/batches/{batch_id}/receipts/{receipt_id}';
+};
+
+export type BatchUpdateBatchReceiptErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type BatchUpdateBatchReceiptError = BatchUpdateBatchReceiptErrors[keyof BatchUpdateBatchReceiptErrors];
+
+export type BatchUpdateBatchReceiptResponses = {
+    /**
+     * Successful Response
+     */
+    200: BatchReceiptResponse;
+};
+
+export type BatchUpdateBatchReceiptResponse = BatchUpdateBatchReceiptResponses[keyof BatchUpdateBatchReceiptResponses];
+
+export type BatchVoidBatchReceiptData = {
+    body: VoidBatchReceiptRequest;
+    path: {
+        /**
+         * Batch Id
+         */
+        batch_id: string;
+        /**
+         * Receipt Id
+         */
+        receipt_id: string;
+    };
+    query?: never;
+    url: '/batches/{batch_id}/receipts/{receipt_id}/void';
+};
+
+export type BatchVoidBatchReceiptErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type BatchVoidBatchReceiptError = BatchVoidBatchReceiptErrors[keyof BatchVoidBatchReceiptErrors];
+
+export type BatchVoidBatchReceiptResponses = {
+    /**
+     * Successful Response
+     */
+    200: BatchReceiptResponse;
+};
+
+export type BatchVoidBatchReceiptResponse = BatchVoidBatchReceiptResponses[keyof BatchVoidBatchReceiptResponses];
+
+export type BatchListBatchShipmentsData = {
+    body?: never;
+    path: {
+        /**
+         * Batch Id
+         */
+        batch_id: string;
+    };
+    query?: {
+        /**
+         * Include Voided
+         */
+        include_voided?: boolean;
+    };
+    url: '/batches/{batch_id}/shipments';
+};
+
+export type BatchListBatchShipmentsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type BatchListBatchShipmentsError = BatchListBatchShipmentsErrors[keyof BatchListBatchShipmentsErrors];
+
+export type BatchListBatchShipmentsResponses = {
+    /**
+     * Successful Response
+     */
+    200: BatchShipmentListResponse;
+};
+
+export type BatchListBatchShipmentsResponse = BatchListBatchShipmentsResponses[keyof BatchListBatchShipmentsResponses];
+
+export type BatchCreateBatchShipmentData = {
+    body: CreateBatchShipmentRequest;
+    path: {
+        /**
+         * Batch Id
+         */
+        batch_id: string;
+    };
+    query?: never;
+    url: '/batches/{batch_id}/shipments';
+};
+
+export type BatchCreateBatchShipmentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type BatchCreateBatchShipmentError = BatchCreateBatchShipmentErrors[keyof BatchCreateBatchShipmentErrors];
+
+export type BatchCreateBatchShipmentResponses = {
+    /**
+     * Successful Response
+     */
+    201: BatchShipmentResponse;
+};
+
+export type BatchCreateBatchShipmentResponse = BatchCreateBatchShipmentResponses[keyof BatchCreateBatchShipmentResponses];
+
+export type BatchUpdateBatchShipmentData = {
+    body: UpdateBatchShipmentRequest;
+    path: {
+        /**
+         * Batch Id
+         */
+        batch_id: string;
+        /**
+         * Shipment Id
+         */
+        shipment_id: string;
+    };
+    query?: never;
+    url: '/batches/{batch_id}/shipments/{shipment_id}';
+};
+
+export type BatchUpdateBatchShipmentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type BatchUpdateBatchShipmentError = BatchUpdateBatchShipmentErrors[keyof BatchUpdateBatchShipmentErrors];
+
+export type BatchUpdateBatchShipmentResponses = {
+    /**
+     * Successful Response
+     */
+    200: BatchShipmentResponse;
+};
+
+export type BatchUpdateBatchShipmentResponse = BatchUpdateBatchShipmentResponses[keyof BatchUpdateBatchShipmentResponses];
+
+export type BatchCompleteBatchShipmentData = {
+    body?: never;
+    path: {
+        /**
+         * Batch Id
+         */
+        batch_id: string;
+        /**
+         * Shipment Id
+         */
+        shipment_id: string;
+    };
+    query?: never;
+    url: '/batches/{batch_id}/shipments/{shipment_id}/complete';
+};
+
+export type BatchCompleteBatchShipmentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type BatchCompleteBatchShipmentError = BatchCompleteBatchShipmentErrors[keyof BatchCompleteBatchShipmentErrors];
+
+export type BatchCompleteBatchShipmentResponses = {
+    /**
+     * Successful Response
+     */
+    200: BatchShipmentResponse;
+};
+
+export type BatchCompleteBatchShipmentResponse = BatchCompleteBatchShipmentResponses[keyof BatchCompleteBatchShipmentResponses];
+
+export type BatchListBatchShipmentItemsData = {
+    body?: never;
+    path: {
+        /**
+         * Batch Id
+         */
+        batch_id: string;
+        /**
+         * Shipment Id
+         */
+        shipment_id: string;
+    };
+    query?: never;
+    url: '/batches/{batch_id}/shipments/{shipment_id}/items';
+};
+
+export type BatchListBatchShipmentItemsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type BatchListBatchShipmentItemsError = BatchListBatchShipmentItemsErrors[keyof BatchListBatchShipmentItemsErrors];
+
+export type BatchListBatchShipmentItemsResponses = {
+    /**
+     * Response Batch-List Batch Shipment Items
+     *
+     * Successful Response
+     */
+    200: Array<BatchShipmentItemResponse>;
+};
+
+export type BatchListBatchShipmentItemsResponse = BatchListBatchShipmentItemsResponses[keyof BatchListBatchShipmentItemsResponses];
+
+export type BatchAddBatchShipmentItemData = {
+    body: AddBatchShipmentItemRequest;
+    path: {
+        /**
+         * Batch Id
+         */
+        batch_id: string;
+        /**
+         * Shipment Id
+         */
+        shipment_id: string;
+    };
+    query?: never;
+    url: '/batches/{batch_id}/shipments/{shipment_id}/items';
+};
+
+export type BatchAddBatchShipmentItemErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type BatchAddBatchShipmentItemError = BatchAddBatchShipmentItemErrors[keyof BatchAddBatchShipmentItemErrors];
+
+export type BatchAddBatchShipmentItemResponses = {
+    /**
+     * Successful Response
+     */
+    201: BatchShipmentItemResponse;
+};
+
+export type BatchAddBatchShipmentItemResponse = BatchAddBatchShipmentItemResponses[keyof BatchAddBatchShipmentItemResponses];
+
+export type BatchRemoveBatchShipmentItemData = {
+    body?: never;
+    path: {
+        /**
+         * Batch Id
+         */
+        batch_id: string;
+        /**
+         * Shipment Id
+         */
+        shipment_id: string;
+        /**
+         * Dev Eui
+         */
+        dev_eui: string;
+    };
+    query?: never;
+    url: '/batches/{batch_id}/shipments/{shipment_id}/items/{dev_eui}';
+};
+
+export type BatchRemoveBatchShipmentItemErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type BatchRemoveBatchShipmentItemError = BatchRemoveBatchShipmentItemErrors[keyof BatchRemoveBatchShipmentItemErrors];
+
+export type BatchRemoveBatchShipmentItemResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type BatchRemoveBatchShipmentItemResponse = BatchRemoveBatchShipmentItemResponses[keyof BatchRemoveBatchShipmentItemResponses];
+
+export type BatchVoidBatchShipmentData = {
+    body: VoidBatchShipmentRequest;
+    path: {
+        /**
+         * Batch Id
+         */
+        batch_id: string;
+        /**
+         * Shipment Id
+         */
+        shipment_id: string;
+    };
+    query?: never;
+    url: '/batches/{batch_id}/shipments/{shipment_id}/void';
+};
+
+export type BatchVoidBatchShipmentErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type BatchVoidBatchShipmentError = BatchVoidBatchShipmentErrors[keyof BatchVoidBatchShipmentErrors];
+
+export type BatchVoidBatchShipmentResponses = {
+    /**
+     * Successful Response
+     */
+    200: BatchShipmentResponse;
+};
+
+export type BatchVoidBatchShipmentResponse = BatchVoidBatchShipmentResponses[keyof BatchVoidBatchShipmentResponses];
+
+export type DefectsListDefectGroupsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Q
+         */
+        q?: string | null;
+        /**
+         * Archived
+         */
+        archived?: boolean;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+        /**
+         * Sort
+         */
+        sort?: 'code' | 'name' | 'created_at' | 'updated_at' | 'archived_at';
+        /**
+         * Order
+         */
+        order?: 'asc' | 'desc';
+    };
+    url: '/defects/groups';
+};
+
+export type DefectsListDefectGroupsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DefectsListDefectGroupsError = DefectsListDefectGroupsErrors[keyof DefectsListDefectGroupsErrors];
+
+export type DefectsListDefectGroupsResponses = {
+    /**
+     * Successful Response
+     */
+    200: DefectGroupListResponse;
+};
+
+export type DefectsListDefectGroupsResponse = DefectsListDefectGroupsResponses[keyof DefectsListDefectGroupsResponses];
+
+export type DefectsCreateDefectGroupData = {
+    body: CreateDefectGroupRequest;
+    path?: never;
+    query?: never;
+    url: '/defects/groups';
+};
+
+export type DefectsCreateDefectGroupErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DefectsCreateDefectGroupError = DefectsCreateDefectGroupErrors[keyof DefectsCreateDefectGroupErrors];
+
+export type DefectsCreateDefectGroupResponses = {
+    /**
+     * Successful Response
+     */
+    201: DefectGroupResponse;
+};
+
+export type DefectsCreateDefectGroupResponse = DefectsCreateDefectGroupResponses[keyof DefectsCreateDefectGroupResponses];
+
+export type DefectsDeleteDefectGroupData = {
+    body?: never;
+    path: {
+        /**
+         * Group Id
+         */
+        group_id: string;
+    };
+    query?: never;
+    url: '/defects/groups/{group_id}';
+};
+
+export type DefectsDeleteDefectGroupErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DefectsDeleteDefectGroupError = DefectsDeleteDefectGroupErrors[keyof DefectsDeleteDefectGroupErrors];
+
+export type DefectsDeleteDefectGroupResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DefectsDeleteDefectGroupResponse = DefectsDeleteDefectGroupResponses[keyof DefectsDeleteDefectGroupResponses];
+
+export type DefectsGetDefectGroupData = {
+    body?: never;
+    path: {
+        /**
+         * Group Id
+         */
+        group_id: string;
+    };
+    query?: never;
+    url: '/defects/groups/{group_id}';
+};
+
+export type DefectsGetDefectGroupErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DefectsGetDefectGroupError = DefectsGetDefectGroupErrors[keyof DefectsGetDefectGroupErrors];
+
+export type DefectsGetDefectGroupResponses = {
+    /**
+     * Successful Response
+     */
+    200: DefectGroupResponse;
+};
+
+export type DefectsGetDefectGroupResponse = DefectsGetDefectGroupResponses[keyof DefectsGetDefectGroupResponses];
+
+export type DefectsUpdateDefectGroupData = {
+    body: UpdateDefectGroupRequest;
+    path: {
+        /**
+         * Group Id
+         */
+        group_id: string;
+    };
+    query?: never;
+    url: '/defects/groups/{group_id}';
+};
+
+export type DefectsUpdateDefectGroupErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DefectsUpdateDefectGroupError = DefectsUpdateDefectGroupErrors[keyof DefectsUpdateDefectGroupErrors];
+
+export type DefectsUpdateDefectGroupResponses = {
+    /**
+     * Successful Response
+     */
+    200: DefectGroupResponse;
+};
+
+export type DefectsUpdateDefectGroupResponse = DefectsUpdateDefectGroupResponses[keyof DefectsUpdateDefectGroupResponses];
+
+export type DefectsUpdateDefectGroupArchivedData = {
+    body: UpdateDefectGroupArchivedRequest;
+    path: {
+        /**
+         * Group Id
+         */
+        group_id: string;
+    };
+    query?: never;
+    url: '/defects/groups/{group_id}/archived';
+};
+
+export type DefectsUpdateDefectGroupArchivedErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DefectsUpdateDefectGroupArchivedError = DefectsUpdateDefectGroupArchivedErrors[keyof DefectsUpdateDefectGroupArchivedErrors];
+
+export type DefectsUpdateDefectGroupArchivedResponses = {
+    /**
+     * Successful Response
+     */
+    200: DefectGroupResponse;
+};
+
+export type DefectsUpdateDefectGroupArchivedResponse = DefectsUpdateDefectGroupArchivedResponses[keyof DefectsUpdateDefectGroupArchivedResponses];
+
+export type DefectsListDefectTypesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Q
+         */
+        q?: string | null;
+        /**
+         * Group Id
+         */
+        group_id?: string | null;
+        /**
+         * Archived
+         */
+        archived?: boolean;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+        /**
+         * Sort
+         */
+        sort?: 'code' | 'name' | 'created_at' | 'updated_at' | 'archived_at';
+        /**
+         * Order
+         */
+        order?: 'asc' | 'desc';
+    };
+    url: '/defects/types';
+};
+
+export type DefectsListDefectTypesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DefectsListDefectTypesError = DefectsListDefectTypesErrors[keyof DefectsListDefectTypesErrors];
+
+export type DefectsListDefectTypesResponses = {
+    /**
+     * Successful Response
+     */
+    200: DefectTypeListResponse;
+};
+
+export type DefectsListDefectTypesResponse = DefectsListDefectTypesResponses[keyof DefectsListDefectTypesResponses];
+
+export type DefectsCreateDefectTypeData = {
+    body: CreateDefectTypeRequest;
+    path?: never;
+    query?: never;
+    url: '/defects/types';
+};
+
+export type DefectsCreateDefectTypeErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DefectsCreateDefectTypeError = DefectsCreateDefectTypeErrors[keyof DefectsCreateDefectTypeErrors];
+
+export type DefectsCreateDefectTypeResponses = {
+    /**
+     * Successful Response
+     */
+    201: DefectTypeResponse;
+};
+
+export type DefectsCreateDefectTypeResponse = DefectsCreateDefectTypeResponses[keyof DefectsCreateDefectTypeResponses];
+
+export type DefectsDeleteDefectTypeData = {
+    body?: never;
+    path: {
+        /**
+         * Defect Type Id
+         */
+        defect_type_id: string;
+    };
+    query?: never;
+    url: '/defects/types/{defect_type_id}';
+};
+
+export type DefectsDeleteDefectTypeErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DefectsDeleteDefectTypeError = DefectsDeleteDefectTypeErrors[keyof DefectsDeleteDefectTypeErrors];
+
+export type DefectsDeleteDefectTypeResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type DefectsDeleteDefectTypeResponse = DefectsDeleteDefectTypeResponses[keyof DefectsDeleteDefectTypeResponses];
+
+export type DefectsGetDefectTypeData = {
+    body?: never;
+    path: {
+        /**
+         * Defect Type Id
+         */
+        defect_type_id: string;
+    };
+    query?: never;
+    url: '/defects/types/{defect_type_id}';
+};
+
+export type DefectsGetDefectTypeErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DefectsGetDefectTypeError = DefectsGetDefectTypeErrors[keyof DefectsGetDefectTypeErrors];
+
+export type DefectsGetDefectTypeResponses = {
+    /**
+     * Successful Response
+     */
+    200: DefectTypeResponse;
+};
+
+export type DefectsGetDefectTypeResponse = DefectsGetDefectTypeResponses[keyof DefectsGetDefectTypeResponses];
+
+export type DefectsUpdateDefectTypeData = {
+    body: UpdateDefectTypeRequest;
+    path: {
+        /**
+         * Defect Type Id
+         */
+        defect_type_id: string;
+    };
+    query?: never;
+    url: '/defects/types/{defect_type_id}';
+};
+
+export type DefectsUpdateDefectTypeErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DefectsUpdateDefectTypeError = DefectsUpdateDefectTypeErrors[keyof DefectsUpdateDefectTypeErrors];
+
+export type DefectsUpdateDefectTypeResponses = {
+    /**
+     * Successful Response
+     */
+    200: DefectTypeResponse;
+};
+
+export type DefectsUpdateDefectTypeResponse = DefectsUpdateDefectTypeResponses[keyof DefectsUpdateDefectTypeResponses];
+
+export type DefectsUpdateDefectTypeArchivedData = {
+    body: UpdateDefectTypeArchivedRequest;
+    path: {
+        /**
+         * Defect Type Id
+         */
+        defect_type_id: string;
+    };
+    query?: never;
+    url: '/defects/types/{defect_type_id}/archived';
+};
+
+export type DefectsUpdateDefectTypeArchivedErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DefectsUpdateDefectTypeArchivedError = DefectsUpdateDefectTypeArchivedErrors[keyof DefectsUpdateDefectTypeArchivedErrors];
+
+export type DefectsUpdateDefectTypeArchivedResponses = {
+    /**
+     * Successful Response
+     */
+    200: DefectTypeResponse;
+};
+
+export type DefectsUpdateDefectTypeArchivedResponse = DefectsUpdateDefectTypeArchivedResponses[keyof DefectsUpdateDefectTypeArchivedResponses];
+
+export type KgListKgData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Q
+         */
+        q?: string | null;
+        /**
+         * Batch Id
+         */
+        batch_id?: string | null;
+        /**
+         * Status
+         */
+        status?: KgStatus | null;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+        /**
+         * Sort
+         */
+        sort?: 'dev_eui' | 'batch_id' | 'status' | 'created_at' | 'updated_at';
+        /**
+         * Order
+         */
+        order?: 'asc' | 'desc';
+    };
+    url: '/kg';
+};
+
+export type KgListKgErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type KgListKgError = KgListKgErrors[keyof KgListKgErrors];
+
+export type KgListKgResponses = {
+    /**
+     * Successful Response
+     */
+    200: KgListResponse;
+};
+
+export type KgListKgResponse = KgListKgResponses[keyof KgListKgResponses];
+
+export type KgListDevEuiPrefixesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/kg/dev-eui-prefixes';
+};
+
+export type KgListDevEuiPrefixesResponses = {
+    /**
+     * Successful Response
+     */
+    200: KgDevEuiPrefixListResponse;
+};
+
+export type KgListDevEuiPrefixesResponse = KgListDevEuiPrefixesResponses[keyof KgListDevEuiPrefixesResponses];
+
+export type KgCreateDevEuiPrefixData = {
+    body: CreateKgDevEuiPrefixRequest;
+    path?: never;
+    query?: never;
+    url: '/kg/dev-eui-prefixes';
+};
+
+export type KgCreateDevEuiPrefixErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type KgCreateDevEuiPrefixError = KgCreateDevEuiPrefixErrors[keyof KgCreateDevEuiPrefixErrors];
+
+export type KgCreateDevEuiPrefixResponses = {
+    /**
+     * Successful Response
+     */
+    201: KgDevEuiPrefixResponse;
+};
+
+export type KgCreateDevEuiPrefixResponse = KgCreateDevEuiPrefixResponses[keyof KgCreateDevEuiPrefixResponses];
+
+export type KgDeleteDevEuiPrefixData = {
+    body?: never;
+    path: {
+        /**
+         * Prefix
+         */
+        prefix: string;
+    };
+    query?: never;
+    url: '/kg/dev-eui-prefixes/{prefix}';
+};
+
+export type KgDeleteDevEuiPrefixErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type KgDeleteDevEuiPrefixError = KgDeleteDevEuiPrefixErrors[keyof KgDeleteDevEuiPrefixErrors];
+
+export type KgDeleteDevEuiPrefixResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type KgDeleteDevEuiPrefixResponse = KgDeleteDevEuiPrefixResponses[keyof KgDeleteDevEuiPrefixResponses];
+
+export type KgUpdateDevEuiPrefixData = {
+    body: UpdateKgDevEuiPrefixRequest;
+    path: {
+        /**
+         * Prefix
+         */
+        prefix: string;
+    };
+    query?: never;
+    url: '/kg/dev-eui-prefixes/{prefix}';
+};
+
+export type KgUpdateDevEuiPrefixErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type KgUpdateDevEuiPrefixError = KgUpdateDevEuiPrefixErrors[keyof KgUpdateDevEuiPrefixErrors];
+
+export type KgUpdateDevEuiPrefixResponses = {
+    /**
+     * Successful Response
+     */
+    200: KgDevEuiPrefixResponse;
+};
+
+export type KgUpdateDevEuiPrefixResponse = KgUpdateDevEuiPrefixResponses[keyof KgUpdateDevEuiPrefixResponses];
+
+export type KgGetKgData = {
+    body?: never;
+    path: {
+        /**
+         * Dev Eui
+         */
+        dev_eui: string;
+    };
+    query?: never;
+    url: '/kg/{dev_eui}';
+};
+
+export type KgGetKgErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type KgGetKgError = KgGetKgErrors[keyof KgGetKgErrors];
+
+export type KgGetKgResponses = {
+    /**
+     * Successful Response
+     */
+    200: KgResponse;
+};
+
+export type KgGetKgResponse = KgGetKgResponses[keyof KgGetKgResponses];
 
 export type PakListPakData = {
     body?: never;
@@ -513,6 +2684,86 @@ export type PakCreatePakResponses = {
 };
 
 export type PakCreatePakResponse = PakCreatePakResponses[keyof PakCreatePakResponses];
+
+export type PakListPakTestsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Q
+         */
+        q?: string | null;
+        /**
+         * Defect Group Id
+         */
+        defect_group_id?: string | null;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+        /**
+         * Sort
+         */
+        sort?: 'test_name' | 'test_label' | 'last_seen_at' | 'created_at' | 'updated_at';
+        /**
+         * Order
+         */
+        order?: 'asc' | 'desc';
+    };
+    url: '/pak/tests';
+};
+
+export type PakListPakTestsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PakListPakTestsError = PakListPakTestsErrors[keyof PakListPakTestsErrors];
+
+export type PakListPakTestsResponses = {
+    /**
+     * Successful Response
+     */
+    200: PakTestListResponse;
+};
+
+export type PakListPakTestsResponse = PakListPakTestsResponses[keyof PakListPakTestsResponses];
+
+export type PakGetPakTestData = {
+    body?: never;
+    path: {
+        /**
+         * Test Id
+         */
+        test_id: string;
+    };
+    query?: never;
+    url: '/pak/tests/{test_id}';
+};
+
+export type PakGetPakTestErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PakGetPakTestError = PakGetPakTestErrors[keyof PakGetPakTestErrors];
+
+export type PakGetPakTestResponses = {
+    /**
+     * Successful Response
+     */
+    200: PakTestResponse;
+};
+
+export type PakGetPakTestResponse = PakGetPakTestResponses[keyof PakGetPakTestResponses];
 
 export type PakDeletePakData = {
     body?: never;
@@ -986,3 +3237,87 @@ export type UsersUpdatePasswordResponses = {
 };
 
 export type UsersUpdatePasswordResponse = UsersUpdatePasswordResponses[keyof UsersUpdatePasswordResponses];
+
+export type VerificationListSessionsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Q
+         */
+        q?: string | null;
+        /**
+         * Pak Id
+         */
+        pak_id?: string | null;
+        /**
+         * Status
+         */
+        status?: VerificationSessionStatus | null;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+        /**
+         * Sort
+         */
+        sort?: 'kg_dev_eui' | 'status' | 'started_at' | 'completed_at' | 'created_at' | 'updated_at';
+        /**
+         * Order
+         */
+        order?: 'asc' | 'desc';
+    };
+    url: '/verification/sessions';
+};
+
+export type VerificationListSessionsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type VerificationListSessionsError = VerificationListSessionsErrors[keyof VerificationListSessionsErrors];
+
+export type VerificationListSessionsResponses = {
+    /**
+     * Successful Response
+     */
+    200: VerificationSessionListResponse;
+};
+
+export type VerificationListSessionsResponse = VerificationListSessionsResponses[keyof VerificationListSessionsResponses];
+
+export type VerificationGetSessionData = {
+    body?: never;
+    path: {
+        /**
+         * Session Id
+         */
+        session_id: string;
+    };
+    query?: never;
+    url: '/verification/sessions/{session_id}';
+};
+
+export type VerificationGetSessionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type VerificationGetSessionError = VerificationGetSessionErrors[keyof VerificationGetSessionErrors];
+
+export type VerificationGetSessionResponses = {
+    /**
+     * Successful Response
+     */
+    200: VerificationSessionDetailResponse;
+};
+
+export type VerificationGetSessionResponse = VerificationGetSessionResponses[keyof VerificationGetSessionResponses];

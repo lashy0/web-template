@@ -3,6 +3,13 @@
 import * as z from 'zod';
 
 /**
+ * AddBatchShipmentItemRequest
+ */
+export const zAddBatchShipmentItemRequest = z.object({
+    dev_eui: z.string()
+});
+
+/**
  * AuditEventResponse
  */
 export const zAuditEventResponse = z.object({
@@ -26,6 +33,256 @@ export const zAuditEventResponse = z.object({
  */
 export const zAuditListResponse = z.object({
     items: z.array(zAuditEventResponse),
+    page: z.int(),
+    page_size: z.int(),
+    total: z.int()
+});
+
+/**
+ * BatchReceiptResponse
+ */
+export const zBatchReceiptResponse = z.object({
+    batch_id: z.uuid(),
+    comment: z.string().nullable(),
+    created_at: z.iso.datetime(),
+    created_by_user_id: z.uuid().nullable(),
+    id: z.uuid(),
+    quantity: z.int(),
+    updated_at: z.iso.datetime(),
+    void_reason: z.string().nullable(),
+    voided_at: z.iso.datetime().nullable()
+});
+
+/**
+ * BatchReceiptListResponse
+ */
+export const zBatchReceiptListResponse = z.object({
+    items: z.array(zBatchReceiptResponse),
+    total: z.int()
+});
+
+/**
+ * BatchShipmentItemResponse
+ */
+export const zBatchShipmentItemResponse = z.object({
+    created_at: z.iso.datetime(),
+    kg_dev_eui: z.string(),
+    shipment_id: z.uuid()
+});
+
+/**
+ * BatchShipmentResponse
+ */
+export const zBatchShipmentResponse = z.object({
+    batch_id: z.uuid(),
+    comment: z.string().nullable(),
+    completed_at: z.iso.datetime().nullable(),
+    created_at: z.iso.datetime(),
+    created_by_user_id: z.uuid().nullable(),
+    id: z.uuid(),
+    quantity: z.int(),
+    updated_at: z.iso.datetime(),
+    void_reason: z.string().nullable(),
+    voided_at: z.iso.datetime().nullable()
+});
+
+/**
+ * BatchShipmentListResponse
+ */
+export const zBatchShipmentListResponse = z.object({
+    items: z.array(zBatchShipmentResponse),
+    total: z.int()
+});
+
+/**
+ * BatchStatus
+ */
+export const zBatchStatus = z.enum(['IN_PRODUCTION', 'COMPLETED']);
+
+/**
+ * BatchResponse
+ */
+export const zBatchResponse = z.object({
+    archived_at: z.iso.datetime().nullable(),
+    completed_at: z.iso.datetime().nullable(),
+    created_at: z.iso.datetime(),
+    created_by_user_id: z.uuid().nullable(),
+    day_plan_qty: z.int(),
+    description: z.string().nullable(),
+    dev_eui_prefix: z.string(),
+    id: z.uuid(),
+    name: z.string(),
+    planned_qty: z.int(),
+    status: zBatchStatus,
+    updated_at: z.iso.datetime()
+});
+
+/**
+ * BatchListResponse
+ */
+export const zBatchListResponse = z.object({
+    items: z.array(zBatchResponse),
+    page: z.int(),
+    page_size: z.int(),
+    total: z.int()
+});
+
+/**
+ * CreateBatchReceiptRequest
+ */
+export const zCreateBatchReceiptRequest = z.object({
+    comment: z.string().max(2000).nullish(),
+    quantity: z.int().gt(0)
+});
+
+/**
+ * CreateBatchRequest
+ */
+export const zCreateBatchRequest = z.object({
+    day_plan_qty: z.int().gt(0),
+    description: z.string().max(2000).nullish(),
+    dev_eui_prefix: z.string(),
+    name: z.string().min(1).max(128),
+    planned_qty: z.int().gt(0)
+});
+
+/**
+ * CreateBatchShipmentRequest
+ */
+export const zCreateBatchShipmentRequest = z.object({
+    comment: z.string().max(2000).nullish()
+});
+
+/**
+ * CreateDefectGroupRequest
+ */
+export const zCreateDefectGroupRequest = z.object({
+    code: z.string().min(1).max(32).regex(/^\S+$/),
+    description: z.string().max(2000).nullish(),
+    name: z.string().min(1).max(255)
+});
+
+/**
+ * CreateDefectTypeRequest
+ */
+export const zCreateDefectTypeRequest = z.object({
+    code: z.string().min(1).max(64).regex(/^\S+$/),
+    description: z.string().min(1).max(2000),
+    engineer_action: z.string().max(2000).nullish(),
+    group_id: z.uuid(),
+    name: z.string().min(1).max(255),
+    possible_cause: z.string().max(2000).nullish()
+});
+
+/**
+ * CreateKgDevEuiPrefixRequest
+ */
+export const zCreateKgDevEuiPrefixRequest = z.object({
+    name: z.string().max(128).nullish(),
+    prefix: z.string(),
+    short_code: z.string().min(1).max(10).regex(/^[a-zA-Z0-9]+$/)
+});
+
+/**
+ * DefectGroupResponse
+ */
+export const zDefectGroupResponse = z.object({
+    archived_at: z.iso.datetime().nullable(),
+    code: z.string(),
+    created_at: z.iso.datetime(),
+    description: z.string().nullable(),
+    id: z.uuid(),
+    name: z.string(),
+    updated_at: z.iso.datetime()
+});
+
+/**
+ * DefectGroupListResponse
+ */
+export const zDefectGroupListResponse = z.object({
+    items: z.array(zDefectGroupResponse),
+    page: z.int(),
+    page_size: z.int(),
+    total: z.int()
+});
+
+/**
+ * DefectTypeResponse
+ */
+export const zDefectTypeResponse = z.object({
+    archived_at: z.iso.datetime().nullable(),
+    code: z.string(),
+    created_at: z.iso.datetime(),
+    description: z.string(),
+    engineer_action: z.string().nullable(),
+    group_id: z.uuid(),
+    id: z.uuid(),
+    name: z.string(),
+    possible_cause: z.string().nullable(),
+    updated_at: z.iso.datetime()
+});
+
+/**
+ * DefectTypeListResponse
+ */
+export const zDefectTypeListResponse = z.object({
+    items: z.array(zDefectTypeResponse),
+    page: z.int(),
+    page_size: z.int(),
+    total: z.int()
+});
+
+/**
+ * KgDevEuiPrefixResponse
+ */
+export const zKgDevEuiPrefixResponse = z.object({
+    created_at: z.iso.datetime(),
+    name: z.string().nullable(),
+    prefix: z.string(),
+    short_code: z.string()
+});
+
+/**
+ * KgDevEuiPrefixListResponse
+ */
+export const zKgDevEuiPrefixListResponse = z.object({
+    items: z.array(zKgDevEuiPrefixResponse),
+    total: z.int()
+});
+
+/**
+ * KgStatus
+ */
+export const zKgStatus = z.enum([
+    'REGISTERED',
+    'TESTING',
+    'TEST_FAILED',
+    'IN_ENGINEER_REPAIR',
+    'IN_PRODUCTION_REPAIR',
+    'READY_FOR_RETEST',
+    'READY_FOR_PACKING',
+    'PACKED',
+    'SHIPPED',
+    'SCRAPPED'
+]);
+
+/**
+ * KgResponse
+ */
+export const zKgResponse = z.object({
+    batch_id: z.uuid(),
+    created_at: z.iso.datetime(),
+    dev_eui: z.string(),
+    short_id: z.string(),
+    status: zKgStatus,
+    updated_at: z.iso.datetime()
+});
+
+/**
+ * KgListResponse
+ */
+export const zKgListResponse = z.object({
+    items: z.array(zKgResponse),
     page: z.int(),
     page_size: z.int(),
     total: z.int()
@@ -84,6 +341,29 @@ export const zPakDeviceListResponse = z.object({
 });
 
 /**
+ * PakTestResponse
+ */
+export const zPakTestResponse = z.object({
+    created_at: z.iso.datetime(),
+    defect_group_id: z.uuid(),
+    id: z.uuid(),
+    last_seen_at: z.iso.datetime(),
+    test_label: z.string(),
+    test_name: z.string(),
+    updated_at: z.iso.datetime()
+});
+
+/**
+ * PakTestListResponse
+ */
+export const zPakTestListResponse = z.object({
+    items: z.array(zPakTestResponse),
+    page: z.int(),
+    page_size: z.int(),
+    total: z.int()
+});
+
+/**
  * Role
  */
 export const zRole = z.enum([
@@ -117,6 +397,76 @@ export const zUpdateActiveRequest = z.object({
  */
 export const zUpdateArchivedRequest = z.object({
     archived: z.boolean()
+});
+
+/**
+ * UpdateBatchArchivedRequest
+ */
+export const zUpdateBatchArchivedRequest = z.object({
+    archived: z.boolean()
+});
+
+/**
+ * UpdateBatchReceiptRequest
+ */
+export const zUpdateBatchReceiptRequest = z.object({
+    comment: z.string().max(2000).nullish(),
+    quantity: z.int().gt(0).nullish()
+});
+
+/**
+ * UpdateBatchRequest
+ */
+export const zUpdateBatchRequest = z.object({
+    day_plan_qty: z.int().gt(0).nullish(),
+    description: z.string().max(2000).nullish(),
+    name: z.string().min(1).max(128).nullish()
+});
+
+/**
+ * UpdateBatchShipmentRequest
+ */
+export const zUpdateBatchShipmentRequest = z.object({
+    comment: z.string().max(2000).nullish()
+});
+
+/**
+ * UpdateDefectGroupArchivedRequest
+ */
+export const zUpdateDefectGroupArchivedRequest = z.object({
+    archived: z.boolean()
+});
+
+/**
+ * UpdateDefectGroupRequest
+ */
+export const zUpdateDefectGroupRequest = z.object({
+    description: z.string().max(2000).nullish(),
+    name: z.string().min(1).max(255).nullish()
+});
+
+/**
+ * UpdateDefectTypeArchivedRequest
+ */
+export const zUpdateDefectTypeArchivedRequest = z.object({
+    archived: z.boolean()
+});
+
+/**
+ * UpdateDefectTypeRequest
+ */
+export const zUpdateDefectTypeRequest = z.object({
+    description: z.string().min(1).max(2000).nullish(),
+    engineer_action: z.string().max(2000).nullish(),
+    name: z.string().min(1).max(255).nullish(),
+    possible_cause: z.string().max(2000).nullish()
+});
+
+/**
+ * UpdateKgDevEuiPrefixRequest
+ */
+export const zUpdateKgDevEuiPrefixRequest = z.object({
+    name: z.string().max(128).nullish()
 });
 
 /**
@@ -185,6 +535,111 @@ export const zHttpValidationError = z.object({
     detail: z.array(zValidationError).optional()
 });
 
+/**
+ * VerificationSessionStatus
+ */
+export const zVerificationSessionStatus = z.enum([
+    'RUNNING',
+    'PASSED',
+    'FAILED',
+    'ABORTED',
+    'INCOMPLETE'
+]);
+
+/**
+ * VerificationSessionResponse
+ */
+export const zVerificationSessionResponse = z.object({
+    completed_at: z.iso.datetime().nullable(),
+    created_at: z.iso.datetime(),
+    firmware_version: z.string(),
+    id: z.uuid(),
+    kg_dev_eui: z.string(),
+    last_activity_at: z.iso.datetime(),
+    pak_id: z.uuid(),
+    slot_no: z.int(),
+    started_at: z.iso.datetime(),
+    status: zVerificationSessionStatus,
+    total_steps: z.int(),
+    updated_at: z.iso.datetime()
+});
+
+/**
+ * VerificationSessionListResponse
+ */
+export const zVerificationSessionListResponse = z.object({
+    items: z.array(zVerificationSessionResponse),
+    page: z.int(),
+    page_size: z.int(),
+    total: z.int()
+});
+
+/**
+ * VerificationStepStatus
+ */
+export const zVerificationStepStatus = z.enum([
+    'RUNNING',
+    'PASSED',
+    'FAILED',
+    'ABORTED'
+]);
+
+/**
+ * VerificationStepResponse
+ */
+export const zVerificationStepResponse = z.object({
+    completed_at: z.iso.datetime().nullable(),
+    created_at: z.iso.datetime(),
+    defect_group_id: z.uuid(),
+    error_group_code: z.string(),
+    id: z.uuid(),
+    measurement_max_value: z.number().nullable(),
+    measurement_min_value: z.number().nullable(),
+    measurement_unit: z.string().nullable(),
+    measurement_value: z.number().nullable(),
+    pak_test_id: z.uuid(),
+    session_id: z.uuid(),
+    started_at: z.iso.datetime(),
+    status: zVerificationStepStatus,
+    step_no: z.int(),
+    test_label: z.string(),
+    test_name: z.string(),
+    updated_at: z.iso.datetime()
+});
+
+/**
+ * VerificationSessionDetailResponse
+ */
+export const zVerificationSessionDetailResponse = z.object({
+    completed_at: z.iso.datetime().nullable(),
+    created_at: z.iso.datetime(),
+    firmware_version: z.string(),
+    id: z.uuid(),
+    kg_dev_eui: z.string(),
+    last_activity_at: z.iso.datetime(),
+    pak_id: z.uuid(),
+    slot_no: z.int(),
+    started_at: z.iso.datetime(),
+    status: zVerificationSessionStatus,
+    steps: z.array(zVerificationStepResponse),
+    total_steps: z.int(),
+    updated_at: z.iso.datetime()
+});
+
+/**
+ * VoidBatchReceiptRequest
+ */
+export const zVoidBatchReceiptRequest = z.object({
+    reason: z.string().min(1).max(1000)
+});
+
+/**
+ * VoidBatchShipmentRequest
+ */
+export const zVoidBatchShipmentRequest = z.object({
+    reason: z.string().min(1).max(1000)
+});
+
 export const zAuditListAuditEventsQuery = z.object({
     entity_type: z.string().nullish(),
     created_from: z.iso.datetime().nullish(),
@@ -204,6 +659,424 @@ export const zAuditListAuditEventsResponse = zAuditListResponse;
  * Successful Response
  */
 export const zAuthMeResponse = zUserResponse;
+
+export const zBatchCreateBatchBody = zCreateBatchRequest;
+
+/**
+ * Successful Response
+ */
+export const zBatchCreateBatchResponse = zBatchResponse;
+
+export const zBatchListBatchesQuery = z.object({
+    q: z.string().nullish(),
+    status: zBatchStatus.nullish(),
+    archived: z.boolean().optional().default(false),
+    page: z.int().gte(1).optional().default(1),
+    page_size: z.int().gte(1).lte(100).optional().default(25),
+    sort: z.enum([
+        'name',
+        'planned_qty',
+        'day_plan_qty',
+        'status',
+        'created_at',
+        'updated_at',
+        'completed_at',
+        'archived_at'
+    ]).optional().default('created_at'),
+    order: z.enum(['asc', 'desc']).optional().default('desc')
+});
+
+/**
+ * Successful Response
+ */
+export const zBatchListBatchesResponse = zBatchListResponse;
+
+export const zBatchDeleteBatchPath = z.object({
+    batch_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zBatchDeleteBatchResponse = z.void();
+
+export const zBatchGetBatchPath = z.object({
+    batch_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zBatchGetBatchResponse = zBatchResponse;
+
+export const zBatchUpdateBatchBody = zUpdateBatchRequest;
+
+export const zBatchUpdateBatchPath = z.object({
+    batch_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zBatchUpdateBatchResponse = zBatchResponse;
+
+export const zBatchUpdateBatchArchivedBody = zUpdateBatchArchivedRequest;
+
+export const zBatchUpdateBatchArchivedPath = z.object({
+    batch_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zBatchUpdateBatchArchivedResponse = zBatchResponse;
+
+export const zBatchCompleteBatchPath = z.object({
+    batch_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zBatchCompleteBatchResponse = zBatchResponse;
+
+export const zBatchListBatchReceiptsPath = z.object({
+    batch_id: z.uuid()
+});
+
+export const zBatchListBatchReceiptsQuery = z.object({
+    include_voided: z.boolean().optional().default(false)
+});
+
+/**
+ * Successful Response
+ */
+export const zBatchListBatchReceiptsResponse = zBatchReceiptListResponse;
+
+export const zBatchCreateBatchReceiptBody = zCreateBatchReceiptRequest;
+
+export const zBatchCreateBatchReceiptPath = z.object({
+    batch_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zBatchCreateBatchReceiptResponse = zBatchReceiptResponse;
+
+export const zBatchUpdateBatchReceiptBody = zUpdateBatchReceiptRequest;
+
+export const zBatchUpdateBatchReceiptPath = z.object({
+    batch_id: z.uuid(),
+    receipt_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zBatchUpdateBatchReceiptResponse = zBatchReceiptResponse;
+
+export const zBatchVoidBatchReceiptBody = zVoidBatchReceiptRequest;
+
+export const zBatchVoidBatchReceiptPath = z.object({
+    batch_id: z.uuid(),
+    receipt_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zBatchVoidBatchReceiptResponse = zBatchReceiptResponse;
+
+export const zBatchListBatchShipmentsPath = z.object({
+    batch_id: z.uuid()
+});
+
+export const zBatchListBatchShipmentsQuery = z.object({
+    include_voided: z.boolean().optional().default(false)
+});
+
+/**
+ * Successful Response
+ */
+export const zBatchListBatchShipmentsResponse = zBatchShipmentListResponse;
+
+export const zBatchCreateBatchShipmentBody = zCreateBatchShipmentRequest;
+
+export const zBatchCreateBatchShipmentPath = z.object({
+    batch_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zBatchCreateBatchShipmentResponse = zBatchShipmentResponse;
+
+export const zBatchUpdateBatchShipmentBody = zUpdateBatchShipmentRequest;
+
+export const zBatchUpdateBatchShipmentPath = z.object({
+    batch_id: z.uuid(),
+    shipment_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zBatchUpdateBatchShipmentResponse = zBatchShipmentResponse;
+
+export const zBatchCompleteBatchShipmentPath = z.object({
+    batch_id: z.uuid(),
+    shipment_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zBatchCompleteBatchShipmentResponse = zBatchShipmentResponse;
+
+export const zBatchListBatchShipmentItemsPath = z.object({
+    batch_id: z.uuid(),
+    shipment_id: z.uuid()
+});
+
+/**
+ * Response Batch-List Batch Shipment Items
+ *
+ * Successful Response
+ */
+export const zBatchListBatchShipmentItemsResponse = z.array(zBatchShipmentItemResponse);
+
+export const zBatchAddBatchShipmentItemBody = zAddBatchShipmentItemRequest;
+
+export const zBatchAddBatchShipmentItemPath = z.object({
+    batch_id: z.uuid(),
+    shipment_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zBatchAddBatchShipmentItemResponse = zBatchShipmentItemResponse;
+
+export const zBatchRemoveBatchShipmentItemPath = z.object({
+    batch_id: z.uuid(),
+    shipment_id: z.uuid(),
+    dev_eui: z.string()
+});
+
+/**
+ * Successful Response
+ */
+export const zBatchRemoveBatchShipmentItemResponse = z.void();
+
+export const zBatchVoidBatchShipmentBody = zVoidBatchShipmentRequest;
+
+export const zBatchVoidBatchShipmentPath = z.object({
+    batch_id: z.uuid(),
+    shipment_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zBatchVoidBatchShipmentResponse = zBatchShipmentResponse;
+
+export const zDefectsListDefectGroupsQuery = z.object({
+    q: z.string().nullish(),
+    archived: z.boolean().optional().default(false),
+    page: z.int().gte(1).optional().default(1),
+    page_size: z.int().gte(1).lte(100).optional().default(25),
+    sort: z.enum([
+        'code',
+        'name',
+        'created_at',
+        'updated_at',
+        'archived_at'
+    ]).optional().default('code'),
+    order: z.enum(['asc', 'desc']).optional().default('asc')
+});
+
+/**
+ * Successful Response
+ */
+export const zDefectsListDefectGroupsResponse = zDefectGroupListResponse;
+
+export const zDefectsCreateDefectGroupBody = zCreateDefectGroupRequest;
+
+/**
+ * Successful Response
+ */
+export const zDefectsCreateDefectGroupResponse = zDefectGroupResponse;
+
+export const zDefectsDeleteDefectGroupPath = z.object({
+    group_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zDefectsDeleteDefectGroupResponse = z.void();
+
+export const zDefectsGetDefectGroupPath = z.object({
+    group_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zDefectsGetDefectGroupResponse = zDefectGroupResponse;
+
+export const zDefectsUpdateDefectGroupBody = zUpdateDefectGroupRequest;
+
+export const zDefectsUpdateDefectGroupPath = z.object({
+    group_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zDefectsUpdateDefectGroupResponse = zDefectGroupResponse;
+
+export const zDefectsUpdateDefectGroupArchivedBody = zUpdateDefectGroupArchivedRequest;
+
+export const zDefectsUpdateDefectGroupArchivedPath = z.object({
+    group_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zDefectsUpdateDefectGroupArchivedResponse = zDefectGroupResponse;
+
+export const zDefectsListDefectTypesQuery = z.object({
+    q: z.string().nullish(),
+    group_id: z.uuid().nullish(),
+    archived: z.boolean().optional().default(false),
+    page: z.int().gte(1).optional().default(1),
+    page_size: z.int().gte(1).lte(100).optional().default(25),
+    sort: z.enum([
+        'code',
+        'name',
+        'created_at',
+        'updated_at',
+        'archived_at'
+    ]).optional().default('code'),
+    order: z.enum(['asc', 'desc']).optional().default('asc')
+});
+
+/**
+ * Successful Response
+ */
+export const zDefectsListDefectTypesResponse = zDefectTypeListResponse;
+
+export const zDefectsCreateDefectTypeBody = zCreateDefectTypeRequest;
+
+/**
+ * Successful Response
+ */
+export const zDefectsCreateDefectTypeResponse = zDefectTypeResponse;
+
+export const zDefectsDeleteDefectTypePath = z.object({
+    defect_type_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zDefectsDeleteDefectTypeResponse = z.void();
+
+export const zDefectsGetDefectTypePath = z.object({
+    defect_type_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zDefectsGetDefectTypeResponse = zDefectTypeResponse;
+
+export const zDefectsUpdateDefectTypeBody = zUpdateDefectTypeRequest;
+
+export const zDefectsUpdateDefectTypePath = z.object({
+    defect_type_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zDefectsUpdateDefectTypeResponse = zDefectTypeResponse;
+
+export const zDefectsUpdateDefectTypeArchivedBody = zUpdateDefectTypeArchivedRequest;
+
+export const zDefectsUpdateDefectTypeArchivedPath = z.object({
+    defect_type_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zDefectsUpdateDefectTypeArchivedResponse = zDefectTypeResponse;
+
+export const zKgListKgQuery = z.object({
+    q: z.string().nullish(),
+    batch_id: z.uuid().nullish(),
+    status: zKgStatus.nullish(),
+    page: z.int().gte(1).optional().default(1),
+    page_size: z.int().gte(1).lte(100).optional().default(25),
+    sort: z.enum([
+        'dev_eui',
+        'batch_id',
+        'status',
+        'created_at',
+        'updated_at'
+    ]).optional().default('created_at'),
+    order: z.enum(['asc', 'desc']).optional().default('desc')
+});
+
+/**
+ * Successful Response
+ */
+export const zKgListKgResponse = zKgListResponse;
+
+/**
+ * Successful Response
+ */
+export const zKgListDevEuiPrefixesResponse = zKgDevEuiPrefixListResponse;
+
+export const zKgCreateDevEuiPrefixBody = zCreateKgDevEuiPrefixRequest;
+
+/**
+ * Successful Response
+ */
+export const zKgCreateDevEuiPrefixResponse = zKgDevEuiPrefixResponse;
+
+export const zKgDeleteDevEuiPrefixPath = z.object({
+    prefix: z.string()
+});
+
+/**
+ * Successful Response
+ */
+export const zKgDeleteDevEuiPrefixResponse = z.void();
+
+export const zKgUpdateDevEuiPrefixBody = zUpdateKgDevEuiPrefixRequest;
+
+export const zKgUpdateDevEuiPrefixPath = z.object({
+    prefix: z.string()
+});
+
+/**
+ * Successful Response
+ */
+export const zKgUpdateDevEuiPrefixResponse = zKgDevEuiPrefixResponse;
+
+export const zKgGetKgPath = z.object({
+    dev_eui: z.string()
+});
+
+/**
+ * Successful Response
+ */
+export const zKgGetKgResponse = zKgResponse;
 
 export const zPakListPakQuery = z.object({
     q: z.string().nullish(),
@@ -233,6 +1106,35 @@ export const zPakCreatePakBody = zCreatePakDeviceRequest;
  * Successful Response
  */
 export const zPakCreatePakResponse = zCreatePakDeviceResponse;
+
+export const zPakListPakTestsQuery = z.object({
+    q: z.string().nullish(),
+    defect_group_id: z.uuid().nullish(),
+    page: z.int().gte(1).optional().default(1),
+    page_size: z.int().gte(1).lte(100).optional().default(25),
+    sort: z.enum([
+        'test_name',
+        'test_label',
+        'last_seen_at',
+        'created_at',
+        'updated_at'
+    ]).optional().default('test_name'),
+    order: z.enum(['asc', 'desc']).optional().default('asc')
+});
+
+/**
+ * Successful Response
+ */
+export const zPakListPakTestsResponse = zPakTestListResponse;
+
+export const zPakGetPakTestPath = z.object({
+    test_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zPakGetPakTestResponse = zPakTestResponse;
 
 export const zPakDeletePakPath = z.object({
     pak_id: z.uuid()
@@ -392,3 +1294,34 @@ export const zUsersUpdatePasswordPath = z.object({
  * Successful Response
  */
 export const zUsersUpdatePasswordResponse = z.void();
+
+export const zVerificationListSessionsQuery = z.object({
+    q: z.string().nullish(),
+    pak_id: z.uuid().nullish(),
+    status: zVerificationSessionStatus.nullish(),
+    page: z.int().gte(1).optional().default(1),
+    page_size: z.int().gte(1).lte(100).optional().default(25),
+    sort: z.enum([
+        'kg_dev_eui',
+        'status',
+        'started_at',
+        'completed_at',
+        'created_at',
+        'updated_at'
+    ]).optional().default('started_at'),
+    order: z.enum(['asc', 'desc']).optional().default('desc')
+});
+
+/**
+ * Successful Response
+ */
+export const zVerificationListSessionsResponse = zVerificationSessionListResponse;
+
+export const zVerificationGetSessionPath = z.object({
+    session_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zVerificationGetSessionResponse = zVerificationSessionDetailResponse;

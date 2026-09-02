@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { auditListAuditEvents, authMe, type Options, pakCreatePak, pakDeletePak, pakGetAccessKey, pakGetPak, pakListPak, pakRotateAccessKey, pakUpdateActive, pakUpdateArchived, pakUpdatePak, usersCreateUser, usersDeleteUser, usersGetUser, usersListUsers, usersUpdateActive, usersUpdateArchived, usersUpdatePassword, usersUpdateUser } from '../sdk.gen';
-import type { AuditListAuditEventsData, AuditListAuditEventsError, AuditListAuditEventsResponse, AuthMeData, AuthMeResponse, PakCreatePakData, PakCreatePakError, PakCreatePakResponse, PakDeletePakData, PakDeletePakError, PakDeletePakResponse, PakGetAccessKeyData, PakGetAccessKeyError, PakGetAccessKeyResponse, PakGetPakData, PakGetPakError, PakGetPakResponse, PakListPakData, PakListPakError, PakListPakResponse, PakRotateAccessKeyData, PakRotateAccessKeyError, PakRotateAccessKeyResponse, PakUpdateActiveData, PakUpdateActiveError, PakUpdateActiveResponse, PakUpdateArchivedData, PakUpdateArchivedError, PakUpdateArchivedResponse, PakUpdatePakData, PakUpdatePakError, PakUpdatePakResponse, UsersCreateUserData, UsersCreateUserError, UsersCreateUserResponse, UsersDeleteUserData, UsersDeleteUserError, UsersDeleteUserResponse, UsersGetUserData, UsersGetUserError, UsersGetUserResponse, UsersListUsersData, UsersListUsersError, UsersListUsersResponse, UsersUpdateActiveData, UsersUpdateActiveError, UsersUpdateActiveResponse, UsersUpdateArchivedData, UsersUpdateArchivedError, UsersUpdateArchivedResponse, UsersUpdatePasswordData, UsersUpdatePasswordError, UsersUpdatePasswordResponse, UsersUpdateUserData, UsersUpdateUserError, UsersUpdateUserResponse } from '../types.gen';
+import { auditListAuditEvents, authMe, batchAddBatchShipmentItem, batchCompleteBatch, batchCompleteBatchShipment, batchCreateBatch, batchCreateBatchReceipt, batchCreateBatchShipment, batchDeleteBatch, batchGetBatch, batchListBatches, batchListBatchReceipts, batchListBatchShipmentItems, batchListBatchShipments, batchRemoveBatchShipmentItem, batchUpdateBatch, batchUpdateBatchArchived, batchUpdateBatchReceipt, batchUpdateBatchShipment, batchVoidBatchReceipt, batchVoidBatchShipment, defectsCreateDefectGroup, defectsCreateDefectType, defectsDeleteDefectGroup, defectsDeleteDefectType, defectsGetDefectGroup, defectsGetDefectType, defectsListDefectGroups, defectsListDefectTypes, defectsUpdateDefectGroup, defectsUpdateDefectGroupArchived, defectsUpdateDefectType, defectsUpdateDefectTypeArchived, kgCreateDevEuiPrefix, kgDeleteDevEuiPrefix, kgGetKg, kgListDevEuiPrefixes, kgListKg, kgUpdateDevEuiPrefix, type Options, pakCreatePak, pakDeletePak, pakGetAccessKey, pakGetPak, pakGetPakTest, pakListPak, pakListPakTests, pakRotateAccessKey, pakUpdateActive, pakUpdateArchived, pakUpdatePak, usersCreateUser, usersDeleteUser, usersGetUser, usersListUsers, usersUpdateActive, usersUpdateArchived, usersUpdatePassword, usersUpdateUser, verificationGetSession, verificationListSessions } from '../sdk.gen';
+import type { AuditListAuditEventsData, AuditListAuditEventsError, AuditListAuditEventsResponse, AuthMeData, AuthMeResponse, BatchAddBatchShipmentItemData, BatchAddBatchShipmentItemError, BatchAddBatchShipmentItemResponse, BatchCompleteBatchData, BatchCompleteBatchError, BatchCompleteBatchResponse, BatchCompleteBatchShipmentData, BatchCompleteBatchShipmentError, BatchCompleteBatchShipmentResponse, BatchCreateBatchData, BatchCreateBatchError, BatchCreateBatchReceiptData, BatchCreateBatchReceiptError, BatchCreateBatchReceiptResponse, BatchCreateBatchResponse, BatchCreateBatchShipmentData, BatchCreateBatchShipmentError, BatchCreateBatchShipmentResponse, BatchDeleteBatchData, BatchDeleteBatchError, BatchDeleteBatchResponse, BatchGetBatchData, BatchGetBatchError, BatchGetBatchResponse, BatchListBatchesData, BatchListBatchesError, BatchListBatchesResponse, BatchListBatchReceiptsData, BatchListBatchReceiptsError, BatchListBatchReceiptsResponse, BatchListBatchShipmentItemsData, BatchListBatchShipmentItemsError, BatchListBatchShipmentItemsResponse, BatchListBatchShipmentsData, BatchListBatchShipmentsError, BatchListBatchShipmentsResponse, BatchRemoveBatchShipmentItemData, BatchRemoveBatchShipmentItemError, BatchRemoveBatchShipmentItemResponse, BatchUpdateBatchArchivedData, BatchUpdateBatchArchivedError, BatchUpdateBatchArchivedResponse, BatchUpdateBatchData, BatchUpdateBatchError, BatchUpdateBatchReceiptData, BatchUpdateBatchReceiptError, BatchUpdateBatchReceiptResponse, BatchUpdateBatchResponse, BatchUpdateBatchShipmentData, BatchUpdateBatchShipmentError, BatchUpdateBatchShipmentResponse, BatchVoidBatchReceiptData, BatchVoidBatchReceiptError, BatchVoidBatchReceiptResponse, BatchVoidBatchShipmentData, BatchVoidBatchShipmentError, BatchVoidBatchShipmentResponse, DefectsCreateDefectGroupData, DefectsCreateDefectGroupError, DefectsCreateDefectGroupResponse, DefectsCreateDefectTypeData, DefectsCreateDefectTypeError, DefectsCreateDefectTypeResponse, DefectsDeleteDefectGroupData, DefectsDeleteDefectGroupError, DefectsDeleteDefectGroupResponse, DefectsDeleteDefectTypeData, DefectsDeleteDefectTypeError, DefectsDeleteDefectTypeResponse, DefectsGetDefectGroupData, DefectsGetDefectGroupError, DefectsGetDefectGroupResponse, DefectsGetDefectTypeData, DefectsGetDefectTypeError, DefectsGetDefectTypeResponse, DefectsListDefectGroupsData, DefectsListDefectGroupsError, DefectsListDefectGroupsResponse, DefectsListDefectTypesData, DefectsListDefectTypesError, DefectsListDefectTypesResponse, DefectsUpdateDefectGroupArchivedData, DefectsUpdateDefectGroupArchivedError, DefectsUpdateDefectGroupArchivedResponse, DefectsUpdateDefectGroupData, DefectsUpdateDefectGroupError, DefectsUpdateDefectGroupResponse, DefectsUpdateDefectTypeArchivedData, DefectsUpdateDefectTypeArchivedError, DefectsUpdateDefectTypeArchivedResponse, DefectsUpdateDefectTypeData, DefectsUpdateDefectTypeError, DefectsUpdateDefectTypeResponse, KgCreateDevEuiPrefixData, KgCreateDevEuiPrefixError, KgCreateDevEuiPrefixResponse, KgDeleteDevEuiPrefixData, KgDeleteDevEuiPrefixError, KgDeleteDevEuiPrefixResponse, KgGetKgData, KgGetKgError, KgGetKgResponse, KgListDevEuiPrefixesData, KgListDevEuiPrefixesResponse, KgListKgData, KgListKgError, KgListKgResponse, KgUpdateDevEuiPrefixData, KgUpdateDevEuiPrefixError, KgUpdateDevEuiPrefixResponse, PakCreatePakData, PakCreatePakError, PakCreatePakResponse, PakDeletePakData, PakDeletePakError, PakDeletePakResponse, PakGetAccessKeyData, PakGetAccessKeyError, PakGetAccessKeyResponse, PakGetPakData, PakGetPakError, PakGetPakResponse, PakGetPakTestData, PakGetPakTestError, PakGetPakTestResponse, PakListPakData, PakListPakError, PakListPakResponse, PakListPakTestsData, PakListPakTestsError, PakListPakTestsResponse, PakRotateAccessKeyData, PakRotateAccessKeyError, PakRotateAccessKeyResponse, PakUpdateActiveData, PakUpdateActiveError, PakUpdateActiveResponse, PakUpdateArchivedData, PakUpdateArchivedError, PakUpdateArchivedResponse, PakUpdatePakData, PakUpdatePakError, PakUpdatePakResponse, UsersCreateUserData, UsersCreateUserError, UsersCreateUserResponse, UsersDeleteUserData, UsersDeleteUserError, UsersDeleteUserResponse, UsersGetUserData, UsersGetUserError, UsersGetUserResponse, UsersListUsersData, UsersListUsersError, UsersListUsersResponse, UsersUpdateActiveData, UsersUpdateActiveError, UsersUpdateActiveResponse, UsersUpdateArchivedData, UsersUpdateArchivedError, UsersUpdateArchivedResponse, UsersUpdatePasswordData, UsersUpdatePasswordError, UsersUpdatePasswordResponse, UsersUpdateUserData, UsersUpdateUserError, UsersUpdateUserResponse, VerificationGetSessionData, VerificationGetSessionError, VerificationGetSessionResponse, VerificationListSessionsData, VerificationListSessionsError, VerificationListSessionsResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -134,6 +134,767 @@ export const authMeOptions = (options?: Options<AuthMeData>) => queryOptions<Aut
     queryKey: authMeQueryKey(options)
 });
 
+/**
+ * Create Batch
+ */
+export const batchCreateBatchMutation = (options?: Partial<Options<BatchCreateBatchData>>): UseMutationOptions<BatchCreateBatchResponse, BatchCreateBatchError, Options<BatchCreateBatchData>> => {
+    const mutationOptions: UseMutationOptions<BatchCreateBatchResponse, BatchCreateBatchError, Options<BatchCreateBatchData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await batchCreateBatch({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const batchListBatchesQueryKey = (options?: Options<BatchListBatchesData>) => createQueryKey('batchListBatches', options);
+
+/**
+ * List Batches
+ */
+export const batchListBatchesOptions = (options?: Options<BatchListBatchesData>) => queryOptions<BatchListBatchesResponse, BatchListBatchesError, BatchListBatchesResponse, ReturnType<typeof batchListBatchesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await batchListBatches({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: batchListBatchesQueryKey(options)
+});
+
+export const batchListBatchesInfiniteQueryKey = (options?: Options<BatchListBatchesData>): QueryKey<Options<BatchListBatchesData>> => createQueryKey('batchListBatches', options, true);
+
+/**
+ * List Batches
+ */
+export const batchListBatchesInfiniteOptions = (options?: Options<BatchListBatchesData>) => {
+    const opts = infiniteQueryOptions<BatchListBatchesResponse, BatchListBatchesError, InfiniteData<BatchListBatchesResponse>, QueryKey<Options<BatchListBatchesData>>, number | Pick<QueryKey<Options<BatchListBatchesData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<BatchListBatchesData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    page: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await batchListBatches({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: batchListBatchesInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+/**
+ * Delete Batch
+ */
+export const batchDeleteBatchMutation = (options?: Partial<Options<BatchDeleteBatchData>>): UseMutationOptions<BatchDeleteBatchResponse, BatchDeleteBatchError, Options<BatchDeleteBatchData>> => {
+    const mutationOptions: UseMutationOptions<BatchDeleteBatchResponse, BatchDeleteBatchError, Options<BatchDeleteBatchData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await batchDeleteBatch({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const batchGetBatchQueryKey = (options: Options<BatchGetBatchData>) => createQueryKey('batchGetBatch', options);
+
+/**
+ * Get Batch
+ */
+export const batchGetBatchOptions = (options: Options<BatchGetBatchData>) => queryOptions<BatchGetBatchResponse, BatchGetBatchError, BatchGetBatchResponse, ReturnType<typeof batchGetBatchQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await batchGetBatch({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: batchGetBatchQueryKey(options)
+});
+
+/**
+ * Update Batch
+ */
+export const batchUpdateBatchMutation = (options?: Partial<Options<BatchUpdateBatchData>>): UseMutationOptions<BatchUpdateBatchResponse, BatchUpdateBatchError, Options<BatchUpdateBatchData>> => {
+    const mutationOptions: UseMutationOptions<BatchUpdateBatchResponse, BatchUpdateBatchError, Options<BatchUpdateBatchData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await batchUpdateBatch({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Update Batch Archived
+ */
+export const batchUpdateBatchArchivedMutation = (options?: Partial<Options<BatchUpdateBatchArchivedData>>): UseMutationOptions<BatchUpdateBatchArchivedResponse, BatchUpdateBatchArchivedError, Options<BatchUpdateBatchArchivedData>> => {
+    const mutationOptions: UseMutationOptions<BatchUpdateBatchArchivedResponse, BatchUpdateBatchArchivedError, Options<BatchUpdateBatchArchivedData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await batchUpdateBatchArchived({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Complete Batch
+ */
+export const batchCompleteBatchMutation = (options?: Partial<Options<BatchCompleteBatchData>>): UseMutationOptions<BatchCompleteBatchResponse, BatchCompleteBatchError, Options<BatchCompleteBatchData>> => {
+    const mutationOptions: UseMutationOptions<BatchCompleteBatchResponse, BatchCompleteBatchError, Options<BatchCompleteBatchData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await batchCompleteBatch({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const batchListBatchReceiptsQueryKey = (options: Options<BatchListBatchReceiptsData>) => createQueryKey('batchListBatchReceipts', options);
+
+/**
+ * List Batch Receipts
+ */
+export const batchListBatchReceiptsOptions = (options: Options<BatchListBatchReceiptsData>) => queryOptions<BatchListBatchReceiptsResponse, BatchListBatchReceiptsError, BatchListBatchReceiptsResponse, ReturnType<typeof batchListBatchReceiptsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await batchListBatchReceipts({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: batchListBatchReceiptsQueryKey(options)
+});
+
+/**
+ * Create Batch Receipt
+ */
+export const batchCreateBatchReceiptMutation = (options?: Partial<Options<BatchCreateBatchReceiptData>>): UseMutationOptions<BatchCreateBatchReceiptResponse, BatchCreateBatchReceiptError, Options<BatchCreateBatchReceiptData>> => {
+    const mutationOptions: UseMutationOptions<BatchCreateBatchReceiptResponse, BatchCreateBatchReceiptError, Options<BatchCreateBatchReceiptData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await batchCreateBatchReceipt({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Update Batch Receipt
+ */
+export const batchUpdateBatchReceiptMutation = (options?: Partial<Options<BatchUpdateBatchReceiptData>>): UseMutationOptions<BatchUpdateBatchReceiptResponse, BatchUpdateBatchReceiptError, Options<BatchUpdateBatchReceiptData>> => {
+    const mutationOptions: UseMutationOptions<BatchUpdateBatchReceiptResponse, BatchUpdateBatchReceiptError, Options<BatchUpdateBatchReceiptData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await batchUpdateBatchReceipt({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Void Batch Receipt
+ */
+export const batchVoidBatchReceiptMutation = (options?: Partial<Options<BatchVoidBatchReceiptData>>): UseMutationOptions<BatchVoidBatchReceiptResponse, BatchVoidBatchReceiptError, Options<BatchVoidBatchReceiptData>> => {
+    const mutationOptions: UseMutationOptions<BatchVoidBatchReceiptResponse, BatchVoidBatchReceiptError, Options<BatchVoidBatchReceiptData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await batchVoidBatchReceipt({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const batchListBatchShipmentsQueryKey = (options: Options<BatchListBatchShipmentsData>) => createQueryKey('batchListBatchShipments', options);
+
+/**
+ * List Batch Shipments
+ */
+export const batchListBatchShipmentsOptions = (options: Options<BatchListBatchShipmentsData>) => queryOptions<BatchListBatchShipmentsResponse, BatchListBatchShipmentsError, BatchListBatchShipmentsResponse, ReturnType<typeof batchListBatchShipmentsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await batchListBatchShipments({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: batchListBatchShipmentsQueryKey(options)
+});
+
+/**
+ * Create Batch Shipment
+ */
+export const batchCreateBatchShipmentMutation = (options?: Partial<Options<BatchCreateBatchShipmentData>>): UseMutationOptions<BatchCreateBatchShipmentResponse, BatchCreateBatchShipmentError, Options<BatchCreateBatchShipmentData>> => {
+    const mutationOptions: UseMutationOptions<BatchCreateBatchShipmentResponse, BatchCreateBatchShipmentError, Options<BatchCreateBatchShipmentData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await batchCreateBatchShipment({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Update Batch Shipment
+ */
+export const batchUpdateBatchShipmentMutation = (options?: Partial<Options<BatchUpdateBatchShipmentData>>): UseMutationOptions<BatchUpdateBatchShipmentResponse, BatchUpdateBatchShipmentError, Options<BatchUpdateBatchShipmentData>> => {
+    const mutationOptions: UseMutationOptions<BatchUpdateBatchShipmentResponse, BatchUpdateBatchShipmentError, Options<BatchUpdateBatchShipmentData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await batchUpdateBatchShipment({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Complete Batch Shipment
+ */
+export const batchCompleteBatchShipmentMutation = (options?: Partial<Options<BatchCompleteBatchShipmentData>>): UseMutationOptions<BatchCompleteBatchShipmentResponse, BatchCompleteBatchShipmentError, Options<BatchCompleteBatchShipmentData>> => {
+    const mutationOptions: UseMutationOptions<BatchCompleteBatchShipmentResponse, BatchCompleteBatchShipmentError, Options<BatchCompleteBatchShipmentData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await batchCompleteBatchShipment({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const batchListBatchShipmentItemsQueryKey = (options: Options<BatchListBatchShipmentItemsData>) => createQueryKey('batchListBatchShipmentItems', options);
+
+/**
+ * List Batch Shipment Items
+ */
+export const batchListBatchShipmentItemsOptions = (options: Options<BatchListBatchShipmentItemsData>) => queryOptions<BatchListBatchShipmentItemsResponse, BatchListBatchShipmentItemsError, BatchListBatchShipmentItemsResponse, ReturnType<typeof batchListBatchShipmentItemsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await batchListBatchShipmentItems({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: batchListBatchShipmentItemsQueryKey(options)
+});
+
+/**
+ * Add Batch Shipment Item
+ */
+export const batchAddBatchShipmentItemMutation = (options?: Partial<Options<BatchAddBatchShipmentItemData>>): UseMutationOptions<BatchAddBatchShipmentItemResponse, BatchAddBatchShipmentItemError, Options<BatchAddBatchShipmentItemData>> => {
+    const mutationOptions: UseMutationOptions<BatchAddBatchShipmentItemResponse, BatchAddBatchShipmentItemError, Options<BatchAddBatchShipmentItemData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await batchAddBatchShipmentItem({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Remove Batch Shipment Item
+ */
+export const batchRemoveBatchShipmentItemMutation = (options?: Partial<Options<BatchRemoveBatchShipmentItemData>>): UseMutationOptions<BatchRemoveBatchShipmentItemResponse, BatchRemoveBatchShipmentItemError, Options<BatchRemoveBatchShipmentItemData>> => {
+    const mutationOptions: UseMutationOptions<BatchRemoveBatchShipmentItemResponse, BatchRemoveBatchShipmentItemError, Options<BatchRemoveBatchShipmentItemData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await batchRemoveBatchShipmentItem({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Void Batch Shipment
+ */
+export const batchVoidBatchShipmentMutation = (options?: Partial<Options<BatchVoidBatchShipmentData>>): UseMutationOptions<BatchVoidBatchShipmentResponse, BatchVoidBatchShipmentError, Options<BatchVoidBatchShipmentData>> => {
+    const mutationOptions: UseMutationOptions<BatchVoidBatchShipmentResponse, BatchVoidBatchShipmentError, Options<BatchVoidBatchShipmentData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await batchVoidBatchShipment({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const defectsListDefectGroupsQueryKey = (options?: Options<DefectsListDefectGroupsData>) => createQueryKey('defectsListDefectGroups', options);
+
+/**
+ * List Defect Groups
+ */
+export const defectsListDefectGroupsOptions = (options?: Options<DefectsListDefectGroupsData>) => queryOptions<DefectsListDefectGroupsResponse, DefectsListDefectGroupsError, DefectsListDefectGroupsResponse, ReturnType<typeof defectsListDefectGroupsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await defectsListDefectGroups({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: defectsListDefectGroupsQueryKey(options)
+});
+
+export const defectsListDefectGroupsInfiniteQueryKey = (options?: Options<DefectsListDefectGroupsData>): QueryKey<Options<DefectsListDefectGroupsData>> => createQueryKey('defectsListDefectGroups', options, true);
+
+/**
+ * List Defect Groups
+ */
+export const defectsListDefectGroupsInfiniteOptions = (options?: Options<DefectsListDefectGroupsData>) => {
+    const opts = infiniteQueryOptions<DefectsListDefectGroupsResponse, DefectsListDefectGroupsError, InfiniteData<DefectsListDefectGroupsResponse>, QueryKey<Options<DefectsListDefectGroupsData>>, number | Pick<QueryKey<Options<DefectsListDefectGroupsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<DefectsListDefectGroupsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    page: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await defectsListDefectGroups({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: defectsListDefectGroupsInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+/**
+ * Create Defect Group
+ */
+export const defectsCreateDefectGroupMutation = (options?: Partial<Options<DefectsCreateDefectGroupData>>): UseMutationOptions<DefectsCreateDefectGroupResponse, DefectsCreateDefectGroupError, Options<DefectsCreateDefectGroupData>> => {
+    const mutationOptions: UseMutationOptions<DefectsCreateDefectGroupResponse, DefectsCreateDefectGroupError, Options<DefectsCreateDefectGroupData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await defectsCreateDefectGroup({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Delete Defect Group
+ */
+export const defectsDeleteDefectGroupMutation = (options?: Partial<Options<DefectsDeleteDefectGroupData>>): UseMutationOptions<DefectsDeleteDefectGroupResponse, DefectsDeleteDefectGroupError, Options<DefectsDeleteDefectGroupData>> => {
+    const mutationOptions: UseMutationOptions<DefectsDeleteDefectGroupResponse, DefectsDeleteDefectGroupError, Options<DefectsDeleteDefectGroupData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await defectsDeleteDefectGroup({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const defectsGetDefectGroupQueryKey = (options: Options<DefectsGetDefectGroupData>) => createQueryKey('defectsGetDefectGroup', options);
+
+/**
+ * Get Defect Group
+ */
+export const defectsGetDefectGroupOptions = (options: Options<DefectsGetDefectGroupData>) => queryOptions<DefectsGetDefectGroupResponse, DefectsGetDefectGroupError, DefectsGetDefectGroupResponse, ReturnType<typeof defectsGetDefectGroupQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await defectsGetDefectGroup({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: defectsGetDefectGroupQueryKey(options)
+});
+
+/**
+ * Update Defect Group
+ */
+export const defectsUpdateDefectGroupMutation = (options?: Partial<Options<DefectsUpdateDefectGroupData>>): UseMutationOptions<DefectsUpdateDefectGroupResponse, DefectsUpdateDefectGroupError, Options<DefectsUpdateDefectGroupData>> => {
+    const mutationOptions: UseMutationOptions<DefectsUpdateDefectGroupResponse, DefectsUpdateDefectGroupError, Options<DefectsUpdateDefectGroupData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await defectsUpdateDefectGroup({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Update Defect Group Archived
+ */
+export const defectsUpdateDefectGroupArchivedMutation = (options?: Partial<Options<DefectsUpdateDefectGroupArchivedData>>): UseMutationOptions<DefectsUpdateDefectGroupArchivedResponse, DefectsUpdateDefectGroupArchivedError, Options<DefectsUpdateDefectGroupArchivedData>> => {
+    const mutationOptions: UseMutationOptions<DefectsUpdateDefectGroupArchivedResponse, DefectsUpdateDefectGroupArchivedError, Options<DefectsUpdateDefectGroupArchivedData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await defectsUpdateDefectGroupArchived({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const defectsListDefectTypesQueryKey = (options?: Options<DefectsListDefectTypesData>) => createQueryKey('defectsListDefectTypes', options);
+
+/**
+ * List Defect Types
+ */
+export const defectsListDefectTypesOptions = (options?: Options<DefectsListDefectTypesData>) => queryOptions<DefectsListDefectTypesResponse, DefectsListDefectTypesError, DefectsListDefectTypesResponse, ReturnType<typeof defectsListDefectTypesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await defectsListDefectTypes({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: defectsListDefectTypesQueryKey(options)
+});
+
+export const defectsListDefectTypesInfiniteQueryKey = (options?: Options<DefectsListDefectTypesData>): QueryKey<Options<DefectsListDefectTypesData>> => createQueryKey('defectsListDefectTypes', options, true);
+
+/**
+ * List Defect Types
+ */
+export const defectsListDefectTypesInfiniteOptions = (options?: Options<DefectsListDefectTypesData>) => {
+    const opts = infiniteQueryOptions<DefectsListDefectTypesResponse, DefectsListDefectTypesError, InfiniteData<DefectsListDefectTypesResponse>, QueryKey<Options<DefectsListDefectTypesData>>, number | Pick<QueryKey<Options<DefectsListDefectTypesData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<DefectsListDefectTypesData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    page: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await defectsListDefectTypes({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: defectsListDefectTypesInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+/**
+ * Create Defect Type
+ */
+export const defectsCreateDefectTypeMutation = (options?: Partial<Options<DefectsCreateDefectTypeData>>): UseMutationOptions<DefectsCreateDefectTypeResponse, DefectsCreateDefectTypeError, Options<DefectsCreateDefectTypeData>> => {
+    const mutationOptions: UseMutationOptions<DefectsCreateDefectTypeResponse, DefectsCreateDefectTypeError, Options<DefectsCreateDefectTypeData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await defectsCreateDefectType({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Delete Defect Type
+ */
+export const defectsDeleteDefectTypeMutation = (options?: Partial<Options<DefectsDeleteDefectTypeData>>): UseMutationOptions<DefectsDeleteDefectTypeResponse, DefectsDeleteDefectTypeError, Options<DefectsDeleteDefectTypeData>> => {
+    const mutationOptions: UseMutationOptions<DefectsDeleteDefectTypeResponse, DefectsDeleteDefectTypeError, Options<DefectsDeleteDefectTypeData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await defectsDeleteDefectType({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const defectsGetDefectTypeQueryKey = (options: Options<DefectsGetDefectTypeData>) => createQueryKey('defectsGetDefectType', options);
+
+/**
+ * Get Defect Type
+ */
+export const defectsGetDefectTypeOptions = (options: Options<DefectsGetDefectTypeData>) => queryOptions<DefectsGetDefectTypeResponse, DefectsGetDefectTypeError, DefectsGetDefectTypeResponse, ReturnType<typeof defectsGetDefectTypeQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await defectsGetDefectType({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: defectsGetDefectTypeQueryKey(options)
+});
+
+/**
+ * Update Defect Type
+ */
+export const defectsUpdateDefectTypeMutation = (options?: Partial<Options<DefectsUpdateDefectTypeData>>): UseMutationOptions<DefectsUpdateDefectTypeResponse, DefectsUpdateDefectTypeError, Options<DefectsUpdateDefectTypeData>> => {
+    const mutationOptions: UseMutationOptions<DefectsUpdateDefectTypeResponse, DefectsUpdateDefectTypeError, Options<DefectsUpdateDefectTypeData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await defectsUpdateDefectType({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Update Defect Type Archived
+ */
+export const defectsUpdateDefectTypeArchivedMutation = (options?: Partial<Options<DefectsUpdateDefectTypeArchivedData>>): UseMutationOptions<DefectsUpdateDefectTypeArchivedResponse, DefectsUpdateDefectTypeArchivedError, Options<DefectsUpdateDefectTypeArchivedData>> => {
+    const mutationOptions: UseMutationOptions<DefectsUpdateDefectTypeArchivedResponse, DefectsUpdateDefectTypeArchivedError, Options<DefectsUpdateDefectTypeArchivedData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await defectsUpdateDefectTypeArchived({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const kgListKgQueryKey = (options?: Options<KgListKgData>) => createQueryKey('kgListKg', options);
+
+/**
+ * List Kg
+ */
+export const kgListKgOptions = (options?: Options<KgListKgData>) => queryOptions<KgListKgResponse, KgListKgError, KgListKgResponse, ReturnType<typeof kgListKgQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await kgListKg({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: kgListKgQueryKey(options)
+});
+
+export const kgListKgInfiniteQueryKey = (options?: Options<KgListKgData>): QueryKey<Options<KgListKgData>> => createQueryKey('kgListKg', options, true);
+
+/**
+ * List Kg
+ */
+export const kgListKgInfiniteOptions = (options?: Options<KgListKgData>) => {
+    const opts = infiniteQueryOptions<KgListKgResponse, KgListKgError, InfiniteData<KgListKgResponse>, QueryKey<Options<KgListKgData>>, number | Pick<QueryKey<Options<KgListKgData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<KgListKgData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    page: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await kgListKg({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: kgListKgInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const kgListDevEuiPrefixesQueryKey = (options?: Options<KgListDevEuiPrefixesData>) => createQueryKey('kgListDevEuiPrefixes', options);
+
+/**
+ * List Dev Eui Prefixes
+ */
+export const kgListDevEuiPrefixesOptions = (options?: Options<KgListDevEuiPrefixesData>) => queryOptions<KgListDevEuiPrefixesResponse, DefaultError, KgListDevEuiPrefixesResponse, ReturnType<typeof kgListDevEuiPrefixesQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await kgListDevEuiPrefixes({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: kgListDevEuiPrefixesQueryKey(options)
+});
+
+/**
+ * Create Dev Eui Prefix
+ */
+export const kgCreateDevEuiPrefixMutation = (options?: Partial<Options<KgCreateDevEuiPrefixData>>): UseMutationOptions<KgCreateDevEuiPrefixResponse, KgCreateDevEuiPrefixError, Options<KgCreateDevEuiPrefixData>> => {
+    const mutationOptions: UseMutationOptions<KgCreateDevEuiPrefixResponse, KgCreateDevEuiPrefixError, Options<KgCreateDevEuiPrefixData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await kgCreateDevEuiPrefix({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Delete Dev Eui Prefix
+ */
+export const kgDeleteDevEuiPrefixMutation = (options?: Partial<Options<KgDeleteDevEuiPrefixData>>): UseMutationOptions<KgDeleteDevEuiPrefixResponse, KgDeleteDevEuiPrefixError, Options<KgDeleteDevEuiPrefixData>> => {
+    const mutationOptions: UseMutationOptions<KgDeleteDevEuiPrefixResponse, KgDeleteDevEuiPrefixError, Options<KgDeleteDevEuiPrefixData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await kgDeleteDevEuiPrefix({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Update Dev Eui Prefix
+ */
+export const kgUpdateDevEuiPrefixMutation = (options?: Partial<Options<KgUpdateDevEuiPrefixData>>): UseMutationOptions<KgUpdateDevEuiPrefixResponse, KgUpdateDevEuiPrefixError, Options<KgUpdateDevEuiPrefixData>> => {
+    const mutationOptions: UseMutationOptions<KgUpdateDevEuiPrefixResponse, KgUpdateDevEuiPrefixError, Options<KgUpdateDevEuiPrefixData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await kgUpdateDevEuiPrefix({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const kgGetKgQueryKey = (options: Options<KgGetKgData>) => createQueryKey('kgGetKg', options);
+
+/**
+ * Get Kg
+ */
+export const kgGetKgOptions = (options: Options<KgGetKgData>) => queryOptions<KgGetKgResponse, KgGetKgError, KgGetKgResponse, ReturnType<typeof kgGetKgQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await kgGetKg({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: kgGetKgQueryKey(options)
+});
+
 export const pakListPakQueryKey = (options?: Options<PakListPakData>) => createQueryKey('pakListPak', options);
 
 /**
@@ -198,6 +959,72 @@ export const pakCreatePakMutation = (options?: Partial<Options<PakCreatePakData>
     };
     return mutationOptions;
 };
+
+export const pakListPakTestsQueryKey = (options?: Options<PakListPakTestsData>) => createQueryKey('pakListPakTests', options);
+
+/**
+ * List Pak Tests
+ */
+export const pakListPakTestsOptions = (options?: Options<PakListPakTestsData>) => queryOptions<PakListPakTestsResponse, PakListPakTestsError, PakListPakTestsResponse, ReturnType<typeof pakListPakTestsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await pakListPakTests({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: pakListPakTestsQueryKey(options)
+});
+
+export const pakListPakTestsInfiniteQueryKey = (options?: Options<PakListPakTestsData>): QueryKey<Options<PakListPakTestsData>> => createQueryKey('pakListPakTests', options, true);
+
+/**
+ * List Pak Tests
+ */
+export const pakListPakTestsInfiniteOptions = (options?: Options<PakListPakTestsData>) => {
+    const opts = infiniteQueryOptions<PakListPakTestsResponse, PakListPakTestsError, InfiniteData<PakListPakTestsResponse>, QueryKey<Options<PakListPakTestsData>>, number | Pick<QueryKey<Options<PakListPakTestsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<PakListPakTestsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    page: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await pakListPakTests({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: pakListPakTestsInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const pakGetPakTestQueryKey = (options: Options<PakGetPakTestData>) => createQueryKey('pakGetPakTest', options);
+
+/**
+ * Get Pak Test
+ */
+export const pakGetPakTestOptions = (options: Options<PakGetPakTestData>) => queryOptions<PakGetPakTestResponse, PakGetPakTestError, PakGetPakTestResponse, ReturnType<typeof pakGetPakTestQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await pakGetPakTest({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: pakGetPakTestQueryKey(options)
+});
 
 /**
  * Delete Pak
@@ -487,3 +1314,69 @@ export const usersUpdatePasswordMutation = (options?: Partial<Options<UsersUpdat
     };
     return mutationOptions;
 };
+
+export const verificationListSessionsQueryKey = (options?: Options<VerificationListSessionsData>) => createQueryKey('verificationListSessions', options);
+
+/**
+ * List Sessions
+ */
+export const verificationListSessionsOptions = (options?: Options<VerificationListSessionsData>) => queryOptions<VerificationListSessionsResponse, VerificationListSessionsError, VerificationListSessionsResponse, ReturnType<typeof verificationListSessionsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await verificationListSessions({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: verificationListSessionsQueryKey(options)
+});
+
+export const verificationListSessionsInfiniteQueryKey = (options?: Options<VerificationListSessionsData>): QueryKey<Options<VerificationListSessionsData>> => createQueryKey('verificationListSessions', options, true);
+
+/**
+ * List Sessions
+ */
+export const verificationListSessionsInfiniteOptions = (options?: Options<VerificationListSessionsData>) => {
+    const opts = infiniteQueryOptions<VerificationListSessionsResponse, VerificationListSessionsError, InfiniteData<VerificationListSessionsResponse>, QueryKey<Options<VerificationListSessionsData>>, number | Pick<QueryKey<Options<VerificationListSessionsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<VerificationListSessionsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    page: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await verificationListSessions({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: verificationListSessionsInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const verificationGetSessionQueryKey = (options: Options<VerificationGetSessionData>) => createQueryKey('verificationGetSession', options);
+
+/**
+ * Get Session
+ */
+export const verificationGetSessionOptions = (options: Options<VerificationGetSessionData>) => queryOptions<VerificationGetSessionResponse, VerificationGetSessionError, VerificationGetSessionResponse, ReturnType<typeof verificationGetSessionQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await verificationGetSession({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: verificationGetSessionQueryKey(options)
+});

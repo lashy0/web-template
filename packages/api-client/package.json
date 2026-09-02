@@ -7,7 +7,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "generate:schema": "uv run --project ../../apps/backend --directory ../../apps/backend python -m tools.export_openapi --output ../../packages/api-client/openapi.json",
+    "generate:schema": "uv run --project ../../apps/backend --directory ../../apps/backend python -m tools.export_openapi --audience web --output ../../packages/api-client/openapi.json",
     "generate:client": "openapi-ts",
     "generate": "pnpm generate:schema && pnpm generate:client",
     "check:generated": "pnpm generate && git diff --exit-code -- openapi.json src/generated",
