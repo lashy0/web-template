@@ -57,14 +57,16 @@ def _step_response(step: VerificationStep) -> VerificationStepResponse:
         id=step.id,
         session_id=step.session_id,
         step_no=step.step_no,
+        pak_test_id=step.pak_test_id,
+        defect_group_id=step.defect_group_id,
         test_name=step.test_name,
         test_label=step.test_label,
+        error_group_code=step.error_group_code,
         status=step.status,
         measurement_value=step.measurement_value,
         measurement_min_value=step.measurement_min_value,
         measurement_max_value=step.measurement_max_value,
         measurement_unit=step.measurement_unit,
-        error_group_code=step.error_group_code,
         started_at=step.started_at,
         completed_at=step.completed_at,
         created_at=step.created_at,
@@ -72,26 +74,13 @@ def _step_response(step: VerificationStep) -> VerificationStepResponse:
     )
 
 
-@router.get(
-    "/sessions",
-    response_model=VerificationSessionListResponse,
-)
+@router.get("/sessions", response_model=VerificationSessionListResponse)
 async def list_sessions(
-    _: Annotated[
-        CurrentPrincipalDep,
-        Depends(
-            require_permission(
-                VerificationPermission.READ
-            )
-        ),
-    ],
+    _: Annotated[CurrentPrincipalDep, Depends(require_permission(VerificationPermission.READ))],
     request: Request,
     q: str | None = None,
     pak_id: UUID | None = None,
-    status_filter: VerificationSessionStatus | None = Query(
-        default=None,
-        alias="status",
-    ),
+    status_filter: VerificationSessionStatus | None = Query(default=None, alias="status"),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=25, ge=1, le=100),
     sort: Literal[
@@ -102,10 +91,7 @@ async def list_sessions(
         "created_at",
         "updated_at",
     ] = "started_at",
-    order: Literal[
-        "asc",
-        "desc",
-    ] = "desc",
+    order: Literal["asc", "desc"] = "desc",
 ) -> VerificationSessionListResponse:
     sessions, total = await _service(request).list(
         q=q,
@@ -128,20 +114,10 @@ async def list_sessions(
     )
 
 
-@router.get(
-    "/sessions/{session_id}",
-    response_model=VerificationSessionDetailResponse,
-)
+@router.get("/sessions/{session_id}", response_model=VerificationSessionDetailResponse)
 async def get_session(
     session_id: UUID,
-    _: Annotated[
-        CurrentPrincipalDep,
-        Depends(
-            require_permission(
-                VerificationPermission.READ
-            )
-        ),
-    ],
+    _: Annotated[CurrentPrincipalDep, Depends(require_permission(VerificationPermission.READ))],
     request: Request,
 ) -> VerificationSessionDetailResponse:
     result = await _service(request).get_detail(session_id)
@@ -200,6 +176,7 @@ async def start_step(
         step_no=payload.step_no,
         test_name=payload.test_name,
         test_label=payload.test_label,
+        error_group_code=payload.error_group_code,
     )
 
     return _step_response(step)
@@ -225,7 +202,6 @@ async def complete_step(
         measurement_min_value=payload.measurement_min_value,
         measurement_max_value=payload.measurement_max_value,
         measurement_unit=payload.measurement_unit,
-        error_group_code=payload.error_group_code,
     )
 
     return _step_response(step)
