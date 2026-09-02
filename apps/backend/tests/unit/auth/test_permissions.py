@@ -2,8 +2,8 @@ import pytest
 
 from app.auth.permissions import (
     ALL_PERMISSIONS,
-    MANAGER_PERMISSIONS,
     ENGINEER_PERMISSIONS,
+    MANAGER_PERMISSIONS,
     ROLE_PERMISSIONS,
     permissions_for_role,
     role_has_permission,
@@ -11,6 +11,7 @@ from app.auth.permissions import (
 from app.auth.roles import Role
 from app.modules.audit.permissions import AuditPermission
 from app.modules.batch.permissions import BatchPermission
+from app.modules.defects.permissions import DefectPermission
 from app.modules.kg.permissions import KgPermission
 from app.modules.pak.permissions import PakPermission
 from app.modules.users.permissions import UserPermission
@@ -41,6 +42,7 @@ def test_all_permissions_are_declared_by_modules() -> None:
             *AuditPermission,
             *KgPermission,
             *BatchPermission,
+            *DefectPermission,
             *VerificationPermission,
         )
     )
