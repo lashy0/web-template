@@ -52,6 +52,17 @@ function renderTable(overrides: Partial<React.ComponentProps<typeof DataTable<Ro
 }
 
 describe('DataTable', () => {
+  it('uses a fixed table layout when requested', () => {
+    const { container } = renderTable({ fixedLayout: true })
+
+    expect(screen.getByRole('table')).toHaveClass(
+      'min-w-[48rem]',
+      'table-fixed',
+      'border-collapse',
+    )
+    expect(container.querySelector('colgroup')).not.toBeInTheDocument()
+  })
+
   afterEach(cleanup)
 
   it('requests the next server page when the next-page button is pressed', async () => {

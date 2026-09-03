@@ -61,6 +61,33 @@ describe('audit columns', () => {
     expect(screen.getByText('Тестовый Оператор')).toBeVisible()
   })
 
+  it('truncates long account names while keeping the complete value available', () => {
+    const longName = 'Тестовый Менеджер 1214444444444444444444444444444444444444444444444444'
+
+    render(
+      <DataTable
+        columns={auditColumns}
+        data={[{ ...createdUserEvent, entityDisplayName: longName }]}
+        onPaginationChange={vi.fn<(pagination: DataTablePaginationState) => void>()}
+        onSortingChange={vi.fn<(sorting: DataTableSorting) => void>()}
+        pagination={{ pageIndex: 0, pageSize: 25 }}
+        sorting={[]}
+        total={1}
+      />,
+    )
+
+    const accountName = screen.getByText(`${longName.slice(0, 32)}…`)
+    expect(accountName).toHaveClass('truncate')
+    expect(accountName.parentElement).toHaveClass('w-80')
+    expect(auditColumns.map((column) => column.meta?.widthClassName)).toEqual([
+      'w-40 xl:w-[15%]',
+      'w-40 xl:w-1/5',
+      'w-[230px] xl:w-[31%]',
+      'w-40 xl:w-[28%]',
+      'w-[58px] xl:w-[6%]',
+    ])
+  })
+
   it('shows only actual changes in a popover', async () => {
     const user = userEvent.setup()
     render(

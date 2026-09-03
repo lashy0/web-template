@@ -22,7 +22,12 @@ import {
   TableRow,
 } from '@web-app/ui/components/table'
 
+type DataTableColumnMeta = Readonly<{
+  widthClassName?: string
+}>
+
 const dataTableFeatures = tableFeatures({
+  columnMeta: {} as DataTableColumnMeta,
   rowPaginationFeature,
   rowSortingFeature,
 })
@@ -31,6 +36,7 @@ export type DataTableColumn<Row extends RowData> = ColumnDef<typeof dataTableFea
 export function DataTable<Row extends RowData>({
   columns,
   data,
+  fixedLayout = false,
   getRowClassName,
   loading = false,
   onPaginationChange,
@@ -41,6 +47,7 @@ export function DataTable<Row extends RowData>({
 }: Readonly<{
   columns: readonly DataTableColumn<Row>[]
   data: readonly Row[]
+  fixedLayout?: boolean
   getRowClassName?: (row: Row) => string | undefined
   loading?: boolean
   onPaginationChange: (pagination: DataTablePaginationState) => void
@@ -82,17 +89,13 @@ export function DataTable<Row extends RowData>({
     },
     (state) => ({ pagination: state.pagination, sorting: state.sorting }),
   )
+  const tableClassName = fixedLayout
+    ? `min-w-[48rem] ${loading ? 'opacity-60 ' : ''}table-fixed border-collapse`
+    : `min-w-[45rem] md:min-w-0 ${loading ? 'opacity-60 ' : ''}xl:border-separate xl:border-spacing-0`
 
   return (
     <div aria-busy={loading} className="flex flex-col gap-4" ref={tableRef}>
-      <Table
-        className={
-          loading
-            ? 'min-w-[45rem] opacity-60 md:min-w-0 xl:border-separate xl:border-spacing-0'
-            : 'min-w-[45rem] md:min-w-0 xl:border-separate xl:border-spacing-0'
-        }
-        containerClassName="xl:overflow-visible"
-      >
+      <Table className={tableClassName} containerClassName="xl:overflow-visible">
         <TableHeader className="xl:bg-transparent">
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow className="hover:bg-transparent" key={headerGroup.id}>
@@ -111,7 +114,7 @@ export function DataTable<Row extends RowData>({
                             : 'none'
                         : undefined
                     }
-                    className="xl:sticky xl:top-0 xl:z-10 xl:bg-muted xl:first:rounded-tl-lg xl:last:rounded-tr-lg"
+                    className={`xl:sticky xl:top-0 xl:z-10 xl:bg-muted xl:first:rounded-tl-lg xl:last:rounded-tr-lg ${header.column.columnDef.meta?.widthClassName ?? ''}`}
                     key={header.id}
                   >
                     {header.isPlaceholder ? null : canSort ? (

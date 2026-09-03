@@ -2,7 +2,11 @@ import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { DataTable, type DataTablePaginationState, type DataTableSorting } from '@/components/Common/DataTable'
+import {
+  DataTable,
+  type DataTablePaginationState,
+  type DataTableSorting,
+} from '@/components/Common/DataTable'
 import { pakAuditColumns } from '@/components/Pak/Audit/columns'
 import { createPakColumns } from '@/components/Pak/Paks/columns'
 import type { Pak, PakAuditEvent } from '@/features/paks/paks-api'
@@ -47,6 +51,14 @@ const updatedPakEvent: PakAuditEvent = {
   oldData: { code: 'ПАК-01', kind: 'OTK_LINE' },
 }
 
+const archivedPakEvent: PakAuditEvent = {
+  ...accessKeyViewedEvent,
+  action: 'pak.archived',
+  id: 'event-3',
+  newData: { archived_at: '2026-08-27T12:00:00Z' },
+  oldData: { archived_at: null },
+}
+
 describe('PAK columns', () => {
   afterEach(cleanup)
 
@@ -70,6 +82,12 @@ describe('PAK columns', () => {
     expect(within(popover!).getByText('ПАК-02')).toBeVisible()
     expect(within(popover!).getByText('Линия ОТК')).toBeVisible()
     expect(within(popover!).getByText('Инженерный')).toBeVisible()
+  })
+
+  it('does not show archive or restore timestamps as changes', () => {
+    render(<DataTable {...tableProps} columns={pakAuditColumns} data={[archivedPakEvent]} />)
+
+    expect(screen.queryByLabelText('Показать изменения')).not.toBeInTheDocument()
   })
 
   it('shows that the PAK has not contacted the service yet', () => {

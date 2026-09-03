@@ -37,11 +37,12 @@ export const pakAuditColumns: readonly DataTableColumn<PakAuditEvent>[] = [
     header: 'ПАК',
   },
   {
-    cell: ({ row }) => (
-      <div className="flex justify-end">
-        <ChangesAudit event={row.original} />
-      </div>
-    ),
+    cell: ({ row }) =>
+      hasChanges(row.original.action) ? (
+        <div className="flex justify-end">
+          <ChangesAudit event={row.original} />
+        </div>
+      ) : null,
     enableSorting: false,
     header: () => <span className="sr-only">Изменения</span>,
     id: 'changes',
@@ -60,6 +61,10 @@ function translateAction(action: string) {
     'pak.updated': 'Обновлён ПАК',
   }
   return actions[action] ?? action
+}
+
+function hasChanges(action: string): boolean {
+  return action !== 'pak.archived' && action !== 'pak.restored'
 }
 
 function AuditActor({ event }: Readonly<{ event: PakAuditEvent }>) {

@@ -104,6 +104,7 @@ export function Audit() {
           <DataTable
             columns={auditColumns}
             data={audit.items}
+            fixedLayout
             loading={isFetching}
             onPaginationChange={setPagination}
             onSortingChange={(nextSorting) => {
