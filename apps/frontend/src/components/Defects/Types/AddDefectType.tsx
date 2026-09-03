@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { PlusIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
@@ -16,21 +16,14 @@ import {
 } from '@web-app/ui/components/dialog'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@web-app/ui/components/field'
 import { Input } from '@web-app/ui/components/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@web-app/ui/components/select'
 import { Spinner } from '@web-app/ui/components/spinner'
 
+import { DefectGroupSelect } from '@/components/Defects/Types/DefectGroupSelect'
 import {
   createDefectType,
+  defectErrorCode,
   defectErrorMessage,
-  listDefectGroups,
   type CreateDefectTypeInput,
-  type DefectGroup,
 } from '@/features/defects/defects-api'
 import { createDefectTypeSchema } from '@/features/defects/defect-form-schema'
 import useCustomToast from '@/hooks/useCustomToast'
@@ -51,14 +44,10 @@ const initialForm: CreateDefectTypeForm = {
   name: '',
   possible_cause: '',
 }
+
 export function AddDefectType({ groupId }: Readonly<{ groupId?: string }>) {
   const queryClient = useQueryClient()
   const [isOpen, setIsOpen] = useState(false)
-  const groups = useQuery({
-    enabled: isOpen,
-    queryFn: () => listDefectGroups({ page: 1, pageSize: 100 }),
-    queryKey: ['defects', 'groups', 'select'],
-  })
   const form = useForm<CreateDefectTypeForm>({
     defaultValues: { ...initialForm, group_id: groupId ?? '' },
     mode: 'onChange',
@@ -77,18 +66,18 @@ export function AddDefectType({ groupId }: Readonly<{ groupId?: string }>) {
     },
     onError: (error) => {
       const message = defectErrorMessage(error)
-      if (message?.includes('таким кодом')) {
+      if (defectErrorCode(error) === 'defect_type_already_exists') {
         form.setError('code', { message, type: 'server' }, { shouldFocus: true })
         return
       }
       showErrorToast('Не удалось создать тип', message ?? 'Проверьте данные и попробуйте ещё раз.')
     },
   })
+
   function resetAndClose() {
     form.reset({ ...initialForm, group_id: groupId ?? '' })
     setIsOpen(false)
   }
-  const groupItems = groups.data?.items ?? []
   return (
     <Dialog
       onOpenChange={(open) => {
@@ -126,30 +115,13 @@ export function AddDefectType({ groupId }: Readonly<{ groupId?: string }>) {
                       </span>
                     </span>
                   </FieldLabel>
-                  <Select
-                    disabled={groups.isLoading}
-                    onValueChange={field.onChange}
-                    value={field.value}
-                  >
-                    <SelectTrigger
-                      aria-invalid={fieldState.invalid}
-                      className="w-full"
-                      id="new-defect-type-group"
-                    >
-                      <SelectValue>
-                        {(id: string | null) =>
-                          labelFor(groupItems.find((group) => group.id === id))
-                        }
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {groupItems.map((group) => (
-                        <SelectItem key={group.id} value={group.id}>
-                          {labelFor(group)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <DefectGroupSelect
+                    ariaLabel="Группа"
+                    className="w-full"
+                    id="new-defect-type-group"
+                    onChange={(value) => field.onChange(value ?? '')}
+                    value={field.value || undefined}
+                  />
                   {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
                 </Field>
               )}
@@ -208,6 +180,7 @@ export function AddDefectType({ groupId }: Readonly<{ groupId?: string }>) {
     </Dialog>
   )
 }
+
 function TextInput({
   control,
   id,
@@ -254,6 +227,7 @@ function TextInput({
     />
   )
 }
+
 function TextArea({
   control,
   id,
@@ -289,9 +263,7 @@ function TextArea({
     />
   )
 }
-export function labelFor(group: DefectGroup | undefined): string {
-  return group ? `${group.code} (${group.name})` : 'Выберите группу'
-}
+
 function toInput(data: CreateDefectTypeForm): CreateDefectTypeInput {
   return {
     code: data.code,

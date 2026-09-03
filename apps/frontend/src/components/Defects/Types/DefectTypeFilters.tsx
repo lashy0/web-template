@@ -1,31 +1,20 @@
 import { SearchIcon, XIcon } from 'lucide-react'
 
 import { Input } from '@web-app/ui/components/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@web-app/ui/components/select'
 
-import { labelFor } from '@/components/Defects/Types/AddDefectType'
-import { type DefectGroup } from '@/features/defects/defects-api'
+import { DefectGroupSelect } from '@/components/Defects/Types/DefectGroupSelect'
 
 export function DefectTypeFilters({
   groupId,
-  groups,
   onGroupChange,
   onQueryChange,
   query,
 }: Readonly<{
   groupId?: string
-  groups: readonly DefectGroup[]
   onGroupChange: (value: string) => void
   onQueryChange: (value: string) => void
   query: string
 }>) {
-  const selectedGroup = groups.find((group) => group.id === groupId)
   return (
     <div className="flex w-full flex-col gap-2 @[40rem]:flex-row @[56rem]:w-auto">
       <div className="relative w-full @[56rem]:w-72">
@@ -47,26 +36,14 @@ export function DefectTypeFilters({
           </button>
         ) : null}
       </div>
-      <Select onValueChange={(value) => value && onGroupChange(value)} value={groupId ?? 'all'}>
-        <SelectTrigger className="w-full cursor-pointer @[40rem]:w-60">
-          <SelectValue
-            className="min-w-0 truncate"
-            title={selectedGroup ? labelFor(selectedGroup) : 'Все группы'}
-          >
-            {selectedGroup ? labelFor(selectedGroup) : 'Все группы'}
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Все группы</SelectItem>
-          {groups.map((group) => (
-            <SelectItem key={group.id} value={group.id}>
-              <span className="block min-w-0 truncate" title={labelFor(group)}>
-                {labelFor(group)}
-              </span>
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <DefectGroupSelect
+        allowClear
+        ariaLabel="Группа дефектов"
+        className="w-full cursor-pointer @[40rem]:w-60"
+        onChange={(value) => onGroupChange(value ?? 'all')}
+        placeholder="Все группы"
+        value={groupId}
+      />
     </div>
   )
 }

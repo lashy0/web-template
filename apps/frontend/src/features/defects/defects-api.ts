@@ -4,6 +4,7 @@ import {
   defectsCreateDefectType,
   defectsDeleteDefectGroup,
   defectsDeleteDefectType,
+  defectsGetDefectGroup,
   defectsListDefectGroups,
   defectsListDefectTypes,
   defectsUpdateDefectGroup,
@@ -169,6 +170,11 @@ export async function listDefectGroups({
     pageSize: payload.page_size,
     total: payload.total,
   }
+}
+
+export async function getDefectGroup(groupId: string): Promise<DefectGroup> {
+  const result = await defectsGetDefectGroup({ path: { group_id: groupId } })
+  return toGroup(requireData(result.data, result.response?.status, result.error))
 }
 
 export async function listDefectTypes({
