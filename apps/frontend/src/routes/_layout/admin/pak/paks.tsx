@@ -2,7 +2,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useMemo, useState } from 'react'
 
-import { Button } from '@web-app/ui/components/button'
+import { Tabs, TabsList, TabsTrigger } from '@web-app/ui/components/tabs'
 
 import { DataLoadError } from '@/components/Common/DataLoadError'
 import {
@@ -130,24 +130,16 @@ function Paks() {
       <div className="pt-8">
         <div className="@container mb-4">
           <div className="flex flex-col gap-3 @[56rem]:flex-row @[56rem]:items-center @[56rem]:justify-between">
-            <div className="flex shrink-0 items-center gap-1">
-              <Button
-                className="cursor-pointer"
-                onClick={() => resetList(false)}
-                size="sm"
-                variant={!archived ? 'secondary' : 'ghost'}
-              >
-                Текущие
-              </Button>
-              <Button
-                className="cursor-pointer"
-                onClick={() => resetList(true)}
-                size="sm"
-                variant={archived ? 'secondary' : 'ghost'}
-              >
-                Архивные
-              </Button>
-            </div>
+            <Tabs
+              className="shrink-0"
+              onValueChange={(value) => resetList(value === 'archived')}
+              value={archived ? 'archived' : 'current'}
+            >
+              <TabsList>
+                <TabsTrigger value="current">Текущие</TabsTrigger>
+                <TabsTrigger value="archived">Архивные</TabsTrigger>
+              </TabsList>
+            </Tabs>
             <PakFilters
               archived={archived}
               kind={kind}

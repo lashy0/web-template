@@ -21,7 +21,7 @@ import {
   type UserSort,
 } from '@/features/users/users-api'
 import { listEnum, listOrder, listPage, listPageSize, listQuery } from '@/lib/list-search'
-import { Button } from '@web-app/ui/components/button'
+import { Tabs, TabsList, TabsTrigger } from '@web-app/ui/components/tabs'
 
 const authStates = ['active', 'inactive'] as const satisfies readonly AuthState[]
 const userRoles = [
@@ -161,46 +161,28 @@ function Users() {
       <div className="pt-8">
         <div className="@container mb-4">
           <div className="flex flex-col gap-3 @[56rem]:flex-row @[56rem]:items-center @[56rem]:justify-between">
-            <div className="flex shrink-0 items-center gap-1">
-              <Button
-                className="cursor-pointer"
-                size="sm"
-                variant={!archived ? 'secondary' : 'ghost'}
-                onClick={() => {
-                  navigate({
-                    search: (previous) => ({
-                      ...previous,
-                      archived: undefined,
-                      order: undefined,
-                      page: undefined,
-                      sort: undefined,
-                    }),
-                  })
-                }}
-              >
-                Текущие
-              </Button>
-
-              <Button
-                className="cursor-pointer"
-                size="sm"
-                variant={archived ? 'secondary' : 'ghost'}
-                onClick={() => {
-                  navigate({
-                    search: (previous) => ({
-                      ...previous,
-                      archived: true,
-                      authState: undefined,
-                      order: undefined,
-                      page: undefined,
-                      sort: undefined,
-                    }),
-                  })
-                }}
-              >
-                Архивные
-              </Button>
-            </div>
+            <Tabs
+              className="shrink-0"
+              onValueChange={(value) => {
+                const nextArchived = value === 'archived'
+                navigate({
+                  search: (previous) => ({
+                    ...previous,
+                    archived: nextArchived ? true : undefined,
+                    authState: nextArchived ? undefined : previous.authState,
+                    order: undefined,
+                    page: undefined,
+                    sort: undefined,
+                  }),
+                })
+              }}
+              value={archived ? 'archived' : 'current'}
+            >
+              <TabsList>
+                <TabsTrigger value="current">Текущие</TabsTrigger>
+                <TabsTrigger value="archived">Архивные</TabsTrigger>
+              </TabsList>
+            </Tabs>
 
             <UserFilters
               archived={archived}
