@@ -107,7 +107,9 @@ export function EditPak({
               name="code"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={`pak-${pak.id}-code`}>Код ПАК</FieldLabel>
+                  <FieldLabel className="cursor-pointer" htmlFor={`pak-${pak.id}-code`}>
+                    Код ПАК
+                  </FieldLabel>
                   <Input
                     {...field}
                     aria-invalid={fieldState.invalid}
@@ -126,7 +128,9 @@ export function EditPak({
               name="kind"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={`pak-${pak.id}-kind`}>Тип</FieldLabel>
+                  <FieldLabel className="cursor-pointer" htmlFor={`pak-${pak.id}-kind`}>
+                    Тип
+                  </FieldLabel>
                   <Select
                     items={pakKindOptions}
                     name={field.name}

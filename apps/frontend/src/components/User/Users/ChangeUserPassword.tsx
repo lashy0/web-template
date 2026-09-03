@@ -103,7 +103,9 @@ export function ChangeUserPassword({
               name="password"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={`user-${user.id}-new-password`}>Новый пароль</FieldLabel>
+                  <FieldLabel className="cursor-pointer" htmlFor={`user-${user.id}-new-password`}>
+                    Новый пароль
+                  </FieldLabel>
                   <InputGroup>
                     <InputGroupInput
                       {...field}
@@ -137,7 +139,10 @@ export function ChangeUserPassword({
               name="passwordConfirmation"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={`user-${user.id}-password-confirmation`}>
+                  <FieldLabel
+                    className="cursor-pointer"
+                    htmlFor={`user-${user.id}-password-confirmation`}
+                  >
                     Повторите пароль
                   </FieldLabel>
                   <InputGroup>

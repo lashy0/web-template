@@ -120,7 +120,7 @@ export function AddUser() {
         >
           <DialogHeader>
             <DialogTitle>Новый пользователь</DialogTitle>
-            <DialogDescription>Создайте учётную запись и назначьте роль.</DialogDescription>
+            <DialogDescription>Задайте учётные данные и назначьте роль.</DialogDescription>
           </DialogHeader>
           <FieldGroup>
             <Controller
@@ -128,7 +128,9 @@ export function AddUser() {
               name="name"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor="new-user-name">Имя</FieldLabel>
+                  <FieldLabel className="cursor-pointer" htmlFor="new-user-name">
+                    Имя
+                  </FieldLabel>
                   <Input
                     {...field}
                     aria-invalid={fieldState.invalid}
@@ -144,7 +146,9 @@ export function AddUser() {
               name="login"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor="new-user-login">Логин</FieldLabel>
+                  <FieldLabel className="cursor-pointer" htmlFor="new-user-login">
+                    Логин
+                  </FieldLabel>
                   <Input
                     {...field}
                     aria-invalid={fieldState.invalid}
@@ -167,7 +171,9 @@ export function AddUser() {
               name="password"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor="new-user-password">Пароль</FieldLabel>
+                  <FieldLabel className="cursor-pointer" htmlFor="new-user-password">
+                    Пароль
+                  </FieldLabel>
                   <InputGroup>
                     <InputGroupInput
                       {...field}
@@ -201,7 +207,9 @@ export function AddUser() {
               name="role"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor="new-user-role">Роль</FieldLabel>
+                  <FieldLabel className="cursor-pointer" htmlFor="new-user-role">
+                    Роль
+                  </FieldLabel>
                   <Select
                     items={roleOptions}
                     name={field.name}
@@ -237,7 +245,9 @@ export function AddUser() {
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid} orientation="horizontal">
                   <FieldContent>
-                    <FieldLabel htmlFor="new-user-active">Активировать учётную запись</FieldLabel>
+                    <FieldLabel className="cursor-pointer" htmlFor="new-user-active">
+                      Активировать учётную запись
+                    </FieldLabel>
                     {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                   </FieldContent>
                   <Switch

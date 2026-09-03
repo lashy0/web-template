@@ -60,7 +60,9 @@ export function LoginForm({ flowId }: Readonly<{ flowId?: string }>) {
                 ) : null}
                 <FieldGroup>
                   <Field data-invalid={Boolean(loginError) || undefined}>
-                    <Label htmlFor="login">Логин</Label>
+                    <Label className="cursor-pointer" htmlFor="login">
+                      Логин
+                    </Label>
                     <Input
                       aria-describedby={loginError ? 'login-error' : undefined}
                       aria-invalid={Boolean(loginError) || undefined}
@@ -75,7 +77,9 @@ export function LoginForm({ flowId }: Readonly<{ flowId?: string }>) {
                     {loginError ? <FieldError id="login-error">{loginError}</FieldError> : null}
                   </Field>
                   <Field data-invalid={Boolean(passwordError) || undefined}>
-                    <Label htmlFor="password">Пароль</Label>
+                    <Label className="cursor-pointer" htmlFor="password">
+                      Пароль
+                    </Label>
                     <InputGroup size="lg" variant="auth">
                       <InputGroupInput
                         aria-describedby={passwordError ? 'password-error' : undefined}

@@ -131,7 +131,9 @@ export function EditUser({
               name="name"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={`user-${user.id}-name`}>Имя</FieldLabel>
+                  <FieldLabel className="cursor-pointer" htmlFor={`user-${user.id}-name`}>
+                    Имя
+                  </FieldLabel>
                   <Input
                     {...field}
                     aria-invalid={fieldState.invalid}
@@ -147,7 +149,9 @@ export function EditUser({
               name="login"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={`user-${user.id}-login`}>Логин</FieldLabel>
+                  <FieldLabel className="cursor-pointer" htmlFor={`user-${user.id}-login`}>
+                    Логин
+                  </FieldLabel>
                   <Input
                     {...field}
                     aria-invalid={fieldState.invalid}
@@ -170,7 +174,9 @@ export function EditUser({
               name="role"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={`user-${user.id}-role`}>Роль</FieldLabel>
+                  <FieldLabel className="cursor-pointer" htmlFor={`user-${user.id}-role`}>
+                    Роль
+                  </FieldLabel>
                   <Select
                     items={roleOptions}
                     name={field.name}

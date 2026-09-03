@@ -118,7 +118,9 @@ export function AddPak() {
                 name="code"
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="new-pak-code">Код ПАК</FieldLabel>
+                    <FieldLabel className="cursor-pointer" htmlFor="new-pak-code">
+                      Код ПАК
+                    </FieldLabel>
                     <Input
                       {...field}
                       aria-invalid={fieldState.invalid}
@@ -138,7 +140,9 @@ export function AddPak() {
                 name="kind"
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="new-pak-kind">Тип</FieldLabel>
+                    <FieldLabel className="cursor-pointer" htmlFor="new-pak-kind">
+                      Тип
+                    </FieldLabel>
                     <Select
                       items={pakKindOptions}
                       name={field.name}
@@ -172,7 +176,9 @@ export function AddPak() {
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid} orientation="horizontal">
                     <FieldContent>
-                      <FieldLabel htmlFor="new-pak-active">Разрешить работу ПАК</FieldLabel>
+                      <FieldLabel className="cursor-pointer" htmlFor="new-pak-active">
+                        Разрешить работу ПАК
+                      </FieldLabel>
                     </FieldContent>
                     <Switch
                       aria-invalid={fieldState.invalid}
