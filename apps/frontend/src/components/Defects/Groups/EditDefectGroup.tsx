@@ -57,7 +57,10 @@ export function EditDefectGroup({
         name: data.name,
       }),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['defects'] })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['defects'] }),
+        queryClient.invalidateQueries({ queryKey: ['audit'] }),
+      ])
       close(true)
       onSuccess()
       showSuccessToast('Группа изменена', `Данные «${group.code}» сохранены.`)

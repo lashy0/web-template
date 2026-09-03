@@ -43,7 +43,10 @@ export function DeleteDefectType({
       showErrorToast('Не удалось удалить тип', defectErrorMessage(error) ?? 'Попробуйте ещё раз.')
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['defects'] })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['defects'] }),
+        queryClient.invalidateQueries({ queryKey: ['audit'] }),
+      ])
       closeDialog(true)
       onSuccess()
       showSuccessToast('Тип удалён', `Тип «${type.code}» удалён навсегда.`)

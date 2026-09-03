@@ -33,7 +33,10 @@ export function StatusUser({
   const mutation = useMutation({
     mutationFn: () => updateUserActive(user.id, active),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['users'] })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['users'] }),
+        queryClient.invalidateQueries({ queryKey: ['audit'] }),
+      ])
       closeDialog(true)
       onSuccess()
       showSuccessToast(

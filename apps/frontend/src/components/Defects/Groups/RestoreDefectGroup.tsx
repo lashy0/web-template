@@ -39,7 +39,10 @@ export function RestoreDefectGroup({
         defectErrorMessage(error) ?? 'Попробуйте ещё раз.',
       ),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['defects'] })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['defects'] }),
+        queryClient.invalidateQueries({ queryKey: ['audit'] }),
+      ])
       closeDialog(true)
       onSuccess()
       showSuccessToast('Группа восстановлена', `Группа «${group.code}» возвращена из архива.`)

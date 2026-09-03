@@ -63,7 +63,10 @@ export function ChangeUserPassword({
   const mutation = useMutation({
     mutationFn: ({ password }: ChangePasswordForm) => updateUserPassword(user.id, password),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['users'] })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['users'] }),
+        queryClient.invalidateQueries({ queryKey: ['audit'] }),
+      ])
       closeDialog(true)
       onSuccess()
       showSuccessToast('Пароль изменён', `Пароль пользователя «${user.name}» успешно обновлён.`)

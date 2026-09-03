@@ -49,7 +49,10 @@ export function ArchiveDefectGroup({
       )
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['defects'] })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['defects'] }),
+        queryClient.invalidateQueries({ queryKey: ['audit'] }),
+      ])
       closeDialog(true)
       onSuccess()
       showSuccessToast('Группа архивирована', `Группа «${group.code}» скрыта из текущего списка.`)

@@ -77,7 +77,10 @@ export function EditUser({
   const mutation = useMutation({
     mutationFn: (nextForm: EditForm) => updateUser(user.id, nextForm),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['users'] })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['users'] }),
+        queryClient.invalidateQueries({ queryKey: ['audit'] }),
+      ])
       closeDialog(true)
       onSuccess()
       showSuccessToast('Пользователь изменён', `Данные «${user.name}» сохранены.`)

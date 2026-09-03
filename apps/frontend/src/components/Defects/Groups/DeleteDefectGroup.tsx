@@ -49,7 +49,10 @@ export function DeleteDefectGroup({
       )
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['defects'] })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['defects'] }),
+        queryClient.invalidateQueries({ queryKey: ['audit'] }),
+      ])
       closeDialog(true)
       onSuccess()
       showSuccessToast('Группа удалена', `Группа «${group.code}» удалена навсегда.`)

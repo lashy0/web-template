@@ -31,7 +31,10 @@ export function DeletePak({
     mutationFn: () => deletePak(pak.id),
     onError: () => showErrorToast('Не удалось удалить ПАК', 'Попробуйте ещё раз.'),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['paks'] })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['paks'] }),
+        queryClient.invalidateQueries({ queryKey: ['audit'] }),
+      ])
       closeDialog(true)
       onSuccess()
       showSuccessToast('ПАК удалён', `ПАК «${pak.code}» удалён навсегда.`)

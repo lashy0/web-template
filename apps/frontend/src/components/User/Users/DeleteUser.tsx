@@ -30,7 +30,10 @@ export function DeleteUser({
   const mutation = useMutation({
     mutationFn: () => deleteUser(user.id),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['users'] })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['users'] }),
+        queryClient.invalidateQueries({ queryKey: ['audit'] }),
+      ])
       closeDialog(true)
       onSuccess()
       showSuccessToast('Пользователь удалён', `Учётная запись «${user.name}» удалена навсегда.`)

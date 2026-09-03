@@ -72,7 +72,10 @@ export function AddUser() {
   const mutation = useMutation({
     mutationFn: createUser,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['users'] })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['users'] }),
+        queryClient.invalidateQueries({ queryKey: ['audit'] }),
+      ])
       resetAndClose()
       showSuccessToast('Пользователь создан', 'Учётная запись успешно добавлена.')
     },

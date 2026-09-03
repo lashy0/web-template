@@ -30,7 +30,10 @@ export function RestoreUser({
   const mutation = useMutation({
     mutationFn: () => updateUserArchived(user.id, false),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['users'] })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['users'] }),
+        queryClient.invalidateQueries({ queryKey: ['audit'] }),
+      ])
       closeDialog(true)
       onSuccess()
       showSuccessToast(

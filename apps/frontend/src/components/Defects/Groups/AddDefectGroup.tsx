@@ -41,7 +41,10 @@ export function AddDefectGroup() {
   const mutation = useMutation({
     mutationFn: (data: CreateDefectGroupForm) => createDefectGroup(toInput(data)),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['defects'] })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['defects'] }),
+        queryClient.invalidateQueries({ queryKey: ['audit'] }),
+      ])
       resetAndClose()
       showSuccessToast('Группа создана', 'Группа дефектов успешно добавлена.')
     },

@@ -68,7 +68,10 @@ export function AddDefectType({ groupId }: Readonly<{ groupId?: string }>) {
   const mutation = useMutation({
     mutationFn: (data: CreateDefectTypeForm) => createDefectType(toInput(data)),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['defects'] })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['defects'] }),
+        queryClient.invalidateQueries({ queryKey: ['audit'] }),
+      ])
       resetAndClose()
       showSuccessToast('Тип создан', 'Тип дефекта успешно добавлен.')
     },

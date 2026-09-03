@@ -60,7 +60,10 @@ export function AddPak() {
   const mutation = useMutation({
     mutationFn: createPak,
     onSuccess: async (result) => {
-      await queryClient.invalidateQueries({ queryKey: ['paks'] })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['paks'] }),
+        queryClient.invalidateQueries({ queryKey: ['audit'] }),
+      ])
       form.reset(initialForm)
       setCreated(result)
       showSuccessToast('ПАК создан', `ПАК «${result.pak.code}» добавлен.`)

@@ -31,7 +31,10 @@ export function ArchivePak({
     mutationFn: () => updatePakArchived(pak.id, true),
     onError: () => showErrorToast('Не удалось архивировать ПАК', 'Попробуйте ещё раз.'),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['paks'] })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['paks'] }),
+        queryClient.invalidateQueries({ queryKey: ['audit'] }),
+      ])
       closeDialog(true)
       onSuccess()
       showSuccessToast('ПАК архивирован', `ПАК «${pak.code}» скрыт из текущего списка.`)

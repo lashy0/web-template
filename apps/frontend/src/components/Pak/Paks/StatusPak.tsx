@@ -33,7 +33,10 @@ export function StatusPak({
     mutationFn: () => updatePakActive(pak.id, activate),
     onError: () => showErrorToast(`Не удалось ${action.toLowerCase()} ПАК`, 'Попробуйте ещё раз.'),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['paks'] })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['paks'] }),
+        queryClient.invalidateQueries({ queryKey: ['audit'] }),
+      ])
       closeDialog(true)
       onSuccess()
       showSuccessToast(

@@ -68,7 +68,10 @@ export function EditDefectType({
         possible_cause: data.possible_cause.trim() || null,
       }),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['defects'] })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['defects'] }),
+        queryClient.invalidateQueries({ queryKey: ['audit'] }),
+      ])
       close(true)
       onSuccess()
       showSuccessToast('Тип изменён', `Данные «${type.code}» сохранены.`)

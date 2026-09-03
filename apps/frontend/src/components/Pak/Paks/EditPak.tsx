@@ -66,7 +66,10 @@ export function EditPak({
   const mutation = useMutation({
     mutationFn: (data: EditPakForm) => updatePak(pak.id, data),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['paks'] })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['paks'] }),
+        queryClient.invalidateQueries({ queryKey: ['audit'] }),
+      ])
       close(true)
       onSuccess()
       showSuccessToast('ПАК изменён', `Данные «${pak.code}» сохранены.`)
