@@ -17,6 +17,11 @@ from app.auth.contracts import AuthSession, Identity
 from app.auth.roles import Role
 from app.core.config import Settings
 from app.main import create_app
+from app.modules.defects.exceptions import (
+    DefectGroupCannotBeDeletedError,
+    DefectGroupHasUnarchivedTypesError,
+    DefectTypeCannotBeDeletedError,
+)
 from app.modules.defects.models import DefectGroup, DefectType
 
 _ALLOWED_ORIGIN = "https://admin.example"
@@ -61,6 +66,7 @@ def _type(group: DefectGroup) -> DefectType:
     now = datetime.now(UTC)
     return DefectType(
         id=uuid4(),
+        group=group,
         group_id=group.id,
         code="VOLTAGE_LOW",
         name="Low voltage",
@@ -91,9 +97,7 @@ def _configure_principal(
     )
     repository = mocker.patch("app.api.auth_deps.UserRepository")
     repository.return_value.get_by_identity_id = AsyncMock(
-        return_value=SimpleNamespace(
-            id=uuid4(), role=role, name="Admin", identity_login="admin"
-        )
+        return_value=SimpleNamespace(id=uuid4(), role=role, name="Admin", identity_login="admin")
     )
     mocker.patch.object(app.state, "database", SimpleNamespace(session_factory=_SessionFactory()))
     mocker.patch.object(app.state, "defect_management", service)
@@ -110,7 +114,7 @@ def test_list_groups_serializes_items_and_forwards_filters(
 ) -> None:
     app, client = defects_client
     group = _group()
-    service = SimpleNamespace(list_groups=AsyncMock(return_value=([group], 1)))
+    service = SimpleNamespace(list_groups=AsyncMock(return_value=([(group, 0, 0)], 1)))
     _configure_principal(app, mocker, service, Role.MANAGER)
 
     response = client.get(
@@ -120,6 +124,8 @@ def test_list_groups_serializes_items_and_forwards_filters(
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["items"][0]["id"] == str(group.id)
+    assert response.json()["items"][0]["active_types_count"] == 0
+    assert response.json()["items"][0]["types_count"] == 0
     assert response.json()["total"] == 1
     service.list_groups.assert_awaited_once_with(
         q="power",
@@ -180,6 +186,44 @@ def test_group_mutation_routes_forward_normalized_payloads(
 
 
 @pytest.mark.api
+def test_group_archive_with_active_types_returns_conflict(
+    defects_client: tuple[FastAPI, TestClient],
+    mocker: MockerFixture,
+) -> None:
+    app, client = defects_client
+    group = _group()
+    service = SimpleNamespace(
+        set_group_archived=AsyncMock(side_effect=DefectGroupHasUnarchivedTypesError)
+    )
+    _configure_principal(app, mocker, service, Role.ADMINISTRATOR)
+
+    response = client.put(
+        f"/defects/groups/{group.id}/archived",
+        headers=_headers(),
+        json={"archived": True},
+    )
+
+    assert response.status_code == status.HTTP_409_CONFLICT
+    assert response.json()["code"] == "defect_group_has_unarchived_types"
+
+
+@pytest.mark.api
+def test_group_delete_with_types_returns_conflict(
+    defects_client: tuple[FastAPI, TestClient],
+    mocker: MockerFixture,
+) -> None:
+    app, client = defects_client
+    group = _group()
+    service = SimpleNamespace(delete_group=AsyncMock(side_effect=DefectGroupCannotBeDeletedError))
+    _configure_principal(app, mocker, service, Role.ADMINISTRATOR)
+
+    response = client.delete(f"/defects/groups/{group.id}", headers=_headers())
+
+    assert response.status_code == status.HTTP_409_CONFLICT
+    assert response.json()["code"] == "defect_group_cannot_be_deleted"
+
+
+@pytest.mark.api
 def test_type_mutation_routes_forward_group_and_optional_fields(
     defects_client: tuple[FastAPI, TestClient],
     mocker: MockerFixture,
@@ -235,6 +279,23 @@ def test_type_mutation_routes_forward_group_and_optional_fields(
     service.set_type_archived.assert_awaited_once_with(
         actor=ANY, defect_type_id=defect_type.id, archived=False
     )
+
+
+@pytest.mark.api
+def test_type_delete_when_used_returns_conflict(
+    defects_client: tuple[FastAPI, TestClient],
+    mocker: MockerFixture,
+) -> None:
+    app, client = defects_client
+    group = _group()
+    defect_type = _type(group)
+    service = SimpleNamespace(delete_type=AsyncMock(side_effect=DefectTypeCannotBeDeletedError))
+    _configure_principal(app, mocker, service, Role.ADMINISTRATOR)
+
+    response = client.delete(f"/defects/types/{defect_type.id}", headers=_headers())
+
+    assert response.status_code == status.HTTP_409_CONFLICT
+    assert response.json()["code"] == "defect_type_cannot_be_deleted"
 
 
 @pytest.mark.api

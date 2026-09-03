@@ -16,6 +16,16 @@ from app.auth.exceptions import (
 )
 from app.core.exceptions import AppError
 from app.modules.batch.exceptions import BatchNotFoundError
+from app.modules.defects.exceptions import (
+    DefectGroupAlreadyExistsError,
+    DefectGroupArchivedError,
+    DefectGroupCannotBeDeletedError,
+    DefectGroupHasUnarchivedTypesError,
+    DefectGroupNotFoundError,
+    DefectTypeAlreadyExistsError,
+    DefectTypeCannotBeDeletedError,
+    DefectTypeNotFoundError,
+)
 from app.modules.kg.exceptions import KgAlreadyExistsError, KgCannotBeDeletedError, KgNotFoundError
 from app.modules.pak.exceptions import (
     InvalidMachineAccessTokenError,
@@ -68,11 +78,19 @@ def install_error_handlers(app: FastAPI) -> None:
         (OAuthClientNotFoundError, status.HTTP_404_NOT_FOUND),
         (UserNotFoundError, status.HTTP_404_NOT_FOUND),
         (BatchNotFoundError, status.HTTP_404_NOT_FOUND),
+        (DefectGroupNotFoundError, status.HTTP_404_NOT_FOUND),
+        (DefectTypeNotFoundError, status.HTTP_404_NOT_FOUND),
         (KgNotFoundError, status.HTTP_404_NOT_FOUND),
         (PakNotFoundError, status.HTTP_404_NOT_FOUND),
         (PakTestNotFoundError, status.HTTP_404_NOT_FOUND),
         (KgAlreadyExistsError, status.HTTP_409_CONFLICT),
         (KgCannotBeDeletedError, status.HTTP_409_CONFLICT),
+        (DefectGroupAlreadyExistsError, status.HTTP_409_CONFLICT),
+        (DefectGroupArchivedError, status.HTTP_409_CONFLICT),
+        (DefectGroupCannotBeDeletedError, status.HTTP_409_CONFLICT),
+        (DefectGroupHasUnarchivedTypesError, status.HTTP_409_CONFLICT),
+        (DefectTypeAlreadyExistsError, status.HTTP_409_CONFLICT),
+        (DefectTypeCannotBeDeletedError, status.HTTP_409_CONFLICT),
         (PakAlreadyExistsError, status.HTTP_409_CONFLICT),
         (PakAccessKeyConfigurationError, status.HTTP_503_SERVICE_UNAVAILABLE),
         (PakProvisioningError, status.HTTP_503_SERVICE_UNAVAILABLE),
@@ -91,6 +109,7 @@ def install_error_handlers(app: FastAPI) -> None:
         (VerificationStepInProgressError, status.HTTP_409_CONFLICT),
         (VerificationStepOutOfRangeError, status.HTTP_409_CONFLICT),
     ]
+
     for exception, status_code in mappings:
         app.add_exception_handler(
             exception,

@@ -14,8 +14,13 @@ class DefectGroupResponse(BaseModel):
     updated_at: datetime
 
 
+class DefectGroupListItemResponse(DefectGroupResponse):
+    active_types_count: int = Field(ge=0)
+    types_count: int = Field(ge=0)
+
+
 class DefectGroupListResponse(BaseModel):
-    items: list[DefectGroupResponse]
+    items: list[DefectGroupListItemResponse]
     total: int
     page: int
     page_size: int

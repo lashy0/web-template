@@ -184,6 +184,31 @@ export const zCreateKgDevEuiPrefixRequest = z.object({
 });
 
 /**
+ * DefectGroupListItemResponse
+ */
+export const zDefectGroupListItemResponse = z.object({
+    active_types_count: z.int().gte(0),
+    archived_at: z.iso.datetime().nullable(),
+    code: z.string(),
+    created_at: z.iso.datetime(),
+    description: z.string().nullable(),
+    id: z.uuid(),
+    name: z.string(),
+    types_count: z.int().gte(0),
+    updated_at: z.iso.datetime()
+});
+
+/**
+ * DefectGroupListResponse
+ */
+export const zDefectGroupListResponse = z.object({
+    items: z.array(zDefectGroupListItemResponse),
+    page: z.int(),
+    page_size: z.int(),
+    total: z.int()
+});
+
+/**
  * DefectGroupResponse
  */
 export const zDefectGroupResponse = z.object({
@@ -194,16 +219,6 @@ export const zDefectGroupResponse = z.object({
     id: z.uuid(),
     name: z.string(),
     updated_at: z.iso.datetime()
-});
-
-/**
- * DefectGroupListResponse
- */
-export const zDefectGroupListResponse = z.object({
-    items: z.array(zDefectGroupResponse),
-    page: z.int(),
-    page_size: z.int(),
-    total: z.int()
 });
 
 /**

@@ -868,11 +868,84 @@
         "title": "CreateUserRequest",
         "type": "object"
       },
+      "DefectGroupListItemResponse": {
+        "properties": {
+          "active_types_count": {
+            "minimum": 0.0,
+            "title": "Active Types Count",
+            "type": "integer"
+          },
+          "archived_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archived At"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "types_count": {
+            "minimum": 0.0,
+            "title": "Types Count",
+            "type": "integer"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "description",
+          "archived_at",
+          "created_at",
+          "updated_at",
+          "active_types_count",
+          "types_count"
+        ],
+        "title": "DefectGroupListItemResponse",
+        "type": "object"
+      },
       "DefectGroupListResponse": {
         "properties": {
           "items": {
             "items": {
-              "$ref": "#/components/schemas/DefectGroupResponse"
+              "$ref": "#/components/schemas/DefectGroupListItemResponse"
             },
             "title": "Items",
             "type": "array"

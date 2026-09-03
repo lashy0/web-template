@@ -41,9 +41,12 @@ class DefectManagementService:
         async with self._session_factory() as session:
             return await DefectGroupRepository(session).get_by_code(code)
 
-    async def list_groups(self, **filters: object) -> tuple[list[DefectGroup], int]:
+    async def list_groups(
+        self,
+        **filters: object,
+    ) -> tuple[list[tuple[DefectGroup, int, int]], int]:
         async with self._session_factory() as session:
-            return await DefectGroupRepository(session).search(**filters) # type: ignore[arg-type]
+            return await DefectGroupRepository(session).search(**filters)  # type: ignore[arg-type]
 
     async def create_group(
         self,
@@ -97,25 +100,17 @@ class DefectManagementService:
             if not updates:
                 return group
 
-            old_values = {
-                field: getattr(group, field)
-                for field in updates
-            }
+            old_values = {field: getattr(group, field) for field in updates}
 
             group = await repository.update_details(
                 group,
                 updates=updates,
             )
 
-            new_values = {
-                field: getattr(group, field)
-                for field in updates
-            }
+            new_values = {field: getattr(group, field) for field in updates}
 
             changed = {
-                field: value
-                for field, value in new_values.items()
-                if value != old_values[field]
+                field: value for field, value in new_values.items() if value != old_values[field]
             }
 
             if changed:
@@ -123,10 +118,7 @@ class DefectManagementService:
                     actor=self._audit_actor(actor),
                     action="defect_group.updated",
                     entity=self._group_audit_entity(group),
-                    old_data={
-                        field: old_values[field]
-                        for field in changed
-                    },
+                    old_data={field: old_values[field] for field in changed},
                     new_data=changed,
                 )
 
@@ -149,9 +141,7 @@ class DefectManagementService:
                 if group.archived_at is not None:
                     return group
 
-                if await type_repository.exists_unarchived_by_group(
-                    group.id
-                ):
+                if await type_repository.exists_unarchived_by_group(group.id):
                     raise DefectGroupHasUnarchivedTypesError
 
                 archived_at = datetime.now(UTC)
@@ -222,9 +212,7 @@ class DefectManagementService:
                     "name": group.name,
                     "description": group.description,
                     "archived_at": (
-                        group.archived_at.isoformat()
-                        if group.archived_at is not None
-                        else None
+                        group.archived_at.isoformat() if group.archived_at is not None else None
                     ),
                 },
             )
@@ -247,7 +235,7 @@ class DefectManagementService:
 
     async def list_types(self, **filters: object) -> tuple[list[DefectType], int]:
         async with self._session_factory() as session:
-            return await DefectTypeRepository(session).search(**filters) # type: ignore[arg-type]
+            return await DefectTypeRepository(session).search(**filters)  # type: ignore[arg-type]
 
     async def create_type(
         self,
@@ -315,25 +303,17 @@ class DefectManagementService:
             if not updates:
                 return defect_type
 
-            old_values = {
-                field: getattr(defect_type, field)
-                for field in updates
-            }
+            old_values = {field: getattr(defect_type, field) for field in updates}
 
             defect_type = await repository.update_details(
                 defect_type,
                 updates=updates,
             )
 
-            new_values = {
-                field: getattr(defect_type, field)
-                for field in updates
-            }
+            new_values = {field: getattr(defect_type, field) for field in updates}
 
             changed = {
-                field: value
-                for field, value in new_values.items()
-                if value != old_values[field]
+                field: value for field, value in new_values.items() if value != old_values[field]
             }
 
             if changed:
@@ -341,10 +321,7 @@ class DefectManagementService:
                     actor=self._audit_actor(actor),
                     action="defect_type.updated",
                     entity=self._type_audit_entity(defect_type),
-                    old_data={
-                        field: old_values[field]
-                        for field in changed
-                    },
+                    old_data={field: old_values[field] for field in changed},
                     new_data=changed,
                 )
 

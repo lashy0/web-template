@@ -36,9 +36,7 @@ class DefectGroupRepository:
         return await self._session.get(DefectGroup, group_id)
 
     async def get_by_code(self, code: str) -> DefectGroup | None:
-        statement = select(DefectGroup).where(
-            DefectGroup.code == code
-        )
+        statement = select(DefectGroup).where(DefectGroup.code == code)
 
         result = await self._session.execute(statement)
 
@@ -84,7 +82,7 @@ class DefectGroupRepository:
         page_size: int,
         sort: str,
         order: str,
-    ) -> tuple[list[DefectGroup], int]:
+    ) -> tuple[list[tuple[DefectGroup, int, int]], int]:
         filters: list[ColumnElement[bool]] = [
             (
                 DefectGroup.archived_at.is_not(None)
@@ -103,7 +101,14 @@ class DefectGroupRepository:
                 )
             )
 
-        statement = select(DefectGroup).where(*filters)
+        active_types_count = func.count(DefectType.id).filter(DefectType.archived_at.is_(None))
+        types_count = func.count(DefectType.id)
+        statement = (
+            select(DefectGroup, active_types_count, types_count)
+            .outerjoin(DefectType, DefectType.group_id == DefectGroup.id)
+            .where(*filters)
+            .group_by(DefectGroup.id)
+        )
 
         column = {
             "code": DefectGroup.code,
@@ -113,15 +118,10 @@ class DefectGroupRepository:
             "archived_at": DefectGroup.archived_at,
         }[sort]
 
-        sorted_column = (
-            column.desc().nulls_last()
-            if order == "desc"
-            else column.asc().nulls_last()
-        )
+        sorted_column = column.desc().nulls_last() if order == "desc" else column.asc().nulls_last()
 
         statement = (
-            statement
-            .order_by(
+            statement.order_by(
                 sorted_column,
                 DefectGroup.id.asc(),
             )
@@ -130,14 +130,15 @@ class DefectGroupRepository:
         )
 
         count = await self._session.scalar(
-            select(func.count())
-            .select_from(DefectGroup)
-            .where(*filters)
+            select(func.count()).select_from(DefectGroup).where(*filters)
         )
 
         result = await self._session.execute(statement)
 
-        return list(result.scalars()), int(count or 0)
+        return [
+            (group, int(active_types_count), int(types_count))
+            for group, active_types_count, types_count in result.tuples()
+        ], int(count or 0)
 
 
 class DefectTypeRepository:
@@ -174,9 +175,7 @@ class DefectTypeRepository:
         return await self._session.get(DefectType, defect_type_id)
 
     async def get_by_code(self, code: str) -> DefectType | None:
-        statement = select(DefectType).where(
-            DefectType.code == code
-        )
+        statement = select(DefectType).where(DefectType.code == code)
 
         result = await self._session.execute(statement)
 
@@ -228,11 +227,7 @@ class DefectTypeRepository:
         order: str,
     ) -> tuple[list[DefectType], int]:
         filters: list[ColumnElement[bool]] = [
-            (
-                DefectType.archived_at.is_not(None)
-                if archived
-                else DefectType.archived_at.is_(None)
-            )
+            (DefectType.archived_at.is_not(None) if archived else DefectType.archived_at.is_(None))
         ]
 
         if q:
@@ -246,9 +241,7 @@ class DefectTypeRepository:
             )
 
         if group_id is not None:
-            filters.append(
-                DefectType.group_id == group_id
-            )
+            filters.append(DefectType.group_id == group_id)
 
         statement = select(DefectType).where(*filters)
 
@@ -260,15 +253,10 @@ class DefectTypeRepository:
             "archived_at": DefectType.archived_at,
         }[sort]
 
-        sorted_column = (
-            column.desc().nulls_last()
-            if order == "desc"
-            else column.asc().nulls_last()
-        )
+        sorted_column = column.desc().nulls_last() if order == "desc" else column.asc().nulls_last()
 
         statement = (
-            statement
-            .order_by(
+            statement.order_by(
                 sorted_column,
                 DefectType.id.asc(),
             )
@@ -277,9 +265,7 @@ class DefectTypeRepository:
         )
 
         count = await self._session.scalar(
-            select(func.count())
-            .select_from(DefectType)
-            .where(*filters)
+            select(func.count()).select_from(DefectType).where(*filters)
         )
 
         result = await self._session.execute(statement)
@@ -288,13 +274,7 @@ class DefectTypeRepository:
 
     async def exists_by_group(self, group_id: UUID) -> bool:
         return bool(
-            await self._session.scalar(
-                select(
-                    exists().where(
-                        DefectType.group_id == group_id
-                    )
-                )
-            )
+            await self._session.scalar(select(exists().where(DefectType.group_id == group_id)))
         )
 
     async def exists_unarchived_by_group(self, group_id: UUID) -> bool:

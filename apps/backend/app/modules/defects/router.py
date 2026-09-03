@@ -13,6 +13,7 @@ from app.modules.defects.permissions import DefectPermission
 from app.modules.defects.schemas import (
     CreateDefectGroupRequest,
     CreateDefectTypeRequest,
+    DefectGroupListItemResponse,
     DefectGroupListResponse,
     DefectGroupResponse,
     DefectGroupSummaryResponse,
@@ -72,11 +73,7 @@ def _type_response(defect_type: DefectType) -> DefectTypeResponse:
 async def list_defect_groups(
     _: Annotated[
         CurrentPrincipalDep,
-        Depends(
-            require_permission(
-                DefectPermission.READ
-            )
-        ),
+        Depends(require_permission(DefectPermission.READ)),
     ],
     request: Request,
     q: str | None = None,
@@ -103,8 +100,12 @@ async def list_defect_groups(
 
     return DefectGroupListResponse(
         items=[
-            _group_response(group)
-            for group in groups
+            DefectGroupListItemResponse(
+                **_group_response(group).model_dump(),
+                active_types_count=active_types_count,
+                types_count=types_count,
+            )
+            for group, active_types_count, types_count in groups
         ],
         total=total,
         page=page,
@@ -117,11 +118,7 @@ async def get_defect_group(
     group_id: UUID,
     _: Annotated[
         CurrentPrincipalDep,
-        Depends(
-            require_permission(
-                DefectPermission.READ
-            )
-        ),
+        Depends(require_permission(DefectPermission.READ)),
     ],
     request: Request,
 ) -> DefectGroupResponse:
@@ -142,11 +139,7 @@ async def create_defect_group(
     payload: CreateDefectGroupRequest,
     principal: Annotated[
         CurrentPrincipalDep,
-        Depends(
-            require_permission(
-                DefectPermission.CREATE
-            )
-        ),
+        Depends(require_permission(DefectPermission.CREATE)),
     ],
     request: Request,
 ) -> DefectGroupResponse:
@@ -166,20 +159,14 @@ async def update_defect_group(
     payload: UpdateDefectGroupRequest,
     principal: Annotated[
         CurrentPrincipalDep,
-        Depends(
-            require_permission(
-                DefectPermission.UPDATE
-            )
-        ),
+        Depends(require_permission(DefectPermission.UPDATE)),
     ],
     request: Request,
 ) -> DefectGroupResponse:
     group = await _service(request).update_group(
         actor=principal,
         group_id=group_id,
-        updates=payload.model_dump(
-            exclude_unset=True
-        ),
+        updates=payload.model_dump(exclude_unset=True),
     )
 
     return _group_response(group)
@@ -191,11 +178,7 @@ async def update_defect_group_archived(
     payload: UpdateDefectGroupArchivedRequest,
     principal: Annotated[
         CurrentPrincipalDep,
-        Depends(
-            require_permission(
-                DefectPermission.ARCHIVE
-            )
-        ),
+        Depends(require_permission(DefectPermission.ARCHIVE)),
     ],
     request: Request,
 ) -> DefectGroupResponse:
@@ -213,11 +196,7 @@ async def delete_defect_group(
     group_id: UUID,
     principal: Annotated[
         CurrentPrincipalDep,
-        Depends(
-            require_permission(
-                DefectPermission.DELETE
-            )
-        ),
+        Depends(require_permission(DefectPermission.DELETE)),
     ],
     request: Request,
 ) -> None:
@@ -231,11 +210,7 @@ async def delete_defect_group(
 async def list_defect_types(
     _: Annotated[
         CurrentPrincipalDep,
-        Depends(
-            require_permission(
-                DefectPermission.READ
-            )
-        ),
+        Depends(require_permission(DefectPermission.READ)),
     ],
     request: Request,
     q: str | None = None,
@@ -263,10 +238,7 @@ async def list_defect_types(
     )
 
     return DefectTypeListResponse(
-        items=[
-            _type_response(defect_type)
-            for defect_type in defect_types
-        ],
+        items=[_type_response(defect_type) for defect_type in defect_types],
         total=total,
         page=page,
         page_size=page_size,
@@ -278,17 +250,11 @@ async def get_defect_type(
     defect_type_id: UUID,
     _: Annotated[
         CurrentPrincipalDep,
-        Depends(
-            require_permission(
-                DefectPermission.READ
-            )
-        ),
+        Depends(require_permission(DefectPermission.READ)),
     ],
     request: Request,
 ) -> DefectTypeResponse:
-    defect_type = await _service(request).get_type(
-        defect_type_id
-    )
+    defect_type = await _service(request).get_type(defect_type_id)
 
     if defect_type is None:
         raise DefectTypeNotFoundError
@@ -305,11 +271,7 @@ async def create_defect_type(
     payload: CreateDefectTypeRequest,
     principal: Annotated[
         CurrentPrincipalDep,
-        Depends(
-            require_permission(
-                DefectPermission.CREATE
-            )
-        ),
+        Depends(require_permission(DefectPermission.CREATE)),
     ],
     request: Request,
 ) -> DefectTypeResponse:
@@ -332,20 +294,14 @@ async def update_defect_type(
     payload: UpdateDefectTypeRequest,
     principal: Annotated[
         CurrentPrincipalDep,
-        Depends(
-            require_permission(
-                DefectPermission.UPDATE
-            )
-        ),
+        Depends(require_permission(DefectPermission.UPDATE)),
     ],
     request: Request,
 ) -> DefectTypeResponse:
     defect_type = await _service(request).update_type(
         actor=principal,
         defect_type_id=defect_type_id,
-        updates=payload.model_dump(
-            exclude_unset=True
-        ),
+        updates=payload.model_dump(exclude_unset=True),
     )
 
     return _type_response(defect_type)
@@ -357,11 +313,7 @@ async def update_defect_type_archived(
     payload: UpdateDefectTypeArchivedRequest,
     principal: Annotated[
         CurrentPrincipalDep,
-        Depends(
-            require_permission(
-                DefectPermission.ARCHIVE
-            )
-        ),
+        Depends(require_permission(DefectPermission.ARCHIVE)),
     ],
     request: Request,
 ) -> DefectTypeResponse:
@@ -379,11 +331,7 @@ async def delete_defect_type(
     defect_type_id: UUID,
     principal: Annotated[
         CurrentPrincipalDep,
-        Depends(
-            require_permission(
-                DefectPermission.DELETE
-            )
-        ),
+        Depends(require_permission(DefectPermission.DELETE)),
     ],
     request: Request,
 ) -> None:

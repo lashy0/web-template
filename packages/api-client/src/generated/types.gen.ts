@@ -476,13 +476,55 @@ export type CreateUserRequest = {
 };
 
 /**
+ * DefectGroupListItemResponse
+ */
+export type DefectGroupListItemResponse = {
+    /**
+     * Active Types Count
+     */
+    active_types_count: number;
+    /**
+     * Archived At
+     */
+    archived_at: string | null;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Description
+     */
+    description: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Types Count
+     */
+    types_count: number;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
  * DefectGroupListResponse
  */
 export type DefectGroupListResponse = {
     /**
      * Items
      */
-    items: Array<DefectGroupResponse>;
+    items: Array<DefectGroupListItemResponse>;
     /**
      * Page
      */
