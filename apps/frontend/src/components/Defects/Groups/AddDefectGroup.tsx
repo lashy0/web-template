@@ -20,6 +20,7 @@ import { Spinner } from '@web-app/ui/components/spinner'
 
 import {
   createDefectGroup,
+  defectErrorCode,
   defectErrorMessage,
   type CreateDefectGroupInput,
 } from '@/features/defects/defects-api'
@@ -51,7 +52,7 @@ export function AddDefectGroup() {
     onError: (error) => {
       const message = defectErrorMessage(error)
 
-      if (message?.includes('таким кодом')) {
+      if (defectErrorCode(error) === 'defect_group_already_exists') {
         form.setError('code', { message, type: 'server' }, { shouldFocus: true })
         return
       }

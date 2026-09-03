@@ -40,22 +40,20 @@ export function DefectGroupActionsMenu({ group }: Readonly<{ group: DefectGroup 
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuGroup>
+          <DropdownMenuItem onClick={() => setEditOpen(true)}>
+            <PencilIcon />
+            Изменить
+          </DropdownMenuItem>
           {group.archivedAt ? (
             <DropdownMenuItem onClick={() => setRestoreOpen(true)}>
               <RotateCcwIcon />
               Восстановить
             </DropdownMenuItem>
           ) : (
-            <>
-              <DropdownMenuItem onClick={() => setEditOpen(true)}>
-                <PencilIcon />
-                Изменить
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setArchiveOpen(true)}>
-                <ArchiveIcon />
-                Архивировать
-              </DropdownMenuItem>
-            </>
+            <DropdownMenuItem onClick={() => setArchiveOpen(true)}>
+              <ArchiveIcon />
+              Архивировать
+            </DropdownMenuItem>
           )}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />

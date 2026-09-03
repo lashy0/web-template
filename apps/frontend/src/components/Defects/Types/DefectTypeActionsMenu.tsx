@@ -47,22 +47,20 @@ export function DefectTypeActionsMenu({ type }: Readonly<{ type: DefectType }>) 
             <EyeIcon />
             Подробнее
           </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setEditOpen(true)}>
+            <PencilIcon />
+            Изменить
+          </DropdownMenuItem>
           {type.archivedAt ? (
             <DropdownMenuItem onClick={() => setRestoreOpen(true)}>
               <RotateCcwIcon />
               Восстановить
             </DropdownMenuItem>
           ) : (
-            <>
-              <DropdownMenuItem onClick={() => setEditOpen(true)}>
-                <PencilIcon />
-                Изменить
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setArchiveOpen(true)}>
-                <ArchiveIcon />
-                Архивировать
-              </DropdownMenuItem>
-            </>
+            <DropdownMenuItem onClick={() => setArchiveOpen(true)}>
+              <ArchiveIcon />
+              Архивировать
+            </DropdownMenuItem>
           )}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
