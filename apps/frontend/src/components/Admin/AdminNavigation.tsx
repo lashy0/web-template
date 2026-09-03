@@ -1,5 +1,5 @@
 import { Link as RouterLink, useRouterState } from '@tanstack/react-router'
-import { ChevronRightIcon, CpuIcon, UsersIcon } from 'lucide-react'
+import { BugIcon, ChevronRightIcon, CpuIcon, UsersIcon } from 'lucide-react'
 import { useState } from 'react'
 
 import {
@@ -24,12 +24,15 @@ export function AdminNavigation() {
   const { isMobile, setOpenMobile, state } = useSidebar()
   const [isUsersTooltipDismissed, setIsUsersTooltipDismissed] = useState(false)
   const [isPaksTooltipDismissed, setIsPaksTooltipDismissed] = useState(false)
+  const [isDefectsTooltipDismissed, setIsDefectsTooltipDismissed] = useState(false)
   const router = useRouterState()
   const currentPath = router.location.pathname
   const isUsersSectionActive =
     currentPath === '/admin/user/users' || currentPath === '/admin/user/audit'
   const isPaksSectionActive =
     currentPath === '/admin/pak/paks' || currentPath === '/admin/pak/audit'
+  const isDefectsSectionActive =
+    currentPath === '/admin/defects/groups' || currentPath === '/admin/defects/types'
   const isCollapsedDesktop = state === 'collapsed' && !isMobile
 
   const handleMenuClick = () => {
@@ -148,6 +151,61 @@ export function AdminNavigation() {
                     render={<RouterLink to="/admin/pak/audit" onClick={handleMenuClick} />}
                   >
                     Аудит
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+              </SidebarMenuSub>
+            </CollapsibleContent>
+          </Collapsible>
+          <Collapsible
+            className="group/collapsible"
+            defaultOpen={isDefectsSectionActive}
+            render={<SidebarMenuItem />}
+          >
+            <SidebarMenuButton
+              isActive={isDefectsSectionActive}
+              render={
+                isCollapsedDesktop ? (
+                  <RouterLink
+                    to="/admin/defects/groups"
+                    onClick={() => {
+                      setIsDefectsTooltipDismissed(true)
+                      handleMenuClick()
+                    }}
+                    onPointerEnter={() => setIsDefectsTooltipDismissed(false)}
+                  />
+                ) : (
+                  <CollapsibleTrigger />
+                )
+              }
+            >
+              <BugIcon />
+              <span>Дефекты</span>
+              <ChevronRightIcon className="ml-auto transition-transform group-data-open/collapsible:rotate-90" />
+            </SidebarMenuButton>
+            {isCollapsedDesktop && !isDefectsTooltipDismissed && (
+              <span
+                role="tooltip"
+                className="pointer-events-none absolute top-1/2 left-full z-50 ml-2 -translate-y-1/2 whitespace-nowrap rounded-md bg-foreground px-3 py-1.5 text-xs text-background opacity-0 transition-opacity group-hover/menu-item:opacity-100 before:absolute before:top-1/2 before:-left-1 before:size-2 before:-translate-y-1/2 before:rotate-45 before:rounded-[2px] before:bg-foreground"
+              >
+                Дефекты
+              </span>
+            )}
+            <CollapsibleContent>
+              <SidebarMenuSub>
+                <SidebarMenuSubItem>
+                  <SidebarMenuSubButton
+                    isActive={currentPath === '/admin/defects/groups'}
+                    render={<RouterLink to="/admin/defects/groups" onClick={handleMenuClick} />}
+                  >
+                    Группы
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+                <SidebarMenuSubItem>
+                  <SidebarMenuSubButton
+                    isActive={currentPath === '/admin/defects/types'}
+                    render={<RouterLink to="/admin/defects/types" onClick={handleMenuClick} />}
+                  >
+                    Типы
                   </SidebarMenuSubButton>
                 </SidebarMenuSubItem>
               </SidebarMenuSub>

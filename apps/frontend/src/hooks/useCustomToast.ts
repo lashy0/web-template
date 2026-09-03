@@ -6,5 +6,7 @@ export default function useCustomToast() {
       toast.add({ description, title, type: 'error' }),
     showSuccessToast: (title: string, description?: string) =>
       toast.add({ description, title, type: 'success' }),
+    showWarningToast: (title: string, description?: string) =>
+      toast.add({ description, title, type: 'warning' }),
   }
 }
