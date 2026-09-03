@@ -20,9 +20,21 @@ import {
   type SortOrder,
   type UserSort,
 } from '@/features/users/users-api'
+import { listEnum, listOrder, listPage, listPageSize, listQuery } from '@/lib/list-search'
 import { Button } from '@web-app/ui/components/button'
 
+const authStates = ['active', 'inactive'] as const satisfies readonly AuthState[]
+const userRoles = [
+  'administrator',
+  'manager',
+  'engineer',
+  'packer',
+  'operator',
+] as const satisfies readonly Role[]
+const userTableSorts = ['archived_at', 'login', 'name'] as const satisfies readonly UserSort[]
+
 export const Route = createFileRoute('/_layout/admin/user/users')({
+  validateSearch: validateUsersSearch,
   component: Users,
   pendingComponent: () => <PendingUsers showPageHeader />,
 })
@@ -38,14 +50,11 @@ type UsersQuery = Readonly<{
   sort: UserSort
 }>
 
-function defaultUserSorting(archived: boolean): DataTableSorting {
-  return [{ id: archived ? 'archived_at' : 'name', desc: archived }]
-}
-
 function userSortParams(sorting: DataTableSorting): Readonly<{ order: SortOrder; sort: UserSort }> {
   const [current] = sorting
-  if (current?.id === 'login' || current?.id === 'archived_at' || current?.id === 'name') {
-    return { order: current.desc ? 'desc' : 'asc', sort: current.id }
+  const sort = listEnum(userTableSorts, current?.id)
+  if (sort) {
+    return { order: current?.desc ? 'desc' : 'asc', sort }
   }
   return { order: 'asc', sort: 'name' }
 }
@@ -59,42 +68,61 @@ function getUsersQueryOptions(params: UsersQuery) {
 
 function Users() {
   const { currentUser } = Route.useRouteContext()
-  const [pagination, setPagination] = useState<DataTablePaginationState>({
-    pageIndex: 0,
-    pageSize: 25 as PageSize,
-  })
-  const [archived, setArchived] = useState(false)
-  const [query, setQuery] = useState('')
-  const [debouncedQuery, setDebouncedQuery] = useState('')
-  const [role, setRole] = useState<Role | 'all'>('all')
-  const [authState, setAuthState] = useState<AuthState | 'all'>('all')
-  const [sorting, setSorting] = useState<DataTableSorting>(() => defaultUserSorting(false))
+  const search = Route.useSearch()
+  const navigate = Route.useNavigate()
+  const archived = search.archived ?? false
+  const pagination: DataTablePaginationState = {
+    pageIndex: (search.page ?? 1) - 1,
+    pageSize: search.pageSize ?? (25 as PageSize),
+  }
+  const role = search.role ?? 'all'
+  const authState = search.authState ?? 'all'
+  const sorting = sortingFromSearch(search, archived)
+  const [queryInput, setQueryInput] = useState(search.q ?? '')
+
+  useEffect(() => {
+    setQueryInput(search.q ?? '')
+  }, [search.q])
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
-      setPagination((current) => ({ ...current, pageIndex: 0 }))
-      setDebouncedQuery(query.trim())
+      const query = queryInput.trim()
+      if (query !== (search.q ?? '')) {
+        navigate({
+          replace: true,
+          search: (previous) => ({ ...previous, page: undefined, q: query || undefined }),
+        })
+      }
     }, 300)
 
     return () => window.clearTimeout(timeout)
-  }, [query])
+  }, [navigate, queryInput, search.q])
 
   function handleRoleChange(value: Role | 'all') {
-    setPagination((current) => ({ ...current, pageIndex: 0 }))
-    setRole(value)
+    navigate({
+      search: (previous) => ({
+        ...previous,
+        page: undefined,
+        role: value === 'all' ? undefined : value,
+      }),
+    })
   }
 
   function handleAuthStateChange(value: AuthState | 'all') {
-    setPagination((current) => ({ ...current, pageIndex: 0 }))
-    setAuthState(value)
+    navigate({
+      search: (previous) => ({
+        ...previous,
+        authState: value === 'all' ? undefined : value,
+        page: undefined,
+      }),
+    })
   }
 
   function handleQueryChange(value: string) {
-    setPagination((current) => ({ ...current, pageIndex: 0 }))
-    setQuery(value)
+    setQueryInput(value)
   }
 
-  const hasFilters = debouncedQuery !== '' || role !== 'all' || (!archived && authState !== 'all')
+  const hasFilters = Boolean(search.q) || role !== 'all' || (!archived && authState !== 'all')
 
   const columns = useMemo(
     () => createUserColumns(currentUser.id, archived),
@@ -106,7 +134,7 @@ function Users() {
     authState: !archived && authState !== 'all' ? authState : undefined,
     page: pagination.pageIndex + 1,
     pageSize: pagination.pageSize,
-    query: debouncedQuery || undefined,
+    query: search.q,
     role: role !== 'all' ? role : undefined,
     ...userSortParams(sorting),
   }
@@ -139,9 +167,15 @@ function Users() {
                 size="sm"
                 variant={!archived ? 'secondary' : 'ghost'}
                 onClick={() => {
-                  setPagination((current) => ({ ...current, pageIndex: 0 }))
-                  setArchived(false)
-                  setSorting(defaultUserSorting(false))
+                  navigate({
+                    search: (previous) => ({
+                      ...previous,
+                      archived: undefined,
+                      order: undefined,
+                      page: undefined,
+                      sort: undefined,
+                    }),
+                  })
                 }}
               >
                 Текущие
@@ -152,9 +186,16 @@ function Users() {
                 size="sm"
                 variant={archived ? 'secondary' : 'ghost'}
                 onClick={() => {
-                  setPagination((current) => ({ ...current, pageIndex: 0 }))
-                  setArchived(true)
-                  setSorting(defaultUserSorting(true))
+                  navigate({
+                    search: (previous) => ({
+                      ...previous,
+                      archived: true,
+                      authState: undefined,
+                      order: undefined,
+                      page: undefined,
+                      sort: undefined,
+                    }),
+                  })
                 }}
               >
                 Архивные
@@ -167,7 +208,7 @@ function Users() {
               onAuthStateChange={handleAuthStateChange}
               onQueryChange={handleQueryChange}
               onRoleChange={handleRoleChange}
-              query={query}
+              query={queryInput}
               role={role}
             />
           </div>
@@ -203,10 +244,23 @@ function Users() {
             columns={columns}
             data={users.items}
             loading={isFetching}
-            onPaginationChange={setPagination}
+            onPaginationChange={(next) => {
+              navigate({
+                search: (previous) => ({
+                  ...previous,
+                  page: next.pageIndex === 0 ? undefined : next.pageIndex + 1,
+                  pageSize: next.pageSize === 25 ? undefined : (next.pageSize as PageSize),
+                }),
+              })
+            }}
             onSortingChange={(nextSorting) => {
-              setPagination((current) => ({ ...current, pageIndex: 0 }))
-              setSorting(nextSorting)
+              navigate({
+                search: (previous) => ({
+                  ...previous,
+                  ...searchForSorting(nextSorting, archived),
+                  page: undefined,
+                }),
+              })
             }}
             pagination={pagination}
             sorting={sorting}
@@ -216,4 +270,51 @@ function Users() {
       </div>
     </section>
   )
+}
+
+type UsersSearch = Readonly<{
+  archived?: true
+  authState?: AuthState
+  order?: SortOrder
+  page?: number
+  pageSize?: PageSize
+  q?: string
+  role?: Role
+  sort?: UserSort
+}>
+
+export function validateUsersSearch(search: Record<string, unknown>): UsersSearch {
+  const archived = search.archived === true ? true : undefined
+
+  return {
+    archived,
+    authState: !archived ? listEnum(authStates, search.authState) : undefined,
+    order: listOrder(search.order),
+    page: listPage(search.page),
+    pageSize: listPageSize(search.pageSize),
+    q: listQuery(search.q),
+    role: listEnum(userRoles, search.role),
+    sort: listEnum(userTableSorts, search.sort),
+  }
+}
+
+function sortingFromSearch(search: UsersSearch, archived: boolean): DataTableSorting {
+  return [
+    {
+      desc: search.order ? search.order === 'desc' : archived,
+      id: search.sort ?? (archived ? 'archived_at' : 'name'),
+    },
+  ]
+}
+
+function searchForSorting(sorting: DataTableSorting, archived: boolean) {
+  const [current] = sorting
+  const sort = listEnum(userTableSorts, current?.id) ?? (archived ? 'archived_at' : 'name')
+  const desc = current?.desc ?? archived
+  const defaultSort = archived ? 'archived_at' : 'name'
+
+  return {
+    order: desc === archived && sort === defaultSort ? undefined : desc ? 'desc' : 'asc',
+    sort: sort === defaultSort ? undefined : sort,
+  } as const
 }

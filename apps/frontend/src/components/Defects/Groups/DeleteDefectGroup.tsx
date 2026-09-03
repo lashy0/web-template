@@ -128,11 +128,7 @@ function DeleteWarning({
         <Button
           render={
             <Link
-              state={(state) => ({
-                ...state,
-                defectGroupId: group.id,
-                defectTypesArchived: group.activeTypesCount === 0,
-              })}
+              search={{ archived: group.activeTypesCount === 0 ? true : undefined, group: group.id }}
               to="/admin/defects/types"
             />
           }

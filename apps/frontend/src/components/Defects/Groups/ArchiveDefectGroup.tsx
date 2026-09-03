@@ -124,11 +124,7 @@ function ArchiveWarning({
         <Button
           render={
             <Link
-              state={(state) => ({
-                ...state,
-                defectGroupId: group.id,
-                defectTypesArchived: false,
-              })}
+              search={{ group: group.id }}
               to="/admin/defects/types"
             />
           }

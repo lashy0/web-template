@@ -29,11 +29,11 @@ export function createDefectGroupColumns(
       cell: ({ row }) => (
         <Link
           className="text-sm text-primary underline-offset-4 hover:underline"
-          state={(state) => ({
-            ...state,
-            defectGroupId: row.original.id,
-            defectTypesArchived: row.original.activeTypesCount === 0 && row.original.typesCount > 0,
-          })}
+          search={{
+            archived:
+              row.original.activeTypesCount === 0 && row.original.typesCount > 0 ? true : undefined,
+            group: row.original.id,
+          }}
           to="/admin/defects/types"
         >
           Типы группы

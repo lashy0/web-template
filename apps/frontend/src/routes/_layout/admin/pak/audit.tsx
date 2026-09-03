@@ -1,7 +1,5 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { useState } from 'react'
-
 import { DataLoadError } from '@/components/Common/DataLoadError'
 import {
   DataTable,
@@ -13,23 +11,31 @@ import { AuditFilter } from '@/components/Common/AuditFilter'
 import PendingAudit from '@/components/Pak/Audit/PendingAudit'
 import { pakAuditColumns } from '@/components/Pak/Audit/columns'
 import { listPakAudit, type PakAuditSort, type SortOrder } from '@/features/paks/paks-api'
-import { toExclusiveUtcDateRange, type DatePeriod } from '@/lib/date'
+import { toExclusiveUtcDateRange } from '@/lib/date'
+import { listDate, listEnum, listOrder, listPage, listPageSize } from '@/lib/list-search'
+
+const pakAuditSorts = [
+  'actor_display_name',
+  'created_at',
+] as const satisfies readonly PakAuditSort[]
 
 export const Route = createFileRoute('/_layout/admin/pak/audit')({
+  validateSearch: validatePakAuditSearch,
   component: PakAudit,
   pendingComponent: () => <PendingAudit showPageHeader />,
 })
 
 function PakAudit() {
-  const [pagination, setPagination] = useState<DataTablePaginationState>({
-    pageIndex: 0,
-    pageSize: 25 as PageSize,
-  })
-  const [sorting, setSorting] = useState<DataTableSorting>([{ id: 'created_at', desc: true }])
-  const [period, setPeriod] = useState<DatePeriod | null>(null)
+  const search = Route.useSearch()
+  const navigate = Route.useNavigate()
+  const pagination: DataTablePaginationState = {
+    pageIndex: (search.page ?? 1) - 1,
+    pageSize: search.pageSize ?? (25 as PageSize),
+  }
+  const sorting = sortingFromSearch(search)
+  const period = search.from && search.to ? { from: search.from, to: search.to } : null
   const [current] = sorting
-  const sort: PakAuditSort =
-    current?.id === 'actor_display_name' || current?.id === 'created_at' ? current.id : 'created_at'
+  const sort: PakAuditSort = listEnum(pakAuditSorts, current?.id) ?? 'created_at'
   const order: SortOrder = current?.desc ? 'desc' : 'asc'
   const range = period ? toExclusiveUtcDateRange(period) : undefined
   const {
@@ -62,8 +68,14 @@ function PakAudit() {
         <div className="mb-4 flex justify-end">
           <AuditFilter
             onApply={(next) => {
-              setPagination((state) => ({ ...state, pageIndex: 0 }))
-              setPeriod(next)
+              navigate({
+                search: (previous) => ({
+                  ...previous,
+                  from: next?.from,
+                  page: undefined,
+                  to: next?.to,
+                }),
+              })
             }}
             value={period}
           />
@@ -88,10 +100,19 @@ function PakAudit() {
             columns={pakAuditColumns}
             data={audit.items}
             loading={isFetching}
-            onPaginationChange={setPagination}
+            onPaginationChange={(next) => {
+              navigate({
+                search: (previous) => ({
+                  ...previous,
+                  page: next.pageIndex === 0 ? undefined : next.pageIndex + 1,
+                  pageSize: next.pageSize === 25 ? undefined : (next.pageSize as PageSize),
+                }),
+              })
+            }}
             onSortingChange={(next) => {
-              setPagination((state) => ({ ...state, pageIndex: 0 }))
-              setSorting(next)
+              navigate({
+                search: (previous) => ({ ...previous, ...searchForSorting(next), page: undefined }),
+              })
             }}
             pagination={pagination}
             sorting={sorting}
@@ -101,4 +122,42 @@ function PakAudit() {
       </div>
     </section>
   )
+}
+
+type PakAuditSearch = Readonly<{
+  from?: string
+  order?: SortOrder
+  page?: number
+  pageSize?: PageSize
+  sort?: PakAuditSort
+  to?: string
+}>
+
+export function validatePakAuditSearch(search: Record<string, unknown>): PakAuditSearch {
+  const from = listDate(search.from)
+  const to = listDate(search.to)
+
+  return {
+    from: from && to && from <= to ? from : undefined,
+    order: listOrder(search.order),
+    page: listPage(search.page),
+    pageSize: listPageSize(search.pageSize),
+    sort: listEnum(pakAuditSorts, search.sort),
+    to: from && to && from <= to ? to : undefined,
+  }
+}
+
+function sortingFromSearch(search: PakAuditSearch): DataTableSorting {
+  return [{ id: search.sort ?? 'created_at', desc: search.order ? search.order === 'desc' : true }]
+}
+
+function searchForSorting(sorting: DataTableSorting) {
+  const [current] = sorting
+  const sort = listEnum(pakAuditSorts, current?.id) ?? 'created_at'
+  const desc = current?.desc ?? true
+
+  return {
+    order: sort === 'created_at' && desc ? undefined : desc ? 'desc' : 'asc',
+    sort: sort === 'created_at' ? undefined : sort,
+  } as const
 }

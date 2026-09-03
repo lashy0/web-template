@@ -205,7 +205,9 @@ export function AdminNavigation() {
                 <SidebarMenuSubItem>
                   <SidebarMenuSubButton
                     isActive={currentPath === '/admin/defects/types'}
-                    render={<RouterLink to="/admin/defects/types" onClick={handleMenuClick} />}
+                    render={
+                      <RouterLink search={{}} to="/admin/defects/types" onClick={handleMenuClick} />
+                    }
                   >
                     Типы
                   </SidebarMenuSubButton>

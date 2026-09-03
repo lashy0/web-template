@@ -16,8 +16,19 @@ import { PakFilters } from '@/components/Pak/Paks/PakFilters'
 import PendingPaks from '@/components/Pak/Paks/PendingPaks'
 import { createPakColumns } from '@/components/Pak/Paks/columns'
 import { listPaks, type PakKind, type PakSort, type SortOrder } from '@/features/paks/paks-api'
+import { listEnum, listOrder, listPage, listPageSize, listQuery } from '@/lib/list-search'
+
+const pakKinds = ['ENGINEERING', 'OTK_LINE'] as const satisfies readonly PakKind[]
+const pakStatuses = ['active', 'inactive'] as const
+const pakTableSorts = [
+  'archived_at',
+  'code',
+  'kind',
+  'last_seen_at',
+] as const satisfies readonly PakSort[]
 
 export const Route = createFileRoute('/_layout/admin/pak/paks')({
+  validateSearch: validatePaksSearch,
   component: Paks,
   pendingComponent: () => <PendingPaks showPageHeader />,
 })
@@ -34,18 +45,12 @@ type PaksQuery = Readonly<{
 }>
 type StatusFilter = 'active' | 'all' | 'inactive'
 
-function defaultSorting(archived: boolean): DataTableSorting {
-  return [{ id: archived ? 'archived_at' : 'code', desc: archived }]
-}
 function sortParams(sorting: DataTableSorting): Readonly<{ order: SortOrder; sort: PakSort }> {
   const [current] = sorting
-  if (
-    current?.id === 'archived_at' ||
-    current?.id === 'code' ||
-    current?.id === 'kind' ||
-    current?.id === 'last_seen_at'
-  )
-    return { order: current.desc ? 'desc' : 'asc', sort: current.id }
+  const sort = listEnum(pakTableSorts, current?.id)
+  if (sort) {
+    return { order: current?.desc ? 'desc' : 'asc', sort }
+  }
   return { order: 'asc', sort: 'code' }
 }
 function queryOptions(params: PaksQuery) {
@@ -53,30 +58,42 @@ function queryOptions(params: PaksQuery) {
 }
 
 function Paks() {
-  const [pagination, setPagination] = useState<DataTablePaginationState>({
-    pageIndex: 0,
-    pageSize: 25 as PageSize,
-  })
-  const [archived, setArchived] = useState(false)
-  const [query, setQuery] = useState('')
-  const [debouncedQuery, setDebouncedQuery] = useState('')
-  const [kind, setKind] = useState<PakKind | 'all'>('all')
-  const [status, setStatus] = useState<StatusFilter>('all')
-  const [sorting, setSorting] = useState<DataTableSorting>(() => defaultSorting(false))
+  const search = Route.useSearch()
+  const navigate = Route.useNavigate()
+  const archived = search.archived ?? false
+  const pagination: DataTablePaginationState = {
+    pageIndex: (search.page ?? 1) - 1,
+    pageSize: search.pageSize ?? (25 as PageSize),
+  }
+  const kind = search.kind ?? 'all'
+  const status = search.status ?? 'all'
+  const sorting = sortingFromSearch(search, archived)
+  const [queryInput, setQueryInput] = useState(search.q ?? '')
+
+  useEffect(() => {
+    setQueryInput(search.q ?? '')
+  }, [search.q])
+
   useEffect(() => {
     const timeout = window.setTimeout(() => {
-      setPagination((current) => ({ ...current, pageIndex: 0 }))
-      setDebouncedQuery(query.trim())
+      const query = queryInput.trim()
+      if (query !== (search.q ?? '')) {
+        navigate({
+          replace: true,
+          search: (previous) => ({ ...previous, page: undefined, q: query || undefined }),
+        })
+      }
     }, 300)
     return () => window.clearTimeout(timeout)
-  }, [query])
+  }, [navigate, queryInput, search.q])
+
   const paksQuery: PaksQuery = {
     active: !archived && status !== 'all' ? status === 'active' : undefined,
     archived,
     kind: kind !== 'all' ? kind : undefined,
     page: pagination.pageIndex + 1,
     pageSize: pagination.pageSize,
-    query: debouncedQuery || undefined,
+    query: search.q,
     ...sortParams(sorting),
   }
   const columns = useMemo(() => createPakColumns(archived), [archived])
@@ -86,11 +103,18 @@ function Paks() {
     isFetching,
     refetch,
   } = useQuery({ ...queryOptions(paksQuery), placeholderData: keepPreviousData })
-  const hasFilters = debouncedQuery !== '' || kind !== 'all' || (!archived && status !== 'all')
+  const hasFilters = Boolean(search.q) || kind !== 'all' || (!archived && status !== 'all')
   const resetList = (nextArchived: boolean) => {
-    setPagination((current) => ({ ...current, pageIndex: 0 }))
-    setArchived(nextArchived)
-    setSorting(defaultSorting(nextArchived))
+    navigate({
+      search: (previous) => ({
+        ...previous,
+        archived: nextArchived ? true : undefined,
+        order: undefined,
+        page: undefined,
+        sort: undefined,
+        status: undefined,
+      }),
+    })
   }
   return (
     <section className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-8 lg:px-12">
@@ -128,18 +152,27 @@ function Paks() {
               archived={archived}
               kind={kind}
               onKindChange={(value) => {
-                setPagination((current) => ({ ...current, pageIndex: 0 }))
-                setKind(value)
+                navigate({
+                  search: (previous) => ({
+                    ...previous,
+                    kind: value === 'all' ? undefined : value,
+                    page: undefined,
+                  }),
+                })
               }}
               onQueryChange={(value) => {
-                setPagination((current) => ({ ...current, pageIndex: 0 }))
-                setQuery(value)
+                setQueryInput(value)
               }}
               onStatusChange={(value) => {
-                setPagination((current) => ({ ...current, pageIndex: 0 }))
-                setStatus(value)
+                navigate({
+                  search: (previous) => ({
+                    ...previous,
+                    page: undefined,
+                    status: value === 'all' ? undefined : value,
+                  }),
+                })
               }}
-              query={query}
+              query={queryInput}
               status={status}
             />
           </div>
@@ -157,10 +190,23 @@ function Paks() {
             columns={columns}
             data={paks.items}
             loading={isFetching}
-            onPaginationChange={setPagination}
+            onPaginationChange={(next) => {
+              navigate({
+                search: (previous) => ({
+                  ...previous,
+                  page: next.pageIndex === 0 ? undefined : next.pageIndex + 1,
+                  pageSize: next.pageSize === 25 ? undefined : (next.pageSize as PageSize),
+                }),
+              })
+            }}
             onSortingChange={(nextSorting) => {
-              setPagination((current) => ({ ...current, pageIndex: 0 }))
-              setSorting(nextSorting)
+              navigate({
+                search: (previous) => ({
+                  ...previous,
+                  ...searchForSorting(nextSorting, archived),
+                  page: undefined,
+                }),
+              })
             }}
             pagination={pagination}
             sorting={sorting}
@@ -170,6 +216,53 @@ function Paks() {
       </div>
     </section>
   )
+}
+
+type PaksSearch = Readonly<{
+  archived?: true
+  kind?: PakKind
+  order?: SortOrder
+  page?: number
+  pageSize?: PageSize
+  q?: string
+  sort?: PakSort
+  status?: Exclude<StatusFilter, 'all'>
+}>
+
+export function validatePaksSearch(search: Record<string, unknown>): PaksSearch {
+  const archived = search.archived === true ? true : undefined
+
+  return {
+    archived,
+    kind: listEnum(pakKinds, search.kind),
+    order: listOrder(search.order),
+    page: listPage(search.page),
+    pageSize: listPageSize(search.pageSize),
+    q: listQuery(search.q),
+    sort: listEnum(pakTableSorts, search.sort),
+    status: !archived ? listEnum(pakStatuses, search.status) : undefined,
+  }
+}
+
+function sortingFromSearch(search: PaksSearch, archived: boolean): DataTableSorting {
+  return [
+    {
+      desc: search.order ? search.order === 'desc' : archived,
+      id: search.sort ?? (archived ? 'archived_at' : 'code'),
+    },
+  ]
+}
+
+function searchForSorting(sorting: DataTableSorting, archived: boolean) {
+  const [current] = sorting
+  const sort = listEnum(pakTableSorts, current?.id) ?? (archived ? 'archived_at' : 'code')
+  const desc = current?.desc ?? archived
+  const defaultSort = archived ? 'archived_at' : 'code'
+
+  return {
+    order: desc === archived && sort === defaultSort ? undefined : desc ? 'desc' : 'asc',
+    sort: sort === defaultSort ? undefined : sort,
+  } as const
 }
 
 function EmptyState({

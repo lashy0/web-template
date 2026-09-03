@@ -1,7 +1,5 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { useState } from 'react'
-
 import { DataLoadError } from '@/components/Common/DataLoadError'
 import {
   DataTable,
@@ -14,8 +12,12 @@ import { auditColumns } from '@/components/User/Audit/columns'
 import PendingAudit from '@/components/User/Audit/PendingAudit'
 import { listUserAudit, type AuditSort, type SortOrder } from '@/features/users/users-api'
 import { toExclusiveUtcDateRange, type DatePeriod } from '@/lib/date'
+import { listDate, listEnum, listOrder, listPage, listPageSize } from '@/lib/list-search'
+
+const userAuditSorts = ['actor_display_name', 'created_at'] as const satisfies readonly AuditSort[]
 
 export const Route = createFileRoute('/_layout/admin/user/audit')({
+  validateSearch: validateUserAuditSearch,
   component: Audit,
   pendingComponent: () => <PendingAudit showPageHeader />,
 })
@@ -33,10 +35,8 @@ function auditSortParams(
   sorting: DataTableSorting,
 ): Readonly<{ order: SortOrder; sort: AuditSort }> {
   const [current] = sorting
-  if (current?.id === 'actor_display_name' || current?.id === 'created_at') {
-    return { order: current.desc ? 'desc' : 'asc', sort: current.id }
-  }
-  return { order: 'desc', sort: 'created_at' }
+  const sort = listEnum(userAuditSorts, current?.id) ?? 'created_at'
+  return { order: current?.desc ? 'desc' : 'asc', sort }
 }
 
 function getUserAuditQueryOptions(params: AuditQuery) {
@@ -47,12 +47,14 @@ function getUserAuditQueryOptions(params: AuditQuery) {
 }
 
 export function Audit() {
-  const [pagination, setPagination] = useState<DataTablePaginationState>({
-    pageIndex: 0,
-    pageSize: 25 as PageSize,
-  })
-  const [sorting, setSorting] = useState<DataTableSorting>([{ id: 'created_at', desc: true }])
-  const [period, setPeriod] = useState<DatePeriod | null>(null)
+  const search = Route.useSearch()
+  const navigate = Route.useNavigate()
+  const pagination: DataTablePaginationState = {
+    pageIndex: (search.page ?? 1) - 1,
+    pageSize: search.pageSize ?? (25 as PageSize),
+  }
+  const sorting = sortingFromSearch(search)
+  const period = search.from && search.to ? { from: search.from, to: search.to } : null
   const auditQuery = {
     ...(period ? toAuditPeriodQuery(period) : {}),
     page: pagination.pageIndex + 1,
@@ -79,8 +81,14 @@ export function Audit() {
         <div className="mb-4 flex justify-end">
           <AuditFilter
             onApply={(nextPeriod) => {
-              setPagination((current) => ({ ...current, pageIndex: 0 }))
-              setPeriod(nextPeriod)
+              navigate({
+                search: (previous) => ({
+                  ...previous,
+                  from: nextPeriod?.from,
+                  page: undefined,
+                  to: nextPeriod?.to,
+                }),
+              })
             }}
             value={period}
           />
@@ -106,10 +114,23 @@ export function Audit() {
             data={audit.items}
             fixedLayout
             loading={isFetching}
-            onPaginationChange={setPagination}
+            onPaginationChange={(next) => {
+              navigate({
+                search: (previous) => ({
+                  ...previous,
+                  page: next.pageIndex === 0 ? undefined : next.pageIndex + 1,
+                  pageSize: next.pageSize === 25 ? undefined : (next.pageSize as PageSize),
+                }),
+              })
+            }}
             onSortingChange={(nextSorting) => {
-              setPagination((current) => ({ ...current, pageIndex: 0 }))
-              setSorting(nextSorting)
+              navigate({
+                search: (previous) => ({
+                  ...previous,
+                  ...searchForSorting(nextSorting),
+                  page: undefined,
+                }),
+              })
             }}
             pagination={pagination}
             sorting={sorting}
@@ -130,4 +151,42 @@ function toAuditPeriodQuery(
     createdFrom: range.from,
     createdTo: range.to,
   }
+}
+
+type UserAuditSearch = Readonly<{
+  from?: string
+  order?: SortOrder
+  page?: number
+  pageSize?: PageSize
+  sort?: AuditSort
+  to?: string
+}>
+
+export function validateUserAuditSearch(search: Record<string, unknown>): UserAuditSearch {
+  const from = listDate(search.from)
+  const to = listDate(search.to)
+
+  return {
+    from: from && to && from <= to ? from : undefined,
+    order: listOrder(search.order),
+    page: listPage(search.page),
+    pageSize: listPageSize(search.pageSize),
+    sort: listEnum(userAuditSorts, search.sort),
+    to: from && to && from <= to ? to : undefined,
+  }
+}
+
+function sortingFromSearch(search: UserAuditSearch): DataTableSorting {
+  return [{ id: search.sort ?? 'created_at', desc: search.order ? search.order === 'desc' : true }]
+}
+
+function searchForSorting(sorting: DataTableSorting) {
+  const [current] = sorting
+  const sort = listEnum(userAuditSorts, current?.id) ?? 'created_at'
+  const desc = current?.desc ?? true
+
+  return {
+    order: sort === 'created_at' && desc ? undefined : desc ? 'desc' : 'asc',
+    sort: sort === 'created_at' ? undefined : sort,
+  } as const
 }
