@@ -1388,7 +1388,7 @@ export type AuditListAuditEventsData = {
         /**
          * Entity Type
          */
-        entity_type?: string | null;
+        entity_type?: Array<string> | null;
         /**
          * Created From
          */

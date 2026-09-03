@@ -34,9 +34,7 @@ def _configure_authenticated_request(app: FastAPI, mocker: MockerFixture, *, rol
     )
     repository = mocker.patch("app.api.auth_deps.UserRepository")
     repository.return_value.get_by_identity_id = AsyncMock(
-        return_value=SimpleNamespace(
-            id=uuid4(), role=role, name="Alice", identity_login="alice"
-        )
+        return_value=SimpleNamespace(id=uuid4(), role=role, name="Alice", identity_login="alice")
     )
     mocker.patch.object(
         app.state,
@@ -82,7 +80,7 @@ def test_administrator_can_list_audit_events(
     repository.return_value.search.assert_awaited_once_with(
         created_from=None,
         created_to=None,
-        entity_type="user",
+        entity_type=["user"],
         order="desc",
         page=2,
         page_size=10,
@@ -107,7 +105,7 @@ def test_audit_list_forwards_the_selected_sort(
     repository.return_value.search.assert_awaited_once_with(
         created_from=None,
         created_to=None,
-        entity_type="user",
+        entity_type=["user"],
         order="asc",
         page=1,
         page_size=25,
@@ -151,3 +149,28 @@ def test_non_administrator_cannot_list_audit_events(
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
     repository.assert_not_called()
+
+
+@pytest.mark.api
+def test_audit_list_accepts_multiple_entity_types(
+    app: FastAPI, client: TestClient, api_prefix: str, mocker: MockerFixture
+) -> None:
+    _configure_authenticated_request(app, mocker, role=Role.ADMINISTRATOR)
+    repository = mocker.patch("app.modules.audit.router.AuditRepository")
+    repository.return_value.search = AsyncMock(return_value=([], 0))
+
+    response = client.get(
+        f"{api_prefix}/audit?entity_type=defect_group&entity_type=defect_type",
+        headers={"cookie": "ory_kratos_session=opaque"},
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    repository.return_value.search.assert_awaited_once_with(
+        created_from=None,
+        created_to=None,
+        entity_type=["defect_group", "defect_type"],
+        order="desc",
+        page=1,
+        page_size=25,
+        sort="created_at",
+    )

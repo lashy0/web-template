@@ -16,7 +16,7 @@ router = APIRouter(prefix="/audit", tags=["audit"])
 async def list_audit_events(
     _: Annotated[CurrentPrincipalDep, Depends(require_permission(AuditPermission.READ))],
     database: DatabaseDep,
-    entity_type: str | None = None,
+    entity_type: list[str] | None = Query(default=None),
     created_from: datetime | None = None,
     created_to: datetime | None = None,
     page: int = Query(default=1, ge=1),

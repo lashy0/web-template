@@ -187,7 +187,7 @@ export async function listPakAudit({
     query: {
       created_from: createdFrom,
       created_to: createdTo,
-      entity_type: 'pak',
+      entity_type: ['pak'],
       order,
       page,
       page_size: pageSize,

@@ -667,7 +667,7 @@ export const zVoidBatchShipmentRequest = z.object({
 });
 
 export const zAuditListAuditEventsQuery = z.object({
-    entity_type: z.string().nullish(),
+    entity_type: z.array(z.string()).nullish(),
     created_from: z.iso.datetime().nullish(),
     created_to: z.iso.datetime().nullish(),
     page: z.int().gte(1).optional().default(1),

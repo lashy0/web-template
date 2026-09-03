@@ -181,7 +181,7 @@ export async function listUserAudit({
     query: {
       created_from: createdFrom,
       created_to: createdTo,
-      entity_type: 'user',
+      entity_type: ['user'],
       order,
       page,
       page_size: pageSize,

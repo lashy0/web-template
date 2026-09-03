@@ -55,10 +55,11 @@ class AuditRepository:
         page_size: int,
         created_from: datetime | None = None,
         created_to: datetime | None = None,
-        entity_type: str | None = None,
+        entity_type: str | list[str] | None = None,
         sort: str,
     ) -> tuple[list[AuditEvent], int]:
-        filters = [AuditEvent.entity_type == entity_type] if entity_type else []
+        entity_types = [entity_type] if isinstance(entity_type, str) else entity_type
+        filters = [AuditEvent.entity_type.in_(entity_types)] if entity_types else []
 
         if created_from is not None:
             filters.append(AuditEvent.created_at >= created_from)
@@ -71,11 +72,7 @@ class AuditRepository:
             "actor_display_name": AuditEvent.actor_display_name,
         }[sort]
 
-        sorted_column = (
-            column.desc().nulls_last()
-            if order == "desc"
-            else column.asc().nulls_last()
-        )
+        sorted_column = column.desc().nulls_last() if order == "desc" else column.asc().nulls_last()
 
         statement = (
             select(AuditEvent)
@@ -86,9 +83,7 @@ class AuditRepository:
         )
 
         count = await self._session.scalar(
-            select(func.count())
-            .select_from(AuditEvent)
-            .where(*filters)
+            select(func.count()).select_from(AuditEvent).where(*filters)
         )
 
         result = await self._session.execute(statement)
