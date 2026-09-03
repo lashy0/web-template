@@ -32,7 +32,9 @@ export function AdminNavigation() {
   const isPaksSectionActive =
     currentPath === '/admin/pak/paks' || currentPath === '/admin/pak/audit'
   const isDefectsSectionActive =
-    currentPath === '/admin/defects/groups' || currentPath === '/admin/defects/types'
+    currentPath === '/admin/defects/groups' ||
+    currentPath === '/admin/defects/types' ||
+    currentPath === '/admin/defects/audit'
   const isCollapsedDesktop = state === 'collapsed' && !isMobile
 
   const handleMenuClick = () => {
@@ -206,6 +208,14 @@ export function AdminNavigation() {
                     render={<RouterLink to="/admin/defects/types" onClick={handleMenuClick} />}
                   >
                     Типы
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+                <SidebarMenuSubItem>
+                  <SidebarMenuSubButton
+                    isActive={currentPath === '/admin/defects/audit'}
+                    render={<RouterLink to="/admin/defects/audit" onClick={handleMenuClick} />}
+                  >
+                    Аудит
                   </SidebarMenuSubButton>
                 </SidebarMenuSubItem>
               </SidebarMenuSub>

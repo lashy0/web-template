@@ -1,4 +1,5 @@
 import {
+  auditListAuditEvents,
   defectsCreateDefectGroup,
   defectsCreateDefectType,
   defectsDeleteDefectGroup,
@@ -50,6 +51,22 @@ export type DefectType = Readonly<{
   possibleCause: string | null
 }>
 
+export type DefectAuditSort = 'actor_display_name' | 'created_at'
+
+export type DefectAuditEvent = Readonly<{
+  action: string
+  actorDisplayName: string | null
+  actorIdentifier: string | null
+  actorType: string
+  createdAt: string
+  entityDisplayName: string | null
+  entityIdentifier: string | null
+  entityType: 'defect_group' | 'defect_type'
+  id: string
+  newData: Record<string, unknown> | null
+  oldData: Record<string, unknown> | null
+}>
+
 export type CreateDefectGroupInput = CreateDefectGroupRequest
 export type UpdateDefectGroupInput = UpdateDefectGroupRequest
 export type CreateDefectTypeInput = CreateDefectTypeRequest
@@ -83,6 +100,52 @@ export function defectErrorMessage(error: unknown): string | undefined {
 
 export function defectErrorCode(error: unknown): string | undefined {
   return error instanceof DefectsRequestError ? error.code : undefined
+}
+
+export async function listDefectAudit({
+  createdFrom,
+  createdTo,
+  order = 'desc',
+  page,
+  pageSize,
+  sort = 'created_at',
+}: Pagination &
+  Readonly<{
+    createdFrom?: string
+    createdTo?: string
+    order?: SortOrder
+    sort?: DefectAuditSort
+  }>): Promise<PaginatedResult<DefectAuditEvent>> {
+  const result = await auditListAuditEvents({
+    query: {
+      created_from: createdFrom,
+      created_to: createdTo,
+      entity_type: ['defect_group', 'defect_type'],
+      order,
+      page,
+      page_size: pageSize,
+      sort,
+    },
+  })
+  const payload = requireData(result.data, result.response?.status, result.error)
+  return {
+    items: payload.items.map((event) => ({
+      action: event.action,
+      actorDisplayName: event.actor_display_name,
+      actorIdentifier: event.actor_identifier,
+      actorType: event.actor_type,
+      createdAt: event.created_at,
+      entityDisplayName: event.entity_display_name,
+      entityIdentifier: event.entity_identifier,
+      entityType: event.entity_type as DefectAuditEvent['entityType'],
+      id: event.id,
+      newData: event.new_data,
+      oldData: event.old_data,
+    })),
+    page: payload.page,
+    pageSize: payload.page_size,
+    total: payload.total,
+  }
 }
 
 export async function listDefectGroups({

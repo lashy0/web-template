@@ -9,7 +9,7 @@ export type AuditChangeEvent = Readonly<{
   oldData: Record<string, unknown> | null
 }>
 
-type AuditChange = Readonly<{
+export type AuditChange = Readonly<{
   key: string
   newValue: unknown
   oldValue: unknown
@@ -26,7 +26,7 @@ export function AuditChanges({
   formatValue?: (key: string, value: unknown) => string
   statusChangeAction?: string
 }>) {
-  const changes = getChanges(event)
+  const changes = getAuditChanges(event)
   if (!changes.length) {
     return null
   }
@@ -86,7 +86,7 @@ function ChangeValue({ kind, value }: Readonly<{ kind: 'old' | 'new'; value: str
   )
 }
 
-function getChanges(event: AuditChangeEvent): AuditChange[] {
+export function getAuditChanges(event: AuditChangeEvent): AuditChange[] {
   const { newData, oldData } = event
   if (!oldData || !newData) {
     return []

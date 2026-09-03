@@ -15,6 +15,7 @@ import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
 import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
 import { Route as AuthErrorRouteImport } from './routes/auth/error'
 import { Route as LayoutAdminIndexRouteImport } from './routes/_layout/admin/index'
+import { Route as LayoutAdminDefectsAuditRouteImport } from './routes/_layout/admin/defects/audit'
 import { Route as LayoutAdminDefectsGroupsRouteImport } from './routes/_layout/admin/defects/groups'
 import { Route as LayoutAdminDefectsTypesRouteImport } from './routes/_layout/admin/defects/types'
 import { Route as LayoutAdminPakAuditRouteImport } from './routes/_layout/admin/pak/audit'
@@ -49,6 +50,11 @@ const AuthErrorRoute = AuthErrorRouteImport.update({
 const LayoutAdminIndexRoute = LayoutAdminIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => LayoutAdminRoute,
+} as any)
+const LayoutAdminDefectsAuditRoute = LayoutAdminDefectsAuditRouteImport.update({
+  id: '/defects/audit',
+  path: '/defects/audit',
   getParentRoute: () => LayoutAdminRoute,
 } as any)
 const LayoutAdminDefectsGroupsRoute =
@@ -89,6 +95,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof LayoutAdminRouteWithChildren
   '/auth/error': typeof AuthErrorRoute
   '/admin/': typeof LayoutAdminIndexRoute
+  '/admin/defects/audit': typeof LayoutAdminDefectsAuditRoute
   '/admin/defects/groups': typeof LayoutAdminDefectsGroupsRoute
   '/admin/defects/types': typeof LayoutAdminDefectsTypesRoute
   '/admin/pak/audit': typeof LayoutAdminPakAuditRoute
@@ -101,6 +108,7 @@ export interface FileRoutesByTo {
   '/auth/error': typeof AuthErrorRoute
   '/': typeof LayoutIndexRoute
   '/admin': typeof LayoutAdminIndexRoute
+  '/admin/defects/audit': typeof LayoutAdminDefectsAuditRoute
   '/admin/defects/groups': typeof LayoutAdminDefectsGroupsRoute
   '/admin/defects/types': typeof LayoutAdminDefectsTypesRoute
   '/admin/pak/audit': typeof LayoutAdminPakAuditRoute
@@ -116,6 +124,7 @@ export interface FileRoutesById {
   '/auth/error': typeof AuthErrorRoute
   '/_layout/': typeof LayoutIndexRoute
   '/_layout/admin/': typeof LayoutAdminIndexRoute
+  '/_layout/admin/defects/audit': typeof LayoutAdminDefectsAuditRoute
   '/_layout/admin/defects/groups': typeof LayoutAdminDefectsGroupsRoute
   '/_layout/admin/defects/types': typeof LayoutAdminDefectsTypesRoute
   '/_layout/admin/pak/audit': typeof LayoutAdminPakAuditRoute
@@ -131,6 +140,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth/error'
     | '/admin/'
+    | '/admin/defects/audit'
     | '/admin/defects/groups'
     | '/admin/defects/types'
     | '/admin/pak/audit'
@@ -143,6 +153,7 @@ export interface FileRouteTypes {
     | '/auth/error'
     | '/'
     | '/admin'
+    | '/admin/defects/audit'
     | '/admin/defects/groups'
     | '/admin/defects/types'
     | '/admin/pak/audit'
@@ -157,6 +168,7 @@ export interface FileRouteTypes {
     | '/auth/error'
     | '/_layout/'
     | '/_layout/admin/'
+    | '/_layout/admin/defects/audit'
     | '/_layout/admin/defects/groups'
     | '/_layout/admin/defects/types'
     | '/_layout/admin/pak/audit'
@@ -215,6 +227,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutAdminIndexRouteImport
       parentRoute: typeof LayoutAdminRoute
     }
+    '/_layout/admin/defects/audit': {
+      id: '/_layout/admin/defects/audit'
+      path: '/defects/audit'
+      fullPath: '/admin/defects/audit'
+      preLoaderRoute: typeof LayoutAdminDefectsAuditRouteImport
+      parentRoute: typeof LayoutAdminRoute
+    }
     '/_layout/admin/defects/groups': {
       id: '/_layout/admin/defects/groups'
       path: '/defects/groups'
@@ -262,6 +281,7 @@ declare module '@tanstack/react-router' {
 
 interface LayoutAdminRouteChildren {
   LayoutAdminIndexRoute: typeof LayoutAdminIndexRoute
+  LayoutAdminDefectsAuditRoute: typeof LayoutAdminDefectsAuditRoute
   LayoutAdminDefectsGroupsRoute: typeof LayoutAdminDefectsGroupsRoute
   LayoutAdminDefectsTypesRoute: typeof LayoutAdminDefectsTypesRoute
   LayoutAdminPakAuditRoute: typeof LayoutAdminPakAuditRoute
@@ -272,6 +292,7 @@ interface LayoutAdminRouteChildren {
 
 const LayoutAdminRouteChildren: LayoutAdminRouteChildren = {
   LayoutAdminIndexRoute: LayoutAdminIndexRoute,
+  LayoutAdminDefectsAuditRoute: LayoutAdminDefectsAuditRoute,
   LayoutAdminDefectsGroupsRoute: LayoutAdminDefectsGroupsRoute,
   LayoutAdminDefectsTypesRoute: LayoutAdminDefectsTypesRoute,
   LayoutAdminPakAuditRoute: LayoutAdminPakAuditRoute,
