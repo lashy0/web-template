@@ -6,16 +6,13 @@ import pytest
 from ory_hydra_client.exceptions import ApiException
 from ory_hydra_client.models.introspected_o_auth2_token import IntrospectedOAuth2Token
 from ory_hydra_client.models.o_auth2_client import OAuth2Client as HydraOAuth2Client
-from pytest_mock import MockerFixture
 
 from app.auth.exceptions import (
     OAuthClientAlreadyExistsError,
     OAuthClientNotFoundError,
     OAuthProviderUnavailableError,
 )
-from app.core.config import Settings
 from app.infrastructure.hydra.client import (
-    HydraMachineTokenIssuer,
     HydraOAuthClientManager,
     HydraTokenIntrospector,
     _credentials,
@@ -170,49 +167,4 @@ async def test_token_introspector_forwards_required_scopes() -> None:
         token="opaque-access-token",
         scope="orders:read",
         _request_timeout=10.0,
-    )
-
-
-@pytest.mark.unit
-async def test_machine_token_issuer_uses_client_credentials_grant(
-    mocker: MockerFixture,
-) -> None:
-    oauth_client = MagicMock()
-    oauth_client.__aenter__ = AsyncMock(return_value=oauth_client)
-    oauth_client.__aexit__ = AsyncMock(return_value=None)
-    oauth_client.fetch_token = AsyncMock(
-        return_value={
-            "access_token": "opaque-machine-token",
-            "token_type": "Bearer",
-            "expires_in": 3600,
-            "scope": "pak:api",
-        }
-    )
-    client_factory = mocker.patch(
-        "app.infrastructure.hydra.client.AsyncOAuth2Client",
-        return_value=oauth_client,
-    )
-    issuer = HydraMachineTokenIssuer(
-        Settings.model_validate(
-            {"BACKEND_HYDRA_PUBLIC_URL": "https://hydra.example/"}
-        )
-    )
-
-    token = await issuer.issue_client_credentials_token(
-        client_id="pak-test",
-        client_secret="access-key",
-        scopes=("pak:api",),
-    )
-
-    assert token.access_token == "opaque-machine-token"
-    assert token.scopes == ("pak:api",)
-    client_factory.assert_called_once_with(
-        client_id="pak-test",
-        client_secret="access-key",
-        scope="pak:api",
-        timeout=2.0,
-    )
-    oauth_client.fetch_token.assert_awaited_once_with(
-        "https://hydra.example/oauth2/token",
-        grant_type="client_credentials",
     )

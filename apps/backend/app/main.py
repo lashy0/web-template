@@ -14,7 +14,6 @@ from app.core.logging import setup_logging
 from app.core.version import APP_VERSION
 from app.infrastructure.database.session import create_database
 from app.infrastructure.hydra.client import (
-    HydraMachineTokenIssuer,
     HydraOAuthClientManager,
     HydraTokenIntrospector,
 )
@@ -22,12 +21,12 @@ from app.infrastructure.kratos.client import KratosIdentityManager, KratosSessio
 from app.infrastructure.redis.client import create_redis_client
 from app.middleware.csrf import JsonOriginMiddleware
 from app.middleware.request_context import RequestContextMiddleware
+from app.modules.batch.service import BatchManagementService
+from app.modules.defects.service import DefectManagementService
+from app.modules.kg.service import KgDevEuiPrefixManagementService, KgManagementService
 from app.modules.pak.service import PakManagementService, PakTestCatalogService
 from app.modules.users.service import UserManagementService
-from app.modules.kg.service import KgManagementService, KgDevEuiPrefixManagementService
-from app.modules.batch.service import BatchManagementService
 from app.modules.verification.service import VerificationManagementService
-from app.modules.defects.service import DefectManagementService
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
@@ -57,7 +56,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         database.session_factory,
         app.state.hydra_client_manager,
         HydraTokenIntrospector(settings),
-        HydraMachineTokenIssuer(settings),
         settings.PAK_ACCESS_KEY_ENCRYPTION_KEY,
     )
     app.state.pak_test_catalog = PakTestCatalogService(
@@ -78,12 +76,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
     app.state.verification_management = VerificationManagementService(
         database.session_factory,
-        reopen_inactivity_minutes=(
-            settings.VERIFICATION_SESSION_REOPEN_INACTIVITY_MINUTES
-        ),
-        session_ttl_minutes=(
-            settings.VERIFICATION_SESSION_TTL_MINUTES
-        ),
+        reopen_inactivity_minutes=(settings.VERIFICATION_SESSION_REOPEN_INACTIVITY_MINUTES),
+        session_ttl_minutes=(settings.VERIFICATION_SESSION_TTL_MINUTES),
     )
 
     app.state.defect_management = DefectManagementService(
@@ -119,9 +113,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
                     logger.bind(
                         event="verification.sessions_expired",
                         count=expired,
-                    ).info(
-                        "Expired stale verification sessions"
-                    )
+                    ).info("Expired stale verification sessions")
 
             except Exception:
                 logger.bind(event="verification.sweeper_failed").exception(

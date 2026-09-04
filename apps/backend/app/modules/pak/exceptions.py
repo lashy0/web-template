@@ -25,6 +25,18 @@ class PakProvisioningError(PakError):
     code = "pak_provisioning_failed"
 
 
+class PakCredentialSynchronizationError(PakError):
+    """Hydra rotated a secret but the encrypted local recovery copy was not saved."""
+
+    code = "pak_credentials_out_of_sync"
+
+
+class PakDeletionSynchronizationError(PakError):
+    """Hydra deleted a client but the local PAK projection was not removed."""
+
+    code = "pak_deletion_out_of_sync"
+
+
 class PakAccessKeyConfigurationError(PakError):
     """The service cannot safely encrypt or decrypt PAK access keys."""
 

@@ -13,13 +13,15 @@ from fastapi import FastAPI, status
 from fastapi.testclient import TestClient
 from pytest_mock import MockerFixture
 
-from app.auth.contracts import AuthSession, Identity, OAuthAccessToken
+from app.auth.contracts import AuthSession, Identity
 from app.auth.roles import Role
 from app.core.config import Settings
 from app.main import create_app
 from app.modules.pak.exceptions import (
     PakAlreadyExistsError,
     PakCannotBeDeletedError,
+    PakCredentialSynchronizationError,
+    PakDeletionSynchronizationError,
     PakNotFoundError,
     PakProvisioningError,
 )
@@ -126,30 +128,19 @@ def test_create_returns_access_key_without_oauth_secret_field(
 
 
 @pytest.mark.api
-def test_issue_machine_token_forwards_access_key_without_requiring_browser_auth(
-    pak_client: tuple[FastAPI, TestClient], mocker: MockerFixture
+def test_backend_does_not_expose_a_machine_token_endpoint(
+    pak_client: tuple[FastAPI, TestClient],
 ) -> None:
-    app, client = pak_client
-    token = OAuthAccessToken("machine-access-token", "Bearer", 3600, ("pak:api",))
-    service = SimpleNamespace(issue_machine_access_token=AsyncMock(return_value=token))
-    mocker.patch.object(app.state, "pak_management", service)
+    _, client = pak_client
 
     response = client.post(
         "/pak/token",
         json={"client_id": "pak-test", "access_key": "machine-access-key"},
     )
 
-    assert response.status_code == status.HTTP_200_OK
-    assert response.json() == {
-        "access_token": "machine-access-token",
-        "token_type": "Bearer",
-        "expires_in": 3600,
-        "scope": "pak:api",
-    }
-    service.issue_machine_access_token.assert_awaited_once_with(
-        client_id="pak-test",
-        access_key="machine-access-key",
-    )
+    # The remaining /pak/{pak_id} resource route is deliberately not a token
+    # endpoint and rejects POST before request credentials are processed.
+    assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
 
 
 @pytest.mark.api
@@ -373,6 +364,26 @@ def test_delete_pak_forwards_requested_device(
             status.HTTP_409_CONFLICT,
             "pak_cannot_be_deleted",
             id="verification-history",
+        ),
+        pytest.param(
+            "post",
+            f"/pak/{uuid4()}/access-key/rotate",
+            None,
+            "rotate_access_key",
+            PakCredentialSynchronizationError,
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "pak_credentials_out_of_sync",
+            id="credential-sync-failed",
+        ),
+        pytest.param(
+            "delete",
+            f"/pak/{uuid4()}",
+            None,
+            "delete",
+            PakDeletionSynchronizationError,
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "pak_deletion_out_of_sync",
+            id="deletion-sync-failed",
         ),
         pytest.param(
             "get",

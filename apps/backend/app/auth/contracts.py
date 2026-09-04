@@ -35,14 +35,6 @@ class OAuthClientCredentials:
 
 
 @dataclass(frozen=True, slots=True)
-class OAuthAccessToken:
-    access_token: str = field(repr=False)
-    token_type: str
-    expires_in: int
-    scopes: tuple[str, ...]
-
-
-@dataclass(frozen=True, slots=True)
 class AccessTokenIntrospection:
     active: bool
     client_id: str | None
@@ -156,6 +148,7 @@ class OAuthClientManager(Protocol):
         client_id: str | None = None,
         name: str | None = None,
         scopes: tuple[str, ...] = (),
+        client_secret: str | None = None,
     ) -> OAuthClientCredentials:
         """Create a confidential client for the client-credentials grant."""
         raise NotImplementedError
@@ -172,6 +165,12 @@ class OAuthClientManager(Protocol):
         """Replace a client's secret and return it exactly once."""
         raise NotImplementedError
 
+    async def set_client_secret(
+        self, client_id: str, client_secret: str
+    ) -> OAuthClientCredentials:
+        """Restore a known secret while compensating a failed local operation."""
+        raise NotImplementedError
+
 
 class TokenIntrospector(Protocol):
     async def introspect_access_token(
@@ -181,16 +180,4 @@ class TokenIntrospector(Protocol):
         required_scopes: tuple[str, ...] = (),
     ) -> AccessTokenIntrospection:
         """Return the active state and OAuth client data for an access token."""
-        raise NotImplementedError
-
-
-class MachineTokenIssuer(Protocol):
-    async def issue_client_credentials_token(
-        self,
-        *,
-        client_id: str,
-        client_secret: str,
-        scopes: tuple[str, ...] = (),
-    ) -> OAuthAccessToken:
-        """Issue an access token using the OAuth client-credentials grant."""
         raise NotImplementedError

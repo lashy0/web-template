@@ -14,20 +14,20 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.auth.contracts import (
     AccessTokenIntrospection,
-    MachineTokenIssuer,
-    OAuthAccessToken,
     OAuthClient,
     OAuthClientCredentials,
     OAuthClientManager,
     TokenIntrospector,
 )
-from app.auth.exceptions import ForbiddenError
+from app.auth.exceptions import ForbiddenError, OAuthClientNotFoundError
 from app.auth.principal import CurrentPrincipal
 from app.auth.roles import Role
 from app.modules.pak.crypto import PakAccessKeyCipher
 from app.modules.pak.exceptions import (
     InvalidMachineAccessTokenError,
     PakCannotBeDeletedError,
+    PakCredentialSynchronizationError,
+    PakDeletionSynchronizationError,
     PakProvisioningError,
 )
 from app.modules.pak.models import PakDevice, PakDeviceKind
@@ -93,7 +93,6 @@ def dependencies(mocker: MockerFixture) -> tuple[MagicMock, MagicMock]:
 def _service(
     oauth_clients: object,
     token_introspector: object | None = None,
-    token_issuer: object | None = None,
 ) -> PakManagementService:
     return PakManagementService(
         cast(async_sessionmaker[AsyncSession], _SessionFactory()),
@@ -101,10 +100,6 @@ def _service(
         cast(
             TokenIntrospector,
             token_introspector or SimpleNamespace(introspect_access_token=AsyncMock()),
-        ),
-        cast(
-            MachineTokenIssuer,
-            token_issuer or SimpleNamespace(issue_client_credentials_token=AsyncMock()),
         ),
         SecretStr(Fernet.generate_key().decode("ascii")),
     )
@@ -131,6 +126,8 @@ async def test_create_persists_only_the_encrypted_access_key(
 
     assert created is pak
     assert access_key == "plain-client-secret"
+    assert set(oauth_clients.create_client.await_args.kwargs) == {"client_id"}
+    assert oauth_clients.create_client.await_args.kwargs["client_id"].startswith("pak-")
     encrypted = repositories.return_value.create.await_args.kwargs["encrypted_access_key"]
     assert encrypted != "plain-client-secret"
     assert service._cipher().decrypt(encrypted) == "plain-client-secret"
@@ -149,8 +146,16 @@ async def test_rotate_persists_new_encrypted_key_without_changing_client_id(
         client=OAuthClient(pak.oauth_client_id, None, (), (), "client_secret_basic"),
         client_secret="rotated-secret",
     )
-    oauth_clients = SimpleNamespace(rotate_client_credentials=AsyncMock(return_value=credentials))
+    restored_credentials = OAuthClientCredentials(
+        client=OAuthClient(pak.oauth_client_id, None, (), (), "client_secret_basic"),
+        client_secret="previous-secret",
+    )
+    oauth_clients = SimpleNamespace(
+        rotate_client_credentials=AsyncMock(return_value=credentials),
+        set_client_secret=AsyncMock(return_value=restored_credentials),
+    )
     service = _service(oauth_clients)
+    pak.encrypted_access_key = service._cipher().encrypt("previous-secret")
 
     access_key = await service.rotate_access_key(actor=_principal(), pak_id=pak.id)
 
@@ -178,7 +183,6 @@ async def test_access_key_view_decrypts_key_and_audits_without_exposing_it(
         cast(async_sessionmaker[AsyncSession], _SessionFactory()),
         cast(OAuthClientManager, SimpleNamespace()),
         cast(TokenIntrospector, SimpleNamespace()),
-        cast(MachineTokenIssuer, SimpleNamespace()),
         SecretStr(encryption_key),
     )
 
@@ -312,6 +316,74 @@ async def test_delete_rejects_pak_with_verification_history(
 
 
 @pytest.mark.unit
+async def test_rotation_reports_hydra_db_secret_synchronization_failure(
+    dependencies: tuple[MagicMock, MagicMock],
+) -> None:
+    repositories, audits = dependencies
+    pak = _pak()
+    repositories.return_value.get_by_id.return_value = pak
+    repositories.return_value.update_access_key.side_effect = RuntimeError("database unavailable")
+    credentials = OAuthClientCredentials(
+        client=OAuthClient(pak.oauth_client_id, None, (), (), "client_secret_basic"),
+        client_secret="rotated-secret",
+    )
+    restored_credentials = OAuthClientCredentials(
+        client=OAuthClient(pak.oauth_client_id, None, (), (), "client_secret_basic"),
+        client_secret="previous-secret",
+    )
+    oauth_clients = SimpleNamespace(
+        rotate_client_credentials=AsyncMock(return_value=credentials),
+        set_client_secret=AsyncMock(return_value=restored_credentials),
+    )
+    service = _service(oauth_clients)
+    pak.encrypted_access_key = service._cipher().encrypt("previous-secret")
+
+    with pytest.raises(PakCredentialSynchronizationError):
+        await service.rotate_access_key(actor=_principal(), pak_id=pak.id)
+
+    oauth_clients.rotate_client_credentials.assert_awaited_once_with(pak.oauth_client_id)
+    oauth_clients.set_client_secret.assert_awaited_once_with(pak.oauth_client_id, "previous-secret")
+    audits.from_session.return_value.record.assert_not_awaited()
+
+
+@pytest.mark.unit
+async def test_delete_reports_when_hydra_is_deleted_but_db_delete_fails(
+    dependencies: tuple[MagicMock, MagicMock],
+) -> None:
+    repositories, _ = dependencies
+    pak = _pak()
+    repositories.return_value.get_by_id.return_value = pak
+    repositories.return_value.delete.side_effect = RuntimeError("database unavailable")
+    oauth_clients = SimpleNamespace(delete_client=AsyncMock(), create_client=AsyncMock())
+    service = _service(oauth_clients)
+    pak.encrypted_access_key = service._cipher().encrypt("previous-secret")
+
+    with pytest.raises(PakDeletionSynchronizationError):
+        await service.delete(actor=_principal(), pak_id=pak.id)
+
+    oauth_clients.delete_client.assert_awaited_once_with(pak.oauth_client_id)
+    oauth_clients.create_client.assert_awaited_once_with(
+        client_id=pak.oauth_client_id,
+        client_secret="previous-secret",
+    )
+
+
+@pytest.mark.unit
+async def test_delete_removes_orphaned_local_pak_when_hydra_client_is_already_missing(
+    dependencies: tuple[MagicMock, MagicMock],
+) -> None:
+    repositories, _ = dependencies
+    pak = _pak()
+    repositories.return_value.get_by_id.return_value = pak
+    oauth_clients = SimpleNamespace(delete_client=AsyncMock(side_effect=OAuthClientNotFoundError))
+    service = _service(oauth_clients)
+
+    await service.delete(actor=_principal(), pak_id=pak.id)
+
+    repositories.return_value.delete.assert_awaited_once_with(pak)
+
+
+@pytest.mark.unit
 async def test_failed_local_pak_creation_rolls_back_oauth_client(
     dependencies: tuple[MagicMock, MagicMock],
 ) -> None:
@@ -332,8 +404,7 @@ async def test_failed_local_pak_creation_rolls_back_oauth_client(
             actor=_principal(), code="PAK-OTK-01", kind=PakDeviceKind.OTK_LINE, active=True
         )
 
-    created_client_id = oauth_clients.create_client.await_args.kwargs["client_id"]
-    oauth_clients.delete_client.assert_awaited_once_with(created_client_id)
+    oauth_clients.delete_client.assert_awaited_once_with(credentials.client.client_id)
 
 
 @pytest.mark.unit
@@ -346,7 +417,7 @@ async def test_machine_token_is_rejected_when_pak_is_inactive(
     repositories.return_value.get_by_oauth_client_id.return_value = pak
     introspector = SimpleNamespace(
         introspect_access_token=AsyncMock(
-            return_value=AccessTokenIntrospection(True, pak.oauth_client_id, ("pak:api",))
+            return_value=AccessTokenIntrospection(True, pak.oauth_client_id, ())
         )
     )
     service = _service(SimpleNamespace(), introspector)
@@ -365,7 +436,7 @@ async def test_machine_token_is_rejected_when_pak_is_archived(
     repositories.return_value.get_by_oauth_client_id.return_value = pak
     introspector = SimpleNamespace(
         introspect_access_token=AsyncMock(
-            return_value=AccessTokenIntrospection(True, pak.oauth_client_id, ("pak:api",))
+            return_value=AccessTokenIntrospection(True, pak.oauth_client_id, ())
         )
     )
     service = _service(SimpleNamespace(), introspector)
@@ -383,7 +454,7 @@ async def test_machine_token_is_authorized_and_updates_missing_last_seen_at(
     repositories.return_value.get_by_oauth_client_id.return_value = pak
     introspector = SimpleNamespace(
         introspect_access_token=AsyncMock(
-            return_value=AccessTokenIntrospection(True, pak.oauth_client_id, ("pak:api",))
+            return_value=AccessTokenIntrospection(True, pak.oauth_client_id, ())
         )
     )
     service = _service(SimpleNamespace(), introspector)
@@ -391,9 +462,7 @@ async def test_machine_token_is_authorized_and_updates_missing_last_seen_at(
     authorized = await service.authorize_machine_access_token("valid-token")
 
     assert authorized is pak
-    introspector.introspect_access_token.assert_awaited_once_with(
-        "valid-token", required_scopes=("pak:api",)
-    )
+    introspector.introspect_access_token.assert_awaited_once_with("valid-token")
     repositories.return_value.update_last_seen.assert_awaited_once()
     assert repositories.return_value.update_last_seen.await_args.args == (pak,)
     assert repositories.return_value.update_last_seen.await_args.kwargs["last_seen_at"] is not None
@@ -409,7 +478,7 @@ async def test_machine_token_authorization_does_not_update_recent_last_seen_at(
     repositories.return_value.get_by_oauth_client_id.return_value = pak
     introspector = SimpleNamespace(
         introspect_access_token=AsyncMock(
-            return_value=AccessTokenIntrospection(True, pak.oauth_client_id, ("pak:api",))
+            return_value=AccessTokenIntrospection(True, pak.oauth_client_id, ())
         )
     )
     service = _service(SimpleNamespace(), introspector)
@@ -427,7 +496,7 @@ async def test_machine_token_without_active_oauth_session_is_rejected(
     repositories, _ = dependencies
     introspector = SimpleNamespace(
         introspect_access_token=AsyncMock(
-            return_value=AccessTokenIntrospection(False, "pak-test", ("pak:api",))
+            return_value=AccessTokenIntrospection(False, "pak-test", ())
         )
     )
     service = _service(SimpleNamespace(), introspector)
@@ -436,30 +505,6 @@ async def test_machine_token_without_active_oauth_session_is_rejected(
         await service.authorize_machine_access_token("expired-token")
 
     repositories.return_value.get_by_oauth_client_id.assert_not_awaited()
-
-
-@pytest.mark.unit
-async def test_issue_machine_access_token_forwards_client_credentials_request(
-    dependencies: tuple[MagicMock, MagicMock],
-) -> None:
-    repositories, _ = dependencies
-    pak = _pak()
-    repositories.return_value.get_by_oauth_client_id.return_value = pak
-    token = OAuthAccessToken("access-token", "Bearer", 3600, ("pak:api",))
-    issuer = SimpleNamespace(issue_client_credentials_token=AsyncMock(return_value=token))
-    service = _service(SimpleNamespace(), token_issuer=issuer)
-
-    issued = await service.issue_machine_access_token(
-        client_id=pak.oauth_client_id,
-        access_key="plain-access-key",
-    )
-
-    assert issued is token
-    issuer.issue_client_credentials_token.assert_awaited_once_with(
-        client_id=pak.oauth_client_id,
-        client_secret="plain-access-key",
-        scopes=("pak:api",),
-    )
 
 
 def _set_archived_at(pak: PakDevice, archived_at: object) -> PakDevice:

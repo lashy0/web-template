@@ -3,10 +3,7 @@ from secrets import token_urlsafe
 from typing import TypeVar
 
 import anyio
-import httpx2
 import ory_hydra_client as hydra
-from authlib.integrations.httpx_client import AsyncOAuth2Client
-from authlib.oauth2.rfc6749.errors import OAuth2Error
 from ory_hydra_client.api.o_auth2_api import OAuth2Api
 from ory_hydra_client.exceptions import ApiException
 from ory_hydra_client.models.introspected_o_auth2_token import IntrospectedOAuth2Token
@@ -14,12 +11,10 @@ from ory_hydra_client.models.o_auth2_client import OAuth2Client as HydraOAuth2Cl
 
 from app.auth.contracts import (
     AccessTokenIntrospection,
-    OAuthAccessToken,
     OAuthClient,
     OAuthClientCredentials,
 )
 from app.auth.exceptions import (
-    InvalidMachineCredentialsError,
     OAuthClientAlreadyExistsError,
     OAuthClientNotFoundError,
     OAuthProviderUnavailableError,
@@ -101,9 +96,10 @@ class HydraOAuthClientManager:
         client_id: str | None = None,
         name: str | None = None,
         scopes: tuple[str, ...] = (),
+        client_secret: str | None = None,
     ) -> OAuthClientCredentials:
         client = HydraOAuth2Client(
-            client_secret=_new_client_secret(),
+            client_secret=client_secret or _new_client_secret(),
             client_id=client_id,
             client_name=name,
             grant_types=["client_credentials"],
@@ -139,14 +135,18 @@ class HydraOAuthClientManager:
         )
 
     async def rotate_client_credentials(self, client_id: str) -> OAuthClientCredentials:
+        return await self.set_client_secret(client_id, _new_client_secret())
+
+    async def set_client_secret(
+        self, client_id: str, client_secret: str
+    ) -> OAuthClientCredentials:
         current = await self._client.call(
             lambda: self._oauth2.get_o_auth2_client(
                 id=client_id,
                 _request_timeout=self._client.timeout,
             )
         )
-        replacement_secret = _new_client_secret()
-        replacement = current.model_copy(update={"client_secret": replacement_secret})
+        replacement = current.model_copy(update={"client_secret": client_secret})
         result = await self._client.call(
             lambda: self._oauth2.set_o_auth2_client(
                 id=client_id,
@@ -182,45 +182,3 @@ class HydraTokenIntrospector:
         )
 
         return _introspection(result)
-
-
-class HydraMachineTokenIssuer:
-    def __init__(self, settings: Settings) -> None:
-        self._token_url = (
-            f"{settings.HYDRA_PUBLIC_URL.rstrip('/')}/oauth2/token"
-        )
-        self._timeout = settings.HYDRA_PUBLIC_TIMEOUT
-
-    async def issue_client_credentials_token(
-        self,
-        *,
-        client_id: str,
-        client_secret: str,
-        scopes: tuple[str, ...] = (),
-    ) -> OAuthAccessToken:
-        try:
-            async with AsyncOAuth2Client(
-                client_id=client_id,
-                client_secret=client_secret,
-                scope=" ".join(scopes),
-                timeout=self._timeout,
-            ) as client:
-                token = await client.fetch_token(
-                    self._token_url,
-                    grant_type="client_credentials",
-                )
-
-        except OAuth2Error as exc:
-            raise InvalidMachineCredentialsError from exc
-
-        except httpx2.HTTPError as exc:
-            raise OAuthProviderUnavailableError from exc
-
-        return OAuthAccessToken(
-            access_token=token["access_token"],
-            token_type=token.get("token_type", "Bearer"),
-            expires_in=token["expires_in"],
-            scopes=tuple(
-                str(token.get("scope", "")).split()
-            ),
-        )

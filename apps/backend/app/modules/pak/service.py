@@ -6,13 +6,8 @@ from pydantic import SecretStr
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.auth.contracts import (
-    MachineTokenIssuer,
-    OAuthAccessToken,
-    OAuthClientManager,
-    TokenIntrospector,
-)
-from app.auth.exceptions import ForbiddenError, InvalidMachineCredentialsError
+from app.auth.contracts import OAuthClientManager, TokenIntrospector
+from app.auth.exceptions import ForbiddenError, OAuthClientNotFoundError
 from app.auth.principal import CurrentPrincipal
 from app.modules.audit.service import AuditService
 from app.modules.audit.types import AuditActor, AuditEntity
@@ -22,6 +17,8 @@ from app.modules.pak.exceptions import (
     InvalidMachineAccessTokenError,
     PakAlreadyExistsError,
     PakCannotBeDeletedError,
+    PakCredentialSynchronizationError,
+    PakDeletionSynchronizationError,
     PakNotFoundError,
     PakProvisioningError,
     PakTestConfigurationError,
@@ -31,7 +28,6 @@ from app.modules.pak.models import PakDevice, PakDeviceKind, PakTest
 from app.modules.pak.repository import PakRepository, PakTestRepository
 from app.modules.verification.repository import VerificationSessionRepository
 
-PAK_OAUTH_SCOPES = ("pak:api",)
 PAK_LAST_SEEN_UPDATE_INTERVAL = timedelta(seconds=15)
 
 
@@ -43,13 +39,11 @@ class PakManagementService:
         session_factory: async_sessionmaker[AsyncSession],
         oauth_clients: OAuthClientManager,
         token_introspector: TokenIntrospector,
-        token_issuer: MachineTokenIssuer,
         access_key_encryption_key: SecretStr | None,
     ) -> None:
         self._session_factory = session_factory
         self._oauth_clients = oauth_clients
         self._token_introspector = token_introspector
-        self._token_issuer = token_issuer
         self._access_key_encryption_key = access_key_encryption_key
 
     async def get(self, pak_id: UUID) -> PakDevice | None:
@@ -75,14 +69,11 @@ class PakManagementService:
             if await PakRepository(session).get_by_code(code) is not None:
                 raise PakAlreadyExistsError
 
-        cipher = self._cipher()
-        credentials = await self._oauth_clients.create_client(
-            client_id=oauth_client_id,
-            scopes=PAK_OAUTH_SCOPES,
-        )
-        encrypted_access_key = cipher.encrypt(credentials.client_secret)
+        credentials = await self._oauth_clients.create_client(client_id=oauth_client_id)
 
         try:
+            encrypted_access_key = self._cipher().encrypt(credentials.client_secret)
+
             async with self._session_factory() as session, session.begin():
                 pak = await PakRepository(session).create(
                     pak_id=pak_id,
@@ -108,7 +99,9 @@ class PakManagementService:
                 return pak, credentials.client_secret
 
         except IntegrityError as exc:
-            await self._rollback_pak_creation(pak_id=pak_id, oauth_client_id=oauth_client_id)
+            await self._rollback_pak_creation(
+                pak_id=pak_id, oauth_client_id=credentials.client.client_id
+            )
 
             raise PakAlreadyExistsError from exc
 
@@ -120,7 +113,9 @@ class PakManagementService:
                 error_type=type(exc).__name__,
             ).opt(exception=exc).error("PAK provisioning failed")
 
-            await self._rollback_pak_creation(pak_id=pak_id, oauth_client_id=oauth_client_id)
+            await self._rollback_pak_creation(
+                pak_id=pak_id, oauth_client_id=credentials.client.client_id
+            )
 
             raise PakProvisioningError from exc
 
@@ -149,35 +144,98 @@ class PakManagementService:
             oauth_client_id = pak.oauth_client_id
 
         cipher = self._cipher()
+        previous_client_secret = cipher.decrypt(pak.encrypted_access_key)
         credentials = await self._oauth_clients.rotate_client_credentials(oauth_client_id)
 
         if credentials.client.client_id != oauth_client_id:
             raise PakProvisioningError("OAuth provider changed the PAK client ID during rotation")
 
-        encrypted_access_key = cipher.encrypt(credentials.client_secret)
+        try:
+            encrypted_access_key = cipher.encrypt(credentials.client_secret)
 
-        async with self._session_factory() as session, session.begin():
-            repository = PakRepository(session)
-            pak = await self._required_pak(repository, pak_id)
-            self._ensure_not_archived(pak)
+            async with self._session_factory() as session, session.begin():
+                repository = PakRepository(session)
+                pak = await self._required_pak(repository, pak_id)
+                self._ensure_not_archived(pak)
 
-            if pak.oauth_client_id != oauth_client_id:
-                raise PakProvisioningError("PAK OAuth client changed during access-key rotation")
+                if pak.oauth_client_id != oauth_client_id:
+                    raise PakProvisioningError(
+                        "PAK OAuth client changed during access-key rotation"
+                    )
 
-            pak = await repository.update_access_key(pak, encrypted_access_key=encrypted_access_key)
+                pak = await repository.update_access_key(
+                    pak, encrypted_access_key=encrypted_access_key
+                )
 
-            await AuditService.from_session(session).record(
-                actor=self._audit_actor(actor),
-                action="pak.access_key_rotated",
-                entity=self._audit_entity(pak),
-                new_data={
-                    "pak_id": str(pak.id),
-                    "code": pak.code,
-                    "oauth_client_id": pak.oauth_client_id,
-                },
-            )
+                await AuditService.from_session(session).record(
+                    actor=self._audit_actor(actor),
+                    action="pak.access_key_rotated",
+                    entity=self._audit_entity(pak),
+                    new_data={
+                        "pak_id": str(pak.id),
+                        "code": pak.code,
+                        "oauth_client_id": pak.oauth_client_id,
+                    },
+                )
+
+        except Exception as exc:
+            try:
+                restored = await self._oauth_clients.set_client_secret(
+                    oauth_client_id, previous_client_secret
+                )
+                if restored.client.client_id != oauth_client_id:
+                    raise PakProvisioningError("Hydra changed the PAK client ID during compensation")
+
+            except Exception as compensation_error:
+                logger.bind(
+                    event="pak.credentials_synchronization_failed",
+                    pak_id=str(pak_id),
+                    oauth_client_id=oauth_client_id,
+                    error_type=type(exc).__name__,
+                    compensation_error_type=type(compensation_error).__name__,
+                ).opt(exception=compensation_error).critical(
+                    "Hydra credentials were rotated but the encrypted local copy was not saved"
+                )
+
+            else:
+                logger.bind(
+                    event="pak.credentials_rotation_compensated",
+                    pak_id=str(pak_id),
+                    oauth_client_id=oauth_client_id,
+                    error_type=type(exc).__name__,
+                ).error(
+                    "Hydra credential rotation was reverted after the local update failed"
+                )
+
+            raise PakCredentialSynchronizationError from exc
 
         return str(credentials.client_secret)
+
+    async def _restore_deleted_oauth_client(self, pak: PakDevice) -> None:
+        try:
+            await self._oauth_clients.create_client(
+                client_id=pak.oauth_client_id,
+                client_secret=self._cipher().decrypt(pak.encrypted_access_key),
+            )
+
+        except Exception as exc:
+            logger.bind(
+                event="pak.deletion_compensation_failed",
+                pak_id=str(pak.id),
+                oauth_client_id=pak.oauth_client_id,
+                error_type=type(exc).__name__,
+            ).opt(exception=exc).critical(
+                "Hydra OAuth client could not be restored after local deletion failed"
+            )
+
+        else:
+            logger.bind(
+                event="pak.deletion_compensated",
+                pak_id=str(pak.id),
+                oauth_client_id=pak.oauth_client_id,
+            ).error(
+                "Hydra OAuth client was restored after local deletion failed"
+            )
 
     async def update(
         self,
@@ -293,55 +351,53 @@ class PakManagementService:
 
             oauth_client_id = pak.oauth_client_id
 
-        await self._oauth_clients.delete_client(oauth_client_id)
+        oauth_client_deleted = False
 
-        async with self._session_factory() as session, session.begin():
-            repository = PakRepository(session)
-            pak = await self._required_pak(repository, pak_id)
+        try:
+            await self._oauth_clients.delete_client(oauth_client_id)
+            oauth_client_deleted = True
 
-            await AuditService.from_session(session).record(
-                actor=self._audit_actor(actor),
-                action="pak.deleted",
-                entity=self._audit_entity(pak),
-                old_data={
-                    "pak_id": str(pak.id),
-                    "code": pak.code,
-                    "oauth_client_id": pak.oauth_client_id,
-                },
+        except OAuthClientNotFoundError:
+            # The desired external state has already been reached;
+            # remove the orphaned local projection below.
+            pass
+
+        try:
+            async with self._session_factory() as session, session.begin():
+                repository = PakRepository(session)
+                pak = await self._required_pak(repository, pak_id)
+
+                await AuditService.from_session(session).record(
+                    actor=self._audit_actor(actor),
+                    action="pak.deleted",
+                    entity=self._audit_entity(pak),
+                    old_data={
+                        "pak_id": str(pak.id),
+                        "code": pak.code,
+                        "oauth_client_id": pak.oauth_client_id,
+                    },
+                )
+
+                await repository.delete(pak)
+
+        except Exception as exc:
+            if oauth_client_deleted:
+                await self._restore_deleted_oauth_client(pak)
+
+            logger.bind(
+                event="pak.deletion_synchronization_failed",
+                pak_id=str(pak_id),
+                oauth_client_id=oauth_client_id,
+                error_type=type(exc).__name__,
+            ).opt(exception=exc).critical(
+                "Hydra OAuth client was deleted but the local PAK was not removed"
             )
 
-            await repository.delete(pak)
-
-    async def issue_machine_access_token(
-        self,
-        *,
-        client_id: str,
-        access_key: str,
-    ) -> OAuthAccessToken:
-        token = await self._token_issuer.issue_client_credentials_token(
-            client_id=client_id,
-            client_secret=access_key,
-            scopes=PAK_OAUTH_SCOPES,
-        )
-
-        async with self._session_factory() as session:
-            pak = await PakRepository(session).get_by_oauth_client_id(client_id)
-
-        if pak is None:
-            raise InvalidMachineCredentialsError
-
-        if not pak.is_active or pak.archived_at is not None:
-            raise ForbiddenError(
-                "PAK is inactive or archived"
-            )
-
-        return token
+            raise PakDeletionSynchronizationError from exc
 
     async def authorize_machine_access_token(self, access_token: str) -> PakDevice:
         """Authorize a PAK token against live local active/archive state."""
-        introspection = await self._token_introspector.introspect_access_token(
-            access_token, required_scopes=PAK_OAUTH_SCOPES
-        )
+        introspection = await self._token_introspector.introspect_access_token(access_token)
 
         if not introspection.active or not introspection.client_id:
             raise InvalidMachineAccessTokenError

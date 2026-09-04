@@ -8,7 +8,7 @@ from app.modules.pak.enums import PakDeviceKind, PakStatus
 from app.modules.pak.exceptions import PakNotFoundError, PakTestNotFoundError
 from app.modules.pak.models import PakDevice, PakTest
 from app.modules.pak.permissions import PakPermission
-from app.modules.pak.schemas.common import (
+from app.modules.pak.schemas import (
     CreatePakDeviceRequest,
     CreatePakDeviceResponse,
     PakAccessKeyResponse,
@@ -20,12 +20,9 @@ from app.modules.pak.schemas.common import (
     UpdateArchivedRequest,
     UpdatePakDeviceRequest,
 )
-from app.modules.pak.schemas.machine import PakTokenRequest, PakTokenResponse
 from app.modules.pak.service import PakManagementService, PakTestCatalogService
 
 router = APIRouter(prefix="/pak", tags=["pak"])
-
-machine_router = APIRouter(prefix="/pak", tags=["pak-machine"])
 
 
 def _response(pak: PakDevice) -> PakDeviceResponse:
@@ -141,24 +138,6 @@ async def get_pak_test(
         raise PakTestNotFoundError
 
     return _test_response(test)
-
-
-@machine_router.post("/token", response_model=PakTokenResponse)
-async def issue_token(
-    payload: PakTokenRequest,
-    request: Request,
-) -> PakTokenResponse:
-    token = await _service(request).issue_machine_access_token(
-        client_id=payload.client_id,
-        access_key=payload.access_key.get_secret_value(),
-    )
-
-    return PakTokenResponse(
-        access_token=token.access_token,
-        token_type=token.token_type,
-        expires_in=token.expires_in,
-        scope=" ".join(token.scopes),
-    )
 
 
 @router.get("/{pak_id}", response_model=PakDeviceResponse)
