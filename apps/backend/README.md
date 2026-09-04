@@ -22,6 +22,7 @@ before changing the corresponding part of the backend:
 * [Configuration](docs/configuration.md)
 * [Database models and migrations](docs/database.md)
 * [Redis](docs/redis.md)
+* [PAK API guide](docs/pak.md)
 
 ## Backend tests
 

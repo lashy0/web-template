@@ -20,7 +20,7 @@ case-sensitive. Empty values are ignored, so the documented default is used inst
 | `BACKEND_KRATOS_PUBLIC_CONCURRENCY` | `20` | Maximum concurrent Public API calls |
 | `BACKEND_KRATOS_ADMIN_CONCURRENCY` | `4` | Maximum concurrent Admin API calls |
 | `BACKEND_KRATOS_RECONCILE_INTERVAL` | `300` | Identity projection reconciliation interval in seconds |
-| `BACKEND_HYDRA_PUBLIC_URL` | `http://hydra:4444` | Internal Hydra Public API URL; OAuth2 clients use its `/oauth2/token` endpoint |
+| `BACKEND_HYDRA_PUBLIC_URL` | `http://hydra:4444` | Hydra Public API URL used directly by PAK devices for its `/oauth2/token` endpoint; the backend never proxies client credentials |
 | `BACKEND_HYDRA_ADMIN_URL` | `http://hydra:4445` | Internal Hydra Admin API URL used for client management and token introspection |
 | `BACKEND_HYDRA_PUBLIC_TIMEOUT` | `2.0` | Public API timeout in seconds for OAuth2 smoke clients |
 | `BACKEND_HYDRA_ADMIN_TIMEOUT` | `10.0` | Admin API timeout in seconds |

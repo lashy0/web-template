@@ -7,8 +7,11 @@ together on the same daemon.
 The backend and frontend have their own runtime images and release tags. The
 frontend image is an unprivileged Nginx image containing the React SPA. Traefik
 serves the SPA at `app.${BASE_DOMAIN}` and routes
-`app.${BASE_DOMAIN}/api/*` to the backend after removing the `/api` prefix. The
-direct machine endpoint remains `api.${BASE_DOMAIN}`.
+`app.${BASE_DOMAIN}/api/*` to the backend after removing the `/api` prefix.
+
+PAK integration is documented in the [PAK API guide](../apps/backend/docs/pak.md).
+The public OAuth2 routing is documented by the
+[identity infrastructure](../infrastructure/identity/README.md).
 
 ## Environment
 

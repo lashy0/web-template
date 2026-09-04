@@ -25,7 +25,7 @@ container connects to PostgreSQL as `web_app_migrator`; the backend connects to
 PostgreSQL and Redis as `web_app_runtime`.
 
 Requests below `/api` on `app.${BASE_DOMAIN}` are routed directly to the backend
-with the prefix removed. Machines can continue to use `api.${BASE_DOMAIN}`.
+with the prefix removed.
 The frontend is an independent Compose project in
 [`../frontend`](../frontend/README.md).
 
