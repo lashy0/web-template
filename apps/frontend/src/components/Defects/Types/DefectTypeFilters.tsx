@@ -16,8 +16,8 @@ export function DefectTypeFilters({
   query: string
 }>) {
   return (
-    <div className="flex w-full flex-col gap-2 @[40rem]:flex-row @[56rem]:w-auto">
-      <div className="relative w-full @[56rem]:w-72">
+    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+      <div className="relative w-full sm:w-72">
         <SearchIcon className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           className="w-full px-8"
@@ -39,7 +39,7 @@ export function DefectTypeFilters({
       <DefectGroupSelect
         allowClear
         ariaLabel="Группа дефектов"
-        className="w-full cursor-pointer @[40rem]:w-60"
+        className="w-full cursor-pointer sm:w-60"
         onChange={(value) => onGroupChange(value ?? 'all')}
         placeholder="Все группы"
         value={groupId}

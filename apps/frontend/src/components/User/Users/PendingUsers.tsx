@@ -52,7 +52,7 @@ export default function PendingUsers({
   }
 
   return (
-    <section className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-8 lg:px-12">
+    <section className="mx-auto w-full max-w-[82.5rem] px-4 py-8 sm:px-8 lg:px-12">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Пользователи</h1>

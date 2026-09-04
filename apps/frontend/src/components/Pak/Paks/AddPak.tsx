@@ -95,7 +95,7 @@ export function AddPak() {
       }}
       open={isOpen}
     >
-      <DialogTrigger render={<Button className="my-4 cursor-pointer" />}>
+      <DialogTrigger render={<Button className="cursor-pointer self-start sm:self-auto" />}>
         <PlusIcon data-icon="inline-start" />
         Добавить
       </DialogTrigger>

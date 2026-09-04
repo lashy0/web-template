@@ -40,8 +40,8 @@ export function PakFilters({
   }
 
   return (
-    <div className="flex w-full flex-col gap-2 @[40rem]:flex-row @[56rem]:w-auto">
-      <div className="relative w-full @[40rem]:min-w-0 @[40rem]:flex-1 @[56rem]:w-72 @[56rem]:flex-none">
+    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+      <div className="relative w-full sm:w-72">
         <SearchIcon className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           className="w-full px-8"
@@ -60,7 +60,7 @@ export function PakFilters({
           </button>
         ) : null}
       </div>
-      <div className="flex flex-wrap items-center gap-2 @[40rem]:flex-nowrap">
+      <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
         <Select onValueChange={(value) => onKindChange(value as KindFilter)} value={kind}>
           <SelectTrigger className="w-40 cursor-pointer">
             <SelectValue>{kindLabel}</SelectValue>

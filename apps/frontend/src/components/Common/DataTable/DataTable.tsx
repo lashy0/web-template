@@ -33,6 +33,7 @@ const dataTableFeatures = tableFeatures({
 })
 
 export type DataTableColumn<Row extends RowData> = ColumnDef<typeof dataTableFeatures, Row>
+
 export function DataTable<Row extends RowData>({
   columns,
   data,

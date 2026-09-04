@@ -117,58 +117,54 @@ function Paks() {
     })
   }
   return (
-    <section className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-8 lg:px-12">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">ПАК</h1>
-          <p className="mt-2 text-muted-foreground">
-            Управление программно-аппаратными комплексами.
-          </p>
-        </div>
+    <section className="mx-auto w-full max-w-[82.5rem] px-4 py-8 sm:px-8 lg:px-12">
+      <div>
+        <h1 className="text-3xl font-semibold tracking-tight">ПАК</h1>
+        <p className="mt-2 text-muted-foreground">
+          Управление программно-аппаратными комплексами.
+        </p>
+      </div>
+      <Tabs
+        className="mt-8"
+        onValueChange={(value) => resetList(value === 'archived')}
+        value={archived ? 'archived' : 'current'}
+      >
+        <TabsList>
+          <TabsTrigger value="current">Текущие</TabsTrigger>
+          <TabsTrigger value="archived">Архивные</TabsTrigger>
+        </TabsList>
+      </Tabs>
+      <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <PakFilters
+          archived={archived}
+          kind={kind}
+          onKindChange={(value) => {
+            navigate({
+              search: (previous) => ({
+                ...previous,
+                kind: value === 'all' ? undefined : value,
+                page: undefined,
+              }),
+            })
+          }}
+          onQueryChange={(value) => {
+            setQueryInput(value)
+          }}
+          onStatusChange={(value) => {
+            navigate({
+              search: (previous) => ({
+                ...previous,
+                page: undefined,
+                status: value === 'all' ? undefined : value,
+              }),
+            })
+          }}
+          query={queryInput}
+          status={status}
+        />
         <AddPak />
       </div>
-      <div className="pt-8">
-        <div className="@container mb-4">
-          <div className="flex flex-col gap-3 @[56rem]:flex-row @[56rem]:items-center @[56rem]:justify-between">
-            <Tabs
-              className="shrink-0"
-              onValueChange={(value) => resetList(value === 'archived')}
-              value={archived ? 'archived' : 'current'}
-            >
-              <TabsList>
-                <TabsTrigger value="current">Текущие</TabsTrigger>
-                <TabsTrigger value="archived">Архивные</TabsTrigger>
-              </TabsList>
-            </Tabs>
-            <PakFilters
-              archived={archived}
-              kind={kind}
-              onKindChange={(value) => {
-                navigate({
-                  search: (previous) => ({
-                    ...previous,
-                    kind: value === 'all' ? undefined : value,
-                    page: undefined,
-                  }),
-                })
-              }}
-              onQueryChange={(value) => {
-                setQueryInput(value)
-              }}
-              onStatusChange={(value) => {
-                navigate({
-                  search: (previous) => ({
-                    ...previous,
-                    page: undefined,
-                    status: value === 'all' ? undefined : value,
-                  }),
-                })
-              }}
-              query={queryInput}
-              status={status}
-            />
-          </div>
-        </div>
+      <div className="mt-4">
         {!paks ? (
           isError ? (
             <DataLoadError onRetry={() => void refetch()} />

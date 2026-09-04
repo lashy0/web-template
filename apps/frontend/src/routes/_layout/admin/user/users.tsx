@@ -150,51 +150,46 @@ function Users() {
   })
 
   return (
-    <section className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-8 lg:px-12">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Пользователи</h1>
-          <p className="mt-2 text-muted-foreground">Управление учётными записями.</p>
-        </div>
+    <section className="mx-auto w-full max-w-[82.5rem] px-4 py-8 sm:px-8 lg:px-12">
+      <div>
+        <h1 className="text-3xl font-semibold tracking-tight">Пользователи</h1>
+        <p className="mt-2 text-muted-foreground">Управление учётными записями.</p>
+      </div>
+      <Tabs
+        className="mt-8"
+        onValueChange={(value) => {
+          const nextArchived = value === 'archived'
+          navigate({
+            search: (previous) => ({
+              ...previous,
+              archived: nextArchived ? true : undefined,
+              authState: nextArchived ? undefined : previous.authState,
+              order: undefined,
+              page: undefined,
+              sort: undefined,
+            }),
+          })
+        }}
+        value={archived ? 'archived' : 'current'}
+      >
+        <TabsList>
+          <TabsTrigger value="current">Текущие</TabsTrigger>
+          <TabsTrigger value="archived">Архивные</TabsTrigger>
+        </TabsList>
+      </Tabs>
+      <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <UserFilters
+          archived={archived}
+          authState={authState}
+          onAuthStateChange={handleAuthStateChange}
+          onQueryChange={handleQueryChange}
+          onRoleChange={handleRoleChange}
+          query={queryInput}
+          role={role}
+        />
         <AddUser />
       </div>
-      <div className="pt-8">
-        <div className="@container mb-4">
-          <div className="flex flex-col gap-3 @[56rem]:flex-row @[56rem]:items-center @[56rem]:justify-between">
-            <Tabs
-              className="shrink-0"
-              onValueChange={(value) => {
-                const nextArchived = value === 'archived'
-                navigate({
-                  search: (previous) => ({
-                    ...previous,
-                    archived: nextArchived ? true : undefined,
-                    authState: nextArchived ? undefined : previous.authState,
-                    order: undefined,
-                    page: undefined,
-                    sort: undefined,
-                  }),
-                })
-              }}
-              value={archived ? 'archived' : 'current'}
-            >
-              <TabsList>
-                <TabsTrigger value="current">Текущие</TabsTrigger>
-                <TabsTrigger value="archived">Архивные</TabsTrigger>
-              </TabsList>
-            </Tabs>
-
-            <UserFilters
-              archived={archived}
-              authState={authState}
-              onAuthStateChange={handleAuthStateChange}
-              onQueryChange={handleQueryChange}
-              onRoleChange={handleRoleChange}
-              query={queryInput}
-              role={role}
-            />
-          </div>
-        </div>
+      <div className="mt-4">
         {!users ? (
           isError ? (
             <DataLoadError onRetry={() => void refetch()} />

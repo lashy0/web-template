@@ -43,9 +43,10 @@ export default function PendingAudit({
       </Table>
     </div>
   )
+
   if (!showPageHeader) return table
   return (
-    <section className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-8 lg:px-12">
+    <section className="mx-auto w-full max-w-[82.5rem] px-4 py-8 sm:px-8 lg:px-12">
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">Аудит ПАК</h1>
         <p className="mt-2 text-muted-foreground">
