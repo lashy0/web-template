@@ -3,13 +3,14 @@ import { cn } from '@web-app/ui/lib/utils'
 import { Badge } from '@web-app/ui/components/badge'
 import { type DataTableColumn } from '@/components/Common/DataTable'
 import { UserActionsMenu } from '@/components/User/Users/UserActionsMenu'
-import { roleLabels, type AuthState, type Role, type User } from '@/features/users/users-api'
+import {
+  authStateLabels,
+  roleLabels,
+  type AuthState,
+  type Role,
+  type User,
+} from '@/features/users/users-api'
 import { formatDateTime } from '@/lib/date'
-
-const stateLabels: Record<AuthState, string> = {
-  active: 'Активен',
-  inactive: 'Неактивен',
-}
 
 export function createUserColumns(
   currentUserId: string,
@@ -94,7 +95,7 @@ function Status({ state }: Readonly<{ state: AuthState }>) {
           state === 'inactive' && 'bg-red-500',
         )}
       />
-      {stateLabels[state]}
+      {authStateLabels[state]}
     </span>
   )
 }

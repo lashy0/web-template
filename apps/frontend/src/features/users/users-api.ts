@@ -7,6 +7,8 @@ import {
   usersUpdateArchived,
   usersUpdatePassword,
   usersUpdateUser,
+  zAuthState,
+  zRole,
   type CreateUserRequest,
   type Role as ApiRole,
   type UpdateUserRequest,
@@ -19,6 +21,9 @@ export type SortOrder = 'asc' | 'desc'
 export type UserSort = 'archived_at' | 'login' | 'name'
 export type AuditSort = 'actor_display_name' | 'created_at'
 
+export const userRoles = zRole.options satisfies readonly Role[]
+export const authStates = zAuthState.options satisfies readonly AuthState[]
+
 export const roleLabels: Readonly<Record<Role, string>> = {
   administrator: 'Администратор',
   manager: 'Менеджер',
@@ -27,9 +32,28 @@ export const roleLabels: Readonly<Record<Role, string>> = {
   operator: 'Оператор',
 }
 
-export const roleOptions: readonly Readonly<{ label: string; value: Role }>[] = (
-  Object.entries(roleLabels) as Array<[Role, string]>
-).map(([value, label]) => ({ label, value }))
+export const roleOptions: readonly Readonly<{ label: string; value: Role }>[] = userRoles.map((value) => ({
+  label: roleLabels[value],
+  value,
+}))
+
+export const roleFilterOptions: readonly Readonly<{ label: string; value: Role | 'all' }>[] = [
+  { label: 'Все роли', value: 'all' },
+  ...roleOptions,
+]
+
+export const authStateLabels: Readonly<Record<AuthState, string>> = {
+  active: 'Активен',
+  inactive: 'Неактивен',
+}
+
+export const authStateFilterOptions: readonly Readonly<{
+  label: string
+  value: AuthState | 'all'
+}>[] = [
+  { label: 'Все статусы', value: 'all' },
+  ...authStates.map((value) => ({ label: authStateLabels[value], value })),
+]
 
 export type User = Readonly<{
   id: string

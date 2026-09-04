@@ -4,15 +4,21 @@ import { Input } from '@web-app/ui/components/input'
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@web-app/ui/components/select'
 
-import { pakKindOptions, type PakKind } from '@/features/paks/paks-api'
+import {
+  pakKindFilterOptions,
+  pakStatusFilterOptions,
+  type PakKind,
+  type PakStatus,
+} from '@/features/paks/paks-api'
 
 type KindFilter = PakKind | 'all'
-type StatusFilter = 'active' | 'all' | 'inactive'
+type StatusFilter = PakStatus | 'all'
 
 export function PakFilters({
   archived,
@@ -31,13 +37,8 @@ export function PakFilters({
   query: string
   status: StatusFilter
 }>) {
-  const kindLabel =
-    kind === 'all' ? 'Все типы' : pakKindOptions.find((item) => item.value === kind)?.label
-  const statusLabels: Record<StatusFilter, string> = {
-    active: 'Разрешён',
-    all: 'Все статусы',
-    inactive: 'Отключён',
-  }
+  const kindLabel = pakKindFilterOptions.find((item) => item.value === kind)?.label
+  const statusLabel = pakStatusFilterOptions.find((item) => item.value === status)?.label
 
   return (
     <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
@@ -66,23 +67,28 @@ export function PakFilters({
             <SelectValue>{kindLabel}</SelectValue>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Все типы</SelectItem>
-            {pakKindOptions.map((item) => (
-              <SelectItem key={item.value} value={item.value}>
-                {item.label}
-              </SelectItem>
-            ))}
+            <SelectGroup>
+              {pakKindFilterOptions.map((item) => (
+                <SelectItem key={item.value} value={item.value}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
           </SelectContent>
         </Select>
         {!archived ? (
           <Select onValueChange={(value) => onStatusChange(value as StatusFilter)} value={status}>
             <SelectTrigger className="w-40 cursor-pointer">
-              <SelectValue>{statusLabels[status]}</SelectValue>
+              <SelectValue>{statusLabel}</SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Все статусы</SelectItem>
-              <SelectItem value="active">Разрешён</SelectItem>
-              <SelectItem value="inactive">Отключён</SelectItem>
+              <SelectGroup>
+                {pakStatusFilterOptions.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
             </SelectContent>
           </Select>
         ) : null}

@@ -14,23 +14,17 @@ import { UserFilters } from '@/components/User/Users/UserFilters'
 import PendingUsers from '@/components/User/Users/PendingUsers'
 import { createUserColumns } from '@/components/User/Users/columns'
 import {
+  authStates,
   listUsers,
   type AuthState,
   type Role,
   type SortOrder,
   type UserSort,
+  userRoles,
 } from '@/features/users/users-api'
 import { listEnum, listOrder, listPage, listPageSize, listQuery } from '@/lib/list-search'
 import { Tabs, TabsList, TabsTrigger } from '@web-app/ui/components/tabs'
 
-const authStates = ['active', 'inactive'] as const satisfies readonly AuthState[]
-const userRoles = [
-  'administrator',
-  'manager',
-  'engineer',
-  'packer',
-  'operator',
-] as const satisfies readonly Role[]
 const userTableSorts = ['archived_at', 'login', 'name'] as const satisfies readonly UserSort[]
 
 export const Route = createFileRoute('/_layout/admin/user/users')({

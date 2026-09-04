@@ -5,11 +5,11 @@ from fastapi import APIRouter, Depends, Query, Request, status
 
 from app.api.auth_deps import CurrentPrincipalDep, require_permission
 from app.auth.roles import Role
+from app.modules.users.enums import AuthState
 from app.modules.users.exceptions import UserNotFoundError
 from app.modules.users.models import User
 from app.modules.users.permissions import UserPermission
 from app.modules.users.schemas import (
-    AuthState,
     CreateUserRequest,
     UpdateActiveRequest,
     UpdateArchivedRequest,

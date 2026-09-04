@@ -25,6 +25,7 @@ import { Input } from '@web-app/ui/components/input'
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -45,7 +46,7 @@ import useCustomToast from '@/hooks/useCustomToast'
 
 type CreatePakForm = Readonly<{ active: boolean; code: string; kind: PakKind }>
 
-const initialForm: CreatePakForm = { active: true, code: '', kind: 'OTK_LINE' }
+const initialForm: CreatePakForm = { active: true, code: '', kind: 'otk_line' }
 
 export function AddPak() {
   const queryClient = useQueryClient()
@@ -162,11 +163,13 @@ export function AddPak() {
                         </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
-                        {pakKindOptions.map((item) => (
-                          <SelectItem key={item.value} value={item.value}>
-                            {item.label}
-                          </SelectItem>
-                        ))}
+                        <SelectGroup>
+                          {pakKindOptions.map((item) => (
+                            <SelectItem key={item.value} value={item.value}>
+                              {item.label}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
                       </SelectContent>
                     </Select>
                     {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}

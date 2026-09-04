@@ -1,17 +1,11 @@
 from datetime import datetime
-from enum import StrEnum
 from uuid import UUID, uuid4
 
 from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Index, String, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.infrastructure.database.base import Base
-
-
-class PakDeviceKind(StrEnum):
-    ENGINEERING = "ENGINEERING"
-    OTK_LINE = "OTK_LINE"
-
+from app.modules.pak.enums import PakDeviceKind
 
 PAK_DEVICE_KIND_DB_TYPE = Enum(
     PakDeviceKind,
@@ -34,18 +28,11 @@ class PakDevice(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     archived_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True),
-        nullable=True,
-        index=True
+        DateTime(timezone=True), nullable=True, index=True
     )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now()
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
     __table_args__ = (

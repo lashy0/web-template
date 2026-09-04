@@ -3,7 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.modules.pak.models import PakDeviceKind
+from app.modules.pak.enums import PakDeviceKind, PakStatus
 
 
 class PakDeviceResponse(BaseModel):
@@ -11,7 +11,7 @@ class PakDeviceResponse(BaseModel):
     code: str
     kind: PakDeviceKind
     oauth_client_id: str
-    active: bool
+    status: PakStatus
     last_seen_at: datetime | None
     archived_at: datetime | None
 

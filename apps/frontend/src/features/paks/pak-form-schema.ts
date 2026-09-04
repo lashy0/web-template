@@ -1,3 +1,4 @@
+import { zPakDeviceKind } from '@web-app/api-client'
 import { z } from 'zod'
 
 const codeSchema = z
@@ -10,7 +11,7 @@ const codeSchema = z
     'Используйте латинские буквы, цифры, точки, дефисы или подчёркивания.',
   )
 
-const kindSchema = z.enum(['ENGINEERING', 'OTK_LINE'])
+const kindSchema = zPakDeviceKind
 
 export const createPakSchema = z.object({
   active: z.boolean(),

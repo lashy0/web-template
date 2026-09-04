@@ -4,12 +4,18 @@ import { Input } from '@web-app/ui/components/input'
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@web-app/ui/components/select'
 
-import { roleOptions, type AuthState, type Role } from '@/features/users/users-api'
+import {
+  authStateFilterOptions,
+  roleFilterOptions,
+  type AuthState,
+  type Role,
+} from '@/features/users/users-api'
 
 type RoleFilter = Role | 'all'
 type AuthStateFilter = AuthState | 'all'
@@ -31,14 +37,8 @@ export function UserFilters({
   query: string
   role: RoleFilter
 }>) {
-  const roleLabel =
-    role === 'all' ? 'Все роли' : roleOptions.find((option) => option.value === role)?.label
-
-  const authStateLabels: Record<AuthStateFilter, string> = {
-    all: 'Все статусы',
-    active: 'Активен',
-    inactive: 'Неактивен',
-  }
+  const roleLabel = roleFilterOptions.find((option) => option.value === role)?.label
+  const authStateLabel = authStateFilterOptions.find((option) => option.value === authState)?.label
 
   return (
     <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
@@ -71,13 +71,13 @@ export function UserFilters({
           </SelectTrigger>
 
           <SelectContent>
-            <SelectItem value="all">Все роли</SelectItem>
-
-            {roleOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
+            <SelectGroup>
+              {roleFilterOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
           </SelectContent>
         </Select>
 
@@ -87,13 +87,17 @@ export function UserFilters({
             value={authState}
           >
             <SelectTrigger className="w-40 cursor-pointer">
-              <SelectValue>{authStateLabels[authState]}</SelectValue>
+              <SelectValue>{authStateLabel}</SelectValue>
             </SelectTrigger>
 
             <SelectContent>
-              <SelectItem value="all">Все статусы</SelectItem>
-              <SelectItem value="active">Активен</SelectItem>
-              <SelectItem value="inactive">Неактивен</SelectItem>
+              <SelectGroup>
+                {authStateFilterOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
             </SelectContent>
           </Select>
         )}

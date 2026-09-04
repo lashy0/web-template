@@ -6,6 +6,7 @@ import { Button } from '@web-app/ui/components/button'
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -54,11 +55,13 @@ export function DataTablePagination({
             <SelectValue placeholder={pagination.pageSize} />
           </SelectTrigger>
           <SelectContent className="min-w-[70px]">
-            {dataTablePageSizes.map((size) => (
-              <SelectItem key={size} value={`${size}`}>
-                {size}
-              </SelectItem>
-            ))}
+            <SelectGroup>
+              {dataTablePageSizes.map((size) => (
+                <SelectItem key={size} value={`${size}`}>
+                  {size}
+                </SelectItem>
+              ))}
+            </SelectGroup>
           </SelectContent>
         </Select>
       </div>

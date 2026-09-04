@@ -4,8 +4,9 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, Request, status
 
 from app.api.auth_deps import CurrentPrincipalDep, require_permission
+from app.modules.pak.enums import PakDeviceKind, PakStatus
 from app.modules.pak.exceptions import PakNotFoundError, PakTestNotFoundError
-from app.modules.pak.models import PakDevice, PakDeviceKind, PakTest
+from app.modules.pak.models import PakDevice, PakTest
 from app.modules.pak.permissions import PakPermission
 from app.modules.pak.schemas.common import (
     CreatePakDeviceRequest,
@@ -33,7 +34,7 @@ def _response(pak: PakDevice) -> PakDeviceResponse:
         code=pak.code,
         kind=pak.kind,
         oauth_client_id=pak.oauth_client_id,
-        active=pak.is_active,
+        status=PakStatus.ACTIVE if pak.is_active else PakStatus.INACTIVE,
         last_seen_at=pak.last_seen_at,
         archived_at=pak.archived_at,
     )
@@ -65,7 +66,7 @@ async def list_pak(
     request: Request,
     q: str | None = None,
     kind: PakDeviceKind | None = None,
-    active: bool | None = None,
+    status: PakStatus | None = None,
     archived: bool = False,
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=25, ge=1, le=100),
@@ -75,7 +76,7 @@ async def list_pak(
     paks, total = await _service(request).list(
         q=q,
         kind=kind,
-        active=active,
+        active=None if status is None else status is PakStatus.ACTIVE,
         archived=archived,
         page=page,
         page_size=page_size,
@@ -118,10 +119,7 @@ async def list_pak_tests(
     )
 
     return PakTestListResponse(
-        items=[
-            _test_response(test)
-            for test in tests
-        ],
+        items=[_test_response(test) for test in tests],
         total=total,
         page=page,
         page_size=page_size,
@@ -131,7 +129,9 @@ async def list_pak_tests(
 @router.get("/tests/{test_id}", response_model=PakTestResponse)
 async def get_pak_test(
     test_id: UUID,
-    _: Annotated[CurrentPrincipalDep, Depends(require_permission(PakPermission.READ)),
+    _: Annotated[
+        CurrentPrincipalDep,
+        Depends(require_permission(PakPermission.READ)),
     ],
     request: Request,
 ) -> PakTestResponse:

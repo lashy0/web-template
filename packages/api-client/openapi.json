@@ -178,6 +178,14 @@
         "title": "AuditListResponse",
         "type": "object"
       },
+      "AuthState": {
+        "enum": [
+          "active",
+          "inactive"
+        ],
+        "title": "AuthState",
+        "type": "string"
+      },
       "BatchListResponse": {
         "properties": {
           "items": {
@@ -1361,8 +1369,8 @@
       },
       "PakDeviceKind": {
         "enum": [
-          "ENGINEERING",
-          "OTK_LINE"
+          "engineering",
+          "otk_line"
         ],
         "title": "PakDeviceKind",
         "type": "string"
@@ -1400,10 +1408,6 @@
       },
       "PakDeviceResponse": {
         "properties": {
-          "active": {
-            "title": "Active",
-            "type": "boolean"
-          },
           "archived_at": {
             "anyOf": [
               {
@@ -1443,6 +1447,9 @@
           "oauth_client_id": {
             "title": "Oauth Client Id",
             "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PakStatus"
           }
         },
         "required": [
@@ -1450,12 +1457,20 @@
           "code",
           "kind",
           "oauth_client_id",
-          "active",
+          "status",
           "last_seen_at",
           "archived_at"
         ],
         "title": "PakDeviceResponse",
         "type": "object"
+      },
+      "PakStatus": {
+        "enum": [
+          "active",
+          "inactive"
+        ],
+        "title": "PakStatus",
+        "type": "string"
       },
       "PakTestListResponse": {
         "properties": {
@@ -1941,12 +1956,7 @@
             "title": "Archived At"
           },
           "auth_state": {
-            "enum": [
-              "active",
-              "inactive"
-            ],
-            "title": "Auth State",
-            "type": "string"
+            "$ref": "#/components/schemas/AuthState"
           },
           "auth_state_synced_at": {
             "anyOf": [
@@ -4722,18 +4732,18 @@
           },
           {
             "in": "query",
-            "name": "active",
+            "name": "status",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "boolean"
+                  "$ref": "#/components/schemas/PakStatus"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "title": "Active"
+              "title": "Status"
             }
           },
           {
@@ -5394,11 +5404,7 @@
             "schema": {
               "anyOf": [
                 {
-                  "enum": [
-                    "active",
-                    "inactive"
-                  ],
-                  "type": "string"
+                  "$ref": "#/components/schemas/AuthState"
                 },
                 {
                   "type": "null"

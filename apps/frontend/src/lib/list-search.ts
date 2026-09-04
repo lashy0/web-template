@@ -14,11 +14,12 @@ const listQuerySchema = z
   .transform((value) => value.slice(0, 200))
 const listDateSchema = z.iso.date()
 
-export function listEnum<T extends string>(
-  values: readonly [T, ...T[]],
-  value: unknown,
-): T | undefined {
-  return z.enum(values).safeParse(value).data
+export function listEnum<T extends string>(values: readonly T[], value: unknown): T | undefined {
+  return isOneOf(values, value) ? value : undefined
+}
+
+function isOneOf<T extends string>(values: readonly T[], value: unknown): value is T {
+  return typeof value === 'string' && values.some((item) => item === value)
 }
 
 export function listOrder(value: unknown): ListOrder | undefined {

@@ -99,6 +99,11 @@ export type AuditListResponse = {
 };
 
 /**
+ * AuthState
+ */
+export type AuthState = 'active' | 'inactive';
+
+/**
  * BatchListResponse
  */
 export type BatchListResponse = {
@@ -777,7 +782,7 @@ export type PakAccessKeyResponse = {
 /**
  * PakDeviceKind
  */
-export type PakDeviceKind = 'ENGINEERING' | 'OTK_LINE';
+export type PakDeviceKind = 'engineering' | 'otk_line';
 
 /**
  * PakDeviceListResponse
@@ -806,10 +811,6 @@ export type PakDeviceListResponse = {
  */
 export type PakDeviceResponse = {
     /**
-     * Active
-     */
-    active: boolean;
-    /**
      * Archived At
      */
     archived_at: string | null;
@@ -830,7 +831,13 @@ export type PakDeviceResponse = {
      * Oauth Client Id
      */
     oauth_client_id: string;
+    status: PakStatus;
 };
+
+/**
+ * PakStatus
+ */
+export type PakStatus = 'active' | 'inactive';
 
 /**
  * PakTestListResponse
@@ -1097,10 +1104,7 @@ export type UserResponse = {
      * Archived At
      */
     archived_at: string | null;
-    /**
-     * Auth State
-     */
-    auth_state: 'active' | 'inactive';
+    auth_state: AuthState;
     /**
      * Auth State Synced At
      */
@@ -2680,9 +2684,9 @@ export type PakListPakData = {
          */
         kind?: PakDeviceKind | null;
         /**
-         * Active
+         * Status
          */
-        active?: boolean | null;
+        status?: PakStatus | null;
         /**
          * Archived
          */
@@ -3055,7 +3059,7 @@ export type UsersListUsersData = {
         /**
          * Auth State
          */
-        auth_state?: 'active' | 'inactive' | null;
+        auth_state?: AuthState | null;
         /**
          * Archived
          */

@@ -39,6 +39,11 @@ export const zAuditListResponse = z.object({
 });
 
 /**
+ * AuthState
+ */
+export const zAuthState = z.enum(['active', 'inactive']);
+
+/**
  * BatchReceiptResponse
  */
 export const zBatchReceiptResponse = z.object({
@@ -324,7 +329,7 @@ export const zPakAccessKeyResponse = z.object({
 /**
  * PakDeviceKind
  */
-export const zPakDeviceKind = z.enum(['ENGINEERING', 'OTK_LINE']);
+export const zPakDeviceKind = z.enum(['engineering', 'otk_line']);
 
 /**
  * CreatePakDeviceRequest
@@ -336,16 +341,21 @@ export const zCreatePakDeviceRequest = z.object({
 });
 
 /**
+ * PakStatus
+ */
+export const zPakStatus = z.enum(['active', 'inactive']);
+
+/**
  * PakDeviceResponse
  */
 export const zPakDeviceResponse = z.object({
-    active: z.boolean(),
     archived_at: z.iso.datetime().nullable(),
     code: z.string(),
     id: z.uuid(),
     kind: zPakDeviceKind,
     last_seen_at: z.iso.datetime().nullable(),
-    oauth_client_id: z.string()
+    oauth_client_id: z.string(),
+    status: zPakStatus
 });
 
 /**
@@ -524,7 +534,7 @@ export const zUpdateUserRequest = z.object({
  */
 export const zUserResponse = z.object({
     archived_at: z.iso.datetime().nullable(),
-    auth_state: z.enum(['active', 'inactive']),
+    auth_state: zAuthState,
     auth_state_synced_at: z.iso.datetime().nullable(),
     id: z.uuid(),
     identity_id: z.uuid(),
@@ -1107,7 +1117,7 @@ export const zKgGetKgResponse = zKgResponse;
 export const zPakListPakQuery = z.object({
     q: z.string().nullish(),
     kind: zPakDeviceKind.nullish(),
-    active: z.boolean().nullish(),
+    status: zPakStatus.nullish(),
     archived: z.boolean().optional().default(false),
     page: z.int().gte(1).optional().default(1),
     page_size: z.int().gte(1).lte(100).optional().default(25),
@@ -1234,7 +1244,7 @@ export const zPakUpdateArchivedResponse = zPakDeviceResponse;
 export const zUsersListUsersQuery = z.object({
     q: z.string().nullish(),
     role: zRole.nullish(),
-    auth_state: z.enum(['active', 'inactive']).nullish(),
+    auth_state: zAuthState.nullish(),
     archived: z.boolean().optional().default(false),
     page: z.int().gte(1).optional().default(1),
     page_size: z.int().gte(1).lte(100).optional().default(25),

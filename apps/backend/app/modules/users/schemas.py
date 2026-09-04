@@ -1,12 +1,12 @@
 from datetime import datetime
-from typing import Annotated, Literal
+from typing import Annotated
 from uuid import UUID
 
 from pydantic import BaseModel, Field
 
 from app.auth.roles import Role
+from app.modules.users.enums import AuthState
 
-AuthState = Literal["active", "inactive"]
 UserName = Annotated[str, Field(min_length=1, max_length=128)]
 UserLogin = Annotated[
     str,

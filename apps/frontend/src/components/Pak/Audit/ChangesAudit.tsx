@@ -1,5 +1,10 @@
 import { AuditChanges } from '@/components/Common/AuditChanges'
-import { pakKindLabels, type PakAuditEvent, type PakKind } from '@/features/paks/paks-api'
+import {
+  pakKindLabels,
+  pakStatusLabels,
+  type PakAuditEvent,
+  type PakKind,
+} from '@/features/paks/paks-api'
 
 const fieldLabels: Readonly<Record<string, string>> = {
   active: 'Статус',
@@ -23,7 +28,7 @@ function formatValue(key: string, value: unknown): string {
     return pakKindLabels[value as PakKind]
   }
   if (key === 'active' && typeof value === 'boolean') {
-    return value ? 'Разрешён' : 'Отключён'
+    return pakStatusLabels[value ? 'active' : 'inactive']
   }
   if (value === null || value === undefined || value === '') {
     return '—'

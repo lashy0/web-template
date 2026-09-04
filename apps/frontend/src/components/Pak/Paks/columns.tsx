@@ -3,7 +3,7 @@ import { cn } from '@web-app/ui/lib/utils'
 
 import { type DataTableColumn } from '@/components/Common/DataTable'
 import { PakActionsMenu } from '@/components/Pak/Paks/PakActionsMenu'
-import { pakKindLabels, type Pak } from '@/features/paks/paks-api'
+import { pakKindLabels, pakStatusLabels, type Pak } from '@/features/paks/paks-api'
 import { formatDateTime } from '@/lib/date'
 
 export function createPakColumns(archived: boolean): readonly DataTableColumn<Pak>[] {
@@ -68,7 +68,7 @@ function PakStatus({ status }: Readonly<{ status: Pak['status'] }>) {
         aria-hidden="true"
         className={cn('size-2 rounded-full', status === 'active' ? 'bg-green-500' : 'bg-red-500')}
       />
-      {status === 'active' ? 'Разрешён' : 'Отключён'}
+      {pakStatusLabels[status]}
     </span>
   )
 }

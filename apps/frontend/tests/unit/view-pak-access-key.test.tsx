@@ -16,7 +16,7 @@ const pak = {
   archivedAt: null,
   code: 'PAK-01',
   id: 'pak-1',
-  kind: 'OTK_LINE' as const,
+  kind: 'otk_line' as const,
   lastSeenAt: null,
   oauthClientId: 'pak-1',
   status: 'active' as const,

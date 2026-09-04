@@ -1,5 +1,5 @@
 import { AuditChanges } from '@/components/Common/AuditChanges'
-import { roleLabels, type AuditEvent, type Role } from '@/features/users/users-api'
+import { authStateLabels, roleLabels, type AuditEvent, type Role } from '@/features/users/users-api'
 
 const fieldLabels: Record<string, string> = {
   active: 'Статус',
@@ -24,7 +24,7 @@ function formatValue(key: string, value: unknown): string {
     return roleLabels[value as Role]
   }
   if (key === 'active' && typeof value === 'boolean') {
-    return value ? 'Активен' : 'Неактивен'
+    return authStateLabels[value ? 'active' : 'inactive']
   }
   if (value === null || value === undefined || value === '') {
     return '—'

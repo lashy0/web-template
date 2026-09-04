@@ -8,26 +8,50 @@ import {
   pakUpdateActive,
   pakUpdateArchived,
   pakUpdatePak,
+  zPakDeviceKind,
+  zPakStatus,
   type CreatePakDeviceRequest,
   type PakDeviceKind as ApiPakDeviceKind,
   type PakDeviceResponse,
+  type PakStatus as ApiPakStatus,
   type UpdatePakDeviceRequest,
 } from '@web-app/api-client'
 
 export type PakKind = ApiPakDeviceKind
-export type PakStatus = 'active' | 'inactive'
+export type PakStatus = ApiPakStatus
 export type SortOrder = 'asc' | 'desc'
 export type PakSort = 'archived_at' | 'code' | 'created_at' | 'kind' | 'last_seen_at'
 export type PakAuditSort = 'actor_display_name' | 'created_at'
 
+export const pakKinds = zPakDeviceKind.options satisfies readonly PakKind[]
+
 export const pakKindLabels: Readonly<Record<PakKind, string>> = {
-  ENGINEERING: 'Инженерный',
-  OTK_LINE: 'Линия ОТК',
+  engineering: 'Инженерный',
+  otk_line: 'Линия ОТК',
 }
 
-export const pakKindOptions: readonly Readonly<{ label: string; value: PakKind }>[] = (
-  Object.entries(pakKindLabels) as Array<[PakKind, string]>
-).map(([value, label]) => ({ label, value }))
+export const pakKindOptions: readonly Readonly<{ label: string; value: PakKind }>[] = pakKinds.map(
+  (value) => ({ label: pakKindLabels[value], value }),
+)
+
+export const pakKindFilterOptions: readonly Readonly<{ label: string; value: PakKind | 'all' }>[] = [
+  { label: 'Все типы', value: 'all' },
+  ...pakKindOptions,
+]
+
+export const pakStatusLabels: Readonly<Record<PakStatus, string>> = {
+  active: 'Разрешён',
+  inactive: 'Отключён',
+}
+export const pakStatuses = zPakStatus.options satisfies readonly PakStatus[]
+
+export const pakStatusFilterOptions: readonly Readonly<{
+  label: string
+  value: PakStatus | 'all'
+}>[] = [
+  { label: 'Все статусы', value: 'all' },
+  ...pakStatuses.map((value) => ({ label: pakStatusLabels[value], value })),
+]
 
 export type Pak = Readonly<{
   id: string
@@ -60,9 +84,9 @@ export type PaginatedResult<Item> = Readonly<{
 }>
 
 export type PakFilters = Readonly<{
-  active?: boolean
   kind?: PakKind
   query?: string
+  status?: PakStatus
 }>
 
 export type PakAuditEvent = Readonly<{
@@ -95,13 +119,13 @@ export function isPakAlreadyExistsError(error: unknown): boolean {
 }
 
 export async function listPaks({
-  active,
   archived = false,
   kind,
   order = 'asc',
   page,
   pageSize,
   query,
+  status,
   sort = 'code',
 }: Pagination &
   PakFilters &
@@ -110,7 +134,6 @@ export async function listPaks({
 > {
   const result = await pakListPak({
     query: {
-      active,
       archived,
       kind,
       order,
@@ -118,6 +141,7 @@ export async function listPaks({
       page_size: pageSize,
       q: query || undefined,
       sort,
+      status,
     },
   })
   const payload = requireData(result.data, result.response?.status, result.error)
@@ -237,6 +261,6 @@ function toPak(pak: PakDeviceResponse): Pak {
     kind: pak.kind,
     lastSeenAt: pak.last_seen_at,
     oauthClientId: pak.oauth_client_id,
-    status: pak.active ? 'active' : 'inactive',
+    status: pak.status,
   }
 }

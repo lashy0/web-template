@@ -1,14 +1,7 @@
 import { Avatar, AvatarFallback } from '@web-app/ui/components/avatar'
 
 import type { AuthenticatedUser } from '@/features/auth/auth-api'
-
-const roleLabels: Record<AuthenticatedUser['role'], string> = {
-  administrator: 'Администратор',
-  manager: 'Менеджер',
-  engineer: 'Инженер',
-  packer: 'Упаковщик',
-  operator: 'Оператор',
-}
+import { roleLabels } from '@/features/users/users-api'
 
 export function AccountSummary({
   compact,

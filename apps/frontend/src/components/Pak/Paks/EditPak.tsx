@@ -17,6 +17,7 @@ import { Input } from '@web-app/ui/components/input'
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -150,11 +151,13 @@ export function EditPak({
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      {pakKindOptions.map((item) => (
-                        <SelectItem key={item.value} value={item.value}>
-                          {item.label}
-                        </SelectItem>
-                      ))}
+                      <SelectGroup>
+                        {pakKindOptions.map((item) => (
+                          <SelectItem key={item.value} value={item.value}>
+                            {item.label}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
                     </SelectContent>
                   </Select>
                   {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}

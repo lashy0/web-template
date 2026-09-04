@@ -83,9 +83,7 @@ def dependencies(mocker: MockerFixture) -> tuple[MagicMock, MagicMock]:
     )
     repositories.return_value.get_by_oauth_client_id = AsyncMock()
     repositories.return_value.delete = AsyncMock()
-    verification_sessions = mocker.patch(
-        "app.modules.pak.service.VerificationSessionRepository"
-    )
+    verification_sessions = mocker.patch("app.modules.pak.service.VerificationSessionRepository")
     verification_sessions.return_value.exists_by_pak_id = AsyncMock(return_value=False)
     audits = mocker.patch("app.modules.pak.service.AuditService")
     audits.from_session.return_value.record = AsyncMock()
@@ -216,8 +214,8 @@ async def test_update_changes_pak_details_and_records_only_changed_fields(
     assert (updated.code, updated.kind) == ("PAK-OTK-02", PakDeviceKind.ENGINEERING)
     record = audits.from_session.return_value.record.await_args.kwargs
     assert record["action"] == "pak.updated"
-    assert record["old_data"] == {"code": "PAK-OTK-01", "kind": "OTK_LINE"}
-    assert record["new_data"] == {"code": "PAK-OTK-02", "kind": "ENGINEERING"}
+    assert record["old_data"] == {"code": "PAK-OTK-01", "kind": "otk_line"}
+    assert record["new_data"] == {"code": "PAK-OTK-02", "kind": "engineering"}
 
 
 @pytest.mark.unit
@@ -299,9 +297,7 @@ async def test_delete_rejects_pak_with_verification_history(
     repositories, audits = dependencies
     pak = _pak()
     repositories.return_value.get_by_id.return_value = pak
-    verification_sessions = mocker.patch(
-        "app.modules.pak.service.VerificationSessionRepository"
-    )
+    verification_sessions = mocker.patch("app.modules.pak.service.VerificationSessionRepository")
     verification_sessions.return_value.exists_by_pak_id = AsyncMock(return_value=True)
     oauth_clients = SimpleNamespace(delete_client=AsyncMock())
     service = _service(oauth_clients)

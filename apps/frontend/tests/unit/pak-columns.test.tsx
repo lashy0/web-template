@@ -24,7 +24,7 @@ const pak: Pak = {
   archivedAt: null,
   code: 'ПАК-01',
   id: 'pak-1',
-  kind: 'OTK_LINE',
+  kind: 'otk_line',
   lastSeenAt: null,
   oauthClientId: 'client-1',
   status: 'active',
@@ -47,8 +47,8 @@ const updatedPakEvent: PakAuditEvent = {
   ...accessKeyViewedEvent,
   action: 'pak.updated',
   id: 'event-2',
-  newData: { code: 'ПАК-02', kind: 'ENGINEERING' },
-  oldData: { code: 'ПАК-01', kind: 'OTK_LINE' },
+  newData: { code: 'ПАК-02', kind: 'engineering' },
+  oldData: { code: 'ПАК-01', kind: 'otk_line' },
 }
 
 const archivedPakEvent: PakAuditEvent = {

@@ -164,6 +164,8 @@ def test_pak_card_never_exposes_encrypted_access_key(
     response = client.get(f"/pak/{pak.id}", headers=_headers())
 
     assert response.status_code == status.HTTP_200_OK
+    assert response.json()["status"] == "active"
+    assert "active" not in response.json()
     assert "access_key" not in response.json()
     assert "encrypted_access_key" not in response.json()
 
@@ -177,12 +179,23 @@ def test_pak_list_never_exposes_access_key(
     service = SimpleNamespace(list=AsyncMock(return_value=([pak], 1)))
     _configure_principal(app, mocker, service, Role.ADMINISTRATOR)
 
-    response = client.get("/pak", headers=_headers())
+    response = client.get("/pak?status=inactive", headers=_headers())
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["items"][0]["code"] == pak.code
+    assert response.json()["items"][0]["status"] == "active"
     assert "access_key" not in response.json()["items"][0]
     assert "encrypted_access_key" not in response.json()["items"][0]
+    service.list.assert_awaited_once_with(
+        q=None,
+        kind=None,
+        active=False,
+        archived=False,
+        page=1,
+        page_size=25,
+        sort="code",
+        order="asc",
+    )
 
 
 @pytest.mark.api
@@ -275,7 +288,7 @@ def test_update_pak_forwards_details_to_management_service(
     response = client.patch(
         f"/pak/{pak.id}",
         headers=_headers(),
-        json={"code": "PAK-OTK-02", "kind": "ENGINEERING"},
+        json={"code": "PAK-OTK-02", "kind": "engineering"},
     )
 
     assert response.status_code == status.HTTP_200_OK
@@ -334,7 +347,7 @@ def test_delete_pak_forwards_requested_device(
         pytest.param(
             "post",
             "/pak",
-            {"code": "PAK-OTK-01", "kind": "OTK_LINE"},
+            {"code": "PAK-OTK-01", "kind": "otk_line"},
             "create",
             PakProvisioningError,
             status.HTTP_503_SERVICE_UNAVAILABLE,

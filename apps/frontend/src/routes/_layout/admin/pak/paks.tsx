@@ -15,11 +15,17 @@ import { AddPak } from '@/components/Pak/Paks/AddPak'
 import { PakFilters } from '@/components/Pak/Paks/PakFilters'
 import PendingPaks from '@/components/Pak/Paks/PendingPaks'
 import { createPakColumns } from '@/components/Pak/Paks/columns'
-import { listPaks, type PakKind, type PakSort, type SortOrder } from '@/features/paks/paks-api'
+import {
+  listPaks,
+  pakKinds,
+  pakStatuses,
+  type PakKind,
+  type PakStatus,
+  type PakSort,
+  type SortOrder,
+} from '@/features/paks/paks-api'
 import { listEnum, listOrder, listPage, listPageSize, listQuery } from '@/lib/list-search'
 
-const pakKinds = ['ENGINEERING', 'OTK_LINE'] as const satisfies readonly PakKind[]
-const pakStatuses = ['active', 'inactive'] as const
 const pakTableSorts = [
   'archived_at',
   'code',
@@ -34,16 +40,16 @@ export const Route = createFileRoute('/_layout/admin/pak/paks')({
 })
 
 type PaksQuery = Readonly<{
-  active?: boolean
   archived: boolean
   kind?: PakKind
   order: SortOrder
   page: number
   pageSize: number
   query?: string
+  status?: PakStatus
   sort: PakSort
 }>
-type StatusFilter = 'active' | 'all' | 'inactive'
+type StatusFilter = PakStatus | 'all'
 
 function sortParams(sorting: DataTableSorting): Readonly<{ order: SortOrder; sort: PakSort }> {
   const [current] = sorting
@@ -88,12 +94,12 @@ function Paks() {
   }, [navigate, queryInput, search.q])
 
   const paksQuery: PaksQuery = {
-    active: !archived && status !== 'all' ? status === 'active' : undefined,
     archived,
     kind: kind !== 'all' ? kind : undefined,
     page: pagination.pageIndex + 1,
     pageSize: pagination.pageSize,
     query: search.q,
+    status: !archived && status !== 'all' ? status : undefined,
     ...sortParams(sorting),
   }
   const columns = useMemo(() => createPakColumns(archived), [archived])
