@@ -136,6 +136,10 @@ services:
       traefik.http.routers.hydra-public.rule: "Host(`oauth.${BASE_DOMAIN:?BASE_DOMAIN is required}`)"
       traefik.http.routers.hydra-public.entrypoints: http
       traefik.http.routers.hydra-public.service: hydra-public
+      traefik.http.routers.api-oauth2-token.rule: "Host(`api.${BASE_DOMAIN:?BASE_DOMAIN is required}`) && Path(`/oauth2/token`)"
+      traefik.http.routers.api-oauth2-token.entrypoints: http
+      traefik.http.routers.api-oauth2-token.priority: "200"
+      traefik.http.routers.api-oauth2-token.service: hydra-public
 
 networks:
   web-identity:

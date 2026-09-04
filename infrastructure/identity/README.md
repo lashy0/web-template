@@ -85,6 +85,14 @@ Hydra's public API is routed at `oauth.${BASE_DOMAIN}`. It supports OAuth2
 the same public URL. Access tokens use the opaque strategy and must be checked
 through the Admin API's introspection endpoint by a service on `web-identity`.
 
+For PAK integrations, use one base URL: `api.${BASE_DOMAIN}`. Traefik forwards
+only `POST /oauth2/token` from that host directly to Hydra. A PAK therefore
+uses `https://api.<domain>/oauth2/token` for the `client_credentials` exchange
+and the same `https://api.<domain>` host for business endpoints. The FastAPI
+backend is not in the credential exchange and never receives `client_secret`.
+The `oauth.${BASE_DOMAIN}` hostname remains Hydra's issuer and can be used for
+standard OAuth discovery when needed.
+
 Hydra's Admin API listens only on internal TCP port 4445. It has no host port
 mapping and no Traefik router. Backend containers use `http://hydra:4445` for
 OAuth2 client provisioning, credential rotation, and token introspection.

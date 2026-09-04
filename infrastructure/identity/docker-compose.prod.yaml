@@ -43,3 +43,6 @@ services:
       traefik.http.routers.hydra-public.entrypoints: https
       traefik.http.routers.hydra-public.tls: "true"
       traefik.http.routers.hydra-public.tls.certresolver: letsencrypt
+      traefik.http.routers.api-oauth2-token.entrypoints: https
+      traefik.http.routers.api-oauth2-token.tls: "true"
+      traefik.http.routers.api-oauth2-token.tls.certresolver: letsencrypt
