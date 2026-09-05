@@ -41,6 +41,7 @@ import {
   type CreatePakResult,
   type PakKind,
 } from '@/features/paks/paks-api'
+import { pakCodeForMessage } from '@/features/paks/pak-format'
 import { createPakSchema } from '@/features/paks/pak-form-schema'
 import useCustomToast from '@/hooks/useCustomToast'
 
@@ -67,7 +68,7 @@ export function AddPak() {
       ])
       form.reset(initialForm)
       setCreated(result)
-      showSuccessToast('ПАК создан', `ПАК «${result.pak.code}» добавлен.`)
+      showSuccessToast('ПАК создан', `ПАК «${pakCodeForMessage(result.pak.code)}» добавлен.`)
     },
     onError: (error) => {
       if (isPakAlreadyExistsError(error)) {

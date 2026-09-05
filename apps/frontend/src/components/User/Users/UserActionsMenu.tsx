@@ -20,11 +20,10 @@ import {
   DropdownMenuTrigger,
 } from '@web-app/ui/components/dropdown-menu'
 
-import { ArchiveUser } from '@/components/User/Users/ArchiveUser'
+import { ArchiveStatusUser } from '@/components/User/Users/ArchiveStatusUser'
 import { ChangeUserPassword } from '@/components/User/Users/ChangeUserPassword'
 import { DeleteUser } from '@/components/User/Users/DeleteUser'
 import { EditUser } from '@/components/User/Users/EditUser'
-import { RestoreUser } from '@/components/User/Users/RestoreUser'
 import { StatusUser } from '@/components/User/Users/StatusUser'
 import { type User } from '@/features/users/users-api'
 import useAuth from '@/hooks/useAuth'
@@ -36,7 +35,6 @@ export function UserActionsMenu({ user }: Readonly<{ user: User }>) {
   const [statusOpen, setStatusOpen] = useState(false)
   const [archiveOpen, setArchiveOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
-  const [restoreOpen, setRestoreOpen] = useState(false)
   const { user: currentUser } = useAuth()
 
   if (!currentUser || user.id === currentUser.id) {
@@ -56,7 +54,7 @@ export function UserActionsMenu({ user }: Readonly<{ user: User }>) {
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuGroup>
           {isArchived ? (
-            <DropdownMenuItem onClick={() => setRestoreOpen(true)}>
+            <DropdownMenuItem onClick={() => setArchiveOpen(true)}>
               <RotateCcwIcon />
               Восстановить
             </DropdownMenuItem>
@@ -120,16 +118,10 @@ export function UserActionsMenu({ user }: Readonly<{ user: User }>) {
         open={statusOpen}
         user={user}
       />
-      <ArchiveUser
+      <ArchiveStatusUser
         onOpenChange={setArchiveOpen}
         onSuccess={() => setOpen(false)}
         open={archiveOpen}
-        user={user}
-      />
-      <RestoreUser
-        onOpenChange={setRestoreOpen}
-        onSuccess={() => setOpen(false)}
-        open={restoreOpen}
         user={user}
       />
       <DeleteUser

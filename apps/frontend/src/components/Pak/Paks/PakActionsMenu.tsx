@@ -3,7 +3,6 @@ import {
   CircleCheckIcon,
   EllipsisVerticalIcon,
   EyeIcon,
-  KeyRoundIcon,
   PencilIcon,
   PowerIcon,
   RotateCcwIcon,
@@ -21,11 +20,9 @@ import {
   DropdownMenuTrigger,
 } from '@web-app/ui/components/dropdown-menu'
 
-import { ArchivePak } from '@/components/Pak/Paks/ArchivePak'
+import { ArchiveStatusPak } from '@/components/Pak/Paks/ArchiveStatusPak'
 import { DeletePak } from '@/components/Pak/Paks/DeletePak'
 import { EditPak } from '@/components/Pak/Paks/EditPak'
-import { RestorePak } from '@/components/Pak/Paks/RestorePak'
-import { RotatePakAccessKey } from '@/components/Pak/Paks/RotatePakAccessKey'
 import { StatusPak } from '@/components/Pak/Paks/StatusPak'
 import { ViewPakAccessKey } from '@/components/Pak/Paks/ViewPakAccessKey'
 import { type Pak } from '@/features/paks/paks-api'
@@ -33,12 +30,10 @@ import { type Pak } from '@/features/paks/paks-api'
 export function PakActionsMenu({ pak }: Readonly<{ pak: Pak }>) {
   const [open, setOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
-  const [accessKeyOpen, setAccessKeyOpen] = useState(false)
-  const [rotateAccessKeyOpen, setRotateAccessKeyOpen] = useState(false)
+  const [detailsOpen, setDetailsOpen] = useState(false)
   const [statusOpen, setStatusOpen] = useState(false)
   const [archiveOpen, setArchiveOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
-  const [restoreOpen, setRestoreOpen] = useState(false)
   const archived = pak.archivedAt !== null
   const closeMenu = () => setOpen(false)
   return (
@@ -52,19 +47,21 @@ export function PakActionsMenu({ pak }: Readonly<{ pak: Pak }>) {
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuGroup>
           {archived ? (
-            <DropdownMenuItem onClick={() => setRestoreOpen(true)}>
-              <RotateCcwIcon />
-              Восстановить
-            </DropdownMenuItem>
+            <>
+              <DropdownMenuItem onClick={() => setDetailsOpen(true)}>
+                <EyeIcon />
+                Просмотр
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setArchiveOpen(true)}>
+                <RotateCcwIcon />
+                Восстановить
+              </DropdownMenuItem>
+            </>
           ) : (
             <>
-              <DropdownMenuItem onClick={() => setAccessKeyOpen(true)}>
+              <DropdownMenuItem onClick={() => setDetailsOpen(true)}>
                 <EyeIcon />
-                Показать ключ
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setRotateAccessKeyOpen(true)}>
-                <KeyRoundIcon />
-                Ротировать ключ
+                Просмотр
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setEditOpen(true)}>
                 <PencilIcon />
@@ -72,7 +69,7 @@ export function PakActionsMenu({ pak }: Readonly<{ pak: Pak }>) {
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setStatusOpen(true)}>
                 {pak.status === 'active' ? <PowerIcon /> : <CircleCheckIcon />}
-                {pak.status === 'active' ? 'Отключить' : 'Активировать'}
+                {pak.status === 'active' ? 'Деактивировать' : 'Активировать'}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setArchiveOpen(true)}>
                 <ArchiveIcon />
@@ -92,23 +89,12 @@ export function PakActionsMenu({ pak }: Readonly<{ pak: Pak }>) {
         </DropdownMenuItem>
       </DropdownMenuContent>
       <EditPak onOpenChange={setEditOpen} onSuccess={closeMenu} open={editOpen} pak={pak} />
-      <ViewPakAccessKey onOpenChange={setAccessKeyOpen} open={accessKeyOpen} pak={pak} />
-      <RotatePakAccessKey
-        onOpenChange={setRotateAccessKeyOpen}
-        open={rotateAccessKeyOpen}
-        pak={pak}
-      />
+      <ViewPakAccessKey onOpenChange={setDetailsOpen} open={detailsOpen} pak={pak} />
       <StatusPak onOpenChange={setStatusOpen} onSuccess={closeMenu} open={statusOpen} pak={pak} />
-      <ArchivePak
+      <ArchiveStatusPak
         onOpenChange={setArchiveOpen}
         onSuccess={closeMenu}
         open={archiveOpen}
-        pak={pak}
-      />
-      <RestorePak
-        onOpenChange={setRestoreOpen}
-        onSuccess={closeMenu}
-        open={restoreOpen}
         pak={pak}
       />
       <DeletePak onOpenChange={setDeleteOpen} onSuccess={closeMenu} open={deleteOpen} pak={pak} />

@@ -11,38 +11,49 @@ import {
 } from '@web-app/ui/components/dialog'
 import { Spinner } from '@web-app/ui/components/spinner'
 
-import { updateUserArchived, type User } from '@/features/users/users-api'
+import {
+  defectErrorMessage,
+  updateDefectTypeArchived,
+  type DefectType,
+} from '@/features/defects/defects-api'
 import useCustomToast from '@/hooks/useCustomToast'
 
-export function RestoreUser({
+export function ArchiveStatusDefectType({
   onOpenChange,
   onSuccess,
   open,
-  user,
+  type,
 }: Readonly<{
   onOpenChange: (open: boolean) => void
   onSuccess: () => void
   open: boolean
-  user: User
+  type: DefectType
 }>) {
   const queryClient = useQueryClient()
   const { showErrorToast, showSuccessToast } = useCustomToast()
+  const restore = type.archivedAt !== null
+  const action = restore ? 'Восстановить' : 'Архивировать'
+  const pendingAction = restore ? 'Восстановление…' : 'Архивация…'
   const mutation = useMutation({
-    mutationFn: () => updateUserArchived(user.id, false),
+    mutationFn: () => updateDefectTypeArchived(type.id, !restore),
+    onError: (error) =>
+      showErrorToast(
+        `Не удалось ${action.toLowerCase()} тип`,
+        defectErrorMessage(error) ?? 'Попробуйте ещё раз.',
+      ),
     onSuccess: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['users'] }),
+        queryClient.invalidateQueries({ queryKey: ['defects'] }),
         queryClient.invalidateQueries({ queryKey: ['audit'] }),
       ])
       closeDialog(true)
       onSuccess()
       showSuccessToast(
-        'Пользователь востановлен',
-        `Учетная запись «${user.name}» возвращена из архива.`,
+        restore ? 'Тип восстановлен' : 'Тип архивирован',
+        restore
+          ? `Тип «${type.code}» возвращён из архива.`
+          : `Тип «${type.code}» скрыт из текущего списка.`,
       )
-    },
-    onError: () => {
-      showErrorToast('Не удалось востановить пользователя', 'Попробуйте еще раз.')
     },
   })
 
@@ -55,9 +66,13 @@ export function RestoreUser({
     <Dialog onOpenChange={closeDialog} open={open}>
       <DialogContent className="sm:max-w-md" showCloseButton={!mutation.isPending}>
         <DialogHeader>
-          <DialogTitle>Востановить пользователя?</DialogTitle>
+          <DialogTitle>{action} тип?</DialogTitle>
           <DialogDescription>
-            Учетная запись «{user.name}» будет возвращена из архива.
+            {restore ? (
+              <>Тип «{type.code}» будет возвращён в текущий список.</>
+            ) : (
+              <>Тип «{type.code}» будет скрыт из текущего списка.</>
+            )}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
@@ -66,7 +81,7 @@ export function RestoreUser({
           </Button>
           <Button disabled={mutation.isPending} onClick={() => mutation.mutate()}>
             {mutation.isPending && <Spinner data-icon="inline-start" />}
-            {mutation.isPending ? 'Востановление...' : 'Востановить'}
+            {mutation.isPending ? pendingAction : action}
           </Button>
         </DialogFooter>
       </DialogContent>

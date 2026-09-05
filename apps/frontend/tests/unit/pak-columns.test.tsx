@@ -68,6 +68,29 @@ describe('PAK columns', () => {
     expect(screen.getByText('Ключ доступа просмотрен')).toBeVisible()
   })
 
+  it('truncates long PAK values and reserves space for the changes button', () => {
+    const longValue = 'ПАК-1214444444444444444444444444444444444444444444444444'
+
+    render(
+      <DataTable
+        {...tableProps}
+        columns={pakAuditColumns}
+        data={[{ ...updatedPakEvent, entityDisplayName: longValue }]}
+      />,
+    )
+
+    const pakName = screen.getByText(`${longValue.slice(0, 32)}…`)
+    expect(pakName).toHaveClass('truncate')
+    expect(pakName.parentElement).toHaveClass('w-80')
+    expect(pakAuditColumns.map((column) => column.meta?.widthClassName)).toEqual([
+      'w-40 xl:w-[15%]',
+      'w-40 xl:w-1/5',
+      'w-[230px] xl:w-[31%]',
+      'w-40 xl:w-[28%]',
+      'w-[58px] xl:w-[6%]',
+    ])
+  })
+
   it('shows PAK details changed during editing', async () => {
     const user = userEvent.setup()
     render(<DataTable {...tableProps} columns={pakAuditColumns} data={[updatedPakEvent]} />)

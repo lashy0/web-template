@@ -12,6 +12,7 @@ import {
 import { Spinner } from '@web-app/ui/components/spinner'
 
 import { updatePakActive, type Pak } from '@/features/paks/paks-api'
+import { pakCodeForMessage } from '@/features/paks/pak-format'
 import useCustomToast from '@/hooks/useCustomToast'
 
 export function StatusPak({
@@ -28,7 +29,8 @@ export function StatusPak({
   const queryClient = useQueryClient()
   const { showErrorToast, showSuccessToast } = useCustomToast()
   const activate = pak.status !== 'active'
-  const action = activate ? 'Активировать' : 'Отключить'
+  const action = activate ? 'Активировать' : 'Деактивировать'
+
   const mutation = useMutation({
     mutationFn: () => updatePakActive(pak.id, activate),
     onError: () => showErrorToast(`Не удалось ${action.toLowerCase()} ПАК`, 'Попробуйте ещё раз.'),
@@ -40,10 +42,10 @@ export function StatusPak({
       closeDialog(true)
       onSuccess()
       showSuccessToast(
-        activate ? 'ПАК активирован' : 'ПАК отключён',
+        activate ? 'ПАК активирован' : 'ПАК деактивирован',
         activate
-          ? `ПАК «${pak.code}» снова разрешён к работе.`
-          : `Работа ПАК «${pak.code}» запрещена.`,
+          ? `ПАК «${pakCodeForMessage(pak.code)}» снова разрешён к работе.`
+          : `Работа ПАК «${pakCodeForMessage(pak.code)}» запрещена.`,
       )
     },
   })

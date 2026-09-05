@@ -34,14 +34,12 @@ export const pakKindOptions: readonly Readonly<{ label: string; value: PakKind }
   (value) => ({ label: pakKindLabels[value], value }),
 )
 
-export const pakKindFilterOptions: readonly Readonly<{ label: string; value: PakKind | 'all' }>[] = [
-  { label: 'Все типы', value: 'all' },
-  ...pakKindOptions,
-]
+export const pakKindFilterOptions: readonly Readonly<{ label: string; value: PakKind | 'all' }>[] =
+  [{ label: 'Все типы', value: 'all' }, ...pakKindOptions]
 
 export const pakStatusLabels: Readonly<Record<PakStatus, string>> = {
-  active: 'Разрешён',
-  inactive: 'Отключён',
+  active: 'Активен',
+  inactive: 'Неактивен',
 }
 export const pakStatuses = zPakStatus.options satisfies readonly PakStatus[]
 

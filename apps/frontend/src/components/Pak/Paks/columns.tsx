@@ -10,7 +10,11 @@ export function createPakColumns(archived: boolean): readonly DataTableColumn<Pa
   const columns: DataTableColumn<Pak>[] = [
     {
       accessorKey: 'code',
-      cell: ({ row }) => <span className="font-medium">{row.original.code}</span>,
+      cell: ({ row }) => (
+        <span className="block max-w-64 truncate font-medium">
+          {row.original.code}
+        </span>
+      ),
       enableSorting: true,
       header: 'Код ПАК',
       sortDescFirst: false,

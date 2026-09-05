@@ -22,7 +22,7 @@ import {
 } from '@/features/defects/defects-api'
 import useCustomToast from '@/hooks/useCustomToast'
 
-export function ArchiveDefectGroup({
+export function ArchiveStatusDefectGroup({
   group,
   onOpenChange,
   onSuccess,
@@ -36,15 +36,18 @@ export function ArchiveDefectGroup({
   const [blockedByActiveTypes, setBlockedByActiveTypes] = useState(false)
   const queryClient = useQueryClient()
   const { showErrorToast, showSuccessToast } = useCustomToast()
+  const restore = group.archivedAt !== null
+  const action = restore ? 'Восстановить' : 'Архивировать'
+  const pendingAction = restore ? 'Восстановление…' : 'Архивация…'
   const mutation = useMutation({
-    mutationFn: () => updateDefectGroupArchived(group.id, true),
+    mutationFn: () => updateDefectGroupArchived(group.id, !restore),
     onError: (error) => {
-      if (defectErrorCode(error) === 'defect_group_has_unarchived_types') {
+      if (!restore && defectErrorCode(error) === 'defect_group_has_unarchived_types') {
         setBlockedByActiveTypes(true)
         return
       }
       showErrorToast(
-        'Не удалось архивировать группу',
+        `Не удалось ${action.toLowerCase()} группу`,
         defectErrorMessage(error) ?? 'Попробуйте ещё раз.',
       )
     },
@@ -55,7 +58,12 @@ export function ArchiveDefectGroup({
       ])
       closeDialog(true)
       onSuccess()
-      showSuccessToast('Группа архивирована', `Группа «${group.code}» скрыта из текущего списка.`)
+      showSuccessToast(
+        restore ? 'Группа восстановлена' : 'Группа архивирована',
+        restore
+          ? `Группа «${group.code}» возвращена из архива.`
+          : `Группа «${group.code}» скрыта из текущего списка.`,
+      )
     },
   })
 
@@ -65,7 +73,7 @@ export function ArchiveDefectGroup({
     onOpenChange(false)
   }
 
-  const hasActiveTypes = group.activeTypesCount > 0 || blockedByActiveTypes
+  const hasActiveTypes = !restore && (group.activeTypesCount > 0 || blockedByActiveTypes)
 
   return (
     <Dialog onOpenChange={closeDialog} open={open}>
@@ -75,9 +83,13 @@ export function ArchiveDefectGroup({
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle>Архивировать группу?</DialogTitle>
+              <DialogTitle>{action} группу?</DialogTitle>
               <DialogDescription>
-                Группа «{group.code}» будет скрыта из текущего списка.
+                {restore ? (
+                  <>Группа «{group.code}» будет возвращена в текущий список.</>
+                ) : (
+                  <>Группа «{group.code}» будет скрыта из текущего списка.</>
+                )}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
@@ -86,7 +98,7 @@ export function ArchiveDefectGroup({
               </Button>
               <Button disabled={mutation.isPending} onClick={() => mutation.mutate()}>
                 {mutation.isPending && <Spinner data-icon="inline-start" />}
-                {mutation.isPending ? 'Архивация…' : 'Архивировать'}
+                {mutation.isPending ? pendingAction : action}
               </Button>
             </DialogFooter>
           </>
@@ -121,14 +133,7 @@ function ArchiveWarning({
         <Button onClick={() => onOpenChange()} type="button" variant="outline">
           Отмена
         </Button>
-        <Button
-          render={
-            <Link
-              search={{ group: group.id }}
-              to="/admin/defects/types"
-            />
-          }
-        >
+        <Button render={<Link search={{ group: group.id }} to="/admin/defects/types" />}>
           Перейти к типам
         </Button>
       </DialogFooter>

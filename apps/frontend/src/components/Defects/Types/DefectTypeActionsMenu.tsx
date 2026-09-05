@@ -18,10 +18,9 @@ import {
   DropdownMenuTrigger,
 } from '@web-app/ui/components/dropdown-menu'
 
-import { ArchiveDefectType } from '@/components/Defects/Types/ArchiveDefectType'
+import { ArchiveStatusDefectType } from '@/components/Defects/Types/ArchiveStatusDefectType'
 import { DeleteDefectType } from '@/components/Defects/Types/DeleteDefectType'
 import { EditDefectType } from '@/components/Defects/Types/EditDefectType'
-import { RestoreDefectType } from '@/components/Defects/Types/RestoreDefectType'
 import { ViewDefectType } from '@/components/Defects/Types/ViewDefectType'
 import { type DefectType } from '@/features/defects/defects-api'
 
@@ -31,7 +30,6 @@ export function DefectTypeActionsMenu({ type }: Readonly<{ type: DefectType }>) 
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [archiveOpen, setArchiveOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
-  const [restoreOpen, setRestoreOpen] = useState(false)
   const closeMenu = () => setOpen(false)
   return (
     <DropdownMenu onOpenChange={setOpen} open={open}>
@@ -52,7 +50,7 @@ export function DefectTypeActionsMenu({ type }: Readonly<{ type: DefectType }>) 
             Изменить
           </DropdownMenuItem>
           {type.archivedAt ? (
-            <DropdownMenuItem onClick={() => setRestoreOpen(true)}>
+            <DropdownMenuItem onClick={() => setArchiveOpen(true)}>
               <RotateCcwIcon />
               Восстановить
             </DropdownMenuItem>
@@ -80,16 +78,10 @@ export function DefectTypeActionsMenu({ type }: Readonly<{ type: DefectType }>) 
         type={type}
       />
       <ViewDefectType onOpenChange={setDetailsOpen} open={detailsOpen} type={type} />
-      <ArchiveDefectType
+      <ArchiveStatusDefectType
         onOpenChange={setArchiveOpen}
         onSuccess={closeMenu}
         open={archiveOpen}
-        type={type}
-      />
-      <RestoreDefectType
-        onOpenChange={setRestoreOpen}
-        onSuccess={closeMenu}
-        open={restoreOpen}
         type={type}
       />
       <DeleteDefectType

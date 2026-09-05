@@ -12,14 +12,18 @@ import {
   type User,
 } from '@/features/users/users-api'
 
-const { createUserMock, updateUserMock, updateUserPasswordMock } = vi.hoisted(() => ({
-  createUserMock: vi.fn<(input: CreateUserInput) => Promise<User>>(),
-  updateUserMock: vi.fn<(userId: string, input: UpdateUserInput) => Promise<User>>(),
-  updateUserPasswordMock: vi.fn<(userId: string, password: string) => Promise<void>>(),
-}))
+const { createUserMock, updateUserMock, updateUserPasswordMock, updateArchiveMock } = vi.hoisted(
+  () => ({
+    updateArchiveMock: vi.fn<(id: string, archived: boolean) => Promise<User>>(),
+    createUserMock: vi.fn<(input: CreateUserInput) => Promise<User>>(),
+    updateUserMock: vi.fn<(userId: string, input: UpdateUserInput) => Promise<User>>(),
+    updateUserPasswordMock: vi.fn<(userId: string, password: string) => Promise<void>>(),
+  }),
+)
 
 vi.mock('@/features/users/users-api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/features/users/users-api')>()),
+  updateUserArchived: updateArchiveMock,
   createUser: createUserMock,
   updateUser: updateUserMock,
   updateUserPassword: updateUserPasswordMock,
@@ -31,12 +35,38 @@ vi.mock('@/hooks/useAuth', () => ({
 
 afterEach(() => {
   cleanup()
+  updateArchiveMock.mockReset()
   createUserMock.mockReset()
   updateUserMock.mockReset()
   updateUserPasswordMock.mockReset()
 })
 
 describe('UserActionsMenu', () => {
+  it.each([false, true])('changes user archive state (archived: %s)', async (archived) => {
+    const user = userEvent.setup()
+    const account: User = {
+      id: 'another-user',
+      name: 'Пользователь',
+      login: 'user',
+      role: 'operator',
+      authState: 'inactive',
+      archivedAt: archived ? '2026-09-05T10:00:00Z' : null,
+    }
+    updateArchiveMock.mockResolvedValue(account)
+    const client = new QueryClient()
+    render(
+      <QueryClientProvider client={client}>
+        <UserActionsMenu user={account} />
+      </QueryClientProvider>,
+    )
+    const action = archived ? 'Восстановить' : 'Архивировать'
+    await user.click(screen.getByRole('button', { name: 'Действия с пользователем Пользователь' }))
+    await user.click(await screen.findByRole('menuitem', { name: action }))
+    expect(screen.getByRole('heading', { name: action + ' пользователя?' })).toBeVisible()
+    await user.click(screen.getByRole('button', { name: action }))
+    expect(updateArchiveMock).toHaveBeenCalledExactlyOnceWith(account.id, !archived)
+    client.clear()
+  })
   it('keeps the edit dialog open after selecting the edit action', async () => {
     const user = userEvent.setup()
     const queryClient = new QueryClient({

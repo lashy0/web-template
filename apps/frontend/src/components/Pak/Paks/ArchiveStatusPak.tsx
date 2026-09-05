@@ -12,9 +12,10 @@ import {
 import { Spinner } from '@web-app/ui/components/spinner'
 
 import { updatePakArchived, type Pak } from '@/features/paks/paks-api'
+import { pakCodeForMessage } from '@/features/paks/pak-format'
 import useCustomToast from '@/hooks/useCustomToast'
 
-export function RestorePak({
+export function ArchiveStatusPak({
   onOpenChange,
   onSuccess,
   open,
@@ -27,9 +28,12 @@ export function RestorePak({
 }>) {
   const queryClient = useQueryClient()
   const { showErrorToast, showSuccessToast } = useCustomToast()
+  const restore = pak.archivedAt !== null
+  const action = restore ? 'Восстановить' : 'Архивировать'
+  const pendingAction = restore ? 'Восстановление…' : 'Архивация…'
   const mutation = useMutation({
-    mutationFn: () => updatePakArchived(pak.id, false),
-    onError: () => showErrorToast('Не удалось восстановить ПАК', 'Попробуйте ещё раз.'),
+    mutationFn: () => updatePakArchived(pak.id, !restore),
+    onError: () => showErrorToast(`Не удалось ${action.toLowerCase()} ПАК`, 'Попробуйте ещё раз.'),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['paks'] }),
@@ -37,7 +41,12 @@ export function RestorePak({
       ])
       closeDialog(true)
       onSuccess()
-      showSuccessToast('ПАК восстановлен', `ПАК «${pak.code}» возвращён из архива.`)
+      showSuccessToast(
+        restore ? 'ПАК восстановлен' : 'ПАК архивирован',
+        restore
+          ? `ПАК «${pakCodeForMessage(pak.code)}» возвращён из архива и останется отключённым.`
+          : `ПАК «${pakCodeForMessage(pak.code)}» отключён и скрыт из текущего списка.`,
+      )
     },
   })
 
@@ -50,10 +59,13 @@ export function RestorePak({
     <Dialog onOpenChange={closeDialog} open={open}>
       <DialogContent className="sm:max-w-md" showCloseButton={!mutation.isPending}>
         <DialogHeader>
-          <DialogTitle>Восстановить ПАК?</DialogTitle>
+          <DialogTitle>{action} ПАК?</DialogTitle>
           <DialogDescription>
-            ПАК «{pak.code}» будет возвращён в текущий список. Его состояние доступности не
-            изменится.
+            {restore ? (
+              <>ПАК «{pak.code}» будет возвращён в текущий список и останется отключённым.</>
+            ) : (
+              <>ПАК «{pak.code}» будет отключён и скрыт из текущего списка.</>
+            )}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
@@ -62,7 +74,7 @@ export function RestorePak({
           </Button>
           <Button disabled={mutation.isPending} onClick={() => mutation.mutate()}>
             {mutation.isPending && <Spinner data-icon="inline-start" />}
-            {mutation.isPending ? 'Восстановление…' : 'Восстановить'}
+            {mutation.isPending ? pendingAction : action}
           </Button>
         </DialogFooter>
       </DialogContent>

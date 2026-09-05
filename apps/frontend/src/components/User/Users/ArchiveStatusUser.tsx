@@ -11,33 +11,43 @@ import {
 } from '@web-app/ui/components/dialog'
 import { Spinner } from '@web-app/ui/components/spinner'
 
-import { updatePakArchived, type Pak } from '@/features/paks/paks-api'
+import { updateUserArchived, type User } from '@/features/users/users-api'
 import useCustomToast from '@/hooks/useCustomToast'
 
-export function ArchivePak({
+export function ArchiveStatusUser({
   onOpenChange,
   onSuccess,
   open,
-  pak,
+  user,
 }: Readonly<{
   onOpenChange: (open: boolean) => void
   onSuccess: () => void
   open: boolean
-  pak: Pak
+  user: User
 }>) {
   const queryClient = useQueryClient()
   const { showErrorToast, showSuccessToast } = useCustomToast()
+  const restore = user.archivedAt !== null
+  const action = restore ? 'Восстановить' : 'Архивировать'
+  const pendingAction = restore ? 'Восстановление…' : 'Архивация…'
   const mutation = useMutation({
-    mutationFn: () => updatePakArchived(pak.id, true),
-    onError: () => showErrorToast('Не удалось архивировать ПАК', 'Попробуйте ещё раз.'),
+    mutationFn: () => updateUserArchived(user.id, !restore),
     onSuccess: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['paks'] }),
+        queryClient.invalidateQueries({ queryKey: ['users'] }),
         queryClient.invalidateQueries({ queryKey: ['audit'] }),
       ])
       closeDialog(true)
       onSuccess()
-      showSuccessToast('ПАК архивирован', `ПАК «${pak.code}» скрыт из текущего списка.`)
+      showSuccessToast(
+        restore ? 'Пользователь восстановлен' : 'Пользователь архивирован',
+        restore
+          ? `Учётная запись «${user.name}» возвращена из архива.`
+          : `Учётная запись «${user.name}» деактивирована и скрыта из обычного списка.`,
+      )
+    },
+    onError: () => {
+      showErrorToast(`Не удалось ${action.toLowerCase()} пользователя`, 'Попробуйте ещё раз.')
     },
   })
 
@@ -50,10 +60,13 @@ export function ArchivePak({
     <Dialog onOpenChange={closeDialog} open={open}>
       <DialogContent className="sm:max-w-md" showCloseButton={!mutation.isPending}>
         <DialogHeader>
-          <DialogTitle>Архивировать ПАК?</DialogTitle>
+          <DialogTitle>{action} пользователя?</DialogTitle>
           <DialogDescription>
-            ПАК «{pak.code}» будет скрыт из текущего списка. Архивация не связана с доступностью
-            комплекса.
+            {restore ? (
+              <>Учётная запись «{user.name}» будет возвращена из архива.</>
+            ) : (
+              <>Учётная запись «{user.name}» будет деактивирована и скрыта из обычного списка.</>
+            )}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
@@ -62,7 +75,7 @@ export function ArchivePak({
           </Button>
           <Button disabled={mutation.isPending} onClick={() => mutation.mutate()}>
             {mutation.isPending && <Spinner data-icon="inline-start" />}
-            {mutation.isPending ? 'Архивация…' : 'Архивировать'}
+            {mutation.isPending ? pendingAction : action}
           </Button>
         </DialogFooter>
       </DialogContent>

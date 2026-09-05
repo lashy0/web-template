@@ -1,4 +1,5 @@
 import { type DataTableColumn } from '@/components/Common/DataTable'
+import { TruncatedText } from '@/components/Common/TruncatedText'
 import { ChangesAudit } from '@/components/Defects/Audit/ChangesAudit'
 import { type DefectAuditEvent } from '@/features/defects/defects-api'
 import { formatDateTime } from '@/lib/date'
@@ -9,6 +10,7 @@ const actionsWithoutChanges = new Set([
   'defect_type.archived',
   'defect_type.restored',
 ])
+const maxIdentityDisplayLength = 32
 
 export const defectAuditColumns: readonly DataTableColumn<DefectAuditEvent>[] = [
   {
@@ -21,6 +23,7 @@ export const defectAuditColumns: readonly DataTableColumn<DefectAuditEvent>[] = 
     enableSorting: true,
     header: 'Время',
     id: 'created_at',
+    meta: { widthClassName: 'w-40 xl:w-[15%]' },
     sortDescFirst: true,
   },
   {
@@ -29,19 +32,22 @@ export const defectAuditColumns: readonly DataTableColumn<DefectAuditEvent>[] = 
     enableSorting: true,
     header: 'Пользователь',
     id: 'actor_display_name',
+    meta: { widthClassName: 'w-40 xl:w-1/5' },
     sortDescFirst: false,
   },
   {
     accessorKey: 'action',
-    cell: ({ row }) => translateAction(row.original.action),
+    cell: ({ row }) => <TruncatedText value={translateAction(row.original.action)} />,
     enableSorting: false,
     header: 'Действие',
+    meta: { widthClassName: 'w-[230px] xl:w-[31%]' },
   },
   {
     accessorKey: 'entityDisplayName',
     cell: ({ row }) => <DefectEntity event={row.original} />,
     enableSorting: false,
     header: 'Объект',
+    meta: { widthClassName: 'w-40 xl:w-[28%]' },
   },
   {
     cell: ({ row }) =>
@@ -53,6 +59,7 @@ export const defectAuditColumns: readonly DataTableColumn<DefectAuditEvent>[] = 
     enableSorting: false,
     header: () => <span className="sr-only">Изменения</span>,
     id: 'changes',
+    meta: { widthClassName: 'w-[58px] xl:w-[6%]' },
   },
 ]
 
@@ -82,10 +89,12 @@ function AuditActor({ event }: Readonly<{ event: DefectAuditEvent }>) {
   const label =
     event.actorDisplayName ?? (event.actorType === 'user' ? 'Пользователь' : event.actorType)
   return (
-    <span className="inline-flex flex-col">
-      <span>{label}</span>
+    <span className="inline-flex w-48 max-w-full flex-col">
+      <TruncatedText maxLength={maxIdentityDisplayLength} value={label} />
       {event.actorIdentifier ? (
-        <span className="text-xs text-muted-foreground">{event.actorIdentifier}</span>
+        <span className="text-xs text-muted-foreground">
+          <TruncatedText maxLength={maxIdentityDisplayLength} value={event.actorIdentifier} />
+        </span>
       ) : null}
     </span>
   )
@@ -102,9 +111,13 @@ function DefectEntity({ event }: Readonly<{ event: DefectAuditEvent }>) {
     event.entityIdentifier ?? dataValue(event.newData, 'code') ?? dataValue(event.oldData, 'code')
 
   return (
-    <span className="inline-flex flex-col">
-      <span>{`${type}: ${label}`}</span>
-      {identifier ? <span className="text-xs text-muted-foreground">{identifier}</span> : null}
+    <span className="inline-flex w-80 max-w-full flex-col">
+      <TruncatedText maxLength={maxIdentityDisplayLength} value={`${type}: ${label}`} />
+      {identifier ? (
+        <span className="text-xs text-muted-foreground">
+          <TruncatedText maxLength={maxIdentityDisplayLength} value={identifier} />
+        </span>
+      ) : null}
     </span>
   )
 }

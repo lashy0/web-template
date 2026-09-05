@@ -52,14 +52,29 @@ function renderTable(overrides: Partial<React.ComponentProps<typeof DataTable<Ro
 }
 
 describe('DataTable', () => {
+  it('updates cells and removes rows when server data changes', () => {
+    const props = {
+      columns,
+      onPaginationChange: vi.fn<() => void>(),
+      onSortingChange: vi.fn<() => void>(),
+      pagination: firstPage,
+      sorting: [],
+    }
+    const { rerender } = render(<DataTable {...props} data={[{ name: 'Before' }]} total={1} />)
+
+    rerender(<DataTable {...props} data={[{ name: 'After' }]} total={1} />)
+    expect(screen.getByText('After')).toBeVisible()
+    expect(screen.queryByText('Before')).not.toBeInTheDocument()
+
+    rerender(<DataTable {...props} data={[]} total={0} />)
+    expect(screen.queryByText('After')).not.toBeInTheDocument()
+    expect(screen.getByText('Нет данных.')).toBeVisible()
+  })
+
   it('uses a fixed table layout when requested', () => {
     const { container } = renderTable({ fixedLayout: true })
 
-    expect(screen.getByRole('table')).toHaveClass(
-      'min-w-[48rem]',
-      'table-fixed',
-      'border-collapse',
-    )
+    expect(screen.getByRole('table')).toHaveClass('min-w-[48rem]', 'table-fixed', 'border-collapse')
     expect(container.querySelector('colgroup')).not.toBeInTheDocument()
   })
 
@@ -92,7 +107,7 @@ describe('DataTable', () => {
     renderTable({ onPaginationChange, pagination: { pageIndex: 1, pageSize: 5 } })
 
     await user.click(screen.getByRole('combobox'))
-    await user.click(screen.getByRole('option', { name: '10' }))
+    await user.click(await screen.findByRole('option', { name: '10' }))
 
     expect(onPaginationChange).toHaveBeenCalledWith({ pageIndex: 0, pageSize: 10 })
   })

@@ -12,6 +12,7 @@ import {
 import { Spinner } from '@web-app/ui/components/spinner'
 
 import { deletePak, type Pak } from '@/features/paks/paks-api'
+import { pakCodeForMessage } from '@/features/paks/pak-format'
 import useCustomToast from '@/hooks/useCustomToast'
 
 export function DeletePak({
@@ -37,7 +38,7 @@ export function DeletePak({
       ])
       closeDialog(true)
       onSuccess()
-      showSuccessToast('ПАК удалён', `ПАК «${pak.code}» удалён навсегда.`)
+      showSuccessToast('ПАК удалён', `ПАК «${pakCodeForMessage(pak.code)}» удалён навсегда.`)
     },
   })
 

@@ -32,6 +32,7 @@ import {
   type Pak,
   type PakKind,
 } from '@/features/paks/paks-api'
+import { pakCodeForMessage } from '@/features/paks/pak-format'
 import { editPakSchema } from '@/features/paks/pak-form-schema'
 import useCustomToast from '@/hooks/useCustomToast'
 
@@ -73,7 +74,7 @@ export function EditPak({
       ])
       close(true)
       onSuccess()
-      showSuccessToast('ПАК изменён', `Данные «${pak.code}» сохранены.`)
+      showSuccessToast('ПАК изменён', `Данные «${pakCodeForMessage(pak.code)}» сохранены.`)
     },
     onError: (error) => {
       if (isPakAlreadyExistsError(error)) {

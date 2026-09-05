@@ -1,16 +1,56 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { DefectGroupActionsMenu } from '@/components/Defects/Groups/DefectGroupActionsMenu'
 import { DefectTypeActionsMenu } from '@/components/Defects/Types/DefectTypeActionsMenu'
 import { type DefectGroup, type DefectType } from '@/features/defects/defects-api'
 import { validateDefectTypeSearch } from '@/routes/_layout/admin/defects/types'
 
-afterEach(cleanup)
+const { updateGroup, updateType } = vi.hoisted(() => ({
+  updateGroup: vi.fn<(id: string, archived: boolean) => Promise<DefectGroup>>(),
+  updateType: vi.fn<(id: string, archived: boolean) => Promise<DefectType>>(),
+}))
+vi.mock('@/features/defects/defects-api', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/defects/defects-api')>()),
+  updateDefectGroupArchived: updateGroup,
+  updateDefectTypeArchived: updateType,
+}))
+afterEach(() => {
+  cleanup()
+  vi.resetAllMocks()
+})
 
 describe('Defect management', () => {
+  it.each([false, true])('changes group archive state (archived: %s)', async (archived) => {
+    const user = userEvent.setup()
+    const group = {
+      ...archivedGroup,
+      archivedAt: archived ? archivedGroup.archivedAt : null,
+      activeTypesCount: archived ? 2 : 0,
+    }
+    updateGroup.mockResolvedValue(group)
+    renderMenu(<DefectGroupActionsMenu group={group} />)
+    const action = archived ? 'Восстановить' : 'Архивировать'
+    await user.click(screen.getByRole('button', { name: 'Действия с группой POWER' }))
+    await user.click(await screen.findByRole('menuitem', { name: action }))
+    expect(screen.getByRole('heading', { name: action + ' группу?' })).toBeVisible()
+    await user.click(screen.getByRole('button', { name: action }))
+    expect(updateGroup).toHaveBeenCalledExactlyOnceWith(group.id, !archived)
+  })
+  it.each([false, true])('changes type archive state (archived: %s)', async (archived) => {
+    const user = userEvent.setup()
+    const type = { ...archivedType, archivedAt: archived ? archivedType.archivedAt : null }
+    updateType.mockResolvedValue(type)
+    renderMenu(<DefectTypeActionsMenu type={type} />)
+    const action = archived ? 'Восстановить' : 'Архивировать'
+    await user.click(screen.getByRole('button', { name: 'Действия с типом POWER_LOSS' }))
+    await user.click(await screen.findByRole('menuitem', { name: action }))
+    expect(screen.getByRole('heading', { name: action + ' тип?' })).toBeVisible()
+    await user.click(screen.getByRole('button', { name: action }))
+    expect(updateType).toHaveBeenCalledExactlyOnceWith(type.id, !archived)
+  })
   it('keeps a group filter in validated URL search parameters', () => {
     const groupId = '123e4567-e89b-42d3-a456-426614174000'
 

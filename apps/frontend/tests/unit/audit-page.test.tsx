@@ -1,23 +1,46 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import {
+  createMemoryHistory,
+  createRootRoute,
+  createRoute,
+  createRouter,
+  RouterProvider,
+} from '@tanstack/react-router'
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ listUserAudit: vi.fn() }))
+const mocks = vi.hoisted(() => ({
+  listUserAudit: vi.fn<typeof import('@/features/users/users-api').listUserAudit>(),
+}))
 
 vi.mock('@/features/users/users-api', () => ({ listUserAudit: mocks.listUserAudit }))
 
-import { Audit } from '@/routes/_layout/admin/user/audit'
+import { Audit, validateUserAuditSearch } from '@/routes/_layout/admin/user/audit'
 import PendingAudit from '@/components/User/Audit/PendingAudit'
 
-function renderAudit() {
+async function renderAudit() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   })
 
+  const rootRoute = createRootRoute()
+  const layoutRoute = createRoute({ id: '_layout', getParentRoute: () => rootRoute })
+  const auditRoute = createRoute({
+    path: '/admin/user/audit',
+    getParentRoute: () => layoutRoute,
+    component: Audit,
+    validateSearch: validateUserAuditSearch,
+  })
+  const router = createRouter({
+    routeTree: rootRoute.addChildren([layoutRoute.addChildren([auditRoute])]),
+    history: createMemoryHistory({ initialEntries: ['/admin/user/audit'] }),
+  })
+  await router.load()
+
   return render(
     <QueryClientProvider client={queryClient}>
-      <Audit />
+      <RouterProvider router={router} />
     </QueryClientProvider>,
   )
 }
@@ -29,10 +52,10 @@ describe('Audit', () => {
     mocks.listUserAudit.mockReset()
   })
 
-  it('keeps the page title visible while audit data is loading', () => {
+  it('keeps the page title visible while audit data is loading', async () => {
     mocks.listUserAudit.mockReturnValue(new Promise(() => undefined))
 
-    renderAudit()
+    await renderAudit()
 
     expect(screen.getByLabelText('Загрузка аудита пользователей')).toBeVisible()
     expect(screen.getByRole('heading', { name: 'Аудит пользователей' })).toBeVisible()
@@ -48,7 +71,7 @@ describe('Audit', () => {
   it('shows an error instead of an endless skeleton when the audit request fails', async () => {
     mocks.listUserAudit.mockRejectedValue(new Error('Migration has not been applied'))
 
-    renderAudit()
+    await renderAudit()
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Не удалось загрузить данные')
     expect(screen.queryByLabelText('Загрузка аудита пользователей')).not.toBeInTheDocument()
@@ -60,7 +83,7 @@ describe('Audit', () => {
       .mockRejectedValueOnce(new Error('Migration has not been applied'))
       .mockResolvedValueOnce({ items: [], page: 1, pageSize: 25, total: 0 })
 
-    renderAudit()
+    await renderAudit()
 
     await user.click(await screen.findByRole('button', { name: 'Повторить' }))
 
@@ -72,7 +95,7 @@ describe('Audit', () => {
     const user = userEvent.setup()
     mocks.listUserAudit.mockResolvedValue({ items: [], page: 1, pageSize: 25, total: 0 })
 
-    renderAudit()
+    await renderAudit()
 
     await screen.findByText('Нет данных.')
     await user.click(screen.getByRole('button', { name: 'Период' }))

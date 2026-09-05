@@ -51,6 +51,29 @@ describe('defect audit columns', () => {
     expect(screen.queryByLabelText('Показать изменения')).not.toBeInTheDocument()
   })
 
+  it('truncates long object values and reserves space for the changes button', () => {
+    const longValue = 'Механические 1214444444444444444444444444444444444444444444444444'
+
+    render(
+      <DataTable
+        {...tableProps}
+        columns={defectAuditColumns}
+        data={[{ ...updatedTypeWithDescription, entityDisplayName: longValue }]}
+      />,
+    )
+
+    const objectName = screen.getByText(`Тип: ${longValue.slice(0, 27)}…`)
+    expect(objectName).toHaveClass('truncate')
+    expect(objectName.parentElement).toHaveClass('w-80')
+    expect(defectAuditColumns.map((column) => column.meta?.widthClassName)).toEqual([
+      'w-40 xl:w-[15%]',
+      'w-40 xl:w-1/5',
+      'w-[230px] xl:w-[31%]',
+      'w-40 xl:w-[28%]',
+      'w-[58px] xl:w-[6%]',
+    ])
+  })
+
   it('opens long-text changes in a sheet', () => {
     render(
       <DataTable
