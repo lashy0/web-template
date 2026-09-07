@@ -5,7 +5,7 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.defects.repository import DefectGroupRepository, DefectTypeRepository
+from app.modules.defects.repositories import DefectGroupRepository, DefectTypeRepository
 
 
 @pytest.mark.integration
@@ -55,7 +55,9 @@ async def test_archived_type_is_excluded_from_active_search_and_existence_check(
     group_repository = DefectGroupRepository(db_session)
     type_repository = DefectTypeRepository(db_session)
     suffix = uuid4().hex[:8]
-    group = await group_repository.create(code=f"MECH_{suffix}", name="Mechanical", description=None)
+    group = await group_repository.create(
+        code=f"MECH_{suffix}", name="Mechanical", description=None
+    )
     defect_type = await type_repository.create(
         group_id=group.id,
         code=f"HOUSING_{suffix}",

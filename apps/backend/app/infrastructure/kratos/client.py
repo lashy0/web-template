@@ -4,6 +4,7 @@ from uuid import UUID
 
 import anyio
 import ory_kratos_client as kratos
+from anyio.to_thread import run_sync
 from ory_kratos_client.api.frontend_api import FrontendApi
 from ory_kratos_client.api.identity_api import IdentityApi
 from ory_kratos_client.api.metadata_api import MetadataApi
@@ -33,7 +34,13 @@ def _identity(value: KratosIdentity) -> Identity:
 
 
 class _SdkClient:
-    def __init__(self, *, base_url: str, timeout: float, concurrency: int) -> None:
+    def __init__(
+        self,
+        *,
+        base_url: str,
+        timeout: float,
+        concurrency: int,
+    ) -> None:
         configuration = kratos.Configuration(host=base_url.rstrip("/"), retries=0)
         self.api_client = kratos.ApiClient(configuration)
         self.timeout = timeout
@@ -42,15 +49,20 @@ class _SdkClient:
     async def call(self, operation: Callable[[], T]) -> T:
         try:
             async with self.limiter:
-                return await anyio.to_thread.run_sync(operation)
+                return await run_sync(operation)
+
         except ApiException as exc:
             if exc.status in {401, 403}:
                 raise InvalidSessionError from exc
+
             if exc.status == 404:
                 raise IdentityNotFoundError from exc
+
             if exc.status == 409:
                 raise IdentityAlreadyExistsError from exc
+
             raise IdentityProviderUnavailableError from exc
+
         except (OSError, TimeoutError) as exc:
             raise IdentityProviderUnavailableError from exc
 
@@ -65,15 +77,21 @@ class KratosSessionVerifier:
         self._client = client
         self._api = FrontendApi(client.api_client)
 
-    async def verify_session(self, *, cookie_header: str) -> AuthSession:
+    async def verify_session(
+        self,
+        *,
+        cookie_header: str,
+    ) -> AuthSession:
         session = await self._client.call(
             lambda: self._api.to_session(
                 cookie=cookie_header,
                 _request_timeout=self._client.timeout,
             )
         )
+
         if session.identity is None or session.expires_at is None:
             raise IdentityProviderUnavailableError
+
         return AuthSession(
             id=UUID(str(session.id)),
             identity=_identity(session.identity),
@@ -127,6 +145,7 @@ class KratosIdentityManager:
                 _request_timeout=self._client.timeout,
             )
         )
+
         return _identity(result)
 
     async def get_identity_by_external_id(self, user_id: UUID) -> Identity:
@@ -142,19 +161,28 @@ class KratosIdentityManager:
     async def get_identity(self, identity_id: UUID) -> Identity:
         return _identity(await self._get_identity(identity_id))
 
-    async def update_login(self, identity_id: UUID, *, login: str) -> Identity:
+    async def update_login(
+        self,
+        identity_id: UUID,
+        *,
+        login: str,
+    ) -> Identity:
         current = await self._get_identity(identity_id)
         current.traits = {"login": login}
+
         return _identity(await self._update_identity(current))
 
-    async def set_password(self, identity_id: UUID, *, password: str) -> None:
+    async def set_password(
+        self,
+        identity_id: UUID,
+        *,
+        password: str,
+    ) -> None:
         current = await self._get_identity(identity_id)
 
         credentials = kratos.IdentityWithCredentials(
             password=kratos.IdentityWithCredentialsPassword(
-                config=kratos.IdentityWithCredentialsPasswordConfig(
-                    password=password
-                )
+                config=kratos.IdentityWithCredentialsPasswordConfig(password=password)
             )
         )
 
@@ -163,9 +191,15 @@ class KratosIdentityManager:
             credentials=credentials,
         )
 
-    async def set_active(self, identity_id: UUID, *, active: bool) -> Identity:
+    async def set_active(
+        self,
+        identity_id: UUID,
+        *,
+        active: bool,
+    ) -> Identity:
         current = await self._get_identity(identity_id)
         current.state = "active" if active else "inactive"
+
         return _identity(await self._update_identity(current))
 
     async def revoke_all_sessions(self, identity_id: UUID) -> None:
@@ -176,6 +210,7 @@ class KratosIdentityManager:
                     _request_timeout=self._client.timeout,
                 )
             )
+
         except IdentityNotFoundError:
             # Kratos returns 404 when an identity has no sessions to revoke.
             # Revocation is intentionally idempotent after a successful deactivation.
@@ -189,11 +224,16 @@ class KratosIdentityManager:
                     _request_timeout=self._client.timeout,
                 )
             )
+
         except IdentityNotFoundError:
             # The identity may have been removed by an earlier attempt.
             return
 
-    async def list_identities(self, *, page_size: int) -> list[Identity]:
+    async def list_identities(
+        self,
+        *,
+        page_size: int,
+    ) -> list[Identity]:
         result = await self._client.call(
             lambda: self._identities.list_identities(
                 page_size=page_size,
@@ -207,7 +247,9 @@ class KratosIdentityManager:
             await self._client.call(
                 lambda: self._metadata.is_ready(_request_timeout=self._client.timeout)
             )
+
             return True
+
         except IdentityProviderUnavailableError:
             return False
 
@@ -220,7 +262,8 @@ class KratosIdentityManager:
         )
 
     async def _update_identity(
-        self, current: KratosIdentity,
+        self,
+        current: KratosIdentity,
         *,
         credentials: kratos.IdentityWithCredentials | None = None,
     ) -> KratosIdentity:
@@ -230,6 +273,7 @@ class KratosIdentityManager:
             or not isinstance(current.traits, dict)
         ):
             raise IdentityProviderUnavailableError
+
         body = kratos.UpdateIdentityBody(
             schema_id=current.schema_id,
             state=current.state,
@@ -239,6 +283,7 @@ class KratosIdentityManager:
             metadata_public=current.metadata_public,
             credentials=credentials,
         )
+
         return await self._client.call(
             lambda: self._identities.update_identity(
                 id=str(current.id),

@@ -13,7 +13,7 @@ from app.auth.principal import CurrentPrincipal
 from app.auth.roles import Role
 from app.modules.kg.exceptions import KgCannotBeDeletedError, KgNotFoundError
 from app.modules.kg.models import KgStatus, KgUnit
-from app.modules.kg.service import KgManagementService
+from app.modules.kg.services import KgManagementService
 
 
 class _Session:
@@ -57,16 +57,16 @@ def _kg(*, status: KgStatus = KgStatus.REGISTERED) -> KgUnit:
 
 @pytest.fixture
 def dependencies(mocker: MockerFixture) -> tuple[MagicMock, MagicMock]:
-    repositories = mocker.patch("app.modules.kg.service.KgRepository")
+    repositories = mocker.patch("app.modules.kg.services.unit.KgRepository")
     repositories.return_value.get_by_dev_eui = AsyncMock()
     repositories.return_value.update_status = AsyncMock()
     repositories.return_value.delete = AsyncMock()
     repositories.return_value.search = AsyncMock()
     verification_sessions = mocker.patch(
-        "app.modules.kg.service.VerificationSessionRepository"
+        "app.modules.kg.services.unit.VerificationSessionRepository"
     )
     verification_sessions.return_value.exists_by_kg_dev_eui = AsyncMock(return_value=False)
-    audits = mocker.patch("app.modules.kg.service.AuditService")
+    audits = mocker.patch("app.modules.kg.services.unit.AuditService")
     audits.from_session.return_value.record = AsyncMock()
     return repositories, audits
 
@@ -168,16 +168,14 @@ async def test_delete_rejects_kg_with_verification_history(
     kg = _kg()
     repositories.return_value.get_by_dev_eui.return_value = kg
     verification_sessions = mocker.patch(
-        "app.modules.kg.service.VerificationSessionRepository"
+        "app.modules.kg.services.unit.VerificationSessionRepository"
     )
     verification_sessions.return_value.exists_by_kg_dev_eui = AsyncMock(return_value=True)
 
     with pytest.raises(KgCannotBeDeletedError):
         await _service().delete(actor=_principal(), dev_eui=kg.dev_eui)
 
-    verification_sessions.return_value.exists_by_kg_dev_eui.assert_awaited_once_with(
-        kg.dev_eui
-    )
+    verification_sessions.return_value.exists_by_kg_dev_eui.assert_awaited_once_with(kg.dev_eui)
     repositories.return_value.delete.assert_not_awaited()
     audits.from_session.return_value.record.assert_not_awaited()
 

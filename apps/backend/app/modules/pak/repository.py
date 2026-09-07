@@ -4,7 +4,8 @@ from uuid import UUID, uuid4
 from sqlalchemy import ColumnElement, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.pak.models import PakDevice, PakDeviceKind, PakTest
+from .enums import PakDeviceKind
+from .models import PakDevice, PakTest
 
 
 class PakRepository:
@@ -37,22 +38,28 @@ class PakRepository:
 
         return pak
 
-    async def get_by_id(self, pak_id: UUID) -> PakDevice | None:
-        return await self._session.get(PakDevice, pak_id)
+    async def get_by_id(
+        self,
+        pak_id: UUID,
+        *,
+        for_update: bool = False,
+    ) -> PakDevice | None:
+        return await self._session.get(
+            PakDevice,
+            pak_id,
+            with_for_update=for_update,
+            populate_existing=for_update,
+        )
 
     async def get_by_code(self, code: str) -> PakDevice | None:
-        statement = select(PakDevice).where(
-            PakDevice.code == code
-        )
+        statement = select(PakDevice).where(PakDevice.code == code)
 
         result = await self._session.execute(statement)
 
         return result.scalar_one_or_none()
 
     async def get_by_oauth_client_id(self, oauth_client_id: str) -> PakDevice | None:
-        statement = select(PakDevice).where(
-            PakDevice.oauth_client_id == oauth_client_id
-        )
+        statement = select(PakDevice).where(PakDevice.oauth_client_id == oauth_client_id)
 
         result = await self._session.execute(statement)
 
@@ -177,7 +184,9 @@ class PakRepository:
         sorted_column = column.desc().nulls_last() if order == "desc" else column.asc().nulls_last()
         statement = statement.order_by(sorted_column, PakDevice.id.asc())
         statement = statement.offset((page - 1) * page_size).limit(page_size)
-        count = await self._session.scalar(select(func.count()).select_from(PakDevice).where(*filters))
+        count = await self._session.scalar(
+            select(func.count()).select_from(PakDevice).where(*filters)
+        )
         result = await self._session.execute(statement)
 
         return list(result.scalars()), int(count or 0)
@@ -213,9 +222,7 @@ class PakTestRepository:
         return await self._session.get(PakTest, test_id)
 
     async def get_by_test_name(self, test_name: str) -> PakTest | None:
-        statement = select(PakTest).where(
-            PakTest.test_name == test_name
-        )
+        statement = select(PakTest).where(PakTest.test_name == test_name)
 
         result = await self._session.execute(statement)
 
@@ -260,9 +267,7 @@ class PakTestRepository:
             )
 
         if defect_group_id is not None:
-            filters.append(
-                PakTest.defect_group_id == defect_group_id
-            )
+            filters.append(PakTest.defect_group_id == defect_group_id)
 
         statement = select(PakTest).where(*filters)
 
@@ -274,15 +279,10 @@ class PakTestRepository:
             "updated_at": PakTest.updated_at,
         }[sort]
 
-        sorted_column = (
-            column.desc().nulls_last()
-            if order == "desc"
-            else column.asc().nulls_last()
-        )
+        sorted_column = column.desc().nulls_last() if order == "desc" else column.asc().nulls_last()
 
         statement = (
-            statement
-            .order_by(
+            statement.order_by(
                 sorted_column,
                 PakTest.id.asc(),
             )
@@ -291,9 +291,7 @@ class PakTestRepository:
         )
 
         count = await self._session.scalar(
-            select(func.count())
-            .select_from(PakTest)
-            .where(*filters)
+            select(func.count()).select_from(PakTest).where(*filters)
         )
 
         result = await self._session.execute(statement)

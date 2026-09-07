@@ -21,12 +21,12 @@ from app.infrastructure.kratos.client import KratosIdentityManager, KratosSessio
 from app.infrastructure.redis.client import create_redis_client
 from app.middleware.csrf import JsonOriginMiddleware
 from app.middleware.request_context import RequestContextMiddleware
-from app.modules.batch.service import BatchManagementService
-from app.modules.defects.service import DefectManagementService
-from app.modules.kg.service import KgDevEuiPrefixManagementService, KgManagementService
-from app.modules.pak.service import PakManagementService, PakTestCatalogService
+from app.modules.batch.services import BatchManagementService
+from app.modules.defects.services import DefectManagementService
+from app.modules.kg.services import KgDevEuiPrefixManagementService, KgManagementService
+from app.modules.pak.services import PakManagementService, PakTestCatalogService
 from app.modules.users.service import UserManagementService
-from app.modules.verification.service import VerificationManagementService
+from app.modules.verification.services import VerificationManagementService
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:

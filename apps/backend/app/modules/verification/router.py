@@ -5,26 +5,27 @@ from fastapi import APIRouter, Depends, Query, Request, status
 
 from app.api.auth_deps import CurrentPrincipalDep, require_permission
 from app.modules.pak.deps import CurrentPakDep
-from app.modules.verification.exceptions import VerificationSessionNotFoundError
-from app.modules.verification.models import (
+
+from .exceptions import VerificationSessionNotFoundError
+from .models import (
     VerificationSession,
     VerificationSessionStatus,
     VerificationStep,
 )
-from app.modules.verification.permissions import VerificationPermission
-from app.modules.verification.schemas.common import (
+from .permissions import VerificationPermission
+from .schemas.common import (
     VerificationSessionDetailResponse,
     VerificationSessionListResponse,
     VerificationSessionResponse,
     VerificationStepResponse,
 )
-from app.modules.verification.schemas.machine import (
+from .schemas.machine import (
     CompleteVerificationSessionRequest,
     CompleteVerificationStepRequest,
     OpenVerificationSessionRequest,
     StartVerificationStepRequest,
 )
-from app.modules.verification.service import VerificationManagementService
+from .services import VerificationManagementService
 
 router = APIRouter(prefix="/verification", tags=["verification"])
 
@@ -79,7 +80,10 @@ def _step_response(step: VerificationStep) -> VerificationStepResponse:
 
 @router.get("/sessions", response_model=VerificationSessionListResponse)
 async def list_sessions(
-    _: Annotated[CurrentPrincipalDep, Depends(require_permission(VerificationPermission.READ))],
+    _: Annotated[
+        CurrentPrincipalDep,
+        Depends(require_permission(VerificationPermission.READ)),
+    ],
     request: Request,
     q: str | None = None,
     pak_id: UUID | None = None,
@@ -107,10 +111,7 @@ async def list_sessions(
     )
 
     return VerificationSessionListResponse(
-        items=[
-            _session_response(session)
-            for session in sessions
-        ],
+        items=[_session_response(session) for session in sessions],
         total=total,
         page=page,
         page_size=page_size,
@@ -120,7 +121,10 @@ async def list_sessions(
 @router.get("/sessions/{session_id}", response_model=VerificationSessionDetailResponse)
 async def get_session(
     session_id: UUID,
-    _: Annotated[CurrentPrincipalDep, Depends(require_permission(VerificationPermission.READ))],
+    _: Annotated[
+        CurrentPrincipalDep,
+        Depends(require_permission(VerificationPermission.READ)),
+    ],
     request: Request,
 ) -> VerificationSessionDetailResponse:
     result = await _service(request).get_detail(session_id)
@@ -134,10 +138,7 @@ async def get_session(
 
     return VerificationSessionDetailResponse(
         **response.model_dump(),
-        steps=[
-            _step_response(step)
-            for step in steps
-        ],
+        steps=[_step_response(step) for step in steps],
     )
 
 

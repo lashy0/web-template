@@ -25,7 +25,7 @@ from app.modules.batch.models import (
     BatchShipmentItem,
     BatchStatus,
 )
-from app.modules.batch.service import BatchManagementService
+from app.modules.batch.services import BatchManagementService
 from app.modules.kg.models import KgDevEuiPrefix, KgStatus, KgUnit
 
 
@@ -125,21 +125,25 @@ def _kg(*, batch_id: UUID, status: KgStatus = KgStatus.PACKED) -> KgUnit:
 def dependencies(
     mocker: MockerFixture,
 ) -> tuple[MagicMock, MagicMock, MagicMock, MagicMock, MagicMock, MagicMock]:
-    batches = mocker.patch("app.modules.batch.service.BatchRepository")
+    batches = mocker.patch("app.modules.batch.services.batch.BatchRepository")
+    mocker.patch("app.modules.batch.services.receipt.BatchRepository", batches)
+    mocker.patch("app.modules.batch.services.shipment.BatchRepository", batches)
     batches.return_value.get_by_id = AsyncMock()
     batches.return_value.create = AsyncMock()
     batches.return_value.update_details = AsyncMock()
     batches.return_value.update_completed = AsyncMock()
     batches.return_value.delete = AsyncMock()
 
-    receipts = mocker.patch("app.modules.batch.service.BatchReceiptRepository")
+    receipts = mocker.patch("app.modules.batch.services.batch.BatchReceiptRepository")
+    mocker.patch("app.modules.batch.services.receipt.BatchReceiptRepository", receipts)
     receipts.return_value.get_by_id = AsyncMock()
     receipts.return_value.create = AsyncMock()
     receipts.return_value.update_details = AsyncMock()
     receipts.return_value.void = AsyncMock()
     receipts.return_value.exists_by_batch = AsyncMock(return_value=False)
 
-    shipments = mocker.patch("app.modules.batch.service.BatchShipmentRepository")
+    shipments = mocker.patch("app.modules.batch.services.batch.BatchShipmentRepository")
+    mocker.patch("app.modules.batch.services.shipment.BatchShipmentRepository", shipments)
     shipments.return_value.get_by_id = AsyncMock()
     shipments.return_value.create = AsyncMock()
     shipments.return_value.add_item = AsyncMock()
@@ -149,7 +153,8 @@ def dependencies(
     shipments.return_value.find_non_voided_by_kg = AsyncMock()
     shipments.return_value.exists_by_batch = AsyncMock(return_value=False)
 
-    kg_units = mocker.patch("app.modules.batch.service.KgRepository")
+    kg_units = mocker.patch("app.modules.kg.services.unit.KgRepository")
+    mocker.patch("app.modules.kg.services.prefix.KgRepository", kg_units)
     kg_units.return_value.get_by_dev_eui = AsyncMock()
     kg_units.return_value.get_many_by_dev_euis = AsyncMock()
     kg_units.return_value.update_status_many = AsyncMock()
@@ -160,11 +165,11 @@ def dependencies(
     kg_units.return_value.delete_by_batch = AsyncMock()
 
     verification_sessions = mocker.patch(
-        "app.modules.batch.service.VerificationSessionRepository"
+        "app.modules.verification.services.session.VerificationSessionRepository"
     )
     verification_sessions.return_value.exists_by_batch_id = AsyncMock(return_value=False)
 
-    prefixes = mocker.patch("app.modules.batch.service.KgDevEuiPrefixRepository")
+    prefixes = mocker.patch("app.modules.kg.services.prefix.KgDevEuiPrefixRepository")
     prefixes.return_value.get = AsyncMock(
         return_value=KgDevEuiPrefix(
             prefix="a1b2c3d4e5",
@@ -174,7 +179,9 @@ def dependencies(
         )
     )
 
-    audits = mocker.patch("app.modules.batch.service.AuditService")
+    audits = mocker.patch("app.modules.batch.services.batch.AuditService")
+    mocker.patch("app.modules.batch.services.receipt.AuditService", audits)
+    mocker.patch("app.modules.batch.services.shipment.AuditService", audits)
     audits.from_session.return_value.record = AsyncMock()
     return batches, receipts, shipments, kg_units, prefixes, audits
 
@@ -339,7 +346,7 @@ async def test_delete_rejects_batch_with_verification_history(
     batch = _batch()
     batches.return_value.get_by_id.return_value = batch
     verification_sessions = mocker.patch(
-        "app.modules.batch.service.VerificationSessionRepository"
+        "app.modules.verification.services.session.VerificationSessionRepository"
     )
     verification_sessions.return_value.exists_by_batch_id = AsyncMock(return_value=True)
 

@@ -30,7 +30,7 @@ BATCH_STATUS_DB_TYPE = Enum(
     native_enum=False,
     create_constraint=True,
     validate_strings=True,
-    values_callable=lambda enum_type: [status.value for status in enum_type]
+    values_callable=lambda enum_type: [status.value for status in enum_type],
 )
 
 
@@ -139,7 +139,7 @@ class BatchReceipt(Base):
         Index(
             "ix_batch_receipts_voided_at",
             "voided_at",
-        )
+        ),
     )
 
 

@@ -59,7 +59,11 @@ class SessionProvider(Protocol):
 
 
 class SessionVerifier(Protocol):
-    async def verify_session(self, *, cookie_header: str) -> AuthSession:
+    async def verify_session(
+        self,
+        *,
+        cookie_header: str,
+    ) -> AuthSession:
         """Verify a browser session with the Kratos Public API."""
         raise NotImplementedError
 
@@ -116,15 +120,30 @@ class IdentityManager(Protocol):
         """Retrieve an identity."""
         raise NotImplementedError
 
-    async def update_login(self, identity_id: UUID, *, login: str) -> Identity:
+    async def update_login(
+        self,
+        identity_id: UUID,
+        *,
+        login: str,
+    ) -> Identity:
         """Update the identity login without invalidating sessions."""
         raise NotImplementedError
 
-    async def set_password(self, identity_id: UUID, *, password: str) -> None:
+    async def set_password(
+        self,
+        identity_id: UUID,
+        *,
+        password: str,
+    ) -> None:
         """Replace the identity password credential."""
         raise NotImplementedError
 
-    async def set_active(self, identity_id: UUID, *, active: bool) -> Identity:
+    async def set_active(
+        self,
+        identity_id: UUID,
+        *,
+        active: bool,
+    ) -> Identity:
         """Activate or deactivate the identity."""
         raise NotImplementedError
 
@@ -136,7 +155,11 @@ class IdentityManager(Protocol):
         """Permanently delete an identity and its associated credentials."""
         raise NotImplementedError
 
-    async def list_identities(self, *, page_size: int) -> list[Identity]:
+    async def list_identities(
+        self,
+        *,
+        page_size: int,
+    ) -> list[Identity]:
         """List identities for reconciliation."""
         raise NotImplementedError
 
@@ -166,7 +189,9 @@ class OAuthClientManager(Protocol):
         raise NotImplementedError
 
     async def set_client_secret(
-        self, client_id: str, client_secret: str
+        self,
+        client_id: str,
+        client_secret: str,
     ) -> OAuthClientCredentials:
         """Restore a known secret while compensating a failed local operation."""
         raise NotImplementedError

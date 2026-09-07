@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import ColumnElement, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.audit.models import AuditEvent
@@ -59,7 +59,9 @@ class AuditRepository:
         sort: str,
     ) -> tuple[list[AuditEvent], int]:
         entity_types = [entity_type] if isinstance(entity_type, str) else entity_type
-        filters = [AuditEvent.entity_type.in_(entity_types)] if entity_types else []
+        filters: list[ColumnElement[bool]] = (
+            [AuditEvent.entity_type.in_(entity_types)] if entity_types else []
+        )
 
         if created_from is not None:
             filters.append(AuditEvent.created_at >= created_from)

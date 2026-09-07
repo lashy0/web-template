@@ -4,17 +4,20 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.batch.models import BatchStatus
-from app.modules.batch.repository import (
+from app.modules.batch.repositories import (
     BatchReceiptRepository,
     BatchRepository,
     BatchShipmentRepository,
 )
-from app.modules.kg.models import KgStatus
-from app.modules.kg.repository import KgRepository
+from app.modules.kg.models import KgDevEuiPrefix, KgStatus
+from app.modules.kg.repositories import KgRepository
 
 
 async def _batch(session: AsyncSession, *, name: str = "August production"):
+    session.add(KgDevEuiPrefix(prefix="a1b2c3d4e5", short_code="kg"))
+    await session.flush()
     return await BatchRepository(session).create(
+        dev_eui_prefix="a1b2c3d4e5",
         name=name,
         description="Initial run",
         planned_qty=100,
@@ -82,7 +85,9 @@ async def test_shipment_repository_tracks_items_completion_and_voiding(
     batch = await _batch(db_session)
     kg_repository = KgRepository(db_session)
     shipment_repository = BatchShipmentRepository(db_session)
-    kg = await kg_repository.create(dev_eui="a1b2c3d4e5f60708", batch_id=batch.id)
+    [kg] = await kg_repository.create_many(
+        dev_euis=["a1b2c3d4e5f60708"], short_code="kg", batch_id=batch.id
+    )
     await kg_repository.update_status(kg, status=KgStatus.PACKED)
     shipment = await shipment_repository.create(
         batch_id=batch.id,

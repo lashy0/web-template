@@ -5,7 +5,8 @@ from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Index, String, Uuid,
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.infrastructure.database.base import Base
-from app.modules.pak.enums import PakDeviceKind
+
+from .enums import PakDeviceKind
 
 PAK_DEVICE_KIND_DB_TYPE = Enum(
     PakDeviceKind,

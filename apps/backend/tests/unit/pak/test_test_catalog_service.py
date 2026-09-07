@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.modules.defects.models import DefectGroup
 from app.modules.pak.exceptions import PakTestConfigurationError, PakTestNotFoundError
 from app.modules.pak.models import PakDevice, PakDeviceKind, PakTest
-from app.modules.pak.service import PakTestCatalogService
+from app.modules.pak.services import PakTestCatalogService
 
 
 class _Session:
@@ -70,15 +70,18 @@ def _test(group: DefectGroup) -> PakTest:
 
 @pytest.fixture
 def dependencies(mocker: MockerFixture) -> tuple[MagicMock, MagicMock, MagicMock]:
-    groups = mocker.patch("app.modules.pak.service.DefectGroupRepository")
-    groups.return_value.get_by_code = AsyncMock()
-    groups.return_value.get_by_id = AsyncMock()
-    tests = mocker.patch("app.modules.pak.service.PakTestRepository")
+    groups = mocker.patch("app.modules.pak.services.catalog.DefectGroupService")
+    groups.return_value.get_group_by_code = AsyncMock()
+    groups.return_value.get_group = AsyncMock()
+    tests = mocker.patch("app.modules.pak.services.catalog.PakTestRepository")
     tests.return_value.get_by_id = AsyncMock()
     tests.return_value.get_by_test_name = AsyncMock()
     tests.return_value.create = AsyncMock()
     tests.return_value.update_observation = AsyncMock()
-    audits = mocker.patch("app.modules.pak.service.AuditService")
+    audits = mocker.patch("app.modules.pak.services.catalog.AuditService")
+    mocker.patch("app.modules.pak.services.credentials.AuditService", audits)
+    mocker.patch("app.modules.pak.services.device.AuditService", audits)
+    mocker.patch("app.modules.pak.services.provisioning.AuditService", audits)
     audits.from_session.return_value.record = AsyncMock()
     return groups, tests, audits
 
@@ -96,7 +99,7 @@ async def test_observe_creates_new_pak_test_and_audits_catalog_entry(
     group = _group()
     test = _test(group)
     observed_at = datetime(2026, 9, 2, 8, 30, tzinfo=UTC)
-    groups.return_value.get_by_code.return_value = group
+    groups.return_value.get_group_by_code.return_value = group
     tests.return_value.get_by_test_name.return_value = None
     tests.return_value.create.return_value = test
 
@@ -136,8 +139,8 @@ async def test_observe_updates_changed_catalog_metadata_and_audits_delta(
     group.code = "MECHANICAL"
     test = _test(previous_group)
     observed_at = datetime(2026, 9, 2, 8, 30, tzinfo=UTC)
-    groups.return_value.get_by_code.return_value = group
-    groups.return_value.get_by_id.return_value = previous_group
+    groups.return_value.get_group_by_code.return_value = group
+    groups.return_value.get_group.return_value = previous_group
     tests.return_value.get_by_test_name.return_value = test
     tests.return_value.update_observation.return_value = test
 
@@ -177,7 +180,7 @@ async def test_observe_rejects_unknown_or_archived_defect_group(
 ) -> None:
     groups, tests, audits = dependencies
     pak = _pak()
-    groups.return_value.get_by_code.return_value = (
+    groups.return_value.get_group_by_code.return_value = (
         _group(archived_at=datetime.now(UTC)) if archived else None
     )
 

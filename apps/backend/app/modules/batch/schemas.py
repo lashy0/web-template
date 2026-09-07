@@ -3,8 +3,9 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.modules.batch.models import BatchStatus
 from app.modules.kg.schemas import DevEui, DevEuiPrefix
+
+from .models import BatchStatus
 
 
 class BatchResponse(BaseModel):
@@ -36,7 +37,7 @@ class CreateBatchRequest(BaseModel):
     planned_qty: int = Field(gt=0)
     day_plan_qty: int = Field(gt=0)
 
-    @field_validator('name', mode='before')
+    @field_validator("name", mode="before")
     @classmethod
     def normalize_name(cls, value: object) -> object:
         if isinstance(value, str):

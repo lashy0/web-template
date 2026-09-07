@@ -42,7 +42,7 @@ class AuditEvent(Base):
         DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
-        index=True
+        index=True,
     )
     actor_type: Mapped[str] = mapped_column(String(64), nullable=False)
     actor_id: Mapped[str | None] = mapped_column(String(255), nullable=True)

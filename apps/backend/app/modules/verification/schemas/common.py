@@ -4,7 +4,8 @@ from uuid import UUID
 from pydantic import BaseModel
 
 from app.modules.kg.schemas import DevEui
-from app.modules.verification.models import (
+
+from ..models import (
     VerificationSessionStatus,
     VerificationStepStatus,
 )

@@ -4,6 +4,7 @@ from typing import TypeVar
 
 import anyio
 import ory_hydra_client as hydra
+from anyio.to_thread import run_sync
 from ory_hydra_client.api.o_auth2_api import OAuth2Api
 from ory_hydra_client.exceptions import ApiException
 from ory_hydra_client.models.introspected_o_auth2_token import IntrospectedOAuth2Token
@@ -45,7 +46,11 @@ def _oauth_client(value: HydraOAuth2Client) -> OAuthClient:
 def _credentials(value: HydraOAuth2Client) -> OAuthClientCredentials:
     if value.client_secret is None:
         raise OAuthProviderUnavailableError
-    return OAuthClientCredentials(client=_oauth_client(value), client_secret=value.client_secret)
+
+    return OAuthClientCredentials(
+        client=_oauth_client(value),
+        client_secret=value.client_secret,
+    )
 
 
 def _introspection(value: IntrospectedOAuth2Token) -> AccessTokenIntrospection:
@@ -57,7 +62,13 @@ def _introspection(value: IntrospectedOAuth2Token) -> AccessTokenIntrospection:
 
 
 class _SdkClient:
-    def __init__(self, *, base_url: str, timeout: float, concurrency: int) -> None:
+    def __init__(
+        self,
+        *,
+        base_url: str,
+        timeout: float,
+        concurrency: int,
+    ) -> None:
         configuration = hydra.Configuration(host=base_url.rstrip("/"), retries=0)
         self.api_client = hydra.ApiClient(configuration)
         self.timeout = timeout
@@ -66,7 +77,7 @@ class _SdkClient:
     async def call(self, operation: Callable[[], T]) -> T:
         try:
             async with self.limiter:
-                return await anyio.to_thread.run_sync(operation)
+                return await run_sync(operation)
 
         except ApiException as exc:
             if exc.status == 404:
@@ -138,7 +149,9 @@ class HydraOAuthClientManager:
         return await self.set_client_secret(client_id, _new_client_secret())
 
     async def set_client_secret(
-        self, client_id: str, client_secret: str
+        self,
+        client_id: str,
+        client_secret: str,
     ) -> OAuthClientCredentials:
         current = await self._client.call(
             lambda: self._oauth2.get_o_auth2_client(

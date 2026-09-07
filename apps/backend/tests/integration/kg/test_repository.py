@@ -4,12 +4,16 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.batch.models import Batch, BatchStatus
-from app.modules.kg.models import KgStatus
-from app.modules.kg.repository import KgRepository
+from app.modules.kg.models import KgDevEuiPrefix, KgStatus
+from app.modules.kg.repositories import KgRepository
 
 
 async def _batch(session: AsyncSession) -> Batch:
+    prefix = KgDevEuiPrefix(prefix=uuid4().hex[:10], short_code=uuid4().hex[:8])
+    session.add(prefix)
+    await session.flush()
     batch = Batch(
+        dev_eui_prefix=prefix.prefix,
         id=uuid4(),
         name="August production batch",
         description=None,
@@ -28,7 +32,9 @@ async def test_kg_can_be_created_and_retrieved_by_dev_eui(db_session: AsyncSessi
     batch = await _batch(db_session)
     repository = KgRepository(db_session)
 
-    created = await repository.create(dev_eui="a1b2c3d4e5f60708", batch_id=batch.id)
+    [created] = await repository.create_many(
+        dev_euis=["a1b2c3d4e5f60708"], short_code="kg", batch_id=batch.id
+    )
     retrieved = await repository.get_by_dev_eui(created.dev_eui)
 
     assert retrieved is not None
@@ -45,10 +51,13 @@ async def test_kg_search_applies_filters_sorting_and_pagination(db_session: Asyn
     second_batch = await _batch(db_session)
     repository = KgRepository(db_session)
     await repository.create_many(
-        dev_euis=["a1b2c3d4e5f60708", "b1b2c3d4e5f60708"],
+        dev_euis=["a1b2c3d4e5f60708", "b1b2c3d4e5f60709"],
         batch_id=first_batch.id,
+        short_code="kg",
     )
-    second = await repository.create(dev_eui="c1b2c3d4e5f60708", batch_id=second_batch.id)
+    [second] = await repository.create_many(
+        dev_euis=["c1b2c3d4e5f6070a"], short_code="kg", batch_id=second_batch.id
+    )
     await repository.update_status(second, status=KgStatus.TESTING)
 
     items, total = await repository.search(
@@ -73,10 +82,13 @@ async def test_kg_bulk_operations_and_status_guard_are_scoped_to_batch(
     second_batch = await _batch(db_session)
     repository = KgRepository(db_session)
     first, second = await repository.create_many(
-        dev_euis=["a1b2c3d4e5f60708", "b1b2c3d4e5f60708"],
+        dev_euis=["a1b2c3d4e5f60708", "b1b2c3d4e5f60709"],
         batch_id=first_batch.id,
+        short_code="kg",
     )
-    unrelated = await repository.create(dev_eui="c1b2c3d4e5f60708", batch_id=second_batch.id)
+    [unrelated] = await repository.create_many(
+        dev_euis=["c1b2c3d4e5f6070a"], short_code="other", batch_id=second_batch.id
+    )
 
     assert not await repository.has_non_registered_by_batch(first_batch.id)
     await repository.update_status_many([first], status=KgStatus.PACKED)

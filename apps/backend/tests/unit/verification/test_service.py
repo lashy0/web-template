@@ -24,7 +24,7 @@ from app.modules.verification.models import (
     VerificationStep,
     VerificationStepStatus,
 )
-from app.modules.verification.service import VerificationManagementService
+from app.modules.verification.services import VerificationManagementService
 
 
 class _Session:
@@ -118,14 +118,24 @@ def _step(
 @pytest.fixture
 def repositories(mocker: MockerFixture) -> tuple[MagicMock, MagicMock, MagicMock]:
     verification_sessions = mocker.patch(
-        "app.modules.verification.service.VerificationSessionRepository"
+        "app.modules.verification.services.session.VerificationSessionRepository"
     )
     verification_steps = mocker.patch(
-        "app.modules.verification.service.VerificationStepRepository"
+        "app.modules.verification.services.session.VerificationStepRepository"
     )
-    kg = mocker.patch("app.modules.verification.service.KgRepository")
+    kg = mocker.patch("app.modules.kg.services.unit.KgRepository")
+    for module in ("step", "cleanup"):
+        mocker.patch(
+            f"app.modules.verification.services.{module}.VerificationSessionRepository",
+            verification_sessions,
+        )
+        mocker.patch(
+            f"app.modules.verification.services.{module}.VerificationStepRepository",
+            verification_steps,
+        )
     for method in (
         "lock_session_open",
+        "lock_running_candidates",
         "get_running_by_kg",
         "get_running_by_pak_slot",
         "create",
@@ -146,10 +156,15 @@ def repositories(mocker: MockerFixture) -> tuple[MagicMock, MagicMock, MagicMock
     ):
         setattr(verification_steps.return_value, method, AsyncMock())
     kg.return_value.get_by_dev_eui = AsyncMock()
+    kg.return_value.get_many_by_dev_euis = AsyncMock(return_value=[])
     kg.return_value.update_status = AsyncMock()
     verification_sessions.return_value.get_running_by_kg.return_value = None
     verification_sessions.return_value.get_running_by_pak_slot.return_value = None
     verification_steps.return_value.get_by_session_and_step_no.return_value = None
+    mocker.patch(
+        "app.modules.verification.services.queries.VerificationSessionRepository",
+        verification_sessions,
+    )
     return verification_sessions, verification_steps, kg
 
 

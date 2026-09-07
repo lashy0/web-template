@@ -13,7 +13,7 @@ from app.auth.roles import Role
 from app.core.config import Settings
 from app.infrastructure.hydra.client import HydraOAuthClientManager, HydraTokenIntrospector
 from app.modules.pak.models import PakDeviceKind
-from app.modules.pak.service import PakManagementService
+from app.modules.pak.services import PakManagementService
 
 
 def _administrator() -> CurrentPrincipal:

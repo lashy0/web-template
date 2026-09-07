@@ -1,7 +1,8 @@
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.modules.kg.schemas import DevEui
-from app.modules.verification.models import (
+
+from ..models import (
     VerificationSessionStatus,
     VerificationStepStatus,
 )

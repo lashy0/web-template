@@ -4,7 +4,7 @@ from uuid import uuid4
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.defects.repository import DefectGroupRepository
+from app.modules.defects.repositories import DefectGroupRepository
 from app.modules.pak.models import PakDeviceKind
 from app.modules.pak.repository import PakRepository, PakTestRepository
 

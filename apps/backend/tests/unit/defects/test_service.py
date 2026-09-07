@@ -16,7 +16,7 @@ from app.modules.defects.exceptions import (
     DefectGroupHasUnarchivedTypesError,
 )
 from app.modules.defects.models import DefectGroup, DefectType
-from app.modules.defects.service import DefectManagementService
+from app.modules.defects.services import DefectManagementService
 
 
 class _Session:
@@ -77,14 +77,18 @@ def _type(group: DefectGroup, *, archived_at: datetime | None = None) -> DefectT
 
 @pytest.fixture
 def dependencies(mocker: MockerFixture) -> tuple[MagicMock, MagicMock, MagicMock]:
-    groups = mocker.patch("app.modules.defects.service.DefectGroupRepository")
+    groups = mocker.patch("app.modules.defects.services.group.DefectGroupRepository")
+    mocker.patch("app.modules.defects.services.type.DefectGroupRepository", groups)
+    mocker.patch("app.modules.defects.services.queries.DefectGroupRepository", groups)
     groups.return_value.get_by_id = AsyncMock()
     groups.return_value.get_by_code = AsyncMock()
     groups.return_value.create = AsyncMock()
     groups.return_value.update_details = AsyncMock()
     groups.return_value.update_archived = AsyncMock()
     groups.return_value.delete = AsyncMock()
-    defect_types = mocker.patch("app.modules.defects.service.DefectTypeRepository")
+    defect_types = mocker.patch("app.modules.defects.services.group.DefectTypeRepository")
+    mocker.patch("app.modules.defects.services.type.DefectTypeRepository", defect_types)
+    mocker.patch("app.modules.defects.services.queries.DefectTypeRepository", defect_types)
     defect_types.return_value.get_by_id = AsyncMock()
     defect_types.return_value.get_by_code = AsyncMock()
     defect_types.return_value.create = AsyncMock()
@@ -93,7 +97,8 @@ def dependencies(mocker: MockerFixture) -> tuple[MagicMock, MagicMock, MagicMock
     defect_types.return_value.delete = AsyncMock()
     defect_types.return_value.exists_by_group = AsyncMock(return_value=False)
     defect_types.return_value.exists_unarchived_by_group = AsyncMock(return_value=False)
-    audits = mocker.patch("app.modules.defects.service.AuditService")
+    audits = mocker.patch("app.modules.defects.services.group.AuditService")
+    mocker.patch("app.modules.defects.services.type.AuditService", audits)
     audits.from_session.return_value.record = AsyncMock()
     return groups, defect_types, audits
 

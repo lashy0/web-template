@@ -1,8 +1,6 @@
-from typing import cast
-
 from cryptography.fernet import Fernet, InvalidToken
 
-from app.modules.pak.exceptions import PakAccessKeyConfigurationError
+from .exceptions import PakAccessKeyConfigurationError
 
 
 class PakAccessKeyCipher:
@@ -23,13 +21,11 @@ class PakAccessKeyCipher:
             ) from exc
 
     def encrypt(self, access_key: str) -> str:
-        return cast(str, self._fernet.encrypt(access_key.encode("utf-8")).decode("ascii"))
+        return self._fernet.encrypt(access_key.encode("utf-8")).decode("ascii")
 
     def decrypt(self, encrypted_access_key: str) -> str:
         try:
-            return cast(
-                str, self._fernet.decrypt(encrypted_access_key.encode("ascii")).decode("utf-8")
-            )
+            return self._fernet.decrypt(encrypted_access_key.encode("ascii")).decode("utf-8")
 
         except (InvalidToken, UnicodeDecodeError) as exc:
             raise PakAccessKeyConfigurationError(

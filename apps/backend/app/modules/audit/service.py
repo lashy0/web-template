@@ -7,9 +7,7 @@ from app.modules.audit.models import AuditEvent
 from app.modules.audit.repository import AuditRepository
 from app.modules.audit.types import AuditActor, AuditEntity
 
-ACTION_PATTERN = re.compile(
-    r"^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$"
-)
+ACTION_PATTERN = re.compile(r"^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$")
 
 
 class AuditService:
@@ -30,9 +28,7 @@ class AuditService:
         new_data: dict[str, Any] | None = None,
     ) -> AuditEvent:
         if not ACTION_PATTERN.fullmatch(action):
-            raise ValueError(
-                "Audit action must use '<namespace>.<operation>' format"
-            )
+            raise ValueError("Audit action must use '<namespace>.<operation>' format")
 
         return await self._repository.create(
             actor_type=actor.type,

@@ -138,18 +138,14 @@ class VerificationSession(Base):
             "ux_verification_running_by_kg",
             "kg_dev_eui",
             unique=True,
-            postgresql_where=text(
-                "status = 'RUNNING'"
-            ),
+            postgresql_where=text("status = 'RUNNING'"),
         ),
         Index(
             "ux_verification_running_by_pak_slot",
             "pak_id",
             "slot_no",
             unique=True,
-            postgresql_where=text(
-                "status = 'RUNNING'"
-            ),
+            postgresql_where=text("status = 'RUNNING'"),
         ),
     )
 

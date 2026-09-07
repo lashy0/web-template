@@ -6,12 +6,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.batch.models import Batch, BatchStatus
-from app.modules.defects.repository import DefectGroupRepository
+from app.modules.defects.repositories import DefectGroupRepository
 from app.modules.kg.models import KgDevEuiPrefix, KgStatus, KgUnit
 from app.modules.pak.models import PakDevice, PakDeviceKind, PakTest
 from app.modules.pak.repository import PakTestRepository
 from app.modules.verification.models import VerificationSessionStatus
-from app.modules.verification.repository import (
+from app.modules.verification.repositories import (
     VerificationSessionRepository,
     VerificationStepRepository,
 )

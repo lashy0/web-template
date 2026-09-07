@@ -3,9 +3,9 @@ from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import AfterValidator, BaseModel, BeforeValidator, Field, field_validator
+from pydantic import BaseModel, BeforeValidator, Field, field_validator
 
-from app.modules.kg.models import KgStatus
+from .models import KgStatus
 
 DEV_EUI_PATTERN = re.compile(r"^[0-9a-f]{16}$")
 DEV_EUI_PREFIX_PATTERN = re.compile(r"^[0-9a-f]{10}$")
@@ -25,16 +25,12 @@ def normalize_dev_eui(value: object) -> str:
 
 def normalize_dev_eui_prefix(value: object) -> str:
     if not isinstance(value, str):
-        raise ValueError(
-            "DevEUI prefix must be a string"
-        )
+        raise ValueError("DevEUI prefix must be a string")
 
     value = value.strip().lower()
 
     if not DEV_EUI_PREFIX_PATTERN.fullmatch(value):
-        raise ValueError(
-            "DevEUI prefix must contain exactly 10 hex characters"
-        )
+        raise ValueError("DevEUI prefix must contain exactly 10 hex characters")
 
     return value
 

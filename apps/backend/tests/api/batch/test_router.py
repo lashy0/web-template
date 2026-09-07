@@ -17,6 +17,7 @@ from app.auth.contracts import AuthSession, Identity
 from app.auth.roles import Role
 from app.core.config import Settings
 from app.main import create_app
+from app.modules.batch import exceptions as batch_errors
 from app.modules.batch.models import Batch, BatchReceipt, BatchShipment, BatchStatus
 
 _ALLOWED_ORIGIN = "https://admin.example"
@@ -320,3 +321,28 @@ def test_batch_routes_require_their_permission(
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
     service.list.assert_not_awaited()
+
+
+@pytest.mark.api
+@pytest.mark.parametrize(
+    "error,expected",
+    [
+        (batch_errors.BatchAlreadyCompletedError, 409),
+        (batch_errors.BatchArchivedError, 409),
+        (batch_errors.BatchShipmentKgAlreadyAssignedError, 409),
+        (batch_errors.BatchShipmentKgStateConflictError, 409),
+        (batch_errors.BatchConflictError, 409),
+        (batch_errors.BatchShipmentKgNotFoundError, 404),
+        (batch_errors.BatchShipmentNotFoundError, 404),
+        (batch_errors.BatchReceiptNotFoundError, 404),
+        (batch_errors.BatchShipmentItemNotFoundError, 404),
+    ],
+)
+def test_domain_failures_have_stable_error_envelope(batch_client, mocker, error, expected):
+    app, client = batch_client
+    service = SimpleNamespace(complete=AsyncMock(side_effect=error))
+    _configure_principal(app, mocker, service, Role.MANAGER)
+    response = client.post(f"/batches/{uuid4()}/complete", headers=_headers())
+    assert response.status_code == expected
+    assert response.json()["code"] == error.code
+    assert set(response.json()) == {"code", "message", "request_id"}

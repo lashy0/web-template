@@ -3,7 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.modules.pak.enums import PakDeviceKind, PakStatus
+from .enums import PakDeviceKind, PakStatus
 
 
 class PakDeviceResponse(BaseModel):

@@ -31,11 +31,14 @@ from app.modules.pak.exceptions import (
     PakProvisioningError,
 )
 from app.modules.pak.models import PakDevice, PakDeviceKind
-from app.modules.pak.service import PakManagementService
+from app.modules.pak.services import PakManagementService
 
 
 class _Session:
     def begin(self) -> _Session:
+        return self
+
+    def begin_nested(self) -> _Session:
         return self
 
     async def __aenter__(self) -> _Session:
@@ -70,7 +73,11 @@ def _pak(*, encrypted_access_key: str = "ciphertext") -> PakDevice:
 
 @pytest.fixture
 def dependencies(mocker: MockerFixture) -> tuple[MagicMock, MagicMock]:
-    repositories = mocker.patch("app.modules.pak.service.PakRepository")
+    repositories = mocker.patch("app.modules.pak.services.authentication.PakRepository")
+    mocker.patch("app.modules.pak.services.credentials.PakRepository", repositories)
+    mocker.patch("app.modules.pak.services.device.PakRepository", repositories)
+    mocker.patch("app.modules.pak.services.provisioning.PakRepository", repositories)
+    mocker.patch("app.modules.pak.services.queries.PakRepository", repositories)
     repositories.return_value.get_by_code = AsyncMock()
     repositories.return_value.get_by_id = AsyncMock()
     repositories.return_value.create = AsyncMock()
@@ -83,9 +90,14 @@ def dependencies(mocker: MockerFixture) -> tuple[MagicMock, MagicMock]:
     )
     repositories.return_value.get_by_oauth_client_id = AsyncMock()
     repositories.return_value.delete = AsyncMock()
-    verification_sessions = mocker.patch("app.modules.pak.service.VerificationSessionRepository")
+    verification_sessions = mocker.patch(
+        "app.modules.verification.services.session.VerificationSessionRepository"
+    )
     verification_sessions.return_value.exists_by_pak_id = AsyncMock(return_value=False)
-    audits = mocker.patch("app.modules.pak.service.AuditService")
+    audits = mocker.patch("app.modules.pak.services.catalog.AuditService")
+    mocker.patch("app.modules.pak.services.credentials.AuditService", audits)
+    mocker.patch("app.modules.pak.services.device.AuditService", audits)
+    mocker.patch("app.modules.pak.services.provisioning.AuditService", audits)
     audits.from_session.return_value.record = AsyncMock()
     return repositories, audits
 
@@ -130,7 +142,7 @@ async def test_create_persists_only_the_encrypted_access_key(
     assert oauth_clients.create_client.await_args.kwargs["client_id"].startswith("pak-")
     encrypted = repositories.return_value.create.await_args.kwargs["encrypted_access_key"]
     assert encrypted != "plain-client-secret"
-    assert service._cipher().decrypt(encrypted) == "plain-client-secret"
+    assert service._credentials._cipher().decrypt(encrypted) == "plain-client-secret"
     assert "plain-client-secret" not in str(audits.from_session.return_value.record.await_args)
 
 
@@ -155,7 +167,7 @@ async def test_rotate_persists_new_encrypted_key_without_changing_client_id(
         set_client_secret=AsyncMock(return_value=restored_credentials),
     )
     service = _service(oauth_clients)
-    pak.encrypted_access_key = service._cipher().encrypt("previous-secret")
+    pak.encrypted_access_key = service._credentials._cipher().encrypt("previous-secret")
 
     access_key = await service.rotate_access_key(actor=_principal(), pak_id=pak.id)
 
@@ -165,7 +177,7 @@ async def test_rotate_persists_new_encrypted_key_without_changing_client_id(
         "encrypted_access_key"
     ]
     assert encrypted != "rotated-secret"
-    assert service._cipher().decrypt(encrypted) == "rotated-secret"
+    assert service._credentials._cipher().decrypt(encrypted) == "rotated-secret"
     assert pak.oauth_client_id == credentials.client.client_id
     assert "rotated-secret" not in str(audits.from_session.return_value.record.await_args)
 
@@ -301,7 +313,9 @@ async def test_delete_rejects_pak_with_verification_history(
     repositories, audits = dependencies
     pak = _pak()
     repositories.return_value.get_by_id.return_value = pak
-    verification_sessions = mocker.patch("app.modules.pak.service.VerificationSessionRepository")
+    verification_sessions = mocker.patch(
+        "app.modules.verification.services.session.VerificationSessionRepository"
+    )
     verification_sessions.return_value.exists_by_pak_id = AsyncMock(return_value=True)
     oauth_clients = SimpleNamespace(delete_client=AsyncMock())
     service = _service(oauth_clients)
@@ -336,7 +350,7 @@ async def test_rotation_reports_hydra_db_secret_synchronization_failure(
         set_client_secret=AsyncMock(return_value=restored_credentials),
     )
     service = _service(oauth_clients)
-    pak.encrypted_access_key = service._cipher().encrypt("previous-secret")
+    pak.encrypted_access_key = service._credentials._cipher().encrypt("previous-secret")
 
     with pytest.raises(PakCredentialSynchronizationError):
         await service.rotate_access_key(actor=_principal(), pak_id=pak.id)
@@ -356,7 +370,7 @@ async def test_delete_reports_when_hydra_is_deleted_but_db_delete_fails(
     repositories.return_value.delete.side_effect = RuntimeError("database unavailable")
     oauth_clients = SimpleNamespace(delete_client=AsyncMock(), create_client=AsyncMock())
     service = _service(oauth_clients)
-    pak.encrypted_access_key = service._cipher().encrypt("previous-secret")
+    pak.encrypted_access_key = service._credentials._cipher().encrypt("previous-secret")
 
     with pytest.raises(PakDeletionSynchronizationError):
         await service.delete(actor=_principal(), pak_id=pak.id)

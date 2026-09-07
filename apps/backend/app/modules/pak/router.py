@@ -4,11 +4,12 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, Request, status
 
 from app.api.auth_deps import CurrentPrincipalDep, require_permission
-from app.modules.pak.enums import PakDeviceKind, PakStatus
-from app.modules.pak.exceptions import PakNotFoundError, PakTestNotFoundError
-from app.modules.pak.models import PakDevice, PakTest
-from app.modules.pak.permissions import PakPermission
-from app.modules.pak.schemas import (
+
+from .enums import PakDeviceKind, PakStatus
+from .exceptions import PakNotFoundError, PakTestNotFoundError
+from .models import PakDevice, PakTest
+from .permissions import PakPermission
+from .schemas import (
     CreatePakDeviceRequest,
     CreatePakDeviceResponse,
     PakAccessKeyResponse,
@@ -20,7 +21,7 @@ from app.modules.pak.schemas import (
     UpdateArchivedRequest,
     UpdatePakDeviceRequest,
 )
-from app.modules.pak.service import PakManagementService, PakTestCatalogService
+from .services import PakManagementService, PakTestCatalogService
 
 router = APIRouter(prefix="/pak", tags=["pak"])
 
@@ -59,7 +60,10 @@ def _test_service(request: Request) -> PakTestCatalogService:
 
 @router.get("", response_model=PakDeviceListResponse)
 async def list_pak(
-    _: Annotated[CurrentPrincipalDep, Depends(require_permission(PakPermission.READ))],
+    _: Annotated[
+        CurrentPrincipalDep,
+        Depends(require_permission(PakPermission.READ)),
+    ],
     request: Request,
     q: str | None = None,
     kind: PakDeviceKind | None = None,
@@ -67,7 +71,13 @@ async def list_pak(
     archived: bool = False,
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=25, ge=1, le=100),
-    sort: Literal["code", "kind", "created_at", "last_seen_at", "archived_at"] = "code",
+    sort: Literal[
+        "code",
+        "kind",
+        "created_at",
+        "last_seen_at",
+        "archived_at",
+    ] = "code",
     order: Literal["asc", "desc"] = "asc",
 ) -> PakDeviceListResponse:
     paks, total = await _service(request).list(
@@ -91,7 +101,10 @@ async def list_pak(
 
 @router.get("/tests", response_model=PakTestListResponse)
 async def list_pak_tests(
-    _: Annotated[CurrentPrincipalDep, Depends(require_permission(PakPermission.READ))],
+    _: Annotated[
+        CurrentPrincipalDep,
+        Depends(require_permission(PakPermission.READ)),
+    ],
     request: Request,
     q: str | None = None,
     defect_group_id: UUID | None = None,
@@ -143,7 +156,10 @@ async def get_pak_test(
 @router.get("/{pak_id}", response_model=PakDeviceResponse)
 async def get_pak(
     pak_id: UUID,
-    _: Annotated[CurrentPrincipalDep, Depends(require_permission(PakPermission.READ))],
+    _: Annotated[
+        CurrentPrincipalDep,
+        Depends(require_permission(PakPermission.READ)),
+    ],
     request: Request,
 ) -> PakDeviceResponse:
     pak = await _service(request).get(pak_id)
@@ -157,11 +173,17 @@ async def get_pak(
 @router.post("", response_model=CreatePakDeviceResponse, status_code=status.HTTP_201_CREATED)
 async def create_pak(
     payload: CreatePakDeviceRequest,
-    principal: Annotated[CurrentPrincipalDep, Depends(require_permission(PakPermission.CREATE))],
+    principal: Annotated[
+        CurrentPrincipalDep,
+        Depends(require_permission(PakPermission.CREATE)),
+    ],
     request: Request,
 ) -> CreatePakDeviceResponse:
     pak, access_key = await _service(request).create(
-        actor=principal, code=payload.code, kind=payload.kind, active=payload.active
+        actor=principal,
+        code=payload.code,
+        kind=payload.kind,
+        active=payload.active,
     )
 
     return CreatePakDeviceResponse(device=_response(pak), access_key=access_key)
@@ -171,11 +193,15 @@ async def create_pak(
 async def get_access_key(
     pak_id: UUID,
     principal: Annotated[
-        CurrentPrincipalDep, Depends(require_permission(PakPermission.READ_ACCESS_KEY))
+        CurrentPrincipalDep,
+        Depends(require_permission(PakPermission.READ_ACCESS_KEY)),
     ],
     request: Request,
 ) -> PakAccessKeyResponse:
-    access_key = await _service(request).get_access_key(actor=principal, pak_id=pak_id)
+    access_key = await _service(request).get_access_key(
+        actor=principal,
+        pak_id=pak_id,
+    )
 
     return PakAccessKeyResponse(access_key=access_key)
 
@@ -184,11 +210,15 @@ async def get_access_key(
 async def rotate_access_key(
     pak_id: UUID,
     principal: Annotated[
-        CurrentPrincipalDep, Depends(require_permission(PakPermission.ROTATE_ACCESS_KEY))
+        CurrentPrincipalDep,
+        Depends(require_permission(PakPermission.ROTATE_ACCESS_KEY)),
     ],
     request: Request,
 ) -> PakAccessKeyResponse:
-    access_key = await _service(request).rotate_access_key(actor=principal, pak_id=pak_id)
+    access_key = await _service(request).rotate_access_key(
+        actor=principal,
+        pak_id=pak_id,
+    )
 
     return PakAccessKeyResponse(access_key=access_key)
 
@@ -197,12 +227,18 @@ async def rotate_access_key(
 async def update_pak(
     pak_id: UUID,
     payload: UpdatePakDeviceRequest,
-    principal: Annotated[CurrentPrincipalDep, Depends(require_permission(PakPermission.UPDATE))],
+    principal: Annotated[
+        CurrentPrincipalDep,
+        Depends(require_permission(PakPermission.UPDATE)),
+    ],
     request: Request,
 ) -> PakDeviceResponse:
     return _response(
         await _service(request).update(
-            actor=principal, pak_id=pak_id, code=payload.code, kind=payload.kind
+            actor=principal,
+            pak_id=pak_id,
+            code=payload.code,
+            kind=payload.kind,
         )
     )
 
@@ -212,12 +248,17 @@ async def update_active(
     pak_id: UUID,
     payload: UpdateActiveRequest,
     principal: Annotated[
-        CurrentPrincipalDep, Depends(require_permission(PakPermission.SET_ACTIVE))
+        CurrentPrincipalDep,
+        Depends(require_permission(PakPermission.SET_ACTIVE)),
     ],
     request: Request,
 ) -> PakDeviceResponse:
     return _response(
-        await _service(request).set_active(actor=principal, pak_id=pak_id, active=payload.active)
+        await _service(request).set_active(
+            actor=principal,
+            pak_id=pak_id,
+            active=payload.active,
+        )
     )
 
 
@@ -225,12 +266,17 @@ async def update_active(
 async def update_archived(
     pak_id: UUID,
     payload: UpdateArchivedRequest,
-    principal: Annotated[CurrentPrincipalDep, Depends(require_permission(PakPermission.ARCHIVE))],
+    principal: Annotated[
+        CurrentPrincipalDep,
+        Depends(require_permission(PakPermission.ARCHIVE)),
+    ],
     request: Request,
 ) -> PakDeviceResponse:
     return _response(
         await _service(request).set_archived(
-            actor=principal, pak_id=pak_id, archived=payload.archived
+            actor=principal,
+            pak_id=pak_id,
+            archived=payload.archived,
         )
     )
 
@@ -238,7 +284,13 @@ async def update_archived(
 @router.delete("/{pak_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_pak(
     pak_id: UUID,
-    principal: Annotated[CurrentPrincipalDep, Depends(require_permission(PakPermission.DELETE))],
+    principal: Annotated[
+        CurrentPrincipalDep,
+        Depends(require_permission(PakPermission.DELETE)),
+    ],
     request: Request,
 ) -> None:
-    await _service(request).delete(actor=principal, pak_id=pak_id)
+    await _service(request).delete(
+        actor=principal,
+        pak_id=pak_id,
+    )
