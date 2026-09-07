@@ -160,18 +160,10 @@ class DefectGroupService:
             )
 
             action = "defect_group.archived"
-            old_data: dict[str, object] = {
-                "archived_at": None,
-            }
-            new_data: dict[str, object] = {
-                "archived_at": archived_at.isoformat(),
-            }
 
         else:
             if group.archived_at is None:
                 return group
-
-            old_archived_at = group.archived_at
 
             group = await group_repository.update_archived(
                 group,
@@ -179,19 +171,11 @@ class DefectGroupService:
             )
 
             action = "defect_group.restored"
-            old_data = {
-                "archived_at": old_archived_at.isoformat(),
-            }
-            new_data = {
-                "archived_at": None,
-            }
 
         await AuditService.from_session(session).record(
             actor=_audit_actor(actor),
             action=action,
             entity=_group_audit_entity(group),
-            old_data=old_data,
-            new_data=new_data,
         )
 
         return group

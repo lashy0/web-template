@@ -82,9 +82,23 @@ class KgDevEuiPrefixManagementService:
 
     async def list(
         self,
-    ) -> builtins.list[KgDevEuiPrefix]:
+        *,
+        q: str | None,
+        archived: bool,
+        page: int,
+        page_size: int,
+        sort: str,
+        order: str,
+    ) -> tuple[builtins.list[KgDevEuiPrefix], int]:
         async with self._session_factory() as session:
-            return await KgPrefixService(session).list()
+            return await KgPrefixService(session).list(
+                q=q,
+                archived=archived,
+                page=page,
+                page_size=page_size,
+                sort=sort,
+                order=order,
+            )
 
     async def create(
         self,
@@ -119,3 +133,15 @@ class KgDevEuiPrefixManagementService:
     ) -> None:
         async with transaction(self._session_factory) as session:
             return await KgPrefixService(session).delete(actor=actor, prefix=prefix)
+
+    async def set_archived(
+        self,
+        *,
+        actor: CurrentPrincipal,
+        prefix: str,
+        archived: bool,
+    ) -> KgDevEuiPrefix:
+        async with transaction(self._session_factory) as session:
+            return await KgPrefixService(session).set_archived(
+                actor=actor, prefix=prefix, archived=archived
+            )

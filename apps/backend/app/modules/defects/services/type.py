@@ -176,12 +176,6 @@ class DefectTypeService:
             )
 
             action = "defect_type.archived"
-            old_data: dict[str, object] = {
-                "archived_at": None,
-            }
-            new_data: dict[str, object] = {
-                "archived_at": archived_at.isoformat(),
-            }
 
         else:
             if defect_type.archived_at is None:
@@ -194,27 +188,17 @@ class DefectTypeService:
 
             _ensure_group_not_archived(group)
 
-            old_archived_at = defect_type.archived_at
-
             defect_type = await type_repository.update_archived(
                 defect_type,
                 archived_at=None,
             )
 
             action = "defect_type.restored"
-            old_data = {
-                "archived_at": old_archived_at.isoformat(),
-            }
-            new_data = {
-                "archived_at": None,
-            }
 
         await AuditService.from_session(session).record(
             actor=_audit_actor(actor),
             action=action,
             entity=_type_audit_entity(defect_type),
-            old_data=old_data,
-            new_data=new_data,
         )
 
         return defect_type

@@ -688,6 +688,14 @@ export type KgDevEuiPrefixListResponse = {
      */
     items: Array<KgDevEuiPrefixResponse>;
     /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+    /**
      * Total
      */
     total: number;
@@ -697,6 +705,10 @@ export type KgDevEuiPrefixListResponse = {
  * KgDevEuiPrefixResponse
  */
 export type KgDevEuiPrefixResponse = {
+    /**
+     * Archived At
+     */
+    archived_at: string | null;
     /**
      * Created At
      */
@@ -1026,6 +1038,16 @@ export type UpdateDefectTypeRequest = {
      * Possible Cause
      */
     possible_cause?: string | null;
+};
+
+/**
+ * UpdateKgDevEuiPrefixArchivedRequest
+ */
+export type UpdateKgDevEuiPrefixArchivedRequest = {
+    /**
+     * Archived
+     */
+    archived: boolean;
 };
 
 /**
@@ -2547,9 +2569,43 @@ export type KgListKgResponse = KgListKgResponses[keyof KgListKgResponses];
 export type KgListDevEuiPrefixesData = {
     body?: never;
     path?: never;
-    query?: never;
+    query?: {
+        /**
+         * Q
+         */
+        q?: string | null;
+        /**
+         * Archived
+         */
+        archived?: boolean;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+        /**
+         * Sort
+         */
+        sort?: 'prefix' | 'name' | 'short_code' | 'created_at' | 'archived_at';
+        /**
+         * Order
+         */
+        order?: 'asc' | 'desc';
+    };
     url: '/kg/dev-eui-prefixes';
 };
+
+export type KgListDevEuiPrefixesErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type KgListDevEuiPrefixesError = KgListDevEuiPrefixesErrors[keyof KgListDevEuiPrefixesErrors];
 
 export type KgListDevEuiPrefixesResponses = {
     /**
@@ -2644,6 +2700,36 @@ export type KgUpdateDevEuiPrefixResponses = {
 };
 
 export type KgUpdateDevEuiPrefixResponse = KgUpdateDevEuiPrefixResponses[keyof KgUpdateDevEuiPrefixResponses];
+
+export type KgUpdateDevEuiPrefixArchivedData = {
+    body: UpdateKgDevEuiPrefixArchivedRequest;
+    path: {
+        /**
+         * Prefix
+         */
+        prefix: string;
+    };
+    query?: never;
+    url: '/kg/dev-eui-prefixes/{prefix}/archived';
+};
+
+export type KgUpdateDevEuiPrefixArchivedErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type KgUpdateDevEuiPrefixArchivedError = KgUpdateDevEuiPrefixArchivedErrors[keyof KgUpdateDevEuiPrefixArchivedErrors];
+
+export type KgUpdateDevEuiPrefixArchivedResponses = {
+    /**
+     * Successful Response
+     */
+    200: KgDevEuiPrefixResponse;
+};
+
+export type KgUpdateDevEuiPrefixArchivedResponse = KgUpdateDevEuiPrefixArchivedResponses[keyof KgUpdateDevEuiPrefixArchivedResponses];
 
 export type KgGetKgData = {
     body?: never;

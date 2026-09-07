@@ -1,5 +1,5 @@
 import { Link as RouterLink, useRouterState } from '@tanstack/react-router'
-import { BugIcon, ChevronRightIcon, CpuIcon, UsersIcon } from 'lucide-react'
+import { BugIcon, ChevronRightIcon, CpuIcon, RadioTowerIcon, UsersIcon } from 'lucide-react'
 import { useState } from 'react'
 
 import {
@@ -25,6 +25,7 @@ export function AdminNavigation() {
   const [isUsersTooltipDismissed, setIsUsersTooltipDismissed] = useState(false)
   const [isPaksTooltipDismissed, setIsPaksTooltipDismissed] = useState(false)
   const [isDefectsTooltipDismissed, setIsDefectsTooltipDismissed] = useState(false)
+  const [isKgTooltipDismissed, setIsKgTooltipDismissed] = useState(false)
   const router = useRouterState()
   const currentPath = router.location.pathname
   const isUsersSectionActive =
@@ -35,6 +36,8 @@ export function AdminNavigation() {
     currentPath === '/admin/defects/groups' ||
     currentPath === '/admin/defects/types' ||
     currentPath === '/admin/defects/audit'
+  const isKgSectionActive =
+    currentPath === '/admin/kg/prefixes' || currentPath === '/admin/kg/audit'
   const isCollapsedDesktop = state === 'collapsed' && !isMobile
 
   const handleMenuClick = () => {
@@ -216,6 +219,61 @@ export function AdminNavigation() {
                   <SidebarMenuSubButton
                     isActive={currentPath === '/admin/defects/audit'}
                     render={<RouterLink to="/admin/defects/audit" onClick={handleMenuClick} />}
+                  >
+                    Аудит
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+              </SidebarMenuSub>
+            </CollapsibleContent>
+          </Collapsible>
+          <Collapsible
+            className="group/collapsible"
+            defaultOpen={isKgSectionActive}
+            render={<SidebarMenuItem />}
+          >
+            <SidebarMenuButton
+              isActive={isKgSectionActive}
+              render={
+                isCollapsedDesktop ? (
+                  <RouterLink
+                    to="/admin/kg/prefixes"
+                    onClick={() => {
+                      setIsKgTooltipDismissed(true)
+                      handleMenuClick()
+                    }}
+                    onPointerEnter={() => setIsKgTooltipDismissed(false)}
+                  />
+                ) : (
+                  <CollapsibleTrigger />
+                )
+              }
+            >
+              <RadioTowerIcon />
+              <span>КГ</span>
+              <ChevronRightIcon className="ml-auto transition-transform group-data-open/collapsible:rotate-90" />
+            </SidebarMenuButton>
+            {isCollapsedDesktop && !isKgTooltipDismissed && (
+              <span
+                role="tooltip"
+                className="pointer-events-none absolute top-1/2 left-full z-50 ml-2 -translate-y-1/2 whitespace-nowrap rounded-md bg-foreground px-3 py-1.5 text-xs text-background opacity-0 transition-opacity group-hover/menu-item:opacity-100 before:absolute before:top-1/2 before:-left-1 before:size-2 before:-translate-y-1/2 before:rotate-45 before:rounded-[2px] before:bg-foreground"
+              >
+                КГ
+              </span>
+            )}
+            <CollapsibleContent>
+              <SidebarMenuSub>
+                <SidebarMenuSubItem>
+                  <SidebarMenuSubButton
+                    isActive={currentPath === '/admin/kg/prefixes'}
+                    render={<RouterLink to="/admin/kg/prefixes" onClick={handleMenuClick} />}
+                  >
+                    Префиксы
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+                <SidebarMenuSubItem>
+                  <SidebarMenuSubButton
+                    isActive={currentPath === '/admin/kg/audit'}
+                    render={<RouterLink to="/admin/kg/audit" onClick={handleMenuClick} />}
                   >
                     Аудит
                   </SidebarMenuSubButton>

@@ -1,6 +1,6 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Query, Request, status
 
 from app.api.auth_deps import CurrentPrincipalDep, require_permission
 
@@ -10,6 +10,7 @@ from ..schemas import (
     DevEuiPrefix,
     KgDevEuiPrefixListResponse,
     KgDevEuiPrefixResponse,
+    UpdateKgDevEuiPrefixArchivedRequest,
     UpdateKgDevEuiPrefixRequest,
 )
 from .common import _prefix_response, _prefix_service
@@ -27,12 +28,33 @@ async def list_dev_eui_prefixes(
         Depends(require_permission(KgPermission.PREFIX_READ)),
     ],
     request: Request,
+    q: str | None = None,
+    archived: bool = False,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=25, ge=1, le=100),
+    sort: Literal[
+        "prefix",
+        "name",
+        "short_code",
+        "created_at",
+        "archived_at",
+    ] = "prefix",
+    order: Literal["asc", "desc"] = "asc",
 ) -> KgDevEuiPrefixListResponse:
-    items = await _prefix_service(request).list()
+    items, total = await _prefix_service(request).list(
+        q=q,
+        archived=archived,
+        page=page,
+        page_size=page_size,
+        sort=sort,
+        order=order,
+    )
 
     return KgDevEuiPrefixListResponse(
         items=[_prefix_response(item) for item in items],
-        total=len(items),
+        total=total,
+        page=page,
+        page_size=page_size,
     )
 
 
@@ -76,6 +98,28 @@ async def update_dev_eui_prefix(
         actor=principal,
         prefix=prefix,
         updates=payload.model_dump(exclude_unset=True),
+    )
+
+    return _prefix_response(item)
+
+
+@router.put(
+    "/dev-eui-prefixes/{prefix}/archived",
+    response_model=KgDevEuiPrefixResponse,
+)
+async def update_dev_eui_prefix_archived(
+    prefix: DevEuiPrefix,
+    payload: UpdateKgDevEuiPrefixArchivedRequest,
+    principal: Annotated[
+        CurrentPrincipalDep,
+        Depends(require_permission(KgPermission.PREFIX_ARCHIVE)),
+    ],
+    request: Request,
+) -> KgDevEuiPrefixResponse:
+    item = await _prefix_service(request).set_archived(
+        actor=principal,
+        prefix=prefix,
+        archived=payload.archived,
     )
 
     return _prefix_response(item)

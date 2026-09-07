@@ -4,12 +4,6 @@ import { ChangesAudit } from '@/components/Defects/Audit/ChangesAudit'
 import { type DefectAuditEvent } from '@/features/defects/defects-api'
 import { formatDateTime } from '@/lib/date'
 
-const actionsWithoutChanges = new Set([
-  'defect_group.archived',
-  'defect_group.restored',
-  'defect_type.archived',
-  'defect_type.restored',
-])
 const maxIdentityDisplayLength = 32
 
 export const defectAuditColumns: readonly DataTableColumn<DefectAuditEvent>[] = [
@@ -50,12 +44,11 @@ export const defectAuditColumns: readonly DataTableColumn<DefectAuditEvent>[] = 
     meta: { widthClassName: 'w-40 xl:w-[28%]' },
   },
   {
-    cell: ({ row }) =>
-      hasChanges(row.original.action) ? (
-        <div className="flex justify-end">
-          <ChangesAudit event={row.original} />
-        </div>
-      ) : null,
+    cell: ({ row }) => (
+      <div className="flex justify-end">
+        <ChangesAudit event={row.original} />
+      </div>
+    ),
     enableSorting: false,
     header: () => <span className="sr-only">Изменения</span>,
     id: 'changes',
@@ -77,10 +70,6 @@ function translateAction(action: string): string {
     'defect_type.updated': 'Обновлён тип',
   }
   return actions[action] ?? action
-}
-
-function hasChanges(action: string): boolean {
-  return !actionsWithoutChanges.has(action)
 }
 
 function AuditActor({ event }: Readonly<{ event: DefectAuditEvent }>) {

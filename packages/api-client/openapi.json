@@ -1219,6 +1219,14 @@
             "title": "Items",
             "type": "array"
           },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_size": {
+            "title": "Page Size",
+            "type": "integer"
+          },
           "total": {
             "title": "Total",
             "type": "integer"
@@ -1226,13 +1234,27 @@
         },
         "required": [
           "items",
-          "total"
+          "total",
+          "page",
+          "page_size"
         ],
         "title": "KgDevEuiPrefixListResponse",
         "type": "object"
       },
       "KgDevEuiPrefixResponse": {
         "properties": {
+          "archived_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archived At"
+          },
           "created_at": {
             "format": "date-time",
             "title": "Created At",
@@ -1262,7 +1284,8 @@
           "prefix",
           "short_code",
           "name",
-          "created_at"
+          "created_at",
+          "archived_at"
         ],
         "title": "KgDevEuiPrefixResponse",
         "type": "object"
@@ -1803,6 +1826,19 @@
           }
         },
         "title": "UpdateDefectTypeRequest",
+        "type": "object"
+      },
+      "UpdateKgDevEuiPrefixArchivedRequest": {
+        "properties": {
+          "archived": {
+            "title": "Archived",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "archived"
+        ],
+        "title": "UpdateKgDevEuiPrefixArchivedRequest",
         "type": "object"
       },
       "UpdateKgDevEuiPrefixRequest": {
@@ -4515,6 +4551,88 @@
     "/kg/dev-eui-prefixes": {
       "get": {
         "operationId": "kg-list_dev_eui_prefixes",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "archived",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Archived",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Page Size",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "prefix",
+              "enum": [
+                "prefix",
+                "name",
+                "short_code",
+                "created_at",
+                "archived_at"
+              ],
+              "title": "Sort",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "required": false,
+            "schema": {
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "title": "Order",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -4525,6 +4643,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "summary": "List Dev Eui Prefixes",
@@ -4652,6 +4780,58 @@
           }
         },
         "summary": "Update Dev Eui Prefix",
+        "tags": [
+          "kg"
+        ]
+      }
+    },
+    "/kg/dev-eui-prefixes/{prefix}/archived": {
+      "put": {
+        "operationId": "kg-update_dev_eui_prefix_archived",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "prefix",
+            "required": true,
+            "schema": {
+              "title": "Prefix",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateKgDevEuiPrefixArchivedRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KgDevEuiPrefixResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Dev Eui Prefix Archived",
         "tags": [
           "kg"
         ]

@@ -84,12 +84,17 @@ class KgDevEuiPrefix(Base):
         nullable=False,
         server_default=func.now(),
     )
+    archived_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
 
     __table_args__ = (
         CheckConstraint(
             "prefix ~ '^[0-9a-f]{10}$'",
             name="kg_dev_eui_prefix_format",
         ),
+        Index("ix_kg_dev_eui_prefixes_archived_at", "archived_at"),
         CheckConstraint(
             "short_code ~ '^[a-z0-9]+$'",
             name="kg_dev_eui_prefix_short_code_format",

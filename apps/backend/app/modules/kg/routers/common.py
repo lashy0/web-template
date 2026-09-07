@@ -24,6 +24,7 @@ def _prefix_response(item: KgDevEuiPrefix) -> KgDevEuiPrefixResponse:
         short_code=item.short_code,
         name=item.name,
         created_at=item.created_at,
+        archived_at=item.archived_at,
     )
 
 

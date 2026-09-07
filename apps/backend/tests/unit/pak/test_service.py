@@ -266,6 +266,9 @@ async def test_deactivation_and_archiving_immediately_mark_pak_inactive(
         "pak.active_changed",
         "pak.archived",
     ]
+    record = audits.from_session.return_value.record.await_args_list[-1].kwargs
+    assert "old_data" not in record
+    assert "new_data" not in record
 
 
 @pytest.mark.unit
@@ -286,7 +289,10 @@ async def test_restoring_pak_does_not_reactivate_it(
 
     assert restored.archived_at is None
     assert not restored.is_active
-    assert audits.from_session.return_value.record.await_args.kwargs["action"] == "pak.restored"
+    record = audits.from_session.return_value.record.await_args.kwargs
+    assert record["action"] == "pak.restored"
+    assert "old_data" not in record
+    assert "new_data" not in record
 
 
 @pytest.mark.unit

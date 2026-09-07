@@ -149,14 +149,10 @@ class PakDeviceService:
 
                 pak = await repository.update_archived(pak, archived_at=None)
                 action = "pak.restored"
-                old_data: dict[str, object] | None = None
-                new_data: dict[str, object] = {"active": pak.is_active}
 
             else:
                 if pak.archived_at is not None:
                     return pak
-
-                old_active = pak.is_active
 
                 if pak.is_active:
                     pak = await repository.update_active(pak, active=False)
@@ -164,18 +160,11 @@ class PakDeviceService:
                 archived_at = datetime.now(UTC)
                 pak = await repository.update_archived(pak, archived_at=archived_at)
                 action = "pak.archived"
-                old_data = {"active": old_active}
-                new_data = {
-                    "active": False,
-                    "archived_at": archived_at.isoformat(),
-                }
 
             await AuditService.from_session(session).record(
                 actor=_audit_actor(actor),
                 action=action,
                 entity=_audit_entity(pak),
-                old_data=old_data,
-                new_data=new_data,
             )
 
             return pak

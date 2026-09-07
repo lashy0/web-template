@@ -17,7 +17,7 @@ from app.auth.contracts import AuthSession, Identity
 from app.auth.roles import Role
 from app.core.config import Settings
 from app.main import create_app
-from app.modules.kg.models import KgStatus, KgUnit
+from app.modules.kg.models import KgDevEuiPrefix, KgStatus, KgUnit
 
 _ALLOWED_ORIGIN = "https://admin.example"
 _SESSION_COOKIE = "ory_kratos_session=opaque"
@@ -53,6 +53,15 @@ def _kg(*, batch_id: UUID | None = None) -> KgUnit:
         status=KgStatus.REGISTERED,
         created_at=now,
         updated_at=now,
+    )
+
+
+def _prefix() -> KgDevEuiPrefix:
+    return KgDevEuiPrefix(
+        prefix="a1b2c3d4e5",
+        short_code="kg",
+        name="Основной",
+        created_at=datetime.now(UTC),
     )
 
 
@@ -117,6 +126,36 @@ def test_list_kg_serializes_items_and_forwards_filters(
         page=2,
         page_size=10,
         sort="dev_eui",
+        order="asc",
+    )
+
+
+@pytest.mark.api
+def test_list_dev_eui_prefixes_uses_the_prefix_route(
+    kg_client: tuple[FastAPI, TestClient],
+    mocker: MockerFixture,
+) -> None:
+    app, client = kg_client
+    service = SimpleNamespace(list=AsyncMock())
+    _configure_principal(app, mocker, service, Role.ADMINISTRATOR)
+    prefix_service = SimpleNamespace(list=AsyncMock(return_value=([_prefix()], 1)))
+    mocker.patch.object(app.state, "kg_dev_eui_prefix_management", prefix_service)
+
+    response = client.get("/kg/dev-eui-prefixes", headers=_headers())
+
+    assert response.status_code == status.HTTP_200_OK
+    item = response.json()["items"][0]
+    assert item["prefix"] == "a1b2c3d4e5"
+    assert item["short_code"] == "kg"
+    assert item["name"] == "Основной"
+    assert item["created_at"].endswith("Z")
+    assert response.json()["total"] == 1
+    prefix_service.list.assert_awaited_once_with(
+        q=None,
+        archived=False,
+        page=1,
+        page_size=25,
+        sort="prefix",
         order="asc",
     )
 

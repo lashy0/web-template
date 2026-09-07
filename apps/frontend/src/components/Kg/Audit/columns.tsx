@@ -1,12 +1,12 @@
 import { type DataTableColumn } from '@/components/Common/DataTable'
 import { TruncatedText } from '@/components/Common/TruncatedText'
-import { ChangesAudit } from '@/components/Pak/Audit/ChangesAudit'
-import { type PakAuditEvent } from '@/features/paks/paks-api'
+import { ChangesAudit } from '@/components/Kg/Audit/ChangesAudit'
+import { type KgPrefixAuditEvent } from '@/features/kg/kg-prefixes-api'
 import { formatDateTime } from '@/lib/date'
 
 const maxIdentityDisplayLength = 32
 
-export const pakAuditColumns: readonly DataTableColumn<PakAuditEvent>[] = [
+export const kgPrefixAuditColumns: readonly DataTableColumn<KgPrefixAuditEvent>[] = [
   {
     accessorFn: (row) => row.createdAt,
     cell: ({ row }) => (
@@ -38,9 +38,9 @@ export const pakAuditColumns: readonly DataTableColumn<PakAuditEvent>[] = [
   },
   {
     accessorKey: 'entityDisplayName',
-    cell: ({ row }) => <PakEntity event={row.original} />,
+    cell: ({ row }) => <KgPrefixEntity event={row.original} />,
     enableSorting: false,
-    header: 'ПАК',
+    header: 'Префикс',
     meta: { widthClassName: 'w-40 xl:w-[28%]' },
   },
   {
@@ -56,21 +56,18 @@ export const pakAuditColumns: readonly DataTableColumn<PakAuditEvent>[] = [
   },
 ]
 
-function translateAction(action: string) {
-  const actions: Record<string, string> = {
-    'pak.active_changed': 'Изменён статус',
-    'pak.access_key_rotated': 'Ключ доступа ротирован',
-    'pak.access_key_viewed': 'Ключ доступа просмотрен',
-    'pak.archived': 'Архивирован ПАК',
-    'pak.created': 'Создан ПАК',
-    'pak.deleted': 'Удалён ПАК',
-    'pak.restored': 'Восстановлен ПАК',
-    'pak.updated': 'Обновлён ПАК',
+function translateAction(action: string): string {
+  const actions: Readonly<Record<string, string>> = {
+    'kg_prefix.archived': 'Префикс архивирован',
+    'kg_prefix.created': 'Префикс создан',
+    'kg_prefix.deleted': 'Префикс удалён',
+    'kg_prefix.restored': 'Префикс восстановлен',
+    'kg_prefix.updated': 'Префикс изменён',
   }
   return actions[action] ?? action
 }
 
-function AuditActor({ event }: Readonly<{ event: PakAuditEvent }>) {
+function AuditActor({ event }: Readonly<{ event: KgPrefixAuditEvent }>) {
   if (event.actorType === 'system') return 'Система'
   const label =
     event.actorDisplayName ?? (event.actorType === 'user' ? 'Пользователь' : event.actorType)
@@ -86,21 +83,17 @@ function AuditActor({ event }: Readonly<{ event: PakAuditEvent }>) {
   )
 }
 
-function PakEntity({ event }: Readonly<{ event: PakAuditEvent }>) {
-  const code =
-    event.entityDisplayName ??
-    dataValue(event.newData, 'code') ??
-    dataValue(event.oldData, 'code') ??
-    'ПАК'
+function KgPrefixEntity({ event }: Readonly<{ event: KgPrefixAuditEvent }>) {
+  const label = event.entityDisplayName ?? dataValue(event.newData, 'name') ?? 'Префикс DevEUI'
   const identifier =
     event.entityIdentifier ??
-    dataValue(event.newData, 'oauth_client_id') ??
-    dataValue(event.oldData, 'oauth_client_id')
+    dataValue(event.newData, 'prefix') ??
+    dataValue(event.oldData, 'prefix')
   return (
     <span className="inline-flex w-80 max-w-full flex-col">
-      <TruncatedText maxLength={maxIdentityDisplayLength} value={code} />
+      <TruncatedText maxLength={maxIdentityDisplayLength} value={label} />
       {identifier ? (
-        <span className="text-xs text-muted-foreground">
+        <span className="font-mono text-xs text-muted-foreground">
           <TruncatedText maxLength={maxIdentityDisplayLength} value={identifier} />
         </span>
       ) : null}

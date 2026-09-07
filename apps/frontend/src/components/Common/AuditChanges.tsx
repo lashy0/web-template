@@ -87,6 +87,10 @@ function ChangeValue({ kind, value }: Readonly<{ kind: 'old' | 'new'; value: str
 }
 
 export function getAuditChanges(event: AuditChangeEvent): AuditChange[] {
+  if (event.action.endsWith('.archived') || event.action.endsWith('.restored')) {
+    return []
+  }
+
   const { newData, oldData } = event
   if (!oldData || !newData) {
     return []

@@ -267,6 +267,7 @@ export const zDefectTypeListResponse = z.object({
  * KgDevEuiPrefixResponse
  */
 export const zKgDevEuiPrefixResponse = z.object({
+    archived_at: z.iso.datetime().nullable(),
     created_at: z.iso.datetime(),
     name: z.string().nullable(),
     prefix: z.string(),
@@ -278,6 +279,8 @@ export const zKgDevEuiPrefixResponse = z.object({
  */
 export const zKgDevEuiPrefixListResponse = z.object({
     items: z.array(zKgDevEuiPrefixResponse),
+    page: z.int(),
+    page_size: z.int(),
     total: z.int()
 });
 
@@ -496,6 +499,13 @@ export const zUpdateDefectTypeRequest = z.object({
     engineer_action: z.string().max(2000).nullish(),
     name: z.string().min(1).max(255).nullish(),
     possible_cause: z.string().max(2000).nullish()
+});
+
+/**
+ * UpdateKgDevEuiPrefixArchivedRequest
+ */
+export const zUpdateKgDevEuiPrefixArchivedRequest = z.object({
+    archived: z.boolean()
 });
 
 /**
@@ -1074,6 +1084,21 @@ export const zKgListKgQuery = z.object({
  */
 export const zKgListKgResponse = zKgListResponse;
 
+export const zKgListDevEuiPrefixesQuery = z.object({
+    q: z.string().nullish(),
+    archived: z.boolean().optional().default(false),
+    page: z.int().gte(1).optional().default(1),
+    page_size: z.int().gte(1).lte(100).optional().default(25),
+    sort: z.enum([
+        'prefix',
+        'name',
+        'short_code',
+        'created_at',
+        'archived_at'
+    ]).optional().default('prefix'),
+    order: z.enum(['asc', 'desc']).optional().default('asc')
+});
+
 /**
  * Successful Response
  */
@@ -1105,6 +1130,17 @@ export const zKgUpdateDevEuiPrefixPath = z.object({
  * Successful Response
  */
 export const zKgUpdateDevEuiPrefixResponse = zKgDevEuiPrefixResponse;
+
+export const zKgUpdateDevEuiPrefixArchivedBody = zUpdateKgDevEuiPrefixArchivedRequest;
+
+export const zKgUpdateDevEuiPrefixArchivedPath = z.object({
+    prefix: z.string()
+});
+
+/**
+ * Successful Response
+ */
+export const zKgUpdateDevEuiPrefixArchivedResponse = zKgDevEuiPrefixResponse;
 
 export const zKgGetKgPath = z.object({
     dev_eui: z.string()

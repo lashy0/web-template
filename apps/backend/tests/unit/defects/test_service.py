@@ -75,6 +75,14 @@ def _type(group: DefectGroup, *, archived_at: datetime | None = None) -> DefectT
     )
 
 
+def _set_archived_at(
+    item: DefectGroup | DefectType,
+    archived_at: datetime | None,
+) -> DefectGroup | DefectType:
+    item.archived_at = archived_at
+    return item
+
+
 @pytest.fixture
 def dependencies(mocker: MockerFixture) -> tuple[MagicMock, MagicMock, MagicMock]:
     groups = mocker.patch("app.modules.defects.services.group.DefectGroupRepository")
@@ -147,6 +155,25 @@ async def test_archiving_group_requires_all_its_types_to_be_archived(
 
     groups.return_value.update_archived.assert_not_awaited()
     audits.from_session.return_value.record.assert_not_awaited()
+
+
+@pytest.mark.unit
+async def test_archiving_group_records_audit_without_technical_changes(
+    dependencies: tuple[MagicMock, MagicMock, MagicMock],
+) -> None:
+    groups, _, audits = dependencies
+    group = _group()
+    groups.return_value.get_by_id.return_value = group
+    groups.return_value.update_archived.side_effect = lambda item, *, archived_at: _set_archived_at(
+        item, archived_at
+    )
+
+    await _service().set_group_archived(actor=_principal(), group_id=group.id, archived=True)
+
+    record = audits.from_session.return_value.record.await_args.kwargs
+    assert record["action"] == "defect_group.archived"
+    assert "old_data" not in record
+    assert "new_data" not in record
 
 
 @pytest.mark.unit

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import builtins
 from collections.abc import Mapping
+from datetime import UTC, datetime
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +12,7 @@ from app.modules.audit.service import AuditService
 from app.modules.batch.repositories import BatchRepository
 
 from ..exceptions import (
+    KgDevEuiPrefixArchivedError,
     KgDevEuiPrefixConflictError,
     KgDevEuiPrefixInUseError,
     KgDevEuiPrefixNotFoundError,
@@ -29,9 +31,24 @@ class KgPrefixService:
         self._prefixes = KgDevEuiPrefixRepository(session)
         self._repository = KgRepository(session)
 
-    async def list(self) -> builtins.list[KgDevEuiPrefix]:
-        session = self._session
-        return await KgDevEuiPrefixRepository(session).list()
+    async def list(
+        self,
+        *,
+        q: str | None,
+        archived: bool,
+        page: int,
+        page_size: int,
+        sort: str,
+        order: str,
+    ) -> tuple[builtins.list[KgDevEuiPrefix], int]:
+        return await self._prefixes.search(
+            q=q,
+            archived=archived,
+            page=page,
+            page_size=page_size,
+            sort=sort,
+            order=order,
+        )
 
     async def create(
         self,
@@ -142,6 +159,29 @@ class KgPrefixService:
 
         await repository.delete(item)
 
+    async def set_archived(
+        self,
+        *,
+        actor: CurrentPrincipal,
+        prefix: str,
+        archived: bool,
+    ) -> KgDevEuiPrefix:
+        item = await self._required(self._prefixes, prefix)
+
+        if archived == (item.archived_at is not None):
+            return item
+
+        archived_at = datetime.now(UTC) if archived else None
+        item = await self._prefixes.update_archived(item, archived_at=archived_at)
+
+        await AuditService.from_session(self._session).record(
+            actor=audit.actor_identity(actor),
+            action="kg_prefix.archived" if archived else "kg_prefix.restored",
+            entity=audit.prefix_entity(item),
+        )
+
+        return item
+
     @staticmethod
     async def _required(
         repository: KgDevEuiPrefixRepository,
@@ -164,6 +204,9 @@ class KgPrefixService:
 
         if item is None:
             raise KgDevEuiPrefixNotFoundError
+
+        if item.archived_at is not None:
+            raise KgDevEuiPrefixArchivedError
 
         maximum = await self._repository.get_max_dev_eui_by_prefix(item.prefix)
         start = int(maximum[-6:], 16) + 1 if maximum else 1

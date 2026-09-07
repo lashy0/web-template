@@ -57,3 +57,9 @@ class KgDevEuiPrefixInUseError(KgError, ConflictError):
     """The DevEUI prefix is already used by a batch."""
 
     code = "kg_dev_eui_prefix_in_use"
+
+
+class KgDevEuiPrefixArchivedError(KgError, ConflictError):
+    """The DevEUI prefix is archived and cannot allocate new units."""
+
+    code = "kg_dev_eui_prefix_archived"

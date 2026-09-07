@@ -7,4 +7,5 @@ class KgPermission(StrEnum):
     PREFIX_READ = "kg:prefix:read"
     PREFIX_CREATE = "kg:prefix:create"
     PREFIX_UPDATE = "kg:prefix:update"
+    PREFIX_ARCHIVE = "kg:prefix:archive"
     PREFIX_DELETE = "kg:prefix:delete"

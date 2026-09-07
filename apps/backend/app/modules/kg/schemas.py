@@ -83,8 +83,15 @@ class KgDevEuiPrefixResponse(BaseModel):
     short_code: str
     name: str | None
     created_at: datetime
+    archived_at: datetime | None
 
 
 class KgDevEuiPrefixListResponse(BaseModel):
     items: list[KgDevEuiPrefixResponse]
     total: int
+    page: int
+    page_size: int
+
+
+class UpdateKgDevEuiPrefixArchivedRequest(BaseModel):
+    archived: bool
