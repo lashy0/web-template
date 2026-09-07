@@ -58,11 +58,23 @@ BACKEND_CORS_ORIGINS='[]'
 
 Wrap the JSON array in single quotes so dotenv loaders preserve the double quotes around each origin.
 
-## First administrator
+## System administrator
 
-The prestart container creates one active `administrator` only while the local
-`users` table is empty. It uses the same user-management service as the API and
-records the operation in the audit log. Later starts are no-ops.
+The prestart container creates one active system `administrator` only while the
+local `users` table is empty. This account has a fixed backend-owned UUID:
+its protection does not depend on the configured login. User-management
+operations cannot modify it, including its password, login, profile, role,
+active state, or archive state, and cannot delete it. The API identifies this
+account with `is_system`; the user table labels it as system-owned and hides
+its actions menu. Ordinary administrators are not subject to a
+"last active administrator" restriction; self-deactivation, self-archival,
+self-deletion, and removal of one's own administrator role remain forbidden.
+
+Bootstrap records creation in the audit log and reuses the same identity on
+later starts. Changing the bootstrap environment variables does not select a
+different account for protection. If the existing database has users but no
+bootstrap account with the fixed UUID, bootstrap still skips creation; such a
+database requires explicit provisioning before relying on this protection.
 
 Set exactly one password source before the first start. A password must contain
 at least 12 characters. Prefer a mounted secret file in production:

@@ -5,7 +5,8 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from app.auth.roles import Role
-from app.modules.users.enums import AuthState
+
+from .enums import AuthState
 
 UserName = Annotated[str, Field(min_length=1, max_length=128)]
 UserLogin = Annotated[
@@ -16,6 +17,7 @@ UserLogin = Annotated[
 
 class UserResponse(BaseModel):
     id: UUID
+    is_system: bool
     identity_id: UUID
     name: str
     role: Role

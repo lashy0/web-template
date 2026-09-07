@@ -1118,6 +1118,10 @@ export type UserResponse = {
      */
     identity_id: string;
     /**
+     * Is System
+     */
+    is_system: boolean;
+    /**
      * Login
      */
     login: string | null;

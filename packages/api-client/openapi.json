@@ -1980,6 +1980,10 @@
             "title": "Identity Id",
             "type": "string"
           },
+          "is_system": {
+            "title": "Is System",
+            "type": "boolean"
+          },
           "login": {
             "anyOf": [
               {
@@ -2001,6 +2005,7 @@
         },
         "required": [
           "id",
+          "is_system",
           "identity_id",
           "name",
           "role",

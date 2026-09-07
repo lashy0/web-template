@@ -32,10 +32,12 @@ export const roleLabels: Readonly<Record<Role, string>> = {
   operator: 'Оператор',
 }
 
-export const roleOptions: readonly Readonly<{ label: string; value: Role }>[] = userRoles.map((value) => ({
-  label: roleLabels[value],
-  value,
-}))
+export const roleOptions: readonly Readonly<{ label: string; value: Role }>[] = userRoles.map(
+  (value) => ({
+    label: roleLabels[value],
+    value,
+  }),
+)
 
 export const roleFilterOptions: readonly Readonly<{ label: string; value: Role | 'all' }>[] = [
   { label: 'Все роли', value: 'all' },
@@ -57,6 +59,7 @@ export const authStateFilterOptions: readonly Readonly<{
 
 export type User = Readonly<{
   id: string
+  isSystem: boolean
   name: string
   role: Role
   login: string | null
@@ -256,6 +259,7 @@ function toUser(user: UserResponse): User {
     role: user.role,
     login: user.login,
     authState: user.auth_state,
+    isSystem: user.is_system,
     archivedAt: user.archived_at,
   }
 }

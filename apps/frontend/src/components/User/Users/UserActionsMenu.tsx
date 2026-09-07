@@ -37,7 +37,7 @@ export function UserActionsMenu({ user }: Readonly<{ user: User }>) {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const { user: currentUser } = useAuth()
 
-  if (!currentUser || user.id === currentUser.id) {
+  if (!currentUser || user.isSystem || user.id === currentUser.id) {
     return null
   }
 

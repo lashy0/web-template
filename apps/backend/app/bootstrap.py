@@ -6,13 +6,14 @@ from app.core.config import get_settings
 from app.core.logging import setup_logging
 from app.infrastructure.database.session import create_database
 from app.infrastructure.kratos.client import KratosIdentityManager
-from app.modules.users.service import UserManagementService
+from app.modules.users.services import UserManagementService
 
 
 async def bootstrap() -> None:
     settings = get_settings()
     setup_logging(settings)
     database = create_database(settings)
+
     try:
         service = UserManagementService(
             database.session_factory,
@@ -23,10 +24,16 @@ async def bootstrap() -> None:
             login=settings.BOOTSTRAP_ADMIN_LOGIN,
             password_loader=settings.bootstrap_admin_password,
         )
+
         if user is None:
-            logger.info("First-administrator bootstrap skipped because users already exist")
+            logger.info(
+                "First-administrator bootstrap skipped because users already exist"
+            )
+
         else:
-            logger.info("First-administrator bootstrap completed")
+            logger.info(
+                "First-administrator bootstrap completed"
+            )
     finally:
         await database.close()
         await logger.complete()

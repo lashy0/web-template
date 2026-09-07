@@ -81,3 +81,11 @@ loss. PostgreSQL volume loss can lose both application and identity data;
 production backups must include the `web_app` and `kratos` databases, and a
 backup is required before upgrading Kratos. Redis volume loss can invalidate
 all sessions but must not lose business data.
+
+## User-version migration rollout
+
+The user-version column is additive, but previous application code does not
+increment it. For the first rollout, stop old API processes before running
+prestart and starting the new API; do not overlap both versions. This requires
+a brief API interruption. Keep the column during the rollback window and
+downgrade only after all consumers requiring it have stopped.

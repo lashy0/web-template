@@ -25,7 +25,7 @@ from app.modules.batch.services import BatchManagementService
 from app.modules.defects.services import DefectManagementService
 from app.modules.kg.services import KgDevEuiPrefixManagementService, KgManagementService
 from app.modules.pak.services import PakManagementService, PakTestCatalogService
-from app.modules.users.service import UserManagementService
+from app.modules.users.services import UserManagementService
 from app.modules.verification.services import VerificationManagementService
 
 

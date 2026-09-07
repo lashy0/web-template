@@ -22,6 +22,7 @@ export function createUserColumns(
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
           <span className="font-medium">{row.original.name}</span>
+          {row.original.isSystem ? <Badge variant="secondary">Системная</Badge> : null}
           {row.original.id === currentUserId ? <CurrentUserBadge /> : null}
         </div>
       ),

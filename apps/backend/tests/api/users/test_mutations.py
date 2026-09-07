@@ -278,3 +278,23 @@ def test_delete_user_forwards_requested_user(
     assert response.status_code == status.HTTP_204_NO_CONTENT
     service.delete.assert_awaited_once_with(actor=ANY, user_id=target.id)
     assert service.delete.await_args.kwargs["actor"].user_id == actor_user_id
+
+
+@pytest.mark.api
+@pytest.mark.parametrize("system", [False, True])
+def test_user_responses_identify_system_account(mutation_client, mocker, system):
+    from app.modules.users.services import BOOTSTRAP_ADMIN_USER_ID
+
+    app, client = mutation_client
+    user = _user(user_id=BOOTSTRAP_ADMIN_USER_ID if system else uuid4())
+    service = SimpleNamespace(
+        get=AsyncMock(return_value=user), list=AsyncMock(return_value=([user], 1))
+    )
+    _configure_administrator(app, mocker, service)
+
+    detail = client.get(f"/users/{user.id}", headers=_headers())
+    listing = client.get("/users", headers=_headers())
+    assert detail.status_code == 200
+    assert listing.status_code == 200
+    assert detail.json()["is_system"] is system
+    assert listing.json()["items"][0]["is_system"] is system

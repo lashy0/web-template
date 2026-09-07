@@ -21,7 +21,7 @@ from app.auth.roles import Role
 from app.modules.audit.types import AuditActor, AuditEntity
 from app.modules.users.exceptions import UserProvisioningError
 from app.modules.users.models import User
-from app.modules.users.service import BOOTSTRAP_ADMIN_USER_ID, UserManagementService
+from app.modules.users.services import BOOTSTRAP_ADMIN_USER_ID, UserManagementService
 
 
 class _Session:
@@ -51,6 +51,7 @@ def _user(*, role: Role = Role.MANAGER, state: str = "active") -> User:
         identity_login="alice",
         auth_state=state,
         archived_at=None,
+        version=1,
     )
 
 
@@ -65,8 +66,15 @@ def _principal(user: User) -> CurrentPrincipal:
 
 @pytest.fixture
 def repositories(mocker: MockerFixture) -> tuple[MagicMock, MagicMock]:
-    users = mocker.patch("app.modules.users.service.UserRepository")
-    audits = mocker.patch("app.modules.users.service.AuditService")
+    users = mocker.patch("app.modules.users.services.account.UserRepository")
+    mocker.patch("app.modules.users.services.bootstrap.UserRepository", users)
+    mocker.patch("app.modules.users.services.provisioning.UserRepository", users)
+    mocker.patch("app.modules.users.services.reconciliation.UserRepository", users)
+    mocker.patch("app.modules.users.services.account.UserRepository", users)
+    audits = mocker.patch("app.modules.users.services.account.AuditService")
+    mocker.patch("app.modules.users.services.bootstrap.AuditService", audits)
+    mocker.patch("app.modules.users.services.provisioning.AuditService", audits)
+    mocker.patch("app.modules.users.services.reconciliation.AuditService", audits)
 
     users.return_value.get_by_id = AsyncMock()
     users.return_value.create = AsyncMock()
@@ -78,6 +86,9 @@ def repositories(mocker: MockerFixture) -> tuple[MagicMock, MagicMock]:
     users.return_value.delete = AsyncMock()
     users.return_value.delete_if_exists = AsyncMock()
     users.return_value.list_all = AsyncMock()
+    users.return_value.get_for_reconciliation = AsyncMock()
+    users.return_value.reconcile_projection = AsyncMock()
+    users.return_value.get_by_identity_id = AsyncMock(return_value=None)
     users.return_value.search = AsyncMock()
     users.return_value.create = AsyncMock()
 
@@ -254,7 +265,8 @@ async def test_create_preserves_primary_error_when_both_rollback_steps_fail(
         set_active=AsyncMock(side_effect=activation_error),
         delete_identity=AsyncMock(side_effect=RuntimeError("Kratos rollback failed")),
     )
-    log = mocker.patch("app.modules.users.service.logger")
+    log = mocker.patch("app.modules.users.services.provisioning.logger")
+    mocker.patch("app.modules.users.services.reconciliation.logger", log)
     service = UserManagementService(
         cast(async_sessionmaker[AsyncSession], _SessionFactory()), identities
     )
@@ -547,28 +559,55 @@ async def test_set_active_without_actual_change_does_not_record_an_audit_event(
 
 
 @pytest.mark.unit
-async def test_set_active_cannot_deactivate_the_last_active_administrator(
+@pytest.mark.parametrize(
+    "operation",
+    ["deactivate", "activate", "archive", "restore", "delete", "demote", "profile", "password"],
+)
+async def test_system_administrator_cannot_be_modified(
     repositories: tuple[MagicMock, MagicMock],
+    operation: str,
 ) -> None:
-    users, _ = repositories
+    users, audits = repositories
     user = _user(role=Role.ADMINISTRATOR)
+    user.id = BOOTSTRAP_ADMIN_USER_ID
     actor = _principal(_user(role=Role.ADMINISTRATOR))
     users.return_value.get_by_id.return_value = user
-    users.return_value.search.return_value = ([user], 1)
-    identities = SimpleNamespace(
-        get_identity=AsyncMock(
-            return_value=Identity(id=user.identity_id, login="alice", active=True)
-        ),
-        set_active=AsyncMock(),
-    )
+    identities = AsyncMock()
     service = UserManagementService(
         cast(async_sessionmaker[AsyncSession], _SessionFactory()), identities
     )
 
-    with pytest.raises(ForbiddenError, match="last active administrator"):
-        await service.set_active(actor=actor, user_id=user.id, active=False)
+    with pytest.raises(ForbiddenError, match="system administrator"):
+        if operation in ("deactivate", "activate"):
+            await service.set_active(actor=actor, user_id=user.id, active=operation == "activate")
+        elif operation in ("archive", "restore"):
+            await service.set_archived(
+                actor=actor, user_id=user.id, archived=operation == "archive"
+            )
+        elif operation == "password":
+            await service.set_password(actor=actor, user_id=user.id, password="new-secure-password")
+        elif operation == "profile":
+            await service.update(
+                actor=actor,
+                user_id=user.id,
+                login="changed",
+                name="Changed",
+                role=Role.ADMINISTRATOR,
+            )
+        elif operation == "delete":
+            await service.delete(actor=actor, user_id=user.id)
+        else:
+            await service.update(
+                actor=actor, user_id=user.id, login="changed", name="Changed", role=Role.MANAGER
+            )
 
-    identities.set_active.assert_not_awaited()
+    assert identities.mock_calls == []
+    users.return_value.update_role.assert_not_awaited()
+    users.return_value.update_name.assert_not_awaited()
+    users.return_value.update_identity_projection.assert_not_awaited()
+    users.return_value.update_archived.assert_not_awaited()
+    users.return_value.delete.assert_not_awaited()
+    audits.from_session.return_value.record.assert_not_awaited()
 
 
 @pytest.mark.unit
@@ -724,8 +763,9 @@ async def test_reconcile_marks_missing_identity_inactive_and_logs_a_sync_error(
     users, audits = repositories
     user = _user(state="active")
     users.return_value.list_all.return_value = [user]
-    users.return_value.update_identity_projection.side_effect = lambda item, **kwargs: (
-        _apply_projection(item, **kwargs)
+    users.return_value.get_for_reconciliation.return_value = user
+    users.return_value.reconcile_projection.side_effect = lambda item, **kwargs: _apply_projection(
+        item, **kwargs
     )
     identities = SimpleNamespace(list_identities=AsyncMock(return_value=[]))
     service = UserManagementService(
@@ -736,7 +776,7 @@ async def test_reconcile_marks_missing_identity_inactive_and_logs_a_sync_error(
 
     assert user.auth_state == "inactive"
     assert user.identity_login == "alice"
-    audits.from_session.return_value.record.assert_not_awaited()
+    audits.from_session.return_value.record.assert_awaited_once()
 
 
 @pytest.mark.unit
@@ -746,8 +786,10 @@ async def test_reconcile_logs_each_sync_mismatch_only_once_per_process(
     users, _ = repositories
     user = _user(state="inactive")
     users.return_value.list_all.return_value = [user]
+    users.return_value.get_for_reconciliation.return_value = user
     identities = SimpleNamespace(list_identities=AsyncMock(return_value=[]))
-    log = mocker.patch("app.modules.users.service.logger")
+    log = mocker.patch("app.modules.users.services.provisioning.logger")
+    mocker.patch("app.modules.users.services.reconciliation.logger", log)
     service = UserManagementService(
         cast(async_sessionmaker[AsyncSession], _SessionFactory()), identities
     )

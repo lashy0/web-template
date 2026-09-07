@@ -1,11 +1,12 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import delete, func, or_, select
+from sqlalchemy import ColumnElement, delete, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.roles import Role
-from app.modules.users.models import User
+
+from .models import User
 
 
 class UserRepository:
@@ -40,8 +41,18 @@ class UserRepository:
 
         return user
 
-    async def get_by_id(self, user_id: UUID) -> User | None:
-        return await self._session.get(User, user_id)
+    async def get_by_id(
+        self,
+        user_id: UUID,
+        *,
+        for_update: bool = False,
+    ) -> User | None:
+        return await self._session.get(
+            User,
+            user_id,
+            with_for_update=for_update,
+            populate_existing=for_update,
+        )
 
     async def get_by_identity_id(self, identity_id: UUID) -> User | None:
         statement = select(User).where(User.identity_id == identity_id)
@@ -50,7 +61,12 @@ class UserRepository:
 
         return result.scalar_one_or_none()
 
-    async def update_name(self, user: User, *, name: str) -> User:
+    async def update_name(
+        self,
+        user: User,
+        *,
+        name: str,
+    ) -> User:
         user.name = name
 
         await self._session.flush()
@@ -58,7 +74,12 @@ class UserRepository:
 
         return user
 
-    async def update_role(self, user: User, *, role: Role) -> User:
+    async def update_role(
+        self,
+        user: User,
+        *,
+        role: Role,
+    ) -> User:
         user.role = role
 
         await self._session.flush()
@@ -67,7 +88,12 @@ class UserRepository:
         return user
 
     async def update_identity_projection(
-        self, user: User, *, login: str | None, state: str, synced_at: datetime
+        self,
+        user: User,
+        *,
+        login: str | None,
+        state: str,
+        synced_at: datetime,
     ) -> User:
         user.identity_login = login
         user.auth_state = state
@@ -78,7 +104,12 @@ class UserRepository:
 
         return user
 
-    async def update_archived(self, user: User, *, archived_at: datetime | None) -> User:
+    async def update_archived(
+        self,
+        user: User,
+        *,
+        archived_at: datetime | None,
+    ) -> User:
         user.archived_at = archived_at
 
         await self._session.flush()
@@ -105,7 +136,9 @@ class UserRepository:
         sort: str,
         order: str,
     ) -> tuple[list[User], int]:
-        filters = [User.archived_at.is_not(None) if archived else User.archived_at.is_(None)]
+        filters: list[ColumnElement[bool]] = [
+            User.archived_at.is_not(None) if archived else User.archived_at.is_(None)
+        ]
 
         if q:
             pattern = f"%{q}%"
@@ -136,8 +169,44 @@ class UserRepository:
 
     async def list_all(self) -> list[User]:
         result = await self._session.execute(select(User))
+
         return list(result.scalars())
+
+    async def get_for_reconciliation(self, user_id: UUID, version: int) -> User | None:
+        # Never queue behind an API operation holding this user's row across Kratos I/O.
+        user: User | None = await self._session.scalar(
+            select(User)
+            .where(User.id == user_id, User.version == version)
+            .with_for_update(skip_locked=True)
+            .execution_options(populate_existing=True)
+        )
+        return user
+
+    async def reconcile_projection(
+        self, user: User, *, login: str | None, state: str, synced_at: datetime
+    ) -> bool:
+        # Explicit SQL bypasses ORM versioning, so compare and increment here as well.
+        result = await self._session.scalar(
+            update(User)
+            .where(User.id == user.id, User.version == user.version)
+            .values(
+                identity_login=login,
+                auth_state=state,
+                auth_state_synced_at=synced_at,
+                version=User.version + 1,
+            )
+            .returning(User.id)
+            .execution_options(synchronize_session=False)
+        )
+
+        if result is None:
+            return False
+
+        await self._session.refresh(user)
+
+        return True
 
     async def count(self) -> int:
         result = await self._session.scalar(select(func.count()).select_from(User))
+
         return int(result or 0)

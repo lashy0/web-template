@@ -5,11 +5,12 @@ from fastapi import APIRouter, Depends, Query, Request, status
 
 from app.api.auth_deps import CurrentPrincipalDep, require_permission
 from app.auth.roles import Role
-from app.modules.users.enums import AuthState
-from app.modules.users.exceptions import UserNotFoundError
-from app.modules.users.models import User
-from app.modules.users.permissions import UserPermission
-from app.modules.users.schemas import (
+
+from .enums import AuthState
+from .exceptions import UserNotFoundError
+from .permissions import UserPermission
+from .presentation import user_response
+from .schemas import (
     CreateUserRequest,
     UpdateActiveRequest,
     UpdateArchivedRequest,
@@ -18,22 +19,9 @@ from app.modules.users.schemas import (
     UserListResponse,
     UserResponse,
 )
-from app.modules.users.service import UserManagementService
+from .services import UserManagementService
 
 router = APIRouter(prefix="/users", tags=["users"])
-
-
-def _response(user: User) -> UserResponse:
-    return UserResponse(
-        id=user.id,
-        identity_id=user.identity_id,
-        name=user.name,
-        role=user.role,
-        login=user.identity_login,
-        auth_state=cast(AuthState, user.auth_state),
-        auth_state_synced_at=user.auth_state_synced_at,
-        archived_at=user.archived_at,
-    )
 
 
 def _service(request: Request) -> UserManagementService:
@@ -42,7 +30,10 @@ def _service(request: Request) -> UserManagementService:
 
 @router.get("", response_model=UserListResponse)
 async def list_users(
-    _: Annotated[CurrentPrincipalDep, Depends(require_permission(UserPermission.READ))],
+    _: Annotated[
+        CurrentPrincipalDep,
+        Depends(require_permission(UserPermission.READ)),
+    ],
     request: Request,
     q: str | None = None,
     role: Role | None = None,
@@ -50,7 +41,12 @@ async def list_users(
     archived: bool = False,
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=25, ge=1, le=100),
-    sort: Literal["name", "login", "created_at", "archived_at"] = "name",
+    sort: Literal[
+        "name",
+        "login",
+        "created_at",
+        "archived_at",
+    ] = "name",
     order: Literal["asc", "desc"] = "asc",
 ) -> UserListResponse:
     users, total = await _service(request).list(
@@ -65,7 +61,7 @@ async def list_users(
     )
 
     return UserListResponse(
-        items=[_response(user) for user in users],
+        items=[user_response(user) for user in users],
         total=total,
         page=page,
         page_size=page_size,
@@ -75,7 +71,10 @@ async def list_users(
 @router.get("/{user_id}", response_model=UserResponse)
 async def get_user(
     user_id: UUID,
-    _: Annotated[CurrentPrincipalDep, Depends(require_permission(UserPermission.READ))],
+    _: Annotated[
+        CurrentPrincipalDep,
+        Depends(require_permission(UserPermission.READ)),
+    ],
     request: Request,
 ) -> UserResponse:
     user = await _service(request).get(user_id)
@@ -83,13 +82,16 @@ async def get_user(
     if user is None:
         raise UserNotFoundError
 
-    return _response(user)
+    return user_response(user)
 
 
 @router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def create_user(
     payload: CreateUserRequest,
-    principal: Annotated[CurrentPrincipalDep, Depends(require_permission(UserPermission.CREATE))],
+    principal: Annotated[
+        CurrentPrincipalDep,
+        Depends(require_permission(UserPermission.CREATE)),
+    ],
     request: Request,
 ) -> UserResponse:
     user = await _service(request).create(
@@ -101,17 +103,20 @@ async def create_user(
         active=payload.active,
     )
 
-    return _response(user)
+    return user_response(user)
 
 
 @router.patch("/{user_id}", response_model=UserResponse)
 async def update_user(
     user_id: UUID,
     payload: UpdateUserRequest,
-    principal: Annotated[CurrentPrincipalDep, Depends(require_permission(UserPermission.UPDATE))],
+    principal: Annotated[
+        CurrentPrincipalDep,
+        Depends(require_permission(UserPermission.UPDATE)),
+    ],
     request: Request,
 ) -> UserResponse:
-    return _response(
+    return user_response(
         await _service(request).update(
             actor=principal,
             user_id=user_id,
@@ -147,12 +152,17 @@ async def update_active(
     user_id: UUID,
     payload: UpdateActiveRequest,
     principal: Annotated[
-        CurrentPrincipalDep, Depends(require_permission(UserPermission.SET_ACTIVE))
+        CurrentPrincipalDep,
+        Depends(require_permission(UserPermission.SET_ACTIVE)),
     ],
     request: Request,
 ) -> UserResponse:
-    return _response(
-        await _service(request).set_active(actor=principal, user_id=user_id, active=payload.active)
+    return user_response(
+        await _service(request).set_active(
+            actor=principal,
+            user_id=user_id,
+            active=payload.active,
+        )
     )
 
 
@@ -160,12 +170,17 @@ async def update_active(
 async def update_archived(
     user_id: UUID,
     payload: UpdateArchivedRequest,
-    principal: Annotated[CurrentPrincipalDep, Depends(require_permission(UserPermission.ARCHIVE))],
+    principal: Annotated[
+        CurrentPrincipalDep,
+        Depends(require_permission(UserPermission.ARCHIVE)),
+    ],
     request: Request,
 ) -> UserResponse:
-    return _response(
+    return user_response(
         await _service(request).set_archived(
-            actor=principal, user_id=user_id, archived=payload.archived
+            actor=principal,
+            user_id=user_id,
+            archived=payload.archived,
         )
     )
 
@@ -173,7 +188,13 @@ async def update_archived(
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(
     user_id: UUID,
-    principal: Annotated[CurrentPrincipalDep, Depends(require_permission(UserPermission.DELETE))],
+    principal: Annotated[
+        CurrentPrincipalDep,
+        Depends(require_permission(UserPermission.DELETE)),
+    ],
     request: Request,
 ) -> None:
-    await _service(request).delete(actor=principal, user_id=user_id)
+    await _service(request).delete(
+        actor=principal,
+        user_id=user_id,
+    )

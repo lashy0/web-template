@@ -3,6 +3,8 @@ import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { DataTable } from '@/components/Common/DataTable'
+import { createUserColumns } from '@/components/User/Users/columns'
 import { AddUser } from '@/components/User/Users/AddUser'
 import { UserActionsMenu } from '@/components/User/Users/UserActionsMenu'
 import {
@@ -42,6 +44,32 @@ afterEach(() => {
 })
 
 describe('UserActionsMenu', () => {
+  it('labels the system account and hides its actions in the table', () => {
+    const account: User = {
+      id: 'system-user',
+      name: 'Системный администратор',
+      login: 'admin',
+      role: 'administrator',
+      authState: 'active',
+      archivedAt: null,
+      isSystem: true,
+    }
+    render(
+      <DataTable
+        columns={createUserColumns('current-user', false)}
+        data={[account]}
+        pagination={{ pageIndex: 0, pageSize: 25 }}
+        sorting={[]}
+        total={1}
+        onPaginationChange={vi.fn<() => void>()}
+        onSortingChange={vi.fn<() => void>()}
+      />,
+    )
+    expect(screen.getByText('Системная')).toBeVisible()
+    expect(
+      screen.queryByRole('button', { name: /Действия с пользователем/ }),
+    ).not.toBeInTheDocument()
+  })
   it.each([false, true])('changes user archive state (archived: %s)', async (archived) => {
     const user = userEvent.setup()
     const account: User = {
@@ -49,6 +77,7 @@ describe('UserActionsMenu', () => {
       name: 'Пользователь',
       login: 'user',
       role: 'operator',
+      isSystem: false,
       authState: 'inactive',
       archivedAt: archived ? '2026-09-05T10:00:00Z' : null,
     }
@@ -78,6 +107,7 @@ describe('UserActionsMenu', () => {
         <UserActionsMenu
           user={{
             id: 'another-user',
+            isSystem: false,
             authState: 'active',
             archivedAt: null,
             login: 'another.user',
@@ -113,6 +143,7 @@ describe('UserActionsMenu', () => {
           user={{
             archivedAt: null,
             id: 'another-user',
+            isSystem: false,
             authState: 'active',
             login: 'another.user',
             name: 'Другой пользователь',
@@ -143,6 +174,7 @@ describe('UserActionsMenu', () => {
           user={{
             archivedAt: null,
             id: 'another-user',
+            isSystem: false,
             authState: 'active',
             login: 'another.user',
             name: 'Другой пользователь',
@@ -238,6 +270,7 @@ describe('UserActionsMenu', () => {
         <UserActionsMenu
           user={{
             id: 'another-user',
+            isSystem: false,
             authState: 'active',
             archivedAt: null,
             login: 'another.user',

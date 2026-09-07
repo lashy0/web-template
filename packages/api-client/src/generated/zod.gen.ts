@@ -538,6 +538,7 @@ export const zUserResponse = z.object({
     auth_state_synced_at: z.iso.datetime().nullable(),
     id: z.uuid(),
     identity_id: z.uuid(),
+    is_system: z.boolean(),
     login: z.string().nullable(),
     name: z.string(),
     role: zRole
