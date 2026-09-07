@@ -135,25 +135,19 @@ class Settings(BaseSettings):
     VERIFICATION_SESSION_REOPEN_INACTIVITY_MINUTES: int = Field(
         default=60,
         ge=1,
-        validation_alias=(
-            "BACKEND_VERIFICATION_SESSION_REOPEN_INACTIVITY_MINUTES"
-        ),
+        validation_alias=("BACKEND_VERIFICATION_SESSION_REOPEN_INACTIVITY_MINUTES"),
     )
 
     VERIFICATION_SESSION_TTL_MINUTES: int = Field(
         default=120,
         ge=1,
-        validation_alias=(
-            "BACKEND_VERIFICATION_SESSION_TTL_MINUTES"
-        ),
+        validation_alias=("BACKEND_VERIFICATION_SESSION_TTL_MINUTES"),
     )
 
     VERIFICATION_SWEEP_INTERVAL_SECONDS: float = Field(
         default=60.0,
         gt=0,
-        validation_alias=(
-            "BACKEND_VERIFICATION_SWEEP_INTERVAL_SECONDS"
-        ),
+        validation_alias=("BACKEND_VERIFICATION_SWEEP_INTERVAL_SECONDS"),
     )
 
     # First administrator bootstrap
