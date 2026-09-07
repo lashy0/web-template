@@ -15,6 +15,17 @@ from app.auth.exceptions import IdentityProviderUnavailableError
 from app.auth.roles import Role
 
 
+@pytest.mark.api
+def test_me_returns_not_found_if_user_disappears_after_authentication(
+    app, client, api_prefix, mocker
+):
+    _configure_authenticated_request(app, mocker, role=Role.ADMINISTRATOR)
+    app.state.user_management.get = AsyncMock(return_value=None)
+    response = client.get(f"{api_prefix}/auth/me", headers={"cookie": "ory_kratos_session=opaque"})
+    assert response.status_code == 404
+    assert response.json()["code"] == "user_not_found"
+
+
 class _SessionFactory:
     def __call__(self) -> _SessionFactory:
         return self
@@ -130,7 +141,9 @@ def test_user_route_rejects_authenticated_role_without_permission(
 
 
 @pytest.mark.api
-def test_user_creation_with_body_requires_json_content_type(client: TestClient, api_prefix: str) -> None:
+def test_user_creation_with_body_requires_json_content_type(
+    client: TestClient, api_prefix: str
+) -> None:
     response = client.post(
         f"{api_prefix}/users",
         content="not-json",
