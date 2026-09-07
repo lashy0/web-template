@@ -1,4 +1,4 @@
-from app.core.exceptions import AppError
+from app.core.exceptions import AppError, ConflictError, NotFoundError
 
 
 class KgError(AppError):
@@ -7,37 +7,53 @@ class KgError(AppError):
     default_message = ""
 
 
-class KgNotFoundError(KgError):
+class KgConflictError(KgError, ConflictError):
+    code = "kg_conflict"
+
+
+class KgWrongBatchError(KgError, ConflictError):
+    code = "kg_wrong_batch"
+
+
+class KgInvalidStateError(KgError, ConflictError):
+    code = "kg_invalid_state"
+
+
+class KgDevEuiRangeOverflowError(KgError, ConflictError):
+    code = "kg_dev_eui_range_overflow"
+
+
+class KgNotFoundError(KgError, NotFoundError):
     """The requested KG unit does not exist."""
 
     code = "kg_not_found"
 
 
-class KgAlreadyExistsError(KgError):
+class KgAlreadyExistsError(KgError, ConflictError):
     """A KG unit with the same DevEUI already exists."""
 
     code = "kg_already_exists"
 
 
-class KgCannotBeDeletedError(KgError):
+class KgCannotBeDeletedError(KgError, ConflictError):
     """The KG unit cannot be deleted in its current state."""
 
     code = "kg_cannot_be_deleted"
 
 
-class KgDevEuiPrefixNotFoundError(KgError):
+class KgDevEuiPrefixNotFoundError(KgError, NotFoundError):
     """The requested DevEUI prefix does not exist."""
 
     code = "kg_dev_eui_prefix_not_found"
 
 
-class KgDevEuiPrefixConflictError(KgError):
+class KgDevEuiPrefixConflictError(KgError, ConflictError):
     """The DevEUI prefix or short code already exists."""
 
     code = "kg_dev_eui_prefix_conflict"
 
 
-class KgDevEuiPrefixInUseError(KgError):
+class KgDevEuiPrefixInUseError(KgError, ConflictError):
     """The DevEUI prefix is already used by a batch."""
 
     code = "kg_dev_eui_prefix_in_use"

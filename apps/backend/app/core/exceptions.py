@@ -16,3 +16,23 @@ class AppError(Exception):
         self.details = details
 
         super().__init__(self.message)
+
+
+class NotFoundError(AppError):
+    """The requested resource does not exist."""
+
+
+class ConflictError(AppError):
+    """The operation conflicts with current application state."""
+
+
+class PermissionDeniedError(AppError):
+    """The actor is not allowed to perform the operation."""
+
+
+class UnauthenticatedError(AppError):
+    """Valid authentication is required."""
+
+
+class DependencyUnavailableError(AppError):
+    """A required external dependency cannot complete the operation."""

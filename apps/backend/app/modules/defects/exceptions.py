@@ -1,4 +1,4 @@
-from app.core.exceptions import AppError
+from app.core.exceptions import AppError, ConflictError, NotFoundError
 
 
 class DefectError(AppError):
@@ -7,49 +7,49 @@ class DefectError(AppError):
     default_message = ""
 
 
-class DefectGroupNotFoundError(DefectError):
+class DefectGroupNotFoundError(DefectError, NotFoundError):
     """The requested defect group does not exist."""
 
     code = "defect_group_not_found"
 
 
-class DefectGroupAlreadyExistsError(DefectError):
+class DefectGroupAlreadyExistsError(DefectError, ConflictError):
     """A defect group with the same code already exists."""
 
     code = "defect_group_already_exists"
 
 
-class DefectGroupArchivedError(DefectError):
+class DefectGroupArchivedError(DefectError, ConflictError):
     """The archived defect group cannot be used for new defect types."""
 
     code = "defect_group_archived"
 
 
-class DefectGroupHasUnarchivedTypesError(DefectError):
+class DefectGroupHasUnarchivedTypesError(DefectError, ConflictError):
     """The defect group cannot be archived while it contains unarchived defect types."""
 
     code = "defect_group_has_unarchived_types"
 
 
-class DefectGroupCannotBeDeletedError(DefectError):
+class DefectGroupCannotBeDeletedError(DefectError, ConflictError):
     """The defect group cannot be deleted because it is already in use."""
 
     code = "defect_group_cannot_be_deleted"
 
 
-class DefectTypeNotFoundError(DefectError):
+class DefectTypeNotFoundError(DefectError, NotFoundError):
     """The requested defect type does not exist."""
 
     code = "defect_type_not_found"
 
 
-class DefectTypeAlreadyExistsError(DefectError):
+class DefectTypeAlreadyExistsError(DefectError, ConflictError):
     """A defect type with the same code already exists."""
 
     code = "defect_type_already_exists"
 
 
-class DefectTypeCannotBeDeletedError(DefectError):
+class DefectTypeCannotBeDeletedError(DefectError, ConflictError):
     """The defect type cannot be deleted because it is already in use."""
 
     code = "defect_type_cannot_be_deleted"
