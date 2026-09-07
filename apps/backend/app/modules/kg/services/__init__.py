@@ -1,10 +1,17 @@
-from .management import KgDevEuiPrefixManagementService, KgManagementService
+from .management import (
+    KgDevEuiPrefixManagementService,
+    KgManagementService,
+    KgVersionManagementService,
+)
 from .prefix import KgPrefixService
 from .unit import KgService
+from .version import KgVersionService
 
 __all__ = [
     "KgDevEuiPrefixManagementService",
     "KgManagementService",
+    "KgVersionManagementService",
     "KgPrefixService",
     "KgService",
+    "KgVersionService",
 ]

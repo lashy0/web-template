@@ -116,6 +116,7 @@ export const zBatchResponse = z.object({
     description: z.string().nullable(),
     dev_eui_prefix: z.string(),
     id: z.uuid(),
+    kg_version_id: z.uuid().nullable(),
     name: z.string(),
     planned_qty: z.int(),
     status: zBatchStatus,
@@ -147,6 +148,7 @@ export const zCreateBatchRequest = z.object({
     day_plan_qty: z.int().gt(0),
     description: z.string().max(2000).nullish(),
     dev_eui_prefix: z.string(),
+    kg_version_id: z.uuid().nullish(),
     name: z.string().min(1).max(128),
     planned_qty: z.int().gt(0)
 });
@@ -186,6 +188,15 @@ export const zCreateKgDevEuiPrefixRequest = z.object({
     name: z.string().max(128).nullish(),
     prefix: z.string(),
     short_code: z.string().min(1).max(10).regex(/^[a-zA-Z0-9]+$/)
+});
+
+/**
+ * CreateKgVersionRequest
+ */
+export const zCreateKgVersionRequest = z.object({
+    code: z.string().min(1).max(32),
+    description: z.string().max(2000).nullish(),
+    name: z.string().min(1).max(128)
 });
 
 /**
@@ -317,6 +328,29 @@ export const zKgResponse = z.object({
  */
 export const zKgListResponse = z.object({
     items: z.array(zKgResponse),
+    page: z.int(),
+    page_size: z.int(),
+    total: z.int()
+});
+
+/**
+ * KgVersionResponse
+ */
+export const zKgVersionResponse = z.object({
+    archived_at: z.iso.datetime().nullable(),
+    code: z.string(),
+    created_at: z.iso.datetime(),
+    description: z.string().nullable(),
+    id: z.uuid(),
+    name: z.string(),
+    updated_at: z.iso.datetime()
+});
+
+/**
+ * KgVersionListResponse
+ */
+export const zKgVersionListResponse = z.object({
+    items: z.array(zKgVersionResponse),
     page: z.int(),
     page_size: z.int(),
     total: z.int()
@@ -513,6 +547,21 @@ export const zUpdateKgDevEuiPrefixArchivedRequest = z.object({
  */
 export const zUpdateKgDevEuiPrefixRequest = z.object({
     name: z.string().max(128).nullish()
+});
+
+/**
+ * UpdateKgVersionArchivedRequest
+ */
+export const zUpdateKgVersionArchivedRequest = z.object({
+    archived: z.boolean()
+});
+
+/**
+ * UpdateKgVersionRequest
+ */
+export const zUpdateKgVersionRequest = z.object({
+    description: z.string().max(2000).nullish(),
+    name: z.string().min(1).max(128).nullish()
 });
 
 /**
@@ -1141,6 +1190,65 @@ export const zKgUpdateDevEuiPrefixArchivedPath = z.object({
  * Successful Response
  */
 export const zKgUpdateDevEuiPrefixArchivedResponse = zKgDevEuiPrefixResponse;
+
+export const zKgListKgVersionsQuery = z.object({
+    q: z.string().nullish(),
+    archived: z.boolean().optional().default(false),
+    page: z.int().gte(1).optional().default(1),
+    page_size: z.int().gte(1).lte(100).optional().default(25),
+    sort_by: z.enum([
+        'code',
+        'name',
+        'description',
+        'created_at',
+        'updated_at',
+        'archived_at'
+    ]).optional().default('code'),
+    sort_order: z.enum(['asc', 'desc']).optional().default('asc')
+});
+
+/**
+ * Successful Response
+ */
+export const zKgListKgVersionsResponse = zKgVersionListResponse;
+
+export const zKgCreateKgVersionBody = zCreateKgVersionRequest;
+
+/**
+ * Successful Response
+ */
+export const zKgCreateKgVersionResponse = zKgVersionResponse;
+
+export const zKgDeleteKgVersionPath = z.object({
+    version_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zKgDeleteKgVersionResponse = z.void();
+
+export const zKgUpdateKgVersionBody = zUpdateKgVersionRequest;
+
+export const zKgUpdateKgVersionPath = z.object({
+    version_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zKgUpdateKgVersionResponse = zKgVersionResponse;
+
+export const zKgUpdateKgVersionArchivedBody = zUpdateKgVersionArchivedRequest;
+
+export const zKgUpdateKgVersionArchivedPath = z.object({
+    version_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zKgUpdateKgVersionArchivedResponse = zKgVersionResponse;
 
 export const zKgGetKgPath = z.object({
     dev_eui: z.string()

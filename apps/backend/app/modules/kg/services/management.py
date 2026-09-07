@@ -8,10 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.auth.principal import CurrentPrincipal
 
-from ..models import KgDevEuiPrefix, KgStatus, KgUnit
+from ..models import KgDevEuiPrefix, KgStatus, KgUnit, KgVersion
 from .prefix import KgPrefixService as KgPrefixService
 from .transactions import transaction
 from .unit import KgService as KgService
+from .version import KgVersionService
 
 
 class KgManagementService:
@@ -110,7 +111,10 @@ class KgDevEuiPrefixManagementService:
     ) -> KgDevEuiPrefix:
         async with transaction(self._session_factory) as session:
             return await KgPrefixService(session).create(
-                actor=actor, prefix=prefix, short_code=short_code, name=name
+                actor=actor,
+                prefix=prefix,
+                short_code=short_code,
+                name=name,
             )
 
     async def update(
@@ -122,7 +126,9 @@ class KgDevEuiPrefixManagementService:
     ) -> KgDevEuiPrefix:
         async with transaction(self._session_factory) as session:
             return await KgPrefixService(session).update(
-                actor=actor, prefix=prefix, updates=updates
+                actor=actor,
+                prefix=prefix,
+                updates=updates,
             )
 
     async def delete(
@@ -143,5 +149,90 @@ class KgDevEuiPrefixManagementService:
     ) -> KgDevEuiPrefix:
         async with transaction(self._session_factory) as session:
             return await KgPrefixService(session).set_archived(
-                actor=actor, prefix=prefix, archived=archived
+                actor=actor,
+                prefix=prefix,
+                archived=archived,
             )
+
+
+class KgVersionManagementService:
+    """API gateway owning sessions and transactions for KG versions."""
+
+    def __init__(
+        self,
+        session_factory: async_sessionmaker[AsyncSession],
+    ) -> None:
+        self._session_factory = session_factory
+
+    async def list(
+        self,
+        *,
+        q: str | None,
+        archived: bool,
+        page: int,
+        page_size: int,
+        sort_by: str,
+        sort_order: str,
+    ) -> tuple[builtins.list[KgVersion], int]:
+        async with self._session_factory() as session:
+            return await KgVersionService(session).list(
+                q=q,
+                archived=archived,
+                page=page,
+                page_size=page_size,
+                sort_by=sort_by,
+                sort_order=sort_order,
+            )
+
+    async def create(
+        self,
+        *,
+        actor: CurrentPrincipal,
+        code: str,
+        name: str,
+        description: str | None,
+    ) -> KgVersion:
+        async with transaction(self._session_factory) as session:
+            return await KgVersionService(session).create(
+                actor=actor,
+                code=code,
+                name=name,
+                description=description,
+            )
+
+    async def update(
+        self,
+        *,
+        actor: CurrentPrincipal,
+        version_id: UUID,
+        updates: Mapping[str, object],
+    ) -> KgVersion:
+        async with transaction(self._session_factory) as session:
+            return await KgVersionService(session).update(
+                actor=actor,
+                version_id=version_id,
+                updates=updates,
+            )
+
+    async def set_archived(
+        self,
+        *,
+        actor: CurrentPrincipal,
+        version_id: UUID,
+        archived: bool,
+    ) -> KgVersion:
+        async with transaction(self._session_factory) as session:
+            return await KgVersionService(session).set_archived(
+                actor=actor,
+                version_id=version_id,
+                archived=archived,
+            )
+
+    async def delete(
+        self,
+        *,
+        actor: CurrentPrincipal,
+        version_id: UUID,
+    ) -> None:
+        async with transaction(self._session_factory) as session:
+            await KgVersionService(session).delete(actor=actor, version_id=version_id)

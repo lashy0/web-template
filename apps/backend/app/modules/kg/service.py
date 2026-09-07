@@ -3,11 +3,15 @@ from .services import (
     KgManagementService,
     KgPrefixService,
     KgService,
+    KgVersionManagementService,
+    KgVersionService,
 )
 
 __all__ = [
     "KgDevEuiPrefixManagementService",
     "KgManagementService",
+    "KgVersionManagementService",
     "KgPrefixService",
     "KgService",
+    "KgVersionService",
 ]

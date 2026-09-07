@@ -23,7 +23,11 @@ from app.middleware.csrf import JsonOriginMiddleware
 from app.middleware.request_context import RequestContextMiddleware
 from app.modules.batch.services import BatchManagementService
 from app.modules.defects.services import DefectManagementService
-from app.modules.kg.services import KgDevEuiPrefixManagementService, KgManagementService
+from app.modules.kg.services import (
+    KgDevEuiPrefixManagementService,
+    KgManagementService,
+    KgVersionManagementService,
+)
 from app.modules.pak.services import PakManagementService, PakTestCatalogService
 from app.modules.users.services import UserManagementService
 from app.modules.verification.services import VerificationManagementService
@@ -67,6 +71,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     )
 
     app.state.kg_dev_eui_prefix_management = KgDevEuiPrefixManagementService(
+        database.session_factory,
+    )
+
+    app.state.kg_version_management = KgVersionManagementService(
         database.session_factory,
     )
 

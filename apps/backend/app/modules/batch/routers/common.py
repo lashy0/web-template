@@ -28,6 +28,7 @@ def _batch_response(batch: Batch) -> BatchResponse:
         name=batch.name,
         description=batch.description,
         dev_eui_prefix=batch.dev_eui_prefix,
+        kg_version_id=batch.kg_version_id,
         planned_qty=batch.planned_qty,
         day_plan_qty=batch.day_plan_qty,
         status=batch.status,

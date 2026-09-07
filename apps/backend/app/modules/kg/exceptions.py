@@ -63,3 +63,15 @@ class KgDevEuiPrefixArchivedError(KgError, ConflictError):
     """The DevEUI prefix is archived and cannot allocate new units."""
 
     code = "kg_dev_eui_prefix_archived"
+
+
+class KgVersionNotFoundError(KgError, NotFoundError):
+    code = "kg_version_not_found"
+
+
+class KgVersionConflictError(KgError, ConflictError):
+    code = "kg_version_conflict"
+
+
+class KgVersionInUseError(KgError, ConflictError):
+    code = "kg_version_in_use"

@@ -12,6 +12,7 @@ from app.modules.kg.exceptions import (
     KgDevEuiRangeOverflowError,
     KgInvalidStateError,
     KgNotFoundError,
+    KgVersionNotFoundError,
     KgWrongBatchError,
 )
 
@@ -20,6 +21,7 @@ from ..exceptions import (
     BatchConflictError,
     BatchDevEuiPrefixNotFoundError,
     BatchDevEuiRangeOverflowError,
+    BatchKgVersionNotFoundError,
     BatchShipmentKgNotFoundError,
     BatchShipmentKgNotPackedError,
     BatchShipmentKgWrongBatchError,
@@ -40,6 +42,9 @@ async def transaction(
 
     except KgDevEuiPrefixNotFoundError as exc:
         raise BatchDevEuiPrefixNotFoundError from exc
+
+    except KgVersionNotFoundError as exc:
+        raise BatchKgVersionNotFoundError from exc
 
     except KgDevEuiRangeOverflowError as exc:
         raise BatchDevEuiRangeOverflowError from exc

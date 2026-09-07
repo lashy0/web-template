@@ -21,11 +21,13 @@ class BatchRepository:
         planned_qty: int,
         day_plan_qty: int,
         created_by_user_id: UUID | None,
+        kg_version_id: UUID | None = None,
     ) -> Batch:
         batch = Batch(
             name=name,
             description=description,
             dev_eui_prefix=dev_eui_prefix,
+            kg_version_id=kg_version_id,
             planned_qty=planned_qty,
             day_plan_qty=day_plan_qty,
             status=BatchStatus.IN_PRODUCTION,
@@ -145,7 +147,9 @@ class BatchRepository:
             .limit(page_size)
         )
 
-        count = await self._session.scalar(select(func.count()).select_from(Batch).where(*filters))
+        count = await self._session.scalar(
+            select(func.count()).select_from(Batch).where(*filters)
+        )
 
         result = await self._session.execute(statement)
 
@@ -153,5 +157,14 @@ class BatchRepository:
 
     async def exists_by_dev_eui_prefix(self, prefix: str) -> bool:
         return bool(
-            await self._session.scalar(select(exists().where(Batch.dev_eui_prefix == prefix)))
+            await self._session.scalar(
+                select(exists().where(Batch.dev_eui_prefix == prefix))
+            )
+        )
+
+    async def exists_by_kg_version_id(self, version_id: UUID) -> bool:
+        return bool(
+            await self._session.scalar(
+                select(exists().where(Batch.kg_version_id == version_id))
+            )
         )

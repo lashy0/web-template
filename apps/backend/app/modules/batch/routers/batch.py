@@ -88,14 +88,26 @@ async def create_batch(
     ],
     request: Request,
 ) -> BatchResponse:
-    batch = await _service(request).create(
-        actor=principal,
-        name=payload.name,
-        description=payload.description,
-        dev_eui_prefix=payload.dev_eui_prefix,
-        planned_qty=payload.planned_qty,
-        day_plan_qty=payload.day_plan_qty,
-    )
+    if payload.kg_version_id is not None:
+        batch = await _service(request).create(
+            actor=principal,
+            name=payload.name,
+            description=payload.description,
+            dev_eui_prefix=payload.dev_eui_prefix,
+            planned_qty=payload.planned_qty,
+            day_plan_qty=payload.day_plan_qty,
+            kg_version_id=payload.kg_version_id,
+        )
+
+    else:
+        batch = await _service(request).create(
+            actor=principal,
+            name=payload.name,
+            description=payload.description,
+            dev_eui_prefix=payload.dev_eui_prefix,
+            planned_qty=payload.planned_qty,
+            day_plan_qty=payload.day_plan_qty,
+        )
 
     return _batch_response(batch)
 

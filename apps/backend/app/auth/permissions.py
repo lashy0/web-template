@@ -41,6 +41,7 @@ MANAGER_PERMISSIONS: Final[frozenset[Permission]] = frozenset(
         BatchPermission.SHIPMENT_VOID,
         KgPermission.READ,
         KgPermission.PREFIX_READ,
+        KgPermission.VERSION_READ,
         VerificationPermission.READ,
         DefectPermission.READ,
     )

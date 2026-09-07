@@ -52,6 +52,11 @@ class Batch(Base):
         ForeignKey("kg_dev_eui_prefixes.prefix"),
         nullable=False,
     )
+    kg_version_id: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("kg_versions.id"),
+        nullable=True,
+    )
     created_by_user_id: Mapped[UUID | None] = mapped_column(
         Uuid(as_uuid=True),
         ForeignKey("users.id", ondelete="SET NULL"),
@@ -90,6 +95,7 @@ class Batch(Base):
         Index("ix_batches_created_at", created_at),
         Index("ix_batches_archived_at", archived_at),
         Index("ix_batches_dev_eui_prefix", dev_eui_prefix),
+        Index("ix_batches_kg_version_id", kg_version_id),
     )
 
 

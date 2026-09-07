@@ -1,7 +1,7 @@
 from app.auth.principal import CurrentPrincipal
 from app.modules.audit.types import AuditActor, AuditEntity
 
-from ..models import KgDevEuiPrefix, KgUnit
+from ..models import KgDevEuiPrefix, KgUnit, KgVersion
 
 
 def actor_identity(actor: CurrentPrincipal) -> AuditActor:
@@ -27,4 +27,13 @@ def prefix_entity(item: KgDevEuiPrefix) -> AuditEntity:
         id=item.prefix,
         display_name=item.name or item.prefix,
         identifier=item.prefix,
+    )
+
+
+def version_entity(item: KgVersion) -> AuditEntity:
+    return AuditEntity(
+        type="kg_version",
+        id=str(item.id),
+        display_name=item.name,
+        identifier=item.code,
     )

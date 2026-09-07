@@ -9,10 +9,12 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.auth.principal import CurrentPrincipal
 from app.modules.audit.service import AuditService
+from app.modules.kg.exceptions import KgVersionNotFoundError
+from app.modules.kg.repositories import KgVersionRepository
 from app.modules.kg.services import KgPrefixService, KgService
 from app.modules.verification.services import VerificationManagementService
 
-from ..exceptions import BatchCannotBeDeletedError
+from ..exceptions import BatchCannotBeDeletedError, BatchKgVersionArchivedError
 from ..models import Batch, BatchStatus
 from ..repositories import (
     BatchReceiptRepository,
@@ -69,24 +71,47 @@ class BatchService:
         dev_eui_prefix: str,
         planned_qty: int,
         day_plan_qty: int,
+        kg_version_id: UUID | None = None,
     ) -> Batch:
         lifecycle.ensure_management_allowed(actor)
 
         async with transaction(self._session_factory) as session:
             batch_repository = BatchRepository(session)
             kg_operations = KgService(session)
+
+            if kg_version_id is not None:
+                version = await KgVersionRepository(session).get(kg_version_id)
+
+                if version is None:
+                    raise KgVersionNotFoundError
+
+                if version.archived_at is not None:
+                    raise BatchKgVersionArchivedError
+
             prefix, dev_euis = await KgPrefixService(session).prepare_allocation(
                 dev_eui_prefix, planned_qty
             )
 
-            batch = await batch_repository.create(
-                name=name,
-                description=description,
-                dev_eui_prefix=prefix.prefix,
-                planned_qty=planned_qty,
-                day_plan_qty=day_plan_qty,
-                created_by_user_id=actor.user_id,
-            )
+            if kg_version_id is None:
+                batch = await batch_repository.create(
+                    name=name,
+                    description=description,
+                    dev_eui_prefix=prefix.prefix,
+                    planned_qty=planned_qty,
+                    day_plan_qty=day_plan_qty,
+                    created_by_user_id=actor.user_id,
+                )
+
+            else:
+                batch = await batch_repository.create(
+                    name=name,
+                    description=description,
+                    dev_eui_prefix=prefix.prefix,
+                    kg_version_id=kg_version_id,
+                    planned_qty=planned_qty,
+                    day_plan_qty=day_plan_qty,
+                    created_by_user_id=actor.user_id,
+                )
 
             kg_units = await kg_operations.allocate_for_batch(
                 dev_euis=dev_euis,
@@ -102,6 +127,7 @@ class BatchService:
                     "name": batch.name,
                     "description": batch.description,
                     "dev_eui_prefix": prefix.prefix,
+                    "kg_version_id": str(kg_version_id) if kg_version_id else None,
                     "dev_eui_start": dev_euis[0],
                     "dev_eui_end": dev_euis[-1],
                     "planned_qty": batch.planned_qty,
@@ -276,7 +302,11 @@ class BatchService:
             shipment_repository = BatchShipmentRepository(session)
             kg_operations = KgService(session)
 
-            batch = await queries.required_batch(batch_repository, batch_id, for_update=True)
+            batch = await queries.required_batch(
+                batch_repository,
+                batch_id,
+                for_update=True,
+            )
 
             lifecycle.ensure_not_archived(batch)
             lifecycle.ensure_batch_edit_allowed(

@@ -2,9 +2,13 @@ from typing import cast
 
 from fastapi import Request
 
-from ..models import KgDevEuiPrefix, KgUnit
-from ..schemas import KgDevEuiPrefixResponse, KgResponse
-from ..services import KgDevEuiPrefixManagementService, KgManagementService
+from ..models import KgDevEuiPrefix, KgUnit, KgVersion
+from ..schemas import KgDevEuiPrefixResponse, KgResponse, KgVersionResponse
+from ..services import (
+    KgDevEuiPrefixManagementService,
+    KgManagementService,
+    KgVersionManagementService,
+)
 
 
 def _response(kg: KgUnit) -> KgResponse:
@@ -28,9 +32,25 @@ def _prefix_response(item: KgDevEuiPrefix) -> KgDevEuiPrefixResponse:
     )
 
 
+def _version_response(item: KgVersion) -> KgVersionResponse:
+    return KgVersionResponse(
+        id=item.id,
+        code=item.code,
+        name=item.name,
+        description=item.description,
+        created_at=item.created_at,
+        updated_at=item.updated_at,
+        archived_at=item.archived_at,
+    )
+
+
 def _service(request: Request) -> KgManagementService:
     return cast(KgManagementService, request.app.state.kg_management)
 
 
 def _prefix_service(request: Request) -> KgDevEuiPrefixManagementService:
     return cast(KgDevEuiPrefixManagementService, request.app.state.kg_dev_eui_prefix_management)
+
+
+def _version_service(request: Request) -> KgVersionManagementService:
+    return cast(KgVersionManagementService, request.app.state.kg_version_management)

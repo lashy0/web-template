@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { auditListAuditEvents, authMe, batchAddBatchShipmentItem, batchCompleteBatch, batchCompleteBatchShipment, batchCreateBatch, batchCreateBatchReceipt, batchCreateBatchShipment, batchDeleteBatch, batchGetBatch, batchListBatches, batchListBatchReceipts, batchListBatchShipmentItems, batchListBatchShipments, batchRemoveBatchShipmentItem, batchUpdateBatch, batchUpdateBatchArchived, batchUpdateBatchReceipt, batchUpdateBatchShipment, batchVoidBatchReceipt, batchVoidBatchShipment, defectsCreateDefectGroup, defectsCreateDefectType, defectsDeleteDefectGroup, defectsDeleteDefectType, defectsGetDefectGroup, defectsGetDefectType, defectsListDefectGroups, defectsListDefectTypes, defectsUpdateDefectGroup, defectsUpdateDefectGroupArchived, defectsUpdateDefectType, defectsUpdateDefectTypeArchived, kgCreateDevEuiPrefix, kgDeleteDevEuiPrefix, kgGetKg, kgListDevEuiPrefixes, kgListKg, kgUpdateDevEuiPrefix, kgUpdateDevEuiPrefixArchived, type Options, pakCreatePak, pakDeletePak, pakGetAccessKey, pakGetPak, pakGetPakTest, pakListPak, pakListPakTests, pakRotateAccessKey, pakUpdateActive, pakUpdateArchived, pakUpdatePak, usersCreateUser, usersDeleteUser, usersGetUser, usersListUsers, usersUpdateActive, usersUpdateArchived, usersUpdatePassword, usersUpdateUser, verificationGetSession, verificationListSessions } from '../sdk.gen';
-import type { AuditListAuditEventsData, AuditListAuditEventsError, AuditListAuditEventsResponse, AuthMeData, AuthMeResponse, BatchAddBatchShipmentItemData, BatchAddBatchShipmentItemError, BatchAddBatchShipmentItemResponse, BatchCompleteBatchData, BatchCompleteBatchError, BatchCompleteBatchResponse, BatchCompleteBatchShipmentData, BatchCompleteBatchShipmentError, BatchCompleteBatchShipmentResponse, BatchCreateBatchData, BatchCreateBatchError, BatchCreateBatchReceiptData, BatchCreateBatchReceiptError, BatchCreateBatchReceiptResponse, BatchCreateBatchResponse, BatchCreateBatchShipmentData, BatchCreateBatchShipmentError, BatchCreateBatchShipmentResponse, BatchDeleteBatchData, BatchDeleteBatchError, BatchDeleteBatchResponse, BatchGetBatchData, BatchGetBatchError, BatchGetBatchResponse, BatchListBatchesData, BatchListBatchesError, BatchListBatchesResponse, BatchListBatchReceiptsData, BatchListBatchReceiptsError, BatchListBatchReceiptsResponse, BatchListBatchShipmentItemsData, BatchListBatchShipmentItemsError, BatchListBatchShipmentItemsResponse, BatchListBatchShipmentsData, BatchListBatchShipmentsError, BatchListBatchShipmentsResponse, BatchRemoveBatchShipmentItemData, BatchRemoveBatchShipmentItemError, BatchRemoveBatchShipmentItemResponse, BatchUpdateBatchArchivedData, BatchUpdateBatchArchivedError, BatchUpdateBatchArchivedResponse, BatchUpdateBatchData, BatchUpdateBatchError, BatchUpdateBatchReceiptData, BatchUpdateBatchReceiptError, BatchUpdateBatchReceiptResponse, BatchUpdateBatchResponse, BatchUpdateBatchShipmentData, BatchUpdateBatchShipmentError, BatchUpdateBatchShipmentResponse, BatchVoidBatchReceiptData, BatchVoidBatchReceiptError, BatchVoidBatchReceiptResponse, BatchVoidBatchShipmentData, BatchVoidBatchShipmentError, BatchVoidBatchShipmentResponse, DefectsCreateDefectGroupData, DefectsCreateDefectGroupError, DefectsCreateDefectGroupResponse, DefectsCreateDefectTypeData, DefectsCreateDefectTypeError, DefectsCreateDefectTypeResponse, DefectsDeleteDefectGroupData, DefectsDeleteDefectGroupError, DefectsDeleteDefectGroupResponse, DefectsDeleteDefectTypeData, DefectsDeleteDefectTypeError, DefectsDeleteDefectTypeResponse, DefectsGetDefectGroupData, DefectsGetDefectGroupError, DefectsGetDefectGroupResponse, DefectsGetDefectTypeData, DefectsGetDefectTypeError, DefectsGetDefectTypeResponse, DefectsListDefectGroupsData, DefectsListDefectGroupsError, DefectsListDefectGroupsResponse, DefectsListDefectTypesData, DefectsListDefectTypesError, DefectsListDefectTypesResponse, DefectsUpdateDefectGroupArchivedData, DefectsUpdateDefectGroupArchivedError, DefectsUpdateDefectGroupArchivedResponse, DefectsUpdateDefectGroupData, DefectsUpdateDefectGroupError, DefectsUpdateDefectGroupResponse, DefectsUpdateDefectTypeArchivedData, DefectsUpdateDefectTypeArchivedError, DefectsUpdateDefectTypeArchivedResponse, DefectsUpdateDefectTypeData, DefectsUpdateDefectTypeError, DefectsUpdateDefectTypeResponse, KgCreateDevEuiPrefixData, KgCreateDevEuiPrefixError, KgCreateDevEuiPrefixResponse, KgDeleteDevEuiPrefixData, KgDeleteDevEuiPrefixError, KgDeleteDevEuiPrefixResponse, KgGetKgData, KgGetKgError, KgGetKgResponse, KgListDevEuiPrefixesData, KgListDevEuiPrefixesError, KgListDevEuiPrefixesResponse, KgListKgData, KgListKgError, KgListKgResponse, KgUpdateDevEuiPrefixArchivedData, KgUpdateDevEuiPrefixArchivedError, KgUpdateDevEuiPrefixArchivedResponse, KgUpdateDevEuiPrefixData, KgUpdateDevEuiPrefixError, KgUpdateDevEuiPrefixResponse, PakCreatePakData, PakCreatePakError, PakCreatePakResponse, PakDeletePakData, PakDeletePakError, PakDeletePakResponse, PakGetAccessKeyData, PakGetAccessKeyError, PakGetAccessKeyResponse, PakGetPakData, PakGetPakError, PakGetPakResponse, PakGetPakTestData, PakGetPakTestError, PakGetPakTestResponse, PakListPakData, PakListPakError, PakListPakResponse, PakListPakTestsData, PakListPakTestsError, PakListPakTestsResponse, PakRotateAccessKeyData, PakRotateAccessKeyError, PakRotateAccessKeyResponse, PakUpdateActiveData, PakUpdateActiveError, PakUpdateActiveResponse, PakUpdateArchivedData, PakUpdateArchivedError, PakUpdateArchivedResponse, PakUpdatePakData, PakUpdatePakError, PakUpdatePakResponse, UsersCreateUserData, UsersCreateUserError, UsersCreateUserResponse, UsersDeleteUserData, UsersDeleteUserError, UsersDeleteUserResponse, UsersGetUserData, UsersGetUserError, UsersGetUserResponse, UsersListUsersData, UsersListUsersError, UsersListUsersResponse, UsersUpdateActiveData, UsersUpdateActiveError, UsersUpdateActiveResponse, UsersUpdateArchivedData, UsersUpdateArchivedError, UsersUpdateArchivedResponse, UsersUpdatePasswordData, UsersUpdatePasswordError, UsersUpdatePasswordResponse, UsersUpdateUserData, UsersUpdateUserError, UsersUpdateUserResponse, VerificationGetSessionData, VerificationGetSessionError, VerificationGetSessionResponse, VerificationListSessionsData, VerificationListSessionsError, VerificationListSessionsResponse } from '../types.gen';
+import { auditListAuditEvents, authMe, batchAddBatchShipmentItem, batchCompleteBatch, batchCompleteBatchShipment, batchCreateBatch, batchCreateBatchReceipt, batchCreateBatchShipment, batchDeleteBatch, batchGetBatch, batchListBatches, batchListBatchReceipts, batchListBatchShipmentItems, batchListBatchShipments, batchRemoveBatchShipmentItem, batchUpdateBatch, batchUpdateBatchArchived, batchUpdateBatchReceipt, batchUpdateBatchShipment, batchVoidBatchReceipt, batchVoidBatchShipment, defectsCreateDefectGroup, defectsCreateDefectType, defectsDeleteDefectGroup, defectsDeleteDefectType, defectsGetDefectGroup, defectsGetDefectType, defectsListDefectGroups, defectsListDefectTypes, defectsUpdateDefectGroup, defectsUpdateDefectGroupArchived, defectsUpdateDefectType, defectsUpdateDefectTypeArchived, kgCreateDevEuiPrefix, kgCreateKgVersion, kgDeleteDevEuiPrefix, kgDeleteKgVersion, kgGetKg, kgListDevEuiPrefixes, kgListKg, kgListKgVersions, kgUpdateDevEuiPrefix, kgUpdateDevEuiPrefixArchived, kgUpdateKgVersion, kgUpdateKgVersionArchived, type Options, pakCreatePak, pakDeletePak, pakGetAccessKey, pakGetPak, pakGetPakTest, pakListPak, pakListPakTests, pakRotateAccessKey, pakUpdateActive, pakUpdateArchived, pakUpdatePak, usersCreateUser, usersDeleteUser, usersGetUser, usersListUsers, usersUpdateActive, usersUpdateArchived, usersUpdatePassword, usersUpdateUser, verificationGetSession, verificationListSessions } from '../sdk.gen';
+import type { AuditListAuditEventsData, AuditListAuditEventsError, AuditListAuditEventsResponse, AuthMeData, AuthMeResponse, BatchAddBatchShipmentItemData, BatchAddBatchShipmentItemError, BatchAddBatchShipmentItemResponse, BatchCompleteBatchData, BatchCompleteBatchError, BatchCompleteBatchResponse, BatchCompleteBatchShipmentData, BatchCompleteBatchShipmentError, BatchCompleteBatchShipmentResponse, BatchCreateBatchData, BatchCreateBatchError, BatchCreateBatchReceiptData, BatchCreateBatchReceiptError, BatchCreateBatchReceiptResponse, BatchCreateBatchResponse, BatchCreateBatchShipmentData, BatchCreateBatchShipmentError, BatchCreateBatchShipmentResponse, BatchDeleteBatchData, BatchDeleteBatchError, BatchDeleteBatchResponse, BatchGetBatchData, BatchGetBatchError, BatchGetBatchResponse, BatchListBatchesData, BatchListBatchesError, BatchListBatchesResponse, BatchListBatchReceiptsData, BatchListBatchReceiptsError, BatchListBatchReceiptsResponse, BatchListBatchShipmentItemsData, BatchListBatchShipmentItemsError, BatchListBatchShipmentItemsResponse, BatchListBatchShipmentsData, BatchListBatchShipmentsError, BatchListBatchShipmentsResponse, BatchRemoveBatchShipmentItemData, BatchRemoveBatchShipmentItemError, BatchRemoveBatchShipmentItemResponse, BatchUpdateBatchArchivedData, BatchUpdateBatchArchivedError, BatchUpdateBatchArchivedResponse, BatchUpdateBatchData, BatchUpdateBatchError, BatchUpdateBatchReceiptData, BatchUpdateBatchReceiptError, BatchUpdateBatchReceiptResponse, BatchUpdateBatchResponse, BatchUpdateBatchShipmentData, BatchUpdateBatchShipmentError, BatchUpdateBatchShipmentResponse, BatchVoidBatchReceiptData, BatchVoidBatchReceiptError, BatchVoidBatchReceiptResponse, BatchVoidBatchShipmentData, BatchVoidBatchShipmentError, BatchVoidBatchShipmentResponse, DefectsCreateDefectGroupData, DefectsCreateDefectGroupError, DefectsCreateDefectGroupResponse, DefectsCreateDefectTypeData, DefectsCreateDefectTypeError, DefectsCreateDefectTypeResponse, DefectsDeleteDefectGroupData, DefectsDeleteDefectGroupError, DefectsDeleteDefectGroupResponse, DefectsDeleteDefectTypeData, DefectsDeleteDefectTypeError, DefectsDeleteDefectTypeResponse, DefectsGetDefectGroupData, DefectsGetDefectGroupError, DefectsGetDefectGroupResponse, DefectsGetDefectTypeData, DefectsGetDefectTypeError, DefectsGetDefectTypeResponse, DefectsListDefectGroupsData, DefectsListDefectGroupsError, DefectsListDefectGroupsResponse, DefectsListDefectTypesData, DefectsListDefectTypesError, DefectsListDefectTypesResponse, DefectsUpdateDefectGroupArchivedData, DefectsUpdateDefectGroupArchivedError, DefectsUpdateDefectGroupArchivedResponse, DefectsUpdateDefectGroupData, DefectsUpdateDefectGroupError, DefectsUpdateDefectGroupResponse, DefectsUpdateDefectTypeArchivedData, DefectsUpdateDefectTypeArchivedError, DefectsUpdateDefectTypeArchivedResponse, DefectsUpdateDefectTypeData, DefectsUpdateDefectTypeError, DefectsUpdateDefectTypeResponse, KgCreateDevEuiPrefixData, KgCreateDevEuiPrefixError, KgCreateDevEuiPrefixResponse, KgCreateKgVersionData, KgCreateKgVersionError, KgCreateKgVersionResponse, KgDeleteDevEuiPrefixData, KgDeleteDevEuiPrefixError, KgDeleteDevEuiPrefixResponse, KgDeleteKgVersionData, KgDeleteKgVersionError, KgDeleteKgVersionResponse, KgGetKgData, KgGetKgError, KgGetKgResponse, KgListDevEuiPrefixesData, KgListDevEuiPrefixesError, KgListDevEuiPrefixesResponse, KgListKgData, KgListKgError, KgListKgResponse, KgListKgVersionsData, KgListKgVersionsError, KgListKgVersionsResponse, KgUpdateDevEuiPrefixArchivedData, KgUpdateDevEuiPrefixArchivedError, KgUpdateDevEuiPrefixArchivedResponse, KgUpdateDevEuiPrefixData, KgUpdateDevEuiPrefixError, KgUpdateDevEuiPrefixResponse, KgUpdateKgVersionArchivedData, KgUpdateKgVersionArchivedError, KgUpdateKgVersionArchivedResponse, KgUpdateKgVersionData, KgUpdateKgVersionError, KgUpdateKgVersionResponse, PakCreatePakData, PakCreatePakError, PakCreatePakResponse, PakDeletePakData, PakDeletePakError, PakDeletePakResponse, PakGetAccessKeyData, PakGetAccessKeyError, PakGetAccessKeyResponse, PakGetPakData, PakGetPakError, PakGetPakResponse, PakGetPakTestData, PakGetPakTestError, PakGetPakTestResponse, PakListPakData, PakListPakError, PakListPakResponse, PakListPakTestsData, PakListPakTestsError, PakListPakTestsResponse, PakRotateAccessKeyData, PakRotateAccessKeyError, PakRotateAccessKeyResponse, PakUpdateActiveData, PakUpdateActiveError, PakUpdateActiveResponse, PakUpdateArchivedData, PakUpdateArchivedError, PakUpdateArchivedResponse, PakUpdatePakData, PakUpdatePakError, PakUpdatePakResponse, UsersCreateUserData, UsersCreateUserError, UsersCreateUserResponse, UsersDeleteUserData, UsersDeleteUserError, UsersDeleteUserResponse, UsersGetUserData, UsersGetUserError, UsersGetUserResponse, UsersListUsersData, UsersListUsersError, UsersListUsersResponse, UsersUpdateActiveData, UsersUpdateActiveError, UsersUpdateActiveResponse, UsersUpdateArchivedData, UsersUpdateArchivedError, UsersUpdateArchivedResponse, UsersUpdatePasswordData, UsersUpdatePasswordError, UsersUpdatePasswordResponse, UsersUpdateUserData, UsersUpdateUserError, UsersUpdateUserResponse, VerificationGetSessionData, VerificationGetSessionError, VerificationGetSessionResponse, VerificationListSessionsData, VerificationListSessionsError, VerificationListSessionsResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -914,6 +914,122 @@ export const kgUpdateDevEuiPrefixArchivedMutation = (options?: Partial<Options<K
     const mutationOptions: UseMutationOptions<KgUpdateDevEuiPrefixArchivedResponse, KgUpdateDevEuiPrefixArchivedError, Options<KgUpdateDevEuiPrefixArchivedData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await kgUpdateDevEuiPrefixArchived({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const kgListKgVersionsQueryKey = (options?: Options<KgListKgVersionsData>) => createQueryKey('kgListKgVersions', options);
+
+/**
+ * List Kg Versions
+ */
+export const kgListKgVersionsOptions = (options?: Options<KgListKgVersionsData>) => queryOptions<KgListKgVersionsResponse, KgListKgVersionsError, KgListKgVersionsResponse, ReturnType<typeof kgListKgVersionsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await kgListKgVersions({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: kgListKgVersionsQueryKey(options)
+});
+
+export const kgListKgVersionsInfiniteQueryKey = (options?: Options<KgListKgVersionsData>): QueryKey<Options<KgListKgVersionsData>> => createQueryKey('kgListKgVersions', options, true);
+
+/**
+ * List Kg Versions
+ */
+export const kgListKgVersionsInfiniteOptions = (options?: Options<KgListKgVersionsData>) => {
+    const opts = infiniteQueryOptions<KgListKgVersionsResponse, KgListKgVersionsError, InfiniteData<KgListKgVersionsResponse>, QueryKey<Options<KgListKgVersionsData>>, number | Pick<QueryKey<Options<KgListKgVersionsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<KgListKgVersionsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    page: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await kgListKgVersions({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: kgListKgVersionsInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+/**
+ * Create Kg Version
+ */
+export const kgCreateKgVersionMutation = (options?: Partial<Options<KgCreateKgVersionData>>): UseMutationOptions<KgCreateKgVersionResponse, KgCreateKgVersionError, Options<KgCreateKgVersionData>> => {
+    const mutationOptions: UseMutationOptions<KgCreateKgVersionResponse, KgCreateKgVersionError, Options<KgCreateKgVersionData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await kgCreateKgVersion({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Delete Kg Version
+ */
+export const kgDeleteKgVersionMutation = (options?: Partial<Options<KgDeleteKgVersionData>>): UseMutationOptions<KgDeleteKgVersionResponse, KgDeleteKgVersionError, Options<KgDeleteKgVersionData>> => {
+    const mutationOptions: UseMutationOptions<KgDeleteKgVersionResponse, KgDeleteKgVersionError, Options<KgDeleteKgVersionData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await kgDeleteKgVersion({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Update Kg Version
+ */
+export const kgUpdateKgVersionMutation = (options?: Partial<Options<KgUpdateKgVersionData>>): UseMutationOptions<KgUpdateKgVersionResponse, KgUpdateKgVersionError, Options<KgUpdateKgVersionData>> => {
+    const mutationOptions: UseMutationOptions<KgUpdateKgVersionResponse, KgUpdateKgVersionError, Options<KgUpdateKgVersionData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await kgUpdateKgVersion({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Update Kg Version Archived
+ */
+export const kgUpdateKgVersionArchivedMutation = (options?: Partial<Options<KgUpdateKgVersionArchivedData>>): UseMutationOptions<KgUpdateKgVersionArchivedResponse, KgUpdateKgVersionArchivedError, Options<KgUpdateKgVersionArchivedData>> => {
+    const mutationOptions: UseMutationOptions<KgUpdateKgVersionArchivedResponse, KgUpdateKgVersionArchivedError, Options<KgUpdateKgVersionArchivedData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await kgUpdateKgVersionArchived({
                 ...options,
                 ...fnOptions,
                 throwOnError: true

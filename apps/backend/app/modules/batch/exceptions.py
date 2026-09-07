@@ -155,3 +155,15 @@ class BatchDevEuiRangeOverflowError(BatchError, ConflictError):
     """The DevEUI suffix range exceeds six hex characters."""
 
     code = "batch_dev_eui_range_overflow"
+
+
+class BatchKgVersionArchivedError(BatchError, ConflictError):
+    """An archived KG version cannot be assigned to a new batch."""
+
+    code = "batch_kg_version_archived"
+
+
+class BatchKgVersionNotFoundError(BatchError, NotFoundError):
+    """The requested KG version does not exist."""
+
+    code = "batch_kg_version_not_found"

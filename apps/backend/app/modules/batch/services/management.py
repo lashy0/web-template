@@ -68,6 +68,7 @@ class BatchManagementService:
         dev_eui_prefix: str,
         planned_qty: int,
         day_plan_qty: int,
+        kg_version_id: UUID | None = None,
     ) -> Batch:
         return await self.batch.create(
             actor=actor,
@@ -76,6 +77,7 @@ class BatchManagementService:
             dev_eui_prefix=dev_eui_prefix,
             planned_qty=planned_qty,
             day_plan_qty=day_plan_qty,
+            kg_version_id=kg_version_id,
         )
 
     async def update(
@@ -132,7 +134,10 @@ class BatchManagementService:
         *,
         include_voided: bool = False,
     ) -> builtins.list[BatchReceipt]:
-        return await self.receipt.list_receipts(batch_id, include_voided=include_voided)
+        return await self.receipt.list_receipts(
+            batch_id,
+            include_voided=include_voided,
+        )
 
     async def get_received_total(self, batch_id: UUID) -> int:
         return await self.receipt.get_received_total(batch_id)
@@ -146,7 +151,10 @@ class BatchManagementService:
         comment: str | None,
     ) -> BatchReceipt:
         return await self.receipt.create_receipt(
-            actor=actor, batch_id=batch_id, quantity=quantity, comment=comment
+            actor=actor,
+            batch_id=batch_id,
+            quantity=quantity,
+            comment=comment,
         )
 
     async def update_receipt(
@@ -158,7 +166,10 @@ class BatchManagementService:
         updates: Mapping[str, object],
     ) -> BatchReceipt:
         return await self.receipt.update_receipt(
-            actor=actor, batch_id=batch_id, receipt_id=receipt_id, updates=updates
+            actor=actor,
+            batch_id=batch_id,
+            receipt_id=receipt_id,
+            updates=updates,
         )
 
     async def void_receipt(
@@ -170,7 +181,10 @@ class BatchManagementService:
         reason: str,
     ) -> BatchReceipt:
         return await self.receipt.void_receipt(
-            actor=actor, batch_id=batch_id, receipt_id=receipt_id, reason=reason
+            actor=actor,
+            batch_id=batch_id,
+            receipt_id=receipt_id,
+            reason=reason,
         )
 
     async def list_shipments(
@@ -179,7 +193,10 @@ class BatchManagementService:
         *,
         include_voided: bool = False,
     ) -> builtins.list[BatchShipment]:
-        return await self.shipment.list_shipments(batch_id, include_voided=include_voided)
+        return await self.shipment.list_shipments(
+            batch_id,
+            include_voided=include_voided,
+        )
 
     async def get_shipped_total(self, batch_id: UUID) -> int:
         return await self.shipment.get_shipped_total(batch_id)

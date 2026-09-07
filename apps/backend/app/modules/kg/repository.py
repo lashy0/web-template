@@ -1,3 +1,11 @@
-from .repositories import KgDevEuiPrefixRepository, KgRepository
+from .repositories import (
+    KgDevEuiPrefixRepository,
+    KgRepository,
+    KgVersionRepository,
+)
 
-__all__ = ["KgDevEuiPrefixRepository", "KgRepository"]
+__all__ = [
+    "KgDevEuiPrefixRepository",
+    "KgRepository",
+    "KgVersionRepository",
+]

@@ -218,6 +218,10 @@ export type BatchResponse = {
      */
     id: string;
     /**
+     * Kg Version Id
+     */
+    kg_version_id: string | null;
+    /**
      * Name
      */
     name: string;
@@ -346,6 +350,10 @@ export type CreateBatchRequest = {
      */
     dev_eui_prefix: string;
     /**
+     * Kg Version Id
+     */
+    kg_version_id?: string | null;
+    /**
      * Name
      */
     name: string;
@@ -429,6 +437,24 @@ export type CreateKgDevEuiPrefixRequest = {
      * Short Code
      */
     short_code: string;
+};
+
+/**
+ * CreateKgVersionRequest
+ */
+export type CreateKgVersionRequest = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Name
+     */
+    name: string;
 };
 
 /**
@@ -782,6 +808,62 @@ export type KgResponse = {
 export type KgStatus = 'REGISTERED' | 'TESTING' | 'TEST_FAILED' | 'IN_ENGINEER_REPAIR' | 'IN_PRODUCTION_REPAIR' | 'READY_FOR_RETEST' | 'READY_FOR_PACKING' | 'PACKED' | 'SHIPPED' | 'SCRAPPED';
 
 /**
+ * KgVersionListResponse
+ */
+export type KgVersionListResponse = {
+    /**
+     * Items
+     */
+    items: Array<KgVersionResponse>;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
+ * KgVersionResponse
+ */
+export type KgVersionResponse = {
+    /**
+     * Archived At
+     */
+    archived_at: string | null;
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Description
+     */
+    description: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
  * PakAccessKeyResponse
  */
 export type PakAccessKeyResponse = {
@@ -1054,6 +1136,30 @@ export type UpdateKgDevEuiPrefixArchivedRequest = {
  * UpdateKgDevEuiPrefixRequest
  */
 export type UpdateKgDevEuiPrefixRequest = {
+    /**
+     * Name
+     */
+    name?: string | null;
+};
+
+/**
+ * UpdateKgVersionArchivedRequest
+ */
+export type UpdateKgVersionArchivedRequest = {
+    /**
+     * Archived
+     */
+    archived: boolean;
+};
+
+/**
+ * UpdateKgVersionRequest
+ */
+export type UpdateKgVersionRequest = {
+    /**
+     * Description
+     */
+    description?: string | null;
     /**
      * Name
      */
@@ -2730,6 +2836,171 @@ export type KgUpdateDevEuiPrefixArchivedResponses = {
 };
 
 export type KgUpdateDevEuiPrefixArchivedResponse = KgUpdateDevEuiPrefixArchivedResponses[keyof KgUpdateDevEuiPrefixArchivedResponses];
+
+export type KgListKgVersionsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Q
+         */
+        q?: string | null;
+        /**
+         * Archived
+         */
+        archived?: boolean;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+        /**
+         * Sort By
+         */
+        sort_by?: 'code' | 'name' | 'description' | 'created_at' | 'updated_at' | 'archived_at';
+        /**
+         * Sort Order
+         */
+        sort_order?: 'asc' | 'desc';
+    };
+    url: '/kg/versions';
+};
+
+export type KgListKgVersionsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type KgListKgVersionsError = KgListKgVersionsErrors[keyof KgListKgVersionsErrors];
+
+export type KgListKgVersionsResponses = {
+    /**
+     * Successful Response
+     */
+    200: KgVersionListResponse;
+};
+
+export type KgListKgVersionsResponse = KgListKgVersionsResponses[keyof KgListKgVersionsResponses];
+
+export type KgCreateKgVersionData = {
+    body: CreateKgVersionRequest;
+    path?: never;
+    query?: never;
+    url: '/kg/versions';
+};
+
+export type KgCreateKgVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type KgCreateKgVersionError = KgCreateKgVersionErrors[keyof KgCreateKgVersionErrors];
+
+export type KgCreateKgVersionResponses = {
+    /**
+     * Successful Response
+     */
+    201: KgVersionResponse;
+};
+
+export type KgCreateKgVersionResponse = KgCreateKgVersionResponses[keyof KgCreateKgVersionResponses];
+
+export type KgDeleteKgVersionData = {
+    body?: never;
+    path: {
+        /**
+         * Version Id
+         */
+        version_id: string;
+    };
+    query?: never;
+    url: '/kg/versions/{version_id}';
+};
+
+export type KgDeleteKgVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type KgDeleteKgVersionError = KgDeleteKgVersionErrors[keyof KgDeleteKgVersionErrors];
+
+export type KgDeleteKgVersionResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type KgDeleteKgVersionResponse = KgDeleteKgVersionResponses[keyof KgDeleteKgVersionResponses];
+
+export type KgUpdateKgVersionData = {
+    body: UpdateKgVersionRequest;
+    path: {
+        /**
+         * Version Id
+         */
+        version_id: string;
+    };
+    query?: never;
+    url: '/kg/versions/{version_id}';
+};
+
+export type KgUpdateKgVersionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type KgUpdateKgVersionError = KgUpdateKgVersionErrors[keyof KgUpdateKgVersionErrors];
+
+export type KgUpdateKgVersionResponses = {
+    /**
+     * Successful Response
+     */
+    200: KgVersionResponse;
+};
+
+export type KgUpdateKgVersionResponse = KgUpdateKgVersionResponses[keyof KgUpdateKgVersionResponses];
+
+export type KgUpdateKgVersionArchivedData = {
+    body: UpdateKgVersionArchivedRequest;
+    path: {
+        /**
+         * Version Id
+         */
+        version_id: string;
+    };
+    query?: never;
+    url: '/kg/versions/{version_id}/archived';
+};
+
+export type KgUpdateKgVersionArchivedErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type KgUpdateKgVersionArchivedError = KgUpdateKgVersionArchivedErrors[keyof KgUpdateKgVersionArchivedErrors];
+
+export type KgUpdateKgVersionArchivedResponses = {
+    /**
+     * Successful Response
+     */
+    200: KgVersionResponse;
+};
+
+export type KgUpdateKgVersionArchivedResponse = KgUpdateKgVersionArchivedResponses[keyof KgUpdateKgVersionArchivedResponses];
 
 export type KgGetKgData = {
     body?: never;
