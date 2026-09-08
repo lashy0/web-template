@@ -15,7 +15,7 @@ export type CalendarDateRange = Readonly<{
 
 const dateFormatter = new Intl.DateTimeFormat('ru-RU', {
   day: 'numeric',
-  month: 'short',
+  month: 'long',
 })
 
 const dateTimeFormatter = new Intl.DateTimeFormat('ru-RU', {
@@ -27,7 +27,16 @@ const dateTimeFormatter = new Intl.DateTimeFormat('ru-RU', {
 })
 
 export function formatDatePeriod(period: DatePeriod): string {
-  return `${formatDate(period.from)} — ${formatDate(period.to)}`
+  if (period.from === period.to) {
+    return formatDate(period.from)
+  }
+
+  const from =
+    period.from.slice(0, 7) === period.to.slice(0, 7)
+      ? toLocalDate(period.from).getDate()
+      : formatDate(period.from)
+
+  return `с ${from} по ${formatDate(period.to)}`
 }
 
 export function formatDateTime(value: string): string {

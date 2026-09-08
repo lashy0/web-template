@@ -46,10 +46,21 @@ async function renderAudit() {
 }
 
 describe('Audit', () => {
-  afterEach(cleanup)
+  afterEach(() => {
+    cleanup()
+    vi.unstubAllGlobals()
+  })
 
   beforeEach(() => {
     mocks.listUserAudit.mockReset()
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockReturnValue({
+        matches: true,
+        addEventListener: vi.fn<() => void>(),
+        removeEventListener: vi.fn<() => void>(),
+      }),
+    )
   })
 
   it('keeps the page title visible while audit data is loading', async () => {
