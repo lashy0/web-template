@@ -1,4 +1,5 @@
-import builtins
+from __future__ import annotations
+
 from collections.abc import Callable
 from uuid import UUID
 
@@ -43,7 +44,7 @@ class UserManagementService:
         page_size: int,
         sort: str,
         order: str,
-    ) -> tuple[builtins.list[User], int]:
+    ) -> tuple[list[User], int]:
         return await self._account.list(
             q=q,
             role=role,

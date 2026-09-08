@@ -1,4 +1,5 @@
-import builtins
+from __future__ import annotations
+
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -60,7 +61,7 @@ class UserAccountService:
         page_size: int,
         sort: str,
         order: str,
-    ) -> tuple[builtins.list[User], int]:
+    ) -> tuple[list[User], int]:
         async with self._session_factory() as session:
             return await UserRepository(session).search(
                 q=q,

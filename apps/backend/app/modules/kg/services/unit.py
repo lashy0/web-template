@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import builtins
 from collections.abc import Sequence
 from uuid import UUID
 
@@ -23,7 +22,7 @@ class KgService:
         self._session = session
         self._repository = KgRepository(session)
 
-    async def lock_for_update(self, dev_euis: Sequence[str]) -> builtins.list[KgUnit]:
+    async def lock_for_update(self, dev_euis: Sequence[str]) -> list[KgUnit]:
         """Lock all affected KG in DevEUI order before changing several units."""
         return await self._repository.get_many_by_dev_euis(dev_euis, for_update=True)
 
@@ -72,7 +71,7 @@ class KgService:
         page_size: int,
         sort: str,
         order: str,
-    ) -> tuple[builtins.list[KgUnit], int]:
+    ) -> tuple[list[KgUnit], int]:
         session = self._session
 
         return await KgRepository(session).search(
@@ -165,7 +164,7 @@ class KgService:
         batch_id: UUID,
         dev_euis: Sequence[str],
         short_code: str,
-    ) -> builtins.list[KgUnit]:
+    ) -> list[KgUnit]:
         return await self._repository.create_many(
             batch_id=batch_id,
             dev_euis=dev_euis,

@@ -1,4 +1,5 @@
-import builtins
+from __future__ import annotations
+
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -40,7 +41,7 @@ class PakTestCatalogService:
         page_size: int,
         sort: str,
         order: str,
-    ) -> tuple[builtins.list[PakTest], int]:
+    ) -> tuple[list[PakTest], int]:
         async with self._session_factory() as session:
             return await PakTestRepository(session).search(
                 q=q,

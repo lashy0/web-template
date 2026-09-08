@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import builtins
 from collections.abc import Mapping
 from datetime import timedelta
 from uuid import UUID
@@ -48,7 +47,7 @@ class BatchManagementService:
         page_size: int,
         sort: str,
         order: str,
-    ) -> tuple[builtins.list[Batch], int]:
+    ) -> tuple[list[Batch], int]:
         return await self.batch.list(
             q=q,
             status=status,
@@ -133,7 +132,7 @@ class BatchManagementService:
         batch_id: UUID,
         *,
         include_voided: bool = False,
-    ) -> builtins.list[BatchReceipt]:
+    ) -> list[BatchReceipt]:
         return await self.receipt.list_receipts(
             batch_id,
             include_voided=include_voided,
@@ -192,7 +191,7 @@ class BatchManagementService:
         batch_id: UUID,
         *,
         include_voided: bool = False,
-    ) -> builtins.list[BatchShipment]:
+    ) -> list[BatchShipment]:
         return await self.shipment.list_shipments(
             batch_id,
             include_voided=include_voided,
@@ -234,7 +233,7 @@ class BatchManagementService:
         *,
         batch_id: UUID,
         shipment_id: UUID,
-    ) -> builtins.list[BatchShipmentItem]:
+    ) -> list[BatchShipmentItem]:
         return await self.shipment.list_shipment_items(
             batch_id=batch_id,
             shipment_id=shipment_id,

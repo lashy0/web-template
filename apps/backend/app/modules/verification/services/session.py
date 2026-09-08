@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import builtins
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
@@ -59,7 +58,7 @@ class VerificationSessionService:
     ) -> (
         tuple[
             VerificationSession,
-            builtins.list[VerificationStep],
+            list[VerificationStep],
         ]
         | None
     ):
@@ -83,7 +82,7 @@ class VerificationSessionService:
         page_size: int,
         sort: str,
         order: str,
-    ) -> tuple[builtins.list[VerificationSession], int]:
+    ) -> tuple[list[VerificationSession], int]:
         session = self._session
 
         return await VerificationSessionRepository(session).search(

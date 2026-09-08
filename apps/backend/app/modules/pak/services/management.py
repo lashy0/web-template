@@ -1,4 +1,5 @@
-import builtins
+from __future__ import annotations
+
 from uuid import UUID
 
 from pydantic import SecretStr
@@ -48,7 +49,7 @@ class PakManagementService:
         page_size: int,
         sort: str,
         order: str,
-    ) -> tuple[builtins.list[PakDevice], int]:
+    ) -> tuple[list[PakDevice], int]:
         return await self._device.list(
             q=q,
             kind=kind,

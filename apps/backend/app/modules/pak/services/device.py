@@ -1,4 +1,5 @@
-import builtins
+from __future__ import annotations
+
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -39,7 +40,7 @@ class PakDeviceService:
         page_size: int,
         sort: str,
         order: str,
-    ) -> tuple[builtins.list[PakDevice], int]:
+    ) -> tuple[list[PakDevice], int]:
         async with self._session_factory() as session:
             return await PakRepository(session).search(
                 q=q,

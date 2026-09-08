@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import builtins
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
@@ -50,7 +49,7 @@ class BatchService:
         page_size: int,
         sort: str,
         order: str,
-    ) -> tuple[builtins.list[Batch], int]:
+    ) -> tuple[list[Batch], int]:
         async with self._session_factory() as session:
             return await BatchRepository(session).search(
                 q=q,
