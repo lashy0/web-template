@@ -1,12 +1,20 @@
 import { Link as RouterLink, useRouterState } from '@tanstack/react-router'
 import { BugIcon, ChevronRightIcon, CpuIcon, RadioTowerIcon, UsersIcon } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@web-app/ui/components/collapsible'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@web-app/ui/components/dropdown-menu'
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -20,32 +28,55 @@ import {
   useSidebar,
 } from '@web-app/ui/components/sidebar'
 
+const sections = [
+  {
+    label: 'Пользователи',
+    icon: UsersIcon,
+    items: [
+      { label: 'Список', to: '/admin/user/users' },
+      { label: 'Аудит', to: '/admin/user/audit' },
+    ],
+  },
+  {
+    label: 'ПАК',
+    icon: CpuIcon,
+    items: [
+      { label: 'Список', to: '/admin/pak/paks' },
+      { label: 'Аудит', to: '/admin/pak/audit' },
+    ],
+  },
+  {
+    label: 'Дефекты',
+    icon: BugIcon,
+    items: [
+      { label: 'Группы', to: '/admin/defects/groups' },
+      { label: 'Типы', to: '/admin/defects/types' },
+      { label: 'Аудит', to: '/admin/defects/audit' },
+    ],
+  },
+  {
+    label: 'КГ',
+    icon: RadioTowerIcon,
+    items: [
+      { label: 'Префиксы', to: '/admin/kg/prefixes' },
+      { label: 'Версии', to: '/admin/kg/versions' },
+      { label: 'Аудит', to: '/admin/kg/audit' },
+    ],
+  },
+] as const
+
 export function AdminNavigation() {
   const { isMobile, setOpenMobile, state } = useSidebar()
-  const [isUsersTooltipDismissed, setIsUsersTooltipDismissed] = useState(false)
-  const [isPaksTooltipDismissed, setIsPaksTooltipDismissed] = useState(false)
-  const [isDefectsTooltipDismissed, setIsDefectsTooltipDismissed] = useState(false)
-  const [isKgTooltipDismissed, setIsKgTooltipDismissed] = useState(false)
-  const router = useRouterState()
-  const currentPath = router.location.pathname
-  const isUsersSectionActive =
-    currentPath === '/admin/user/users' || currentPath === '/admin/user/audit'
-  const isPaksSectionActive =
-    currentPath === '/admin/pak/paks' || currentPath === '/admin/pak/audit'
-  const isDefectsSectionActive =
-    currentPath === '/admin/defects/groups' ||
-    currentPath === '/admin/defects/types' ||
-    currentPath === '/admin/defects/audit'
-  const isKgSectionActive =
-    currentPath === '/admin/kg/prefixes' ||
-    currentPath === '/admin/kg/versions' ||
-    currentPath === '/admin/kg/audit'
+  const currentPath = useRouterState().location.pathname
   const isCollapsedDesktop = state === 'collapsed' && !isMobile
+  const [openSection, setOpenSection] = useState<string | null>(null)
+
+  useEffect(() => {
+    setOpenSection(null)
+  }, [isCollapsedDesktop, currentPath])
 
   const handleMenuClick = () => {
-    if (isMobile) {
-      setOpenMobile(false)
-    }
+    if (isMobile) setOpenMobile(false)
   }
 
   return (
@@ -53,246 +84,90 @@ export function AdminNavigation() {
       <SidebarGroupLabel>Управление</SidebarGroupLabel>
       <SidebarGroupContent>
         <SidebarMenu>
-          <Collapsible
-            className="group/collapsible"
-            defaultOpen={isUsersSectionActive}
-            render={<SidebarMenuItem />}
-          >
-            <SidebarMenuButton
-              isActive={isUsersSectionActive}
-              render={
-                isCollapsedDesktop ? (
-                  <RouterLink
-                    to="/admin/user/users"
-                    onClick={() => {
-                      setIsUsersTooltipDismissed(true)
-                      handleMenuClick()
+          {sections.map((section) => {
+            const isActive = section.items.some((item) => item.to === currentPath)
+            const Icon = section.icon
+
+            if (isCollapsedDesktop) {
+              return (
+                <SidebarMenuItem key={section.label}>
+                  <DropdownMenu
+                    modal={false}
+                    open={openSection === section.label}
+                    onOpenChange={(open) => {
+                      setOpenSection((current) =>
+                        open ? section.label : current === section.label ? null : current,
+                      )
                     }}
-                    onPointerEnter={() => setIsUsersTooltipDismissed(false)}
-                  />
-                ) : (
-                  <CollapsibleTrigger />
-                )
-              }
-            >
-              <UsersIcon />
-              <span>Пользователи</span>
-              <ChevronRightIcon className="ml-auto transition-transform group-data-open/collapsible:rotate-90" />
-            </SidebarMenuButton>
-            {isCollapsedDesktop && !isUsersTooltipDismissed && (
-              <span
-                role="tooltip"
-                className="pointer-events-none absolute top-1/2 left-full z-50 ml-2 -translate-y-1/2 whitespace-nowrap rounded-md bg-foreground px-3 py-1.5 text-xs text-background opacity-0 transition-opacity group-hover/menu-item:opacity-100 before:absolute before:top-1/2 before:-left-1 before:size-2 before:-translate-y-1/2 before:rotate-45 before:rounded-[2px] before:bg-foreground"
+                  >
+                    <DropdownMenuTrigger
+                      openOnHover
+                      delay={150}
+                      closeDelay={200}
+                      render={<SidebarMenuButton isActive={isActive} aria-label={section.label} />}
+                    >
+                      <Icon />
+                      <span className="sr-only">{section.label}</span>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      side="right"
+                      align="start"
+                      sideOffset={8}
+                      className="w-48 data-closed:hidden"
+                    >
+                      <DropdownMenuGroup>
+                        <DropdownMenuLabel>{section.label}</DropdownMenuLabel>
+                        {section.items.map((item) => (
+                          <DropdownMenuItem
+                            key={item.to}
+                            className="aria-[current=page]:bg-sidebar-accent aria-[current=page]:text-sidebar-accent-foreground"
+                            render={
+                              <RouterLink
+                                to={item.to}
+                                search={{}}
+                                aria-current={currentPath === item.to ? 'page' : undefined}
+                              />
+                            }
+                          >
+                            {item.label}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuGroup>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </SidebarMenuItem>
+              )
+            }
+
+            return (
+              <Collapsible
+                key={section.label}
+                className="group/collapsible"
+                defaultOpen={isActive}
+                render={<SidebarMenuItem />}
               >
-                Пользователи
-              </span>
-            )}
-            <CollapsibleContent>
-              <SidebarMenuSub>
-                <SidebarMenuSubItem>
-                  <SidebarMenuSubButton
-                    isActive={currentPath === '/admin/user/users'}
-                    render={<RouterLink to="/admin/user/users" onClick={handleMenuClick} />}
-                  >
-                    Список
-                  </SidebarMenuSubButton>
-                </SidebarMenuSubItem>
-                <SidebarMenuSubItem>
-                  <SidebarMenuSubButton
-                    isActive={currentPath === '/admin/user/audit'}
-                    render={<RouterLink to="/admin/user/audit" onClick={handleMenuClick} />}
-                  >
-                    Аудит
-                  </SidebarMenuSubButton>
-                </SidebarMenuSubItem>
-              </SidebarMenuSub>
-            </CollapsibleContent>
-          </Collapsible>
-          <Collapsible
-            className="group/collapsible"
-            defaultOpen={isPaksSectionActive}
-            render={<SidebarMenuItem />}
-          >
-            <SidebarMenuButton
-              isActive={isPaksSectionActive}
-              render={
-                isCollapsedDesktop ? (
-                  <RouterLink
-                    to="/admin/pak/paks"
-                    onClick={() => {
-                      setIsPaksTooltipDismissed(true)
-                      handleMenuClick()
-                    }}
-                    onPointerEnter={() => setIsPaksTooltipDismissed(false)}
-                  />
-                ) : (
-                  <CollapsibleTrigger />
-                )
-              }
-            >
-              <CpuIcon />
-              <span>ПАК</span>
-              <ChevronRightIcon className="ml-auto transition-transform group-data-open/collapsible:rotate-90" />
-            </SidebarMenuButton>
-            {isCollapsedDesktop && !isPaksTooltipDismissed && (
-              <span
-                role="tooltip"
-                className="pointer-events-none absolute top-1/2 left-full z-50 ml-2 -translate-y-1/2 whitespace-nowrap rounded-md bg-foreground px-3 py-1.5 text-xs text-background opacity-0 transition-opacity group-hover/menu-item:opacity-100 before:absolute before:top-1/2 before:-left-1 before:size-2 before:-translate-y-1/2 before:rotate-45 before:rounded-[2px] before:bg-foreground"
-              >
-                ПАК
-              </span>
-            )}
-            <CollapsibleContent>
-              <SidebarMenuSub>
-                <SidebarMenuSubItem>
-                  <SidebarMenuSubButton
-                    isActive={currentPath === '/admin/pak/paks'}
-                    render={<RouterLink to="/admin/pak/paks" onClick={handleMenuClick} />}
-                  >
-                    Список
-                  </SidebarMenuSubButton>
-                </SidebarMenuSubItem>
-                <SidebarMenuSubItem>
-                  <SidebarMenuSubButton
-                    isActive={currentPath === '/admin/pak/audit'}
-                    render={<RouterLink to="/admin/pak/audit" onClick={handleMenuClick} />}
-                  >
-                    Аудит
-                  </SidebarMenuSubButton>
-                </SidebarMenuSubItem>
-              </SidebarMenuSub>
-            </CollapsibleContent>
-          </Collapsible>
-          <Collapsible
-            className="group/collapsible"
-            defaultOpen={isDefectsSectionActive}
-            render={<SidebarMenuItem />}
-          >
-            <SidebarMenuButton
-              isActive={isDefectsSectionActive}
-              render={
-                isCollapsedDesktop ? (
-                  <RouterLink
-                    to="/admin/defects/groups"
-                    onClick={() => {
-                      setIsDefectsTooltipDismissed(true)
-                      handleMenuClick()
-                    }}
-                    onPointerEnter={() => setIsDefectsTooltipDismissed(false)}
-                  />
-                ) : (
-                  <CollapsibleTrigger />
-                )
-              }
-            >
-              <BugIcon />
-              <span>Дефекты</span>
-              <ChevronRightIcon className="ml-auto transition-transform group-data-open/collapsible:rotate-90" />
-            </SidebarMenuButton>
-            {isCollapsedDesktop && !isDefectsTooltipDismissed && (
-              <span
-                role="tooltip"
-                className="pointer-events-none absolute top-1/2 left-full z-50 ml-2 -translate-y-1/2 whitespace-nowrap rounded-md bg-foreground px-3 py-1.5 text-xs text-background opacity-0 transition-opacity group-hover/menu-item:opacity-100 before:absolute before:top-1/2 before:-left-1 before:size-2 before:-translate-y-1/2 before:rotate-45 before:rounded-[2px] before:bg-foreground"
-              >
-                Дефекты
-              </span>
-            )}
-            <CollapsibleContent>
-              <SidebarMenuSub>
-                <SidebarMenuSubItem>
-                  <SidebarMenuSubButton
-                    isActive={currentPath === '/admin/defects/groups'}
-                    render={<RouterLink to="/admin/defects/groups" onClick={handleMenuClick} />}
-                  >
-                    Группы
-                  </SidebarMenuSubButton>
-                </SidebarMenuSubItem>
-                <SidebarMenuSubItem>
-                  <SidebarMenuSubButton
-                    isActive={currentPath === '/admin/defects/types'}
-                    render={
-                      <RouterLink search={{}} to="/admin/defects/types" onClick={handleMenuClick} />
-                    }
-                  >
-                    Типы
-                  </SidebarMenuSubButton>
-                </SidebarMenuSubItem>
-                <SidebarMenuSubItem>
-                  <SidebarMenuSubButton
-                    isActive={currentPath === '/admin/defects/audit'}
-                    render={<RouterLink to="/admin/defects/audit" onClick={handleMenuClick} />}
-                  >
-                    Аудит
-                  </SidebarMenuSubButton>
-                </SidebarMenuSubItem>
-              </SidebarMenuSub>
-            </CollapsibleContent>
-          </Collapsible>
-          <Collapsible
-            className="group/collapsible"
-            defaultOpen={isKgSectionActive}
-            render={<SidebarMenuItem />}
-          >
-            <SidebarMenuButton
-              isActive={isKgSectionActive}
-              render={
-                isCollapsedDesktop ? (
-                  <RouterLink
-                    to="/admin/kg/prefixes"
-                    onClick={() => {
-                      setIsKgTooltipDismissed(true)
-                      handleMenuClick()
-                    }}
-                    onPointerEnter={() => setIsKgTooltipDismissed(false)}
-                  />
-                ) : (
-                  <CollapsibleTrigger />
-                )
-              }
-            >
-              <RadioTowerIcon />
-              <span>КГ</span>
-              <ChevronRightIcon className="ml-auto transition-transform group-data-open/collapsible:rotate-90" />
-            </SidebarMenuButton>
-            {isCollapsedDesktop && !isKgTooltipDismissed && (
-              <span
-                role="tooltip"
-                className="pointer-events-none absolute top-1/2 left-full z-50 ml-2 -translate-y-1/2 whitespace-nowrap rounded-md bg-foreground px-3 py-1.5 text-xs text-background opacity-0 transition-opacity group-hover/menu-item:opacity-100 before:absolute before:top-1/2 before:-left-1 before:size-2 before:-translate-y-1/2 before:rotate-45 before:rounded-[2px] before:bg-foreground"
-              >
-                КГ
-              </span>
-            )}
-            <CollapsibleContent>
-              <SidebarMenuSub>
-                <SidebarMenuSubItem>
-                  <SidebarMenuSubButton
-                    isActive={currentPath === '/admin/kg/prefixes'}
-                    render={<RouterLink to="/admin/kg/prefixes" onClick={handleMenuClick} />}
-                  >
-                    Префиксы
-                  </SidebarMenuSubButton>
-                </SidebarMenuSubItem>
-                <SidebarMenuSubItem>
-                  <SidebarMenuSubButton
-                    isActive={currentPath === '/admin/kg/versions'}
-                    render={
-                      <RouterLink search={{}} to="/admin/kg/versions" onClick={handleMenuClick} />
-                    }
-                  >
-                    Версии
-                  </SidebarMenuSubButton>
-                </SidebarMenuSubItem>
-                <SidebarMenuSubItem>
-                  <SidebarMenuSubButton
-                    isActive={currentPath === '/admin/kg/audit'}
-                    render={<RouterLink to="/admin/kg/audit" onClick={handleMenuClick} />}
-                  >
-                    Аудит
-                  </SidebarMenuSubButton>
-                </SidebarMenuSubItem>
-              </SidebarMenuSub>
-            </CollapsibleContent>
-          </Collapsible>
+                <SidebarMenuButton isActive={isActive} render={<CollapsibleTrigger />}>
+                  <Icon />
+                  <span>{section.label}</span>
+                  <ChevronRightIcon className="ml-auto transition-transform group-data-open/collapsible:rotate-90" />
+                </SidebarMenuButton>
+                <CollapsibleContent>
+                  <SidebarMenuSub>
+                    {section.items.map((item) => (
+                      <SidebarMenuSubItem key={item.to}>
+                        <SidebarMenuSubButton
+                          isActive={currentPath === item.to}
+                          render={<RouterLink to={item.to} search={{}} onClick={handleMenuClick} />}
+                        >
+                          {item.label}
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    ))}
+                  </SidebarMenuSub>
+                </CollapsibleContent>
+              </Collapsible>
+            )
+          })}
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>

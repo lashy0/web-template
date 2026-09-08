@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { SidebarProvider } from '@web-app/ui/components/sidebar'
@@ -44,7 +44,7 @@ describe('AdminNavigation', () => {
     expect(screen.queryByRole('link', { name: 'Список' })).not.toBeInTheDocument()
   })
 
-  it('links the collapsed users icon to the user list and renders its tooltip', () => {
+  it('opens collapsed navigation on hover and keeps it open while entering the menu', async () => {
     vi.stubGlobal(
       'matchMedia',
       vi.fn().mockReturnValue({
@@ -60,14 +60,62 @@ describe('AdminNavigation', () => {
       </SidebarProvider>,
     )
 
-    const usersLink = screen.getByRole('link', { name: 'Пользователи' })
-    expect(usersLink).toHaveAttribute('href', '/admin/user/users')
-    expect(screen.getByRole('tooltip', { name: 'Пользователи' })).toHaveTextContent(
-      'Пользователи',
+    const user = userEvent.setup()
+    const trigger = screen.getByRole('button', { name: 'Пользователи' })
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+
+    await user.hover(trigger)
+    const listItem = await screen.findByRole('menuitem', { name: 'Список' })
+    expect(listItem).toHaveAttribute('href', '/admin/user/users')
+    expect(listItem).toHaveAttribute('aria-current', 'page')
+    await user.hover(listItem)
+    expect(screen.getByRole('menuitem', { name: 'Аудит' })).toHaveAttribute(
+      'href',
+      '/admin/user/audit',
     )
+
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+
+    trigger.focus()
+    await user.keyboard('{ArrowDown}')
+    expect(await screen.findByRole('menuitem', { name: 'Список' })).toHaveFocus()
+    await user.keyboard('{ArrowDown}')
+    expect(screen.getByRole('menuitem', { name: 'Аудит' })).toHaveFocus()
+  })
+
+  it('replaces the previous flyout when hovering another section', async () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockReturnValue({
+        matches: false,
+        addEventListener: vi.fn<() => void>(),
+        removeEventListener: vi.fn<() => void>(),
+      }),
+    )
+    const user = userEvent.setup()
+    render(
+      <SidebarProvider defaultOpen={false}>
+        <AdminNavigation />
+      </SidebarProvider>,
+    )
+
+    await user.hover(screen.getByRole('button', { name: 'Дефекты' }))
+    expect(await screen.findByRole('menuitem', { name: 'Группы' })).toBeVisible()
+    await user.hover(screen.getByRole('button', { name: 'КГ' }))
+    expect(await screen.findByRole('menuitem', { name: 'Префиксы' })).toBeVisible()
+    expect(screen.getAllByRole('menu')).toHaveLength(1)
+    expect(screen.queryByRole('menuitem', { name: 'Группы' })).not.toBeInTheDocument()
+
+    await user.hover(screen.getByRole('menuitem', { name: 'Версии' }))
+    expect(screen.getByRole('menuitem', { name: 'Префиксы' })).toBeVisible()
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
   })
 })
 
 afterEach(() => {
+  cleanup()
   vi.unstubAllGlobals()
 })

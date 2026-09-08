@@ -11,7 +11,7 @@ import { AccountSummary } from '@/components/Account/AccountSummary'
 import type { AuthenticatedUser } from '@/features/auth/auth-api'
 
 export function AdminUserMenu({ user }: Readonly<{ user: AuthenticatedUser }>) {
-  const { isMobile, setOpenMobile } = useSidebar()
+  const { isMobile, setOpenMobile, state } = useSidebar()
 
   const handleMenuClick = () => {
     if (isMobile) setOpenMobile(false)
@@ -21,7 +21,7 @@ export function AdminUserMenu({ user }: Readonly<{ user: AuthenticatedUser }>) {
       <SidebarMenuItem>
         <AccountMenu
           onMenuAction={handleMenuClick}
-          side={isMobile ? 'bottom' : 'right'}
+          side={!isMobile && state === 'collapsed' ? 'right' : 'top'}
           trigger={
             <SidebarMenuButton
               size="lg"
