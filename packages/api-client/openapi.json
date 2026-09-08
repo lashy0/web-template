@@ -1314,6 +1314,11 @@
             ],
             "title": "Archived At"
           },
+          "batch_count": {
+            "minimum": 0.0,
+            "title": "Batch Count",
+            "type": "integer"
+          },
           "created_at": {
             "format": "date-time",
             "title": "Created At",
@@ -1343,6 +1348,7 @@
           "prefix",
           "short_code",
           "name",
+          "batch_count",
           "created_at",
           "archived_at"
         ],
@@ -1481,6 +1487,11 @@
             ],
             "title": "Archived At"
           },
+          "batch_count": {
+            "minimum": 0.0,
+            "title": "Batch Count",
+            "type": "integer"
+          },
           "code": {
             "title": "Code",
             "type": "string"
@@ -1521,6 +1532,7 @@
           "code",
           "name",
           "description",
+          "batch_count",
           "created_at",
           "updated_at",
           "archived_at"

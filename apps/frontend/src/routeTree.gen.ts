@@ -20,6 +20,7 @@ import { Route as LayoutAdminDefectsGroupsRouteImport } from './routes/_layout/a
 import { Route as LayoutAdminDefectsTypesRouteImport } from './routes/_layout/admin/defects/types'
 import { Route as LayoutAdminKgAuditRouteImport } from './routes/_layout/admin/kg/audit'
 import { Route as LayoutAdminKgPrefixesRouteImport } from './routes/_layout/admin/kg/prefixes'
+import { Route as LayoutAdminKgVersionsRouteImport } from './routes/_layout/admin/kg/versions'
 import { Route as LayoutAdminPakAuditRouteImport } from './routes/_layout/admin/pak/audit'
 import { Route as LayoutAdminPakPaksRouteImport } from './routes/_layout/admin/pak/paks'
 import { Route as LayoutAdminUserAuditRouteImport } from './routes/_layout/admin/user/audit'
@@ -80,6 +81,11 @@ const LayoutAdminKgPrefixesRoute = LayoutAdminKgPrefixesRouteImport.update({
   path: '/kg/prefixes',
   getParentRoute: () => LayoutAdminRoute,
 } as any)
+const LayoutAdminKgVersionsRoute = LayoutAdminKgVersionsRouteImport.update({
+  id: '/kg/versions',
+  path: '/kg/versions',
+  getParentRoute: () => LayoutAdminRoute,
+} as any)
 const LayoutAdminPakAuditRoute = LayoutAdminPakAuditRouteImport.update({
   id: '/pak/audit',
   path: '/pak/audit',
@@ -112,6 +118,7 @@ export interface FileRoutesByFullPath {
   '/admin/defects/types': typeof LayoutAdminDefectsTypesRoute
   '/admin/kg/audit': typeof LayoutAdminKgAuditRoute
   '/admin/kg/prefixes': typeof LayoutAdminKgPrefixesRoute
+  '/admin/kg/versions': typeof LayoutAdminKgVersionsRoute
   '/admin/pak/audit': typeof LayoutAdminPakAuditRoute
   '/admin/pak/paks': typeof LayoutAdminPakPaksRoute
   '/admin/user/audit': typeof LayoutAdminUserAuditRoute
@@ -127,6 +134,7 @@ export interface FileRoutesByTo {
   '/admin/defects/types': typeof LayoutAdminDefectsTypesRoute
   '/admin/kg/audit': typeof LayoutAdminKgAuditRoute
   '/admin/kg/prefixes': typeof LayoutAdminKgPrefixesRoute
+  '/admin/kg/versions': typeof LayoutAdminKgVersionsRoute
   '/admin/pak/audit': typeof LayoutAdminPakAuditRoute
   '/admin/pak/paks': typeof LayoutAdminPakPaksRoute
   '/admin/user/audit': typeof LayoutAdminUserAuditRoute
@@ -145,6 +153,7 @@ export interface FileRoutesById {
   '/_layout/admin/defects/types': typeof LayoutAdminDefectsTypesRoute
   '/_layout/admin/kg/audit': typeof LayoutAdminKgAuditRoute
   '/_layout/admin/kg/prefixes': typeof LayoutAdminKgPrefixesRoute
+  '/_layout/admin/kg/versions': typeof LayoutAdminKgVersionsRoute
   '/_layout/admin/pak/audit': typeof LayoutAdminPakAuditRoute
   '/_layout/admin/pak/paks': typeof LayoutAdminPakPaksRoute
   '/_layout/admin/user/audit': typeof LayoutAdminUserAuditRoute
@@ -163,6 +172,7 @@ export interface FileRouteTypes {
     | '/admin/defects/types'
     | '/admin/kg/audit'
     | '/admin/kg/prefixes'
+    | '/admin/kg/versions'
     | '/admin/pak/audit'
     | '/admin/pak/paks'
     | '/admin/user/audit'
@@ -178,6 +188,7 @@ export interface FileRouteTypes {
     | '/admin/defects/types'
     | '/admin/kg/audit'
     | '/admin/kg/prefixes'
+    | '/admin/kg/versions'
     | '/admin/pak/audit'
     | '/admin/pak/paks'
     | '/admin/user/audit'
@@ -195,6 +206,7 @@ export interface FileRouteTypes {
     | '/_layout/admin/defects/types'
     | '/_layout/admin/kg/audit'
     | '/_layout/admin/kg/prefixes'
+    | '/_layout/admin/kg/versions'
     | '/_layout/admin/pak/audit'
     | '/_layout/admin/pak/paks'
     | '/_layout/admin/user/audit'
@@ -286,6 +298,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutAdminKgPrefixesRouteImport
       parentRoute: typeof LayoutAdminRoute
     }
+    '/_layout/admin/kg/versions': {
+      id: '/_layout/admin/kg/versions'
+      path: '/kg/versions'
+      fullPath: '/admin/kg/versions'
+      preLoaderRoute: typeof LayoutAdminKgVersionsRouteImport
+      parentRoute: typeof LayoutAdminRoute
+    }
     '/_layout/admin/pak/audit': {
       id: '/_layout/admin/pak/audit'
       path: '/pak/audit'
@@ -324,6 +343,7 @@ interface LayoutAdminRouteChildren {
   LayoutAdminDefectsTypesRoute: typeof LayoutAdminDefectsTypesRoute
   LayoutAdminKgAuditRoute: typeof LayoutAdminKgAuditRoute
   LayoutAdminKgPrefixesRoute: typeof LayoutAdminKgPrefixesRoute
+  LayoutAdminKgVersionsRoute: typeof LayoutAdminKgVersionsRoute
   LayoutAdminPakAuditRoute: typeof LayoutAdminPakAuditRoute
   LayoutAdminPakPaksRoute: typeof LayoutAdminPakPaksRoute
   LayoutAdminUserAuditRoute: typeof LayoutAdminUserAuditRoute
@@ -337,6 +357,7 @@ const LayoutAdminRouteChildren: LayoutAdminRouteChildren = {
   LayoutAdminDefectsTypesRoute: LayoutAdminDefectsTypesRoute,
   LayoutAdminKgAuditRoute: LayoutAdminKgAuditRoute,
   LayoutAdminKgPrefixesRoute: LayoutAdminKgPrefixesRoute,
+  LayoutAdminKgVersionsRoute: LayoutAdminKgVersionsRoute,
   LayoutAdminPakAuditRoute: LayoutAdminPakAuditRoute,
   LayoutAdminPakPaksRoute: LayoutAdminPakPaksRoute,
   LayoutAdminUserAuditRoute: LayoutAdminUserAuditRoute,

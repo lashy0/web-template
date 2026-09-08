@@ -51,7 +51,10 @@ async def list_dev_eui_prefixes(
     )
 
     return KgDevEuiPrefixListResponse(
-        items=[_prefix_response(item) for item in items],
+        items=[
+            _prefix_response(item, batch_count=batch_count)
+            for item, batch_count in items
+        ],
         total=total,
         page=page,
         page_size=page_size,

@@ -10,23 +10,23 @@ import {
   type PageSize,
 } from '@/components/Common/DataTable'
 import PendingAudit from '@/components/Kg/Audit/PendingAudit'
-import { kgPrefixAuditColumns } from '@/components/Kg/Audit/columns'
-import { listKgPrefixAudit, type KgPrefixAuditSort } from '@/features/kg/kg-prefixes-api'
+import { kgAuditColumns } from '@/components/Kg/Audit/columns'
+import { listKgAudit, type KgAuditSort } from '@/features/kg/kg-prefixes-api'
 import { toExclusiveUtcDateRange } from '@/lib/date'
 import { listDate, listEnum, listOrder, listPage, listPageSize } from '@/lib/list-search'
 
-const kgPrefixAuditSorts = [
+const kgAuditSorts = [
   'actor_display_name',
   'created_at',
-] as const satisfies readonly KgPrefixAuditSort[]
+] as const satisfies readonly KgAuditSort[]
 
 export const Route = createFileRoute('/_layout/admin/kg/audit')({
-  validateSearch: validateKgPrefixAuditSearch,
-  component: KgPrefixAudit,
+  validateSearch: validateKgAuditSearch,
+  component: KgAudit,
   pendingComponent: () => <PendingAudit showPageHeader />,
 })
 
-function KgPrefixAudit() {
+function KgAudit() {
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
   const pagination: DataTablePaginationState = {
@@ -35,7 +35,7 @@ function KgPrefixAudit() {
   }
   const sorting = sortingFromSearch(search)
   const [current] = sorting
-  const sort = listEnum(kgPrefixAuditSorts, current?.id) ?? 'created_at'
+  const sort = listEnum(kgAuditSorts, current?.id) ?? 'created_at'
   const order = current?.desc ? 'desc' : 'asc'
   const period = search.from && search.to ? { from: search.from, to: search.to } : null
   const range = period ? toExclusiveUtcDateRange(period) : undefined
@@ -46,7 +46,7 @@ function KgPrefixAudit() {
     refetch,
   } = useQuery({
     queryFn: () =>
-      listKgPrefixAudit({
+      listKgAudit({
         createdFrom: range?.from,
         createdTo: range?.to,
         order,
@@ -54,7 +54,7 @@ function KgPrefixAudit() {
         pageSize: pagination.pageSize,
         sort,
       }),
-    queryKey: ['audit', 'kg-prefixes', range, order, pagination, sort],
+    queryKey: ['audit', 'kg', range, order, pagination, sort],
     placeholderData: keepPreviousData,
   })
 
@@ -62,7 +62,7 @@ function KgPrefixAudit() {
     <section className="mx-auto w-full max-w-[82.5rem] px-4 py-8 sm:px-8 lg:px-12">
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">Аудит КГ</h1>
-        <p className="mt-2 text-muted-foreground">История действий с DevEUI-префиксами.</p>
+        <p className="mt-2 text-muted-foreground">История действий с префиксами DevEUI и версиями.</p>
       </div>
       <div className="pt-8">
         <div className="mb-4 flex justify-end">
@@ -90,7 +90,7 @@ function KgPrefixAudit() {
           <EmptyState />
         ) : (
           <DataTable
-            columns={kgPrefixAuditColumns}
+            columns={kgAuditColumns}
             data={audit.items}
             loading={isFetching}
             onPaginationChange={(next) => {
@@ -128,16 +128,16 @@ function EmptyState() {
   )
 }
 
-type KgPrefixAuditSearch = Readonly<{
+type KgAuditSearch = Readonly<{
   from?: string
   order?: 'asc' | 'desc'
   page?: number
   pageSize?: PageSize
-  sort?: KgPrefixAuditSort
+  sort?: KgAuditSort
   to?: string
 }>
 
-export function validateKgPrefixAuditSearch(search: Record<string, unknown>): KgPrefixAuditSearch {
+export function validateKgAuditSearch(search: Record<string, unknown>): KgAuditSearch {
   const from = listDate(search.from)
   const to = listDate(search.to)
 
@@ -146,18 +146,18 @@ export function validateKgPrefixAuditSearch(search: Record<string, unknown>): Kg
     order: listOrder(search.order),
     page: listPage(search.page),
     pageSize: listPageSize(search.pageSize),
-    sort: listEnum(kgPrefixAuditSorts, search.sort),
+    sort: listEnum(kgAuditSorts, search.sort),
     to: from && to && from <= to ? to : undefined,
   }
 }
 
-function sortingFromSearch(search: KgPrefixAuditSearch): DataTableSorting {
+function sortingFromSearch(search: KgAuditSearch): DataTableSorting {
   return [{ id: search.sort ?? 'created_at', desc: search.order ? search.order === 'desc' : true }]
 }
 
 function searchForSorting(sorting: DataTableSorting) {
   const [current] = sorting
-  const sort = listEnum(kgPrefixAuditSorts, current?.id) ?? 'created_at'
+  const sort = listEnum(kgAuditSorts, current?.id) ?? 'created_at'
   const desc = current?.desc ?? true
 
   return {

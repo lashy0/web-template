@@ -7,7 +7,7 @@ import {
   InputGroupInput,
 } from '@web-app/ui/components/input-group'
 
-export function KgPrefixFilters({
+export function KgVersionFilters({
   onQueryChange,
   query,
 }: Readonly<{
@@ -17,9 +17,9 @@ export function KgPrefixFilters({
   return (
     <InputGroup className="w-full sm:w-72">
       <InputGroupInput
-        aria-label="Поиск префиксов"
+        aria-label="Поиск по коду или названию"
         onChange={(event) => onQueryChange(event.target.value)}
-        placeholder="Поиск префиксов..."
+        placeholder="Поиск по коду или названию..."
         value={query}
       />
       <InputGroupAddon align="inline-start">

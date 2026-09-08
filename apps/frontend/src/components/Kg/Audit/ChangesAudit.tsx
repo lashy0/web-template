@@ -1,15 +1,17 @@
 import { AuditChanges } from '@/components/Common/AuditChanges'
-import { type KgPrefixAuditEvent } from '@/features/kg/kg-prefixes-api'
+import { type KgAuditEvent } from '@/features/kg/kg-prefixes-api'
 import { formatDateTime } from '@/lib/date'
 
 const fieldLabels: Readonly<Record<string, string>> = {
   archived_at: 'Архивирование',
+  code: 'Код',
+  description: 'Описание',
   name: 'Название',
   prefix: 'Префикс DevEUI',
   short_code: 'Короткий код',
 }
 
-export function ChangesAudit({ event }: Readonly<{ event: KgPrefixAuditEvent }>) {
+export function ChangesAudit({ event }: Readonly<{ event: KgAuditEvent }>) {
   return (
     <AuditChanges
       event={event}

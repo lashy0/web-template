@@ -19,7 +19,7 @@ export default function PendingAudit({
             <TableHead>Время</TableHead>
             <TableHead>Пользователь</TableHead>
             <TableHead>Действие</TableHead>
-            <TableHead>Префикс</TableHead>
+            <TableHead>Объект КГ</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -49,7 +49,7 @@ export default function PendingAudit({
     <section className="mx-auto w-full max-w-[82.5rem] px-4 py-8 sm:px-8 lg:px-12">
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">Аудит КГ</h1>
-        <p className="mt-2 text-muted-foreground">История действий с DevEUI-префиксами.</p>
+        <p className="mt-2 text-muted-foreground">История действий с префиксами DevEUI и версиями.</p>
       </div>
       <div className="pt-8">{table}</div>
     </section>

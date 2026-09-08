@@ -1,12 +1,12 @@
 import { type DataTableColumn } from '@/components/Common/DataTable'
 import { TruncatedText } from '@/components/Common/TruncatedText'
 import { ChangesAudit } from '@/components/Kg/Audit/ChangesAudit'
-import { type KgPrefixAuditEvent } from '@/features/kg/kg-prefixes-api'
+import { type KgAuditEvent } from '@/features/kg/kg-prefixes-api'
 import { formatDateTime } from '@/lib/date'
 
 const maxIdentityDisplayLength = 32
 
-export const kgPrefixAuditColumns: readonly DataTableColumn<KgPrefixAuditEvent>[] = [
+export const kgAuditColumns: readonly DataTableColumn<KgAuditEvent>[] = [
   {
     accessorFn: (row) => row.createdAt,
     cell: ({ row }) => (
@@ -38,9 +38,9 @@ export const kgPrefixAuditColumns: readonly DataTableColumn<KgPrefixAuditEvent>[
   },
   {
     accessorKey: 'entityDisplayName',
-    cell: ({ row }) => <KgPrefixEntity event={row.original} />,
+    cell: ({ row }) => <KgAuditEntity event={row.original} />,
     enableSorting: false,
-    header: 'Префикс',
+    header: 'Объект',
     meta: { widthClassName: 'w-40 xl:w-[28%]' },
   },
   {
@@ -63,11 +63,16 @@ function translateAction(action: string): string {
     'kg_prefix.deleted': 'Префикс удалён',
     'kg_prefix.restored': 'Префикс восстановлен',
     'kg_prefix.updated': 'Префикс изменён',
+    'kg_version.archived': 'Версия КГ архивирована',
+    'kg_version.created': 'Версия КГ создана',
+    'kg_version.deleted': 'Версия КГ удалена',
+    'kg_version.restored': 'Версия КГ восстановлена',
+    'kg_version.updated': 'Версия КГ изменена',
   }
   return actions[action] ?? action
 }
 
-function AuditActor({ event }: Readonly<{ event: KgPrefixAuditEvent }>) {
+function AuditActor({ event }: Readonly<{ event: KgAuditEvent }>) {
   if (event.actorType === 'system') return 'Система'
   const label =
     event.actorDisplayName ?? (event.actorType === 'user' ? 'Пользователь' : event.actorType)
@@ -83,10 +88,12 @@ function AuditActor({ event }: Readonly<{ event: KgPrefixAuditEvent }>) {
   )
 }
 
-function KgPrefixEntity({ event }: Readonly<{ event: KgPrefixAuditEvent }>) {
-  const label = event.entityDisplayName ?? dataValue(event.newData, 'name') ?? 'Префикс DevEUI'
+function KgAuditEntity({ event }: Readonly<{ event: KgAuditEvent }>) {
+  const label = event.entityDisplayName ?? dataValue(event.newData, 'name') ?? 'Объект КГ'
   const identifier =
     event.entityIdentifier ??
+    dataValue(event.newData, 'code') ??
+    dataValue(event.oldData, 'code') ??
     dataValue(event.newData, 'prefix') ??
     dataValue(event.oldData, 'prefix')
   return (

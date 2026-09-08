@@ -5,6 +5,8 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import ColumnElement
 
+from app.modules.batch.models import Batch
+
 from ..models import KgDevEuiPrefix
 
 
@@ -41,7 +43,7 @@ class KgDevEuiPrefixRepository:
         page_size: int,
         sort: str,
         order: str,
-    ) -> tuple[list[KgDevEuiPrefix], int]:
+    ) -> tuple[list[tuple[KgDevEuiPrefix, int]], int]:
         filters: list[ColumnElement[bool]] = [
             KgDevEuiPrefix.archived_at.is_not(None)
             if archived
@@ -67,18 +69,33 @@ class KgDevEuiPrefixRepository:
         }[sort]
 
         sorted_column = column.desc().nulls_last() if order == "desc" else column.asc().nulls_last()
+
+        batch_counts = (
+            select(
+                Batch.dev_eui_prefix.label("prefix"),
+                func.count(Batch.id).label("batch_count"),
+            )
+            .group_by(Batch.dev_eui_prefix)
+            .subquery()
+        )
+
         result = await self._session.execute(
-            select(KgDevEuiPrefix)
+            select(
+                KgDevEuiPrefix,
+                func.coalesce(batch_counts.c.batch_count, 0).label("batch_count"),
+            )
+            .outerjoin(batch_counts, batch_counts.c.prefix == KgDevEuiPrefix.prefix)
             .where(*filters)
             .order_by(sorted_column, KgDevEuiPrefix.prefix.asc())
             .offset((page - 1) * page_size)
             .limit(page_size)
         )
+
         count = await self._session.scalar(
             select(func.count()).select_from(KgDevEuiPrefix).where(*filters)
         )
 
-        return list(result.scalars()), int(count or 0)
+        return [(item, int(batch_count)) for item, batch_count in result.tuples()], int(count or 0)
 
     async def create(
         self,

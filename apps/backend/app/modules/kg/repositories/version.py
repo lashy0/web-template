@@ -6,6 +6,8 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import ColumnElement
 
+from app.modules.batch.models import Batch
+
 from ..models import KgVersion
 
 
@@ -42,11 +44,9 @@ class KgVersionRepository:
         page_size: int,
         sort_by: str,
         sort_order: str,
-    ) -> tuple[list[KgVersion], int]:
+    ) -> tuple[list[tuple[KgVersion, int]], int]:
         filters: list[ColumnElement[bool]] = [
-            KgVersion.archived_at.is_not(None)
-            if archived
-            else KgVersion.archived_at.is_(None)
+            KgVersion.archived_at.is_not(None) if archived else KgVersion.archived_at.is_(None)
         ]
 
         if q:
@@ -72,8 +72,22 @@ class KgVersionRepository:
             column.desc().nulls_last() if sort_order == "desc" else column.asc().nulls_last()
         )
 
+        batch_counts = (
+            select(
+                Batch.kg_version_id.label("version_id"),
+                func.count(Batch.id).label("batch_count"),
+            )
+            .where(Batch.kg_version_id.is_not(None))
+            .group_by(Batch.kg_version_id)
+            .subquery()
+        )
+
         result = await self._session.execute(
-            select(KgVersion)
+            select(
+                KgVersion,
+                func.coalesce(batch_counts.c.batch_count, 0).label("batch_count"),
+            )
+            .outerjoin(batch_counts, batch_counts.c.version_id == KgVersion.id)
             .where(*filters)
             .order_by(sorted_column, KgVersion.id.asc())
             .offset((page - 1) * page_size)
@@ -84,7 +98,7 @@ class KgVersionRepository:
             select(func.count()).select_from(KgVersion).where(*filters)
         )
 
-        return list(result.scalars()), int(count or 0)
+        return [(item, int(batch_count)) for item, batch_count in result.tuples()], int(count or 0)
 
     async def create(
         self,
@@ -97,7 +111,6 @@ class KgVersionRepository:
             code=code,
             name=name,
             description=description,
-
         )
         self._session.add(item)
 

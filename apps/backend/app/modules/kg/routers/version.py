@@ -49,7 +49,10 @@ async def list_kg_versions(
     )
 
     return KgVersionListResponse(
-        items=[_version_response(item) for item in items],
+        items=[
+            _version_response(item, batch_count=batch_count)
+            for item, batch_count in items
+        ],
         total=total,
         page=page,
         page_size=page_size,

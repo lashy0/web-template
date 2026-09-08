@@ -279,6 +279,7 @@ export const zDefectTypeListResponse = z.object({
  */
 export const zKgDevEuiPrefixResponse = z.object({
     archived_at: z.iso.datetime().nullable(),
+    batch_count: z.int().gte(0),
     created_at: z.iso.datetime(),
     name: z.string().nullable(),
     prefix: z.string(),
@@ -338,6 +339,7 @@ export const zKgListResponse = z.object({
  */
 export const zKgVersionResponse = z.object({
     archived_at: z.iso.datetime().nullable(),
+    batch_count: z.int().gte(0),
     code: z.string(),
     created_at: z.iso.datetime(),
     description: z.string().nullable(),

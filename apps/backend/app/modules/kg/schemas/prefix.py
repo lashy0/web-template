@@ -31,6 +31,7 @@ class KgDevEuiPrefixResponse(BaseModel):
     prefix: DevEuiPrefix
     short_code: str
     name: str | None
+    batch_count: int = Field(ge=0)
     created_at: datetime
     archived_at: datetime | None
 

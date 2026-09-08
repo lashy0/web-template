@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import builtins
 from collections.abc import Mapping
 from datetime import UTC, datetime
 from uuid import UUID
@@ -36,7 +35,7 @@ class KgVersionService:
         page_size: int,
         sort_by: str,
         sort_order: str,
-    ) -> tuple[builtins.list[KgVersion], int]:
+    ) -> tuple[list[tuple[KgVersion, int]], int]:
         return await self._repository.search(
             q=q,
             archived=archived,

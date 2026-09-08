@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import builtins
 from collections.abc import Mapping
 from datetime import UTC, datetime
 
@@ -40,7 +39,7 @@ class KgPrefixService:
         page_size: int,
         sort: str,
         order: str,
-    ) -> tuple[builtins.list[KgDevEuiPrefix], int]:
+    ) -> tuple[list[tuple[KgDevEuiPrefix, int]], int]:
         return await self._prefixes.search(
             q=q,
             archived=archived,
@@ -198,7 +197,7 @@ class KgPrefixService:
         self,
         prefix: str,
         quantity: int,
-    ) -> tuple[KgDevEuiPrefix, builtins.list[str]]:
+    ) -> tuple[KgDevEuiPrefix, list[str]]:
         await self._repository.lock_dev_eui_allocation(prefix)
         item = await self._prefixes.get(prefix)
 

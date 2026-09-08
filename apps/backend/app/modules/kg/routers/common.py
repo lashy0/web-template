@@ -22,22 +22,32 @@ def _response(kg: KgUnit) -> KgResponse:
     )
 
 
-def _prefix_response(item: KgDevEuiPrefix) -> KgDevEuiPrefixResponse:
+def _prefix_response(
+    item: KgDevEuiPrefix,
+    *,
+    batch_count: int = 0,
+) -> KgDevEuiPrefixResponse:
     return KgDevEuiPrefixResponse(
         prefix=item.prefix,
         short_code=item.short_code,
         name=item.name,
+        batch_count=batch_count,
         created_at=item.created_at,
         archived_at=item.archived_at,
     )
 
 
-def _version_response(item: KgVersion) -> KgVersionResponse:
+def _version_response(
+    item: KgVersion,
+    *,
+    batch_count: int = 0,
+) -> KgVersionResponse:
     return KgVersionResponse(
         id=item.id,
         code=item.code,
         name=item.name,
         description=item.description,
+        batch_count=batch_count,
         created_at=item.created_at,
         updated_at=item.updated_at,
         archived_at=item.archived_at,

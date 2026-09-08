@@ -37,7 +37,9 @@ export function AdminNavigation() {
     currentPath === '/admin/defects/types' ||
     currentPath === '/admin/defects/audit'
   const isKgSectionActive =
-    currentPath === '/admin/kg/prefixes' || currentPath === '/admin/kg/audit'
+    currentPath === '/admin/kg/prefixes' ||
+    currentPath === '/admin/kg/versions' ||
+    currentPath === '/admin/kg/audit'
   const isCollapsedDesktop = state === 'collapsed' && !isMobile
 
   const handleMenuClick = () => {
@@ -268,6 +270,16 @@ export function AdminNavigation() {
                     render={<RouterLink to="/admin/kg/prefixes" onClick={handleMenuClick} />}
                   >
                     Префиксы
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+                <SidebarMenuSubItem>
+                  <SidebarMenuSubButton
+                    isActive={currentPath === '/admin/kg/versions'}
+                    render={
+                      <RouterLink search={{}} to="/admin/kg/versions" onClick={handleMenuClick} />
+                    }
+                  >
+                    Версии
                   </SidebarMenuSubButton>
                 </SidebarMenuSubItem>
                 <SidebarMenuSubItem>

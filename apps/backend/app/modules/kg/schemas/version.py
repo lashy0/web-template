@@ -36,6 +36,7 @@ class KgVersionResponse(BaseModel):
     code: str
     name: str
     description: str | None
+    batch_count: int = Field(ge=0)
     created_at: datetime
     updated_at: datetime
     archived_at: datetime | None

@@ -16,53 +16,58 @@ import {
 } from '@web-app/ui/components/dialog'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@web-app/ui/components/field'
 import { Input } from '@web-app/ui/components/input'
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupText,
+  InputGroupTextarea,
+} from '@web-app/ui/components/input-group'
 import { Spinner } from '@web-app/ui/components/spinner'
 
 import {
-  createKgPrefix,
-  kgPrefixErrorCode,
-  kgPrefixErrorMessage,
-  type CreateKgPrefixInput,
-} from '@/features/kg/kg-prefixes-api'
-import { createKgPrefixSchema } from '@/features/kg/kg-prefix-form-schema'
-import { formatDevEuiPrefix, normalizeDevEuiPrefix } from '@/features/kg/kg-prefix-format'
+  createKgVersion,
+  kgVersionErrorCode,
+  kgVersionErrorMessage,
+  type CreateKgVersionInput,
+} from '@/features/kg/kg-versions-api'
+import { createKgVersionSchema } from '@/features/kg/kg-version-form-schema'
 import useCustomToast from '@/hooks/useCustomToast'
 
-type CreateKgPrefixForm = Readonly<{ name: string; prefix: string; short_code: string }>
+type CreateKgVersionForm = Readonly<{ code: string; description: string; name: string }>
 
-const initialForm: CreateKgPrefixForm = { name: '', prefix: '', short_code: '' }
+const initialForm: CreateKgVersionForm = { code: '', description: '', name: '' }
+const textLimit = 2000
 
-export function AddKgPrefix() {
+export function AddKgVersion() {
   const [open, setOpen] = useState(false)
   const queryClient = useQueryClient()
   const { showErrorToast, showSuccessToast } = useCustomToast()
-  const form = useForm<CreateKgPrefixForm>({
+  const form = useForm<CreateKgVersionForm>({
     defaultValues: initialForm,
     mode: 'onBlur',
     reValidateMode: 'onBlur',
-    resolver: zodResolver(createKgPrefixSchema),
+    resolver: zodResolver(createKgVersionSchema),
   })
   const mutation = useMutation({
-    mutationFn: (data: CreateKgPrefixForm) => createKgPrefix(toInput(data)),
+    mutationFn: (data: CreateKgVersionForm) => createKgVersion(toInput(data)),
     onError: (error) => {
-      const message = kgPrefixErrorMessage(error)
-      if (kgPrefixErrorCode(error) === 'kg_dev_eui_prefix_conflict') {
-        form.setError('prefix', { message, type: 'server' }, { shouldFocus: true })
-        form.setError('short_code', { message, type: 'server' })
+      const message = kgVersionErrorMessage(error)
+      if (kgVersionErrorCode(error) === 'kg_version_conflict') {
+        form.setError('code', { message, type: 'server' }, { shouldFocus: true })
         return
       }
       showErrorToast(
-        'Не удалось создать префикс',
+        'Не удалось создать версию КГ',
         message ?? 'Проверьте данные и попробуйте ещё раз.',
       )
     },
     onSuccess: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['kg', 'prefixes'] }),
+        queryClient.invalidateQueries({ queryKey: ['kg', 'versions'] }),
         queryClient.invalidateQueries({ queryKey: ['audit'] }),
       ])
       close(true)
-      showSuccessToast('Префикс создан', 'DevEUI-префикс успешно добавлен.')
+      showSuccessToast('Версия КГ создана', 'Версия КГ успешно добавлена.')
     },
   })
 
@@ -89,59 +94,74 @@ export function AddKgPrefix() {
           onSubmit={form.handleSubmit((data) => mutation.mutate(data))}
         >
           <DialogHeader className="shrink-0 px-4 pt-4">
-            <DialogTitle>Новый DevEUI-префикс</DialogTitle>
-            <DialogDescription>Задайте название, префикс и короткий код.</DialogDescription>
+            <DialogTitle>Новая версия КГ</DialogTitle>
+            <DialogDescription>Укажите код, название и описание версии.</DialogDescription>
           </DialogHeader>
           <FieldGroup className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
             <Controller
               control={form.control}
-              name="name"
+              name="code"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel className="cursor-pointer" htmlFor="new-kg-prefix-name">
-                    Название
-                  </FieldLabel>
-                  <Input
-                    {...field}
-                    aria-invalid={fieldState.invalid}
-                    id="new-kg-prefix-name"
-                    onChange={(event) => {
-                      if (fieldState.error?.type === 'server') form.clearErrors('name')
-                      field.onChange(event)
-                    }}
-                  />
-                  {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
-                </Field>
-              )}
-            />
-            <DevEuiPrefixInput
-              clearErrors={form.clearErrors}
-              control={form.control}
-              id="new-kg-prefix-prefix"
-            />
-            <Controller
-              control={form.control}
-              name="short_code"
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel className="cursor-pointer" htmlFor="new-kg-prefix-short-code">
-                    <span>
-                      Короткий код
-                      <span aria-hidden="true" className="ml-0.5 text-destructive">
-                        *
-                      </span>
+                  <FieldLabel className="cursor-pointer" htmlFor="new-kg-version-code">
+                    Код
+                    <span aria-hidden="true" className="ml-0.5 text-destructive">
+                      *
                     </span>
                   </FieldLabel>
                   <Input
                     {...field}
                     aria-invalid={fieldState.invalid}
-                    id="new-kg-prefix-short-code"
+                    id="new-kg-version-code"
                     onChange={(event) => {
-                      if (fieldState.error?.type === 'server') form.clearErrors('short_code')
+                      if (fieldState.error?.type === 'server') form.clearErrors('code')
                       field.onChange(event)
                     }}
                     required
                   />
+                  {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                </Field>
+              )}
+            />
+            <Controller
+              control={form.control}
+              name="name"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel className="cursor-pointer" htmlFor="new-kg-version-name">
+                    Название
+                    <span aria-hidden="true" className="ml-0.5 text-destructive">
+                      *
+                    </span>
+                  </FieldLabel>
+                  <Input
+                    {...field}
+                    aria-invalid={fieldState.invalid}
+                    id="new-kg-version-name"
+                    required
+                  />
+                  {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                </Field>
+              )}
+            />
+            <Controller
+              control={form.control}
+              name="description"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel className="cursor-pointer" htmlFor="new-kg-version-description">
+                    Описание
+                  </FieldLabel>
+                  <InputGroup>
+                    <InputGroupTextarea
+                      {...field}
+                      aria-invalid={fieldState.invalid}
+                      className="field-sizing-fixed h-24"
+                      id="new-kg-version-description"
+                      maxLength={textLimit}
+                    />
+                    <CharacterCount value={field.value} />
+                  </InputGroup>
                   {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
                 </Field>
               )}
@@ -167,55 +187,25 @@ export function AddKgPrefix() {
   )
 }
 
-function DevEuiPrefixInput({
-  clearErrors,
-  control,
-  id,
-}: Readonly<{
-  clearErrors: (name: keyof CreateKgPrefixForm) => void
-  control: ReturnType<typeof useForm<CreateKgPrefixForm>>['control']
-  id: string
-}>) {
+function CharacterCount({ value }: Readonly<{ value: string }>) {
+  const limitReached = value.length === textLimit
+
   return (
-    <Controller
-      control={control}
-      name="prefix"
-      render={({ field, fieldState }) => (
-        <Field data-invalid={fieldState.invalid}>
-          <FieldLabel className="cursor-pointer" htmlFor={id}>
-            <span>
-              Префикс DevEUI
-              <span aria-hidden="true" className="ml-0.5 text-destructive">
-                *
-              </span>
-            </span>
-          </FieldLabel>
-          <Input
-            {...field}
-            aria-invalid={fieldState.invalid}
-            autoCapitalize="none"
-            className="font-mono tracking-[0.16em]"
-            id={id}
-            inputMode="text"
-            onChange={(event) => {
-              if (fieldState.error?.type === 'server') clearErrors('prefix')
-              field.onChange(normalizeDevEuiPrefix(event.currentTarget.value))
-            }}
-            placeholder="aa bb cc dd ee"
-            spellCheck={false}
-            value={formatDevEuiPrefix(field.value)}
-          />
-          {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
-        </Field>
-      )}
-    />
+    <InputGroupAddon align="block-end">
+      <InputGroupText
+        className="text-xs font-normal tabular-nums data-[limit-reached=true]:text-destructive"
+        data-limit-reached={limitReached ? 'true' : undefined}
+      >
+        {value.length} / {textLimit}
+      </InputGroupText>
+    </InputGroupAddon>
   )
 }
 
-function toInput(data: CreateKgPrefixForm): CreateKgPrefixInput {
+function toInput(data: CreateKgVersionForm): CreateKgVersionInput {
   return {
-    name: data.name.trim() || null,
-    prefix: data.prefix.trim().toLowerCase(),
-    short_code: data.short_code.trim().toLowerCase(),
+    code: data.code.trim(),
+    description: data.description.trim() || null,
+    name: data.name.trim(),
   }
 }

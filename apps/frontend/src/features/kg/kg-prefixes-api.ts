@@ -12,14 +12,15 @@ import {
 
 export type KgPrefix = Readonly<{
   archivedAt: string | null
+  batchCount: number
   createdAt: string
   name: string | null
   prefix: string
   shortCode: string
 }>
 export type KgPrefixSort = 'archived_at' | 'created_at' | 'name' | 'prefix' | 'short_code'
-export type KgPrefixAuditSort = 'actor_display_name' | 'created_at'
-export type KgPrefixAuditEvent = Readonly<{
+export type KgAuditSort = 'actor_display_name' | 'created_at'
+export type KgAuditEvent = Readonly<{
   action: string
   actorDisplayName: string | null
   actorIdentifier: string | null
@@ -37,8 +38,8 @@ export type PaginatedKgPrefixes = Readonly<{
   pageSize: number
   total: number
 }>
-export type PaginatedKgPrefixAudit = Readonly<{
-  items: KgPrefixAuditEvent[]
+export type PaginatedKgAudit = Readonly<{
+  items: KgAuditEvent[]
   page: number
   pageSize: number
   total: number
@@ -105,21 +106,21 @@ export async function updateKgPrefixArchived(prefix: string, archived: boolean):
   return toKgPrefix(requireData(result.data, result.error))
 }
 
-export async function listKgPrefixAudit(
+export async function listKgAudit(
   params: Readonly<{
     createdFrom?: string
     createdTo?: string
     order: 'asc' | 'desc'
     page: number
     pageSize: number
-    sort: KgPrefixAuditSort
+    sort: KgAuditSort
   }>,
-): Promise<PaginatedKgPrefixAudit> {
+): Promise<PaginatedKgAudit> {
   const result = await auditListAuditEvents({
     query: {
       created_from: params.createdFrom,
       created_to: params.createdTo,
-      entity_type: ['kg_dev_eui_prefix'],
+      entity_type: ['kg_dev_eui_prefix', 'kg_version'],
       order: params.order,
       page: params.page,
       page_size: params.pageSize,
@@ -177,6 +178,7 @@ function errorCode(error: unknown): string | undefined {
 function toKgPrefix(prefix: KgDevEuiPrefixResponse): KgPrefix {
   return {
     archivedAt: prefix.archived_at,
+    batchCount: prefix.batch_count,
     createdAt: prefix.created_at,
     name: prefix.name,
     prefix: prefix.prefix,

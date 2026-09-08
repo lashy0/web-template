@@ -736,6 +736,10 @@ export type KgDevEuiPrefixResponse = {
      */
     archived_at: string | null;
     /**
+     * Batch Count
+     */
+    batch_count: number;
+    /**
      * Created At
      */
     created_at: string;
@@ -837,6 +841,10 @@ export type KgVersionResponse = {
      * Archived At
      */
     archived_at: string | null;
+    /**
+     * Batch Count
+     */
+    batch_count: number;
     /**
      * Code
      */

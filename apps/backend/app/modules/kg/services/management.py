@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import builtins
 from collections.abc import Mapping
 from uuid import UUID
 
@@ -38,7 +37,7 @@ class KgManagementService:
         page_size: int,
         sort: str,
         order: str,
-    ) -> tuple[builtins.list[KgUnit], int]:
+    ) -> tuple[list[KgUnit], int]:
         async with self._session_factory() as session:
             return await KgService(session).list(
                 q=q,
@@ -90,7 +89,7 @@ class KgDevEuiPrefixManagementService:
         page_size: int,
         sort: str,
         order: str,
-    ) -> tuple[builtins.list[KgDevEuiPrefix], int]:
+    ) -> tuple[list[tuple[KgDevEuiPrefix, int]], int]:
         async with self._session_factory() as session:
             return await KgPrefixService(session).list(
                 q=q,
@@ -173,7 +172,7 @@ class KgVersionManagementService:
         page_size: int,
         sort_by: str,
         sort_order: str,
-    ) -> tuple[builtins.list[KgVersion], int]:
+    ) -> tuple[list[tuple[KgVersion, int]], int]:
         async with self._session_factory() as session:
             return await KgVersionService(session).list(
                 q=q,

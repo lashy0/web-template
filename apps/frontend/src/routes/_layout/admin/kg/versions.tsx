@@ -4,9 +4,10 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { Tabs, TabsList, TabsTrigger } from '@web-app/ui/components/tabs'
 
-import { AddKgPrefix } from '@/components/Kg/Prefixes/AddKgPrefix'
-import { createKgPrefixColumns } from '@/components/Kg/Prefixes/columns'
-import { KgPrefixFilters } from '@/components/Kg/Prefixes/KgPrefixFilters'
+import { AddKgVersion } from '@/components/Kg/Versions/AddKgVersion'
+import { createKgVersionColumns } from '@/components/Kg/Versions/columns'
+import { KgVersionFilters } from '@/components/Kg/Versions/KgVersionFilters'
+import PendingKgVersions from '@/components/Kg/Versions/PendingKgVersions'
 import { DataLoadError } from '@/components/Common/DataLoadError'
 import {
   DataTable,
@@ -14,22 +15,18 @@ import {
   type DataTableSorting,
   type PageSize,
 } from '@/components/Common/DataTable'
-import { listKgPrefixes, type KgPrefixSort } from '@/features/kg/kg-prefixes-api'
+import { listKgVersions, type KgVersionSort } from '@/features/kg/kg-versions-api'
 import { listEnum, listOrder, listPage, listPageSize, listQuery } from '@/lib/list-search'
 
-const kgPrefixTableSorts = [
-  'archived_at',
-  'name',
-  'prefix',
-  'short_code',
-] as const satisfies readonly KgPrefixSort[]
+const kgVersionTableSorts = ['archived_at', 'code', 'name'] as const
 
-export const Route = createFileRoute('/_layout/admin/kg/prefixes')({
-  component: KgPrefixes,
-  validateSearch: validateKgPrefixSearch,
+export const Route = createFileRoute('/_layout/admin/kg/versions')({
+  validateSearch: validateKgVersionSearch,
+  component: KgVersions,
+  pendingComponent: PendingKgVersions,
 })
 
-function KgPrefixes() {
+function KgVersions() {
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
   const archived = search.archived ?? false
@@ -38,7 +35,7 @@ function KgPrefixes() {
     pageSize: search.pageSize ?? (25 as PageSize),
   }
   const sorting = sortingFromSearch(search, archived)
-  const [queryInput, setQueryInput] = useState('')
+  const [queryInput, setQueryInput] = useState(search.q ?? '')
 
   useEffect(() => {
     setQueryInput(search.q ?? '')
@@ -66,12 +63,11 @@ function KgPrefixes() {
     sort: sortFor(sorting[0]?.id, archived),
   }
   const result = useQuery({
-    queryFn: () => listKgPrefixes(params),
-    queryKey: ['kg', 'prefixes', params],
+    queryFn: () => listKgVersions(params),
+    queryKey: ['kg', 'versions', params],
     placeholderData: keepPreviousData,
   })
-  const prefixes = result.data?.items ?? []
-  const columns = useMemo(() => createKgPrefixColumns(archived), [archived])
+  const columns = useMemo(() => createKgVersionColumns(archived), [archived])
 
   const setArchived = (nextArchived: boolean) => {
     navigate({
@@ -88,8 +84,8 @@ function KgPrefixes() {
   return (
     <section className="mx-auto w-full max-w-[82.5rem] px-4 py-8 sm:px-8 lg:px-12">
       <div>
-        <h1 className="text-3xl font-semibold tracking-tight">DevEUI-префиксы</h1>
-        <p className="mt-2 text-muted-foreground">Управление префиксами DevEUI для КГ.</p>
+        <h1 className="text-3xl font-semibold tracking-tight">Версии КГ</h1>
+        <p className="mt-2 text-muted-foreground">Управление версиями КГ.</p>
       </div>
       <Tabs
         className="mt-8"
@@ -102,22 +98,22 @@ function KgPrefixes() {
         </TabsList>
       </Tabs>
       <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <KgPrefixFilters onQueryChange={setQueryInput} query={queryInput} />
-        <AddKgPrefix />
+        <KgVersionFilters onQueryChange={setQueryInput} query={queryInput} />
+        <AddKgVersion />
       </div>
       <div className="mt-4">
         {!result.data ? (
           result.isError ? (
             <DataLoadError onRetry={() => void result.refetch()} />
           ) : (
-            <PendingKgPrefixes />
+            <PendingKgVersions />
           )
-        ) : prefixes.length === 0 ? (
-          <EmptyState />
+        ) : result.data.items.length === 0 ? (
+          <EmptyState archived={archived} filtered={Boolean(search.q)} />
         ) : (
           <DataTable
             columns={columns}
-            data={prefixes}
+            data={result.data.items}
             loading={result.isFetching}
             onPaginationChange={(next) => {
               navigate({
@@ -139,7 +135,7 @@ function KgPrefixes() {
             }}
             pagination={pagination}
             sorting={sorting}
-            total={result.data?.total ?? 0}
+            total={result.data.total}
           />
         )}
       </div>
@@ -147,46 +143,46 @@ function KgPrefixes() {
   )
 }
 
-function sortFor(id: string | undefined, archived: boolean): KgPrefixSort {
-  return listEnum(kgPrefixTableSorts, id) ?? (archived ? 'archived_at' : 'prefix')
+function sortFor(id: string | undefined, archived: boolean): KgVersionSort {
+  return listEnum(kgVersionTableSorts, id) ?? (archived ? 'archived_at' : 'code')
 }
 
-export function validateKgPrefixSearch(search: Record<string, unknown>): KgPrefixSearch {
+export function validateKgVersionSearch(search: Record<string, unknown>): KgVersionSearch {
   return {
     archived: search.archived === true ? true : undefined,
     order: listOrder(search.order),
     page: listPage(search.page),
     pageSize: listPageSize(search.pageSize),
     q: listQuery(search.q),
-    sort: listEnum(kgPrefixTableSorts, search.sort),
+    sort: listEnum(kgVersionTableSorts, search.sort),
   }
 }
 
-type KgPrefixSearch = Readonly<{
+type KgVersionSearch = Readonly<{
   archived?: true
   order?: 'asc' | 'desc'
   page?: number
   pageSize?: PageSize
   q?: string
-  sort?: KgPrefixTableSort
+  sort?: KgVersionTableSort
 }>
 
-type KgPrefixTableSort = (typeof kgPrefixTableSorts)[number]
+type KgVersionTableSort = (typeof kgVersionTableSorts)[number]
 
-function sortingFromSearch(search: KgPrefixSearch, archived: boolean): DataTableSorting {
+function sortingFromSearch(search: KgVersionSearch, archived: boolean): DataTableSorting {
   return [
     {
       desc: search.order ? search.order === 'desc' : archived,
-      id: search.sort ?? (archived ? 'archived_at' : 'prefix'),
+      id: search.sort ?? (archived ? 'archived_at' : 'code'),
     },
   ]
 }
 
 function searchForSorting(sorting: DataTableSorting, archived: boolean) {
   const [current] = sorting
-  const sort = listEnum(kgPrefixTableSorts, current?.id) ?? (archived ? 'archived_at' : 'prefix')
+  const sort = listEnum(kgVersionTableSorts, current?.id) ?? (archived ? 'archived_at' : 'code')
   const desc = current?.desc ?? archived
-  const defaultSort = archived ? 'archived_at' : 'prefix'
+  const defaultSort = archived ? 'archived_at' : 'code'
 
   return {
     order: desc === archived && sort === defaultSort ? undefined : desc ? 'desc' : 'asc',
@@ -194,23 +190,21 @@ function searchForSorting(sorting: DataTableSorting, archived: boolean) {
   } as const
 }
 
-function EmptyState() {
+function EmptyState({ archived, filtered }: Readonly<{ archived: boolean; filtered: boolean }>) {
   return (
     <div className="flex min-h-56 items-center justify-center rounded-lg border border-dashed">
       <div className="text-center">
-        <p className="font-medium">Префиксов пока нет</p>
+        <p className="font-medium">
+          {filtered ? 'Ничего не найдено' : archived ? 'Архив пуст' : 'Версий КГ пока нет'}
+        </p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Добавьте префикс, чтобы он появился в списке.
+          {filtered
+            ? 'Попробуйте изменить параметры поиска.'
+            : archived
+              ? 'Архивированные версии появятся здесь.'
+              : 'Добавьте версию, чтобы она появилась в списке.'}
         </p>
       </div>
-    </div>
-  )
-}
-
-function PendingKgPrefixes() {
-  return (
-    <div className="flex min-h-56 items-center justify-center rounded-lg border border-dashed">
-      <p className="text-sm text-muted-foreground">Загрузка префиксов…</p>
     </div>
   )
 }
