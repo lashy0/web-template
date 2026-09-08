@@ -95,7 +95,7 @@ export function LoginForm({ flowId }: Readonly<{ flowId?: string }>) {
                         type={isPasswordVisible ? 'text' : 'password'}
                         {...register('password', { onChange: clearFormError })}
                       />
-                      <InputGroupAddon>
+                      <InputGroupAddon align="inline-end">
                         <InputGroupButton
                           aria-label={isPasswordVisible ? 'Скрыть пароль' : 'Показать пароль'}
                           aria-pressed={isPasswordVisible}
