@@ -49,9 +49,9 @@ export default function PendingAudit({
     <section className="mx-auto w-full max-w-[82.5rem] px-4 py-8 sm:px-8 lg:px-12">
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">Аудит КГ</h1>
-        <p className="mt-2 text-muted-foreground">История действий с префиксами DevEUI и версиями.</p>
       </div>
-      <div className="pt-8">{table}</div>
+      <Skeleton className="mt-5 h-8 w-32" />
+      <div className="mt-4">{table}</div>
     </section>
   )
 }

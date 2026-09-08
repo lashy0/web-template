@@ -87,12 +87,12 @@ function KgPrefixes() {
 
   return (
     <section className="mx-auto w-full max-w-[82.5rem] px-4 py-8 sm:px-8 lg:px-12">
-      <div>
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-semibold tracking-tight">DevEUI-префиксы</h1>
-        <p className="mt-2 text-muted-foreground">Управление префиксами DevEUI для КГ.</p>
+        <AddKgPrefix />
       </div>
       <Tabs
-        className="mt-8"
+        className="mt-5"
         onValueChange={(value) => setArchived(value === 'archived')}
         value={archived ? 'archived' : 'current'}
       >
@@ -101,9 +101,8 @@ function KgPrefixes() {
           <TabsTrigger value="archived">Архивные</TabsTrigger>
         </TabsList>
       </Tabs>
-      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mt-4">
         <KgPrefixFilters onQueryChange={setQueryInput} query={queryInput} />
-        <AddKgPrefix />
       </div>
       <div className="mt-4">
         {!result.data ? (

@@ -20,21 +20,17 @@ export function createUserColumns(
     {
       accessorKey: 'name',
       cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <span className="font-medium">{row.original.name}</span>
-          {row.original.isSystem ? <Badge variant="secondary">Системная</Badge> : null}
-          {row.original.id === currentUserId ? <CurrentUserBadge /> : null}
+        <div className="flex flex-col gap-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-medium">{row.original.name}</span>
+            {row.original.isSystem ? <Badge variant="secondary">Системная</Badge> : null}
+            {row.original.id === currentUserId ? <CurrentUserBadge /> : null}
+          </div>
+          <span className="text-muted-foreground">{row.original.login ?? '—'}</span>
         </div>
       ),
       enableSorting: true,
       header: 'Имя',
-      sortDescFirst: false,
-    },
-    {
-      accessorKey: 'login',
-      cell: ({ row }) => <span className="text-muted-foreground">{row.original.login ?? '—'}</span>,
-      enableSorting: true,
-      header: 'Логин',
       sortDescFirst: false,
     },
     {

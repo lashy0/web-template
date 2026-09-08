@@ -17,19 +17,21 @@ export default function PendingUsers({
         <TableHeader>
           <TableRow>
             <TableHead>Имя</TableHead>
-            <TableHead>Логин</TableHead>
             <TableHead>Роль</TableHead>
             <TableHead>Статус</TableHead>
+            <TableHead>
+              <span className="sr-only">Действия</span>
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {Array.from({ length: 5 }).map((_, index) => (
             <TableRow key={index}>
               <TableCell>
-                <Skeleton className="h-4 w-40" />
-              </TableCell>
-              <TableCell>
-                <Skeleton className="h-4 w-32" />
+                <div className="flex flex-col gap-1">
+                  <Skeleton className="h-4 w-40" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
               </TableCell>
               <TableCell>
                 <Skeleton className="h-5 w-20 rounded-full" />
@@ -39,6 +41,9 @@ export default function PendingUsers({
                   <Skeleton className="size-2 rounded-full" />
                   <Skeleton className="h-4 w-12" />
                 </div>
+              </TableCell>
+              <TableCell>
+                <Skeleton className="ml-auto size-4" />
               </TableCell>
             </TableRow>
           ))}
@@ -53,14 +58,17 @@ export default function PendingUsers({
 
   return (
     <section className="mx-auto w-full max-w-[82.5rem] px-4 py-8 sm:px-8 lg:px-12">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Пользователи</h1>
-          <p className="mt-2 text-muted-foreground">Управление учётными записями.</p>
-        </div>
-        <Skeleton className="h-10 w-32" />
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-3xl font-semibold tracking-tight">Пользователи</h1>
+        <Skeleton className="h-8 w-48" />
       </div>
-      <div className="pt-8">{table}</div>
+      <Skeleton className="mt-5 h-9 w-44 rounded-full" />
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Skeleton className="h-8 w-72" />
+        <Skeleton className="h-8 w-40" />
+        <Skeleton className="h-8 w-40" />
+      </div>
+      <div className="mt-4">{table}</div>
     </section>
   )
 }

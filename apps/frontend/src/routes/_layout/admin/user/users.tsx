@@ -145,12 +145,12 @@ function Users() {
 
   return (
     <section className="mx-auto w-full max-w-[82.5rem] px-4 py-8 sm:px-8 lg:px-12">
-      <div>
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-semibold tracking-tight">Пользователи</h1>
-        <p className="mt-2 text-muted-foreground">Управление учётными записями.</p>
+        <AddUser />
       </div>
       <Tabs
-        className="mt-8"
+        className="mt-5"
         onValueChange={(value) => {
           const nextArchived = value === 'archived'
           navigate({
@@ -171,7 +171,7 @@ function Users() {
           <TabsTrigger value="archived">Архивные</TabsTrigger>
         </TabsList>
       </Tabs>
-      <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="mt-4">
         <UserFilters
           archived={archived}
           authState={authState}
@@ -181,7 +181,6 @@ function Users() {
           query={queryInput}
           role={role}
         />
-        <AddUser />
       </div>
       <div className="mt-4">
         {!users ? (

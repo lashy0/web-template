@@ -81,12 +81,12 @@ function DefectGroups() {
   }
   return (
     <section className="mx-auto w-full max-w-[82.5rem] px-4 py-8 sm:px-8 lg:px-12">
-      <div>
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-semibold tracking-tight">Группы дефектов</h1>
-        <p className="mt-2 text-muted-foreground">Управление классификацией дефектов.</p>
+        <AddDefectGroup />
       </div>
       <Tabs
-        className="mt-8"
+        className="mt-5"
         onValueChange={(value) => resetList(value === 'archived')}
         value={archived ? 'archived' : 'current'}
       >
@@ -95,9 +95,8 @@ function DefectGroups() {
           <TabsTrigger value="archived">Архивные</TabsTrigger>
         </TabsList>
       </Tabs>
-      <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="mt-4">
         <DefectGroupFilters onQueryChange={setQueryInput} query={queryInput} />
-        <AddDefectGroup />
       </div>
       <div className="mt-4">
         {!result.data ? (
