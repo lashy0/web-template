@@ -1,6 +1,11 @@
 import { SearchIcon, XIcon } from 'lucide-react'
 
-import { Input } from '@web-app/ui/components/input'
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from '@web-app/ui/components/input-group'
 
 export function DefectGroupFilters({
   onQueryChange,
@@ -10,24 +15,27 @@ export function DefectGroupFilters({
   query: string
 }>) {
   return (
-    <div className="relative w-full sm:w-72">
-      <SearchIcon className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-      <Input
-        className="w-full px-8"
+    <InputGroup className="w-full sm:w-72">
+      <InputGroupInput
+        aria-label="Поиск по коду или названию"
         onChange={(event) => onQueryChange(event.target.value)}
         placeholder="Поиск по коду или названию..."
         value={query}
       />
+      <InputGroupAddon align="inline-start">
+        <SearchIcon />
+      </InputGroupAddon>
       {query ? (
-        <button
-          aria-label="Очистить поиск"
-          className="absolute top-1/2 right-2 flex size-5 -translate-y-1/2 cursor-pointer items-center justify-center text-muted-foreground hover:text-foreground"
-          onClick={() => onQueryChange('')}
-          type="button"
-        >
-          <XIcon className="size-4" />
-        </button>
+        <InputGroupAddon align="inline-end">
+          <InputGroupButton
+            aria-label="Очистить поиск"
+            onClick={() => onQueryChange('')}
+            size="icon-xs"
+          >
+            <XIcon data-icon="inline-start" />
+          </InputGroupButton>
+        </InputGroupAddon>
       ) : null}
-    </div>
+    </InputGroup>
   )
 }

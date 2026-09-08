@@ -1,17 +1,19 @@
 import { useQuery } from '@tanstack/react-query'
-import { ChevronsUpDownIcon, SearchIcon, XIcon } from 'lucide-react'
+import { ChevronDownIcon, SearchIcon, XIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
+import { Button } from '@web-app/ui/components/button'
 import {
   Combobox,
   ComboboxContent,
-  ComboboxIcon,
   ComboboxInput,
   ComboboxItem,
   ComboboxList,
   ComboboxTrigger,
   ComboboxValue,
 } from '@web-app/ui/components/combobox'
+import { InputGroup, InputGroupAddon, InputGroupButton } from '@web-app/ui/components/input-group'
+import { cn } from '@web-app/ui/lib/utils'
 
 import { defectGroupLabel } from '@/features/defects/defect-format'
 import { getDefectGroup, listDefectGroups } from '@/features/defects/defects-api'
@@ -86,41 +88,43 @@ export function DefectGroupSelect({
     >
       <ComboboxTrigger
         aria-label={ariaLabel ?? selectedLabel}
-        className={className}
         disabled={disabled}
         id={id}
+        render={<Button className={cn('justify-between font-normal', className)} variant="outline" />}
       >
         <span className="min-w-0 flex-1 truncate text-left">
           <ComboboxValue>{selectedLabel}</ComboboxValue>
         </span>
-        <ComboboxIcon>
-          <ChevronsUpDownIcon className="size-4" />
-        </ComboboxIcon>
+        <ChevronDownIcon data-icon="inline-end" />
       </ComboboxTrigger>
       <ComboboxContent className="min-w-80 p-2">
-        <div className="relative">
-          <SearchIcon className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+        <InputGroup>
           <ComboboxInput
-            autoFocus
-            className="pl-8 pr-8"
+            aria-label="Поиск групп"
+            className="flex-1 rounded-none border-0 bg-transparent shadow-none focus-visible:ring-0"
+            data-slot="input-group-control"
             placeholder="Поиск по коду или названию..."
           />
+          <InputGroupAddon align="inline-start">
+            <SearchIcon />
+          </InputGroupAddon>
           {query ? (
-            <button
-              aria-label="Очистить поиск групп"
-              className="absolute top-1/2 right-2 flex size-5 -translate-y-1/2 cursor-pointer items-center justify-center text-muted-foreground hover:text-foreground"
-              onClick={() => setQuery('')}
-              type="button"
-            >
-              <XIcon className="size-4" />
-            </button>
+            <InputGroupAddon align="inline-end">
+              <InputGroupButton
+                aria-label="Очистить поиск групп"
+                onClick={() => setQuery('')}
+                size="icon-xs"
+              >
+                <XIcon data-icon="inline-start" />
+              </InputGroupButton>
+            </InputGroupAddon>
           ) : null}
-        </div>
+        </InputGroup>
         <ComboboxList className="mt-2">
-          {allowClear ? (
-            <ComboboxItem value={allGroupsValue}>Все группы</ComboboxItem>
+          {allowClear ? <ComboboxItem value={allGroupsValue}>Все группы</ComboboxItem> : null}
+          {groups.isFetching ? (
+            <p className="px-2 py-3 text-sm text-muted-foreground">Поиск…</p>
           ) : null}
-          {groups.isFetching ? <p className="px-2 py-3 text-sm text-muted-foreground">Поиск…</p> : null}
           {!groups.isFetching && groups.data?.items.length === 0 ? (
             <p className="px-2 py-3 text-sm text-muted-foreground">Группы не найдены.</p>
           ) : null}

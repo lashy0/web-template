@@ -16,6 +16,12 @@ import {
 } from '@web-app/ui/components/dialog'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@web-app/ui/components/field'
 import { Input } from '@web-app/ui/components/input'
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupText,
+  InputGroupTextarea,
+} from '@web-app/ui/components/input-group'
 import { Spinner } from '@web-app/ui/components/spinner'
 
 import {
@@ -29,6 +35,7 @@ import useCustomToast from '@/hooks/useCustomToast'
 
 type CreateDefectGroupForm = Readonly<{ code: string; description: string; name: string }>
 const initialForm: CreateDefectGroupForm = { code: '', description: '', name: '' }
+const textLimit = 2000
 
 export function AddDefectGroup() {
   const queryClient = useQueryClient()
@@ -81,18 +88,21 @@ export function AddDefectGroup() {
         <PlusIcon data-icon="inline-start" />
         Добавить
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg" showCloseButton={!mutation.isPending}>
+      <DialogContent
+        className="flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg"
+        showCloseButton={!mutation.isPending}
+      >
         <form
           autoComplete="off"
-          className="flex flex-col gap-5"
+          className="flex min-h-0 flex-1 flex-col"
           noValidate
           onSubmit={form.handleSubmit((data) => mutation.mutate(data))}
         >
-          <DialogHeader>
+          <DialogHeader className="shrink-0 px-4 pt-4">
             <DialogTitle>Новая группа дефектов</DialogTitle>
             <DialogDescription>Задайте код, название и описание группы.</DialogDescription>
           </DialogHeader>
-          <FieldGroup>
+          <FieldGroup className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
             <Controller
               control={form.control}
               name="code"
@@ -145,18 +155,22 @@ export function AddDefectGroup() {
                   <FieldLabel className="cursor-pointer" htmlFor="new-defect-group-description">
                     <span>Описание</span>
                   </FieldLabel>
-                  <textarea
-                    {...field}
-                    aria-invalid={fieldState.invalid}
-                    className="border-input bg-transparent focus-visible:border-ring focus-visible:ring-ring/50 min-h-20 w-full rounded-md border px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px]"
-                    id="new-defect-group-description"
-                  />
+                  <InputGroup>
+                    <InputGroupTextarea
+                      {...field}
+                      aria-invalid={fieldState.invalid}
+                      className="field-sizing-fixed h-24"
+                      id="new-defect-group-description"
+                      maxLength={textLimit}
+                    />
+                    <CharacterCount value={field.value} />
+                  </InputGroup>
                   {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
                 </Field>
               )}
             />
           </FieldGroup>
-          <DialogFooter>
+          <DialogFooter className="mx-0 mb-0 shrink-0 rounded-b-xl px-4 py-4">
             <Button
               disabled={mutation.isPending}
               onClick={resetAndClose}
@@ -176,6 +190,25 @@ export function AddDefectGroup() {
   )
 }
 
+function CharacterCount({ value }: Readonly<{ value: string }>) {
+  const limitReached = value.length === textLimit
+
+  return (
+    <InputGroupAddon align="block-end">
+      <InputGroupText
+        className="text-xs font-normal tabular-nums data-[limit-reached=true]:text-destructive"
+        data-limit-reached={limitReached ? 'true' : undefined}
+      >
+        {value.length} / {textLimit}
+      </InputGroupText>
+    </InputGroupAddon>
+  )
+}
+
 function toInput(data: CreateDefectGroupForm): CreateDefectGroupInput {
-  return { code: data.code, description: data.description.trim() || null, name: data.name }
+  return {
+    code: data.code,
+    description: data.description.trim() || null,
+    name: data.name,
+  }
 }

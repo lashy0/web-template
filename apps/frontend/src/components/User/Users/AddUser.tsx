@@ -114,18 +114,21 @@ export function AddUser() {
         <PlusIcon data-icon="inline-start" />
         Добавить
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg" showCloseButton={!mutation.isPending}>
+      <DialogContent
+        className="flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg"
+        showCloseButton={!mutation.isPending}
+      >
         <form
           autoComplete="off"
-          className="flex flex-col gap-5"
+          className="flex min-h-0 flex-1 flex-col"
           noValidate
           onSubmit={form.handleSubmit(submit)}
         >
-          <DialogHeader>
+          <DialogHeader className="shrink-0 px-4 pt-4">
             <DialogTitle>Новый пользователь</DialogTitle>
             <DialogDescription>Задайте учётные данные и назначьте роль.</DialogDescription>
           </DialogHeader>
-          <FieldGroup>
+          <FieldGroup className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
             <Controller
               control={form.control}
               name="name"
@@ -263,7 +266,7 @@ export function AddUser() {
               )}
             />
           </FieldGroup>
-          <DialogFooter>
+          <DialogFooter className="mx-0 mb-0 shrink-0 rounded-b-xl px-4 py-4">
             <Button
               disabled={mutation.isPending}
               onClick={resetAndClose}

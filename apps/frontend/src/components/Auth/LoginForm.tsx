@@ -10,7 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@web-app/ui/components/card'
-import { Field, FieldError, FieldGroup } from '@web-app/ui/components/field'
+import { Field, FieldError, FieldGroup, FieldLabel } from '@web-app/ui/components/field'
 import { Input } from '@web-app/ui/components/input'
 import {
   InputGroup,
@@ -18,7 +18,6 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from '@web-app/ui/components/input-group'
-import { Label } from '@web-app/ui/components/label'
 import { Spinner } from '@web-app/ui/components/spinner'
 
 import { PendingLogin } from '@/components/Auth/PendingLogin'
@@ -59,37 +58,41 @@ export function LoginForm({ flowId }: Readonly<{ flowId?: string }>) {
                   </Alert>
                 ) : null}
                 <FieldGroup>
-                  <Field data-invalid={Boolean(loginError) || undefined}>
-                    <Label className="cursor-pointer" htmlFor="login">
+                  <Field
+                    data-disabled={flow.login.disabled || isSubmitting || undefined}
+                    data-invalid={Boolean(loginError) || undefined}
+                  >
+                    <FieldLabel className="cursor-pointer" htmlFor="login">
                       Логин
-                    </Label>
+                    </FieldLabel>
                     <Input
                       aria-describedby={loginError ? 'login-error' : undefined}
                       aria-invalid={Boolean(loginError) || undefined}
                       autoComplete="username"
+                      className="h-13 border-primary/25"
                       disabled={flow.login.disabled || isSubmitting}
                       id="login"
-                      size="lg"
                       type="text"
-                      variant="auth"
                       {...register('login', { onChange: clearFormError })}
                     />
                     {loginError ? <FieldError id="login-error">{loginError}</FieldError> : null}
                   </Field>
-                  <Field data-invalid={Boolean(passwordError) || undefined}>
-                    <Label className="cursor-pointer" htmlFor="password">
+                  <Field
+                    data-disabled={flow.password.disabled || isSubmitting || undefined}
+                    data-invalid={Boolean(passwordError) || undefined}
+                  >
+                    <FieldLabel className="cursor-pointer" htmlFor="password">
                       Пароль
-                    </Label>
-                    <InputGroup size="lg" variant="auth">
+                    </FieldLabel>
+                    <InputGroup className="h-13 border-primary/25">
                       <InputGroupInput
                         aria-describedby={passwordError ? 'password-error' : undefined}
                         aria-invalid={Boolean(passwordError) || undefined}
                         autoComplete="current-password"
+                        className="h-full"
                         disabled={flow.password.disabled || isSubmitting}
                         id="password"
-                        size="lg"
                         type={isPasswordVisible ? 'text' : 'password'}
-                        variant="auth"
                         {...register('password', { onChange: clearFormError })}
                       />
                       <InputGroupAddon>

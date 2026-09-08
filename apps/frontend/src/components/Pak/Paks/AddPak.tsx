@@ -101,23 +101,26 @@ export function AddPak() {
         <PlusIcon data-icon="inline-start" />
         Добавить
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg" showCloseButton={!mutation.isPending}>
+      <DialogContent
+        className="flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg"
+        showCloseButton={!mutation.isPending}
+      >
         {created ? (
           <CreatedAccessKey result={created} onClose={resetAndClose} />
         ) : (
           <form
             autoComplete="off"
-            className="flex flex-col gap-5"
+            className="flex min-h-0 flex-1 flex-col"
             noValidate
             onSubmit={form.handleSubmit((data) => mutation.mutate(data))}
           >
-            <DialogHeader>
+            <DialogHeader className="shrink-0 px-4 pt-4">
               <DialogTitle>Новый ПАК</DialogTitle>
               <DialogDescription>
                 Задайте код, тип и начальное состояние комплекса.
               </DialogDescription>
             </DialogHeader>
-            <FieldGroup>
+            <FieldGroup className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
               <Controller
                 control={form.control}
                 name="code"
@@ -197,7 +200,7 @@ export function AddPak() {
                 )}
               />
             </FieldGroup>
-            <DialogFooter>
+            <DialogFooter className="mx-0 mb-0 shrink-0 rounded-b-xl px-4 py-4">
               <Button
                 disabled={mutation.isPending}
                 onClick={resetAndClose}
@@ -229,7 +232,7 @@ function CreatedAccessKey({
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex min-h-0 flex-1 flex-col gap-5 p-4">
       <DialogHeader>
         <DialogTitle>ПАК создан</DialogTitle>
         <DialogDescription>

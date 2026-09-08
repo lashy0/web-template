@@ -1,6 +1,11 @@
 import { SearchIcon, XIcon } from 'lucide-react'
 
-import { Input } from '@web-app/ui/components/input'
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from '@web-app/ui/components/input-group'
 import {
   Select,
   SelectContent,
@@ -42,25 +47,28 @@ export function PakFilters({
 
   return (
     <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-      <div className="relative w-full sm:w-72">
-        <SearchIcon className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          className="w-full px-8"
+      <InputGroup className="w-full sm:w-72">
+        <InputGroupInput
+          aria-label="Поиск по коду или клиенту"
           onChange={(event) => onQueryChange(event.target.value)}
           placeholder="Поиск по коду или клиенту..."
           value={query}
         />
+        <InputGroupAddon align="inline-start">
+          <SearchIcon />
+        </InputGroupAddon>
         {query ? (
-          <button
-            aria-label="Очистить поиск"
-            className="absolute right-2 top-1/2 flex size-5 -translate-y-1/2 cursor-pointer items-center justify-center rounded-sm text-muted-foreground hover:text-foreground"
-            onClick={() => onQueryChange('')}
-            type="button"
-          >
-            <XIcon className="size-4" />
-          </button>
+          <InputGroupAddon align="inline-end">
+            <InputGroupButton
+              aria-label="Очистить поиск"
+              onClick={() => onQueryChange('')}
+              size="icon-xs"
+            >
+              <XIcon data-icon="inline-start" />
+            </InputGroupButton>
+          </InputGroupAddon>
         ) : null}
-      </div>
+      </InputGroup>
       <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
         <Select onValueChange={(value) => onKindChange(value as KindFilter)} value={kind}>
           <SelectTrigger className="w-40 cursor-pointer">

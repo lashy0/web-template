@@ -14,6 +14,12 @@ import {
 } from '@web-app/ui/components/dialog'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@web-app/ui/components/field'
 import { Input } from '@web-app/ui/components/input'
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupText,
+  InputGroupTextarea,
+} from '@web-app/ui/components/input-group'
 import { Spinner } from '@web-app/ui/components/spinner'
 
 import {
@@ -30,6 +36,7 @@ type EditDefectTypeForm = Readonly<{
   name: string
   possible_cause: string
 }>
+const textLimit = 2000
 function toForm(type: DefectType): EditDefectTypeForm {
   return {
     description: type.description,
@@ -87,44 +94,109 @@ export function EditDefectType({
   }
   return (
     <Dialog onOpenChange={(nextOpen) => (nextOpen ? onOpenChange(true) : close())} open={open}>
-      <DialogContent className="sm:max-w-lg" showCloseButton={!mutation.isPending}>
+      <DialogContent
+        className="flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg"
+        showCloseButton={!mutation.isPending}
+      >
         <form
           autoComplete="off"
-          className="flex flex-col gap-5"
+          className="flex min-h-0 flex-1 flex-col"
           noValidate
           onSubmit={form.handleSubmit((data) => mutation.mutate(data))}
         >
-          <DialogHeader>
+          <DialogHeader className="shrink-0 px-4 pt-4">
             <DialogTitle>Изменить тип дефекта</DialogTitle>
             <DialogDescription>Код «{type.code}» и группу типа изменить нельзя.</DialogDescription>
           </DialogHeader>
-          <FieldGroup>
-            <TextInput
+          <FieldGroup className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
+            <Controller
               control={form.control}
-              id={`defect-type-${type.id}-name`}
-              label="Название"
               name="name"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel className="cursor-pointer" htmlFor={`defect-type-${type.id}-name`}>
+                    Название
+                  </FieldLabel>
+                  <Input
+                    {...field}
+                    aria-invalid={fieldState.invalid}
+                    id={`defect-type-${type.id}-name`}
+                  />
+                  {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                </Field>
+              )}
             />
-            <TextArea
+            <Controller
               control={form.control}
-              id={`defect-type-${type.id}-description`}
-              label="Описание"
               name="description"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel
+                    className="cursor-pointer"
+                    htmlFor={`defect-type-${type.id}-description`}
+                  >
+                    Описание
+                  </FieldLabel>
+                  <InputGroup>
+                    <InputGroupTextarea
+                      {...field}
+                      aria-invalid={fieldState.invalid}
+                      className="field-sizing-fixed h-24"
+                      id={`defect-type-${type.id}-description`}
+                      maxLength={textLimit}
+                    />
+                    <CharacterCount value={field.value} />
+                  </InputGroup>
+                  {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                </Field>
+              )}
             />
-            <TextArea
+            <Controller
               control={form.control}
-              id={`defect-type-${type.id}-cause`}
-              label="Возможная причина"
               name="possible_cause"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel className="cursor-pointer" htmlFor={`defect-type-${type.id}-cause`}>
+                    Возможная причина
+                  </FieldLabel>
+                  <InputGroup>
+                    <InputGroupTextarea
+                      {...field}
+                      aria-invalid={fieldState.invalid}
+                      className="field-sizing-fixed h-24"
+                      id={`defect-type-${type.id}-cause`}
+                      maxLength={textLimit}
+                    />
+                    <CharacterCount value={field.value} />
+                  </InputGroup>
+                  {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                </Field>
+              )}
             />
-            <TextArea
+            <Controller
               control={form.control}
-              id={`defect-type-${type.id}-action`}
-              label="Действие инженера"
               name="engineer_action"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel className="cursor-pointer" htmlFor={`defect-type-${type.id}-action`}>
+                    Действие инженера
+                  </FieldLabel>
+                  <InputGroup>
+                    <InputGroupTextarea
+                      {...field}
+                      aria-invalid={fieldState.invalid}
+                      className="field-sizing-fixed h-24"
+                      id={`defect-type-${type.id}-action`}
+                      maxLength={textLimit}
+                    />
+                    <CharacterCount value={field.value} />
+                  </InputGroup>
+                  {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                </Field>
+              )}
             />
           </FieldGroup>
-          <DialogFooter>
+          <DialogFooter className="mx-0 mb-0 shrink-0 rounded-b-xl px-4 py-4">
             <Button
               disabled={mutation.isPending}
               onClick={() => close()}
@@ -143,52 +215,18 @@ export function EditDefectType({
     </Dialog>
   )
 }
-function TextInput({
-  control,
-  id,
-  label,
-  name,
-}: Readonly<{ control: any; id: string; label: string; name: string }>) {
+
+function CharacterCount({ value }: Readonly<{ value: string }>) {
+  const limitReached = value.length === textLimit
+
   return (
-    <Controller
-      control={control}
-      name={name}
-      render={({ field, fieldState }) => (
-        <Field data-invalid={fieldState.invalid}>
-          <FieldLabel className="cursor-pointer" htmlFor={id}>
-            <span>{label}</span>
-          </FieldLabel>
-          <Input {...field} aria-invalid={fieldState.invalid} id={id} />
-          {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
-        </Field>
-      )}
-    />
-  )
-}
-function TextArea({
-  control,
-  id,
-  label,
-  name,
-}: Readonly<{ control: any; id: string; label: string; name: string }>) {
-  return (
-    <Controller
-      control={control}
-      name={name}
-      render={({ field, fieldState }) => (
-        <Field data-invalid={fieldState.invalid}>
-          <FieldLabel className="cursor-pointer" htmlFor={id}>
-            <span>{label}</span>
-          </FieldLabel>
-          <textarea
-            {...field}
-            aria-invalid={fieldState.invalid}
-            className="border-input bg-transparent focus-visible:border-ring focus-visible:ring-ring/50 min-h-20 w-full rounded-md border px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px]"
-            id={id}
-          />
-          {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
-        </Field>
-      )}
-    />
+    <InputGroupAddon align="block-end">
+      <InputGroupText
+        className="text-xs font-normal tabular-nums data-[limit-reached=true]:text-destructive"
+        data-limit-reached={limitReached ? 'true' : undefined}
+      >
+        {value.length} / {textLimit}
+      </InputGroupText>
+    </InputGroupAddon>
   )
 }
