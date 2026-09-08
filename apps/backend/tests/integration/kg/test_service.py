@@ -45,7 +45,11 @@ async def test_prefix_crud_and_in_use_guard(scenario):
     with pytest.raises(KgDevEuiPrefixConflictError):
         await service.create(actor=actor, prefix=uuid4().hex[:10], short_code=prefix, name=None)
     await service.delete(actor=actor, prefix=prefix)
-    assert prefix not in {item.prefix for item in await service.list()}
+    items, total = await service.list(
+        q=prefix, archived=False, page=1, page_size=25, sort="prefix", order="asc"
+    )
+    assert total == 0
+    assert items == []
     await service.create(actor=actor, prefix=prefix, short_code=prefix, name=None)
     await batches.create(
         actor=actor,

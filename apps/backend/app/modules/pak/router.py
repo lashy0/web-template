@@ -4,6 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, Request, status
 
 from app.api.auth_deps import CurrentPrincipalDep, require_permission
+from app.modules.defects.schemas import DefectGroupSummaryResponse
 
 from .enums import PakDeviceKind, PakStatus
 from .exceptions import PakNotFoundError, PakTestNotFoundError
@@ -48,6 +49,12 @@ def _test_response(test: PakTest) -> PakTestResponse:
         test_name=test.test_name,
         test_label=test.test_label,
         defect_group_id=test.defect_group_id,
+        defect_group=DefectGroupSummaryResponse(
+            id=test.defect_group.id,
+            code=test.defect_group.code,
+            name=test.defect_group.name,
+            archived_at=test.defect_group.archived_at,
+        ),
         last_seen_at=test.last_seen_at,
         created_at=test.created_at,
         updated_at=test.updated_at,

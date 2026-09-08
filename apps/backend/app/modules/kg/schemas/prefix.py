@@ -36,6 +36,12 @@ class KgDevEuiPrefixResponse(BaseModel):
     archived_at: datetime | None
 
 
+class KgDevEuiPrefixSummaryResponse(BaseModel):
+    prefix: DevEuiPrefix
+    short_code: str
+    name: str | None
+
+
 class KgDevEuiPrefixListResponse(BaseModel):
     items: list[KgDevEuiPrefixResponse]
     total: int

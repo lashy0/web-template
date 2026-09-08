@@ -18,8 +18,19 @@ def _service(request: Request) -> DefectManagementService:
     )
 
 
-def _group_response(group: DefectGroup) -> DefectGroupResponse:
+def _group_response(
+    group: DefectGroup,
+    *,
+    active_types_count: int | None = None,
+    types_count: int | None = None,
+) -> DefectGroupResponse:
     return DefectGroupResponse(
+        active_types_count=(
+            sum(item.archived_at is None for item in group.types)
+            if active_types_count is None
+            else active_types_count
+        ),
+        types_count=len(group.types) if types_count is None else types_count,
         id=group.id,
         code=group.code,
         name=group.name,

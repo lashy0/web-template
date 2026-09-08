@@ -288,13 +288,13 @@ function errorCode(error: unknown): string | undefined {
 
 function toGroup(group: DefectGroupResponse): DefectGroup {
   return {
-    activeTypesCount: 0,
+    activeTypesCount: group.active_types_count,
     archivedAt: group.archived_at,
     code: group.code,
     description: group.description,
     id: group.id,
     name: group.name,
-    typesCount: 0,
+    typesCount: group.types_count,
   }
 }
 

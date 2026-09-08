@@ -49,10 +49,10 @@ async def list_kg_versions(
     )
 
     return KgVersionListResponse(
-        items=[
-            _version_response(item, batch_count=batch_count)
-            for item, batch_count in items
-        ],
+        items=[_version_response(
+            item,
+            batch_count=batch_count,
+        ) for item, batch_count in items],
         total=total,
         page=page,
         page_size=page_size,
@@ -71,11 +71,12 @@ async def create_kg_version(
     ],
     request: Request,
 ) -> KgVersionResponse:
+    service = _version_service(request)
+    item = await service.create(actor=principal, **payload.model_dump())
+
     return _version_response(
-        await _version_service(request).create(
-            actor=principal,
-            **payload.model_dump(),
-        )
+        item,
+        batch_count=await service.count_batches(item.id),
     )
 
 
@@ -88,12 +89,16 @@ async def update_kg_version(
     ],
     request: Request,
 ) -> KgVersionResponse:
+    service = _version_service(request)
+    item = await service.update(
+        actor=principal,
+        version_id=version_id,
+        updates=payload.model_dump(exclude_unset=True),
+    )
+
     return _version_response(
-        await _version_service(request).update(
-            actor=principal,
-            version_id=version_id,
-            updates=payload.model_dump(exclude_unset=True),
-        )
+        item,
+        batch_count=await service.count_batches(item.id),
     )
 
 
@@ -106,12 +111,16 @@ async def update_kg_version_archived(
     ],
     request: Request,
 ) -> KgVersionResponse:
+    service = _version_service(request)
+    item = await service.set_archived(
+        actor=principal,
+        version_id=version_id,
+        archived=payload.archived,
+    )
+
     return _version_response(
-        await _version_service(request).set_archived(
-            actor=principal,
-            version_id=version_id,
-            archived=payload.archived,
-        )
+        item,
+        batch_count=await service.count_batches(item.id),
     )
 
 

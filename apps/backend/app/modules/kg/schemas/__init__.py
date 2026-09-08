@@ -3,6 +3,7 @@ from .prefix import (
     CreateKgDevEuiPrefixRequest,
     KgDevEuiPrefixListResponse,
     KgDevEuiPrefixResponse,
+    KgDevEuiPrefixSummaryResponse,
     UpdateKgDevEuiPrefixArchivedRequest,
     UpdateKgDevEuiPrefixRequest,
 )
@@ -11,6 +12,7 @@ from .version import (
     CreateKgVersionRequest,
     KgVersionListResponse,
     KgVersionResponse,
+    KgVersionSummaryResponse,
     UpdateKgVersionArchivedRequest,
     UpdateKgVersionRequest,
 )
@@ -22,10 +24,12 @@ __all__ = [
     "DevEuiPrefix",
     "KgDevEuiPrefixListResponse",
     "KgDevEuiPrefixResponse",
+    "KgDevEuiPrefixSummaryResponse",
     "KgListResponse",
     "KgResponse",
     "KgVersionListResponse",
     "KgVersionResponse",
+    "KgVersionSummaryResponse",
     "UpdateKgDevEuiPrefixArchivedRequest",
     "UpdateKgDevEuiPrefixRequest",
     "UpdateKgVersionArchivedRequest",

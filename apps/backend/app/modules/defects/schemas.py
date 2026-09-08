@@ -12,11 +12,12 @@ class DefectGroupResponse(BaseModel):
     archived_at: datetime | None
     created_at: datetime
     updated_at: datetime
+    active_types_count: int = Field(ge=0)
+    types_count: int = Field(ge=0)
 
 
 class DefectGroupListItemResponse(DefectGroupResponse):
-    active_types_count: int = Field(ge=0)
-    types_count: int = Field(ge=0)
+    pass
 
 
 class DefectGroupListResponse(BaseModel):

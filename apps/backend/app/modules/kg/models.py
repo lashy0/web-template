@@ -1,11 +1,25 @@
 from datetime import datetime
 from enum import StrEnum
+from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
-from sqlalchemy import CheckConstraint, DateTime, Enum, ForeignKey, Index, String, Text, Uuid, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Index,
+    String,
+    Text,
+    Uuid,
+    func,
+)
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.infrastructure.database.base import Base
+
+if TYPE_CHECKING:
+    from app.modules.batch.models import Batch
 
 
 class KgStatus(StrEnum):
@@ -40,6 +54,7 @@ class KgUnit(Base):
     __tablename__ = "kg_units"
 
     dev_eui: Mapped[str] = mapped_column(String(16), primary_key=True)
+    batch: Mapped["Batch"] = relationship(lazy="selectin")
     short_id: Mapped[str] = mapped_column(String(20), nullable=False, unique=True)
     batch_id: Mapped[UUID] = mapped_column(
         Uuid(as_uuid=True),

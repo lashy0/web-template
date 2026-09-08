@@ -17,6 +17,7 @@ from app.auth.contracts import AuthSession, Identity
 from app.auth.roles import Role
 from app.core.config import Settings
 from app.main import create_app
+from app.modules.batch.models import Batch
 from app.modules.kg.models import KgDevEuiPrefix, KgStatus, KgUnit, KgVersion
 
 _ALLOWED_ORIGIN = "https://admin.example"
@@ -46,10 +47,12 @@ class _SessionFactory:
 
 def _kg(*, batch_id: UUID | None = None) -> KgUnit:
     now = datetime.now(UTC)
+    batch = Batch(id=batch_id or uuid4(), name="August production")
     return KgUnit(
         dev_eui="a1b2c3d4e5f60708",
         short_id="kg-000001",
-        batch_id=batch_id or uuid4(),
+        batch_id=batch.id,
+        batch=batch,
         status=KgStatus.REGISTERED,
         created_at=now,
         updated_at=now,
@@ -130,6 +133,7 @@ def test_list_kg_serializes_items_and_forwards_filters(
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["items"][0]["dev_eui"] == kg.dev_eui
+    assert response.json()["items"][0]["batch"] == {"id": str(kg.batch_id), "name": kg.batch.name}
     assert response.json()["total"] == 1
     service.list.assert_awaited_once_with(
         q="a1b2",
@@ -199,6 +203,126 @@ def test_list_kg_versions_is_not_captured_by_the_dev_eui_route(
         sort_by="code",
         sort_order="asc",
     )
+
+
+@pytest.mark.api
+@pytest.mark.parametrize(
+    ("method", "url", "payload", "operation", "expected_status"),
+    [
+        pytest.param(
+            "post",
+            "/kg/versions",
+            {"code": "KG-1", "name": "Первая версия"},
+            "create",
+            status.HTTP_201_CREATED,
+            id="create-version",
+        ),
+        pytest.param(
+            "patch",
+            "/kg/versions/{id}",
+            {"name": "Обновлённая версия"},
+            "update",
+            status.HTTP_200_OK,
+            id="update-version",
+        ),
+        pytest.param(
+            "put",
+            "/kg/versions/{id}/archived",
+            {"archived": True},
+            "set_archived",
+            status.HTTP_200_OK,
+            id="archive-version",
+        ),
+    ],
+)
+def test_kg_version_mutations_return_actual_batch_count(
+    kg_client: tuple[FastAPI, TestClient],
+    mocker: MockerFixture,
+    method: str,
+    url: str,
+    payload: dict[str, object],
+    operation: str,
+    expected_status: int,
+) -> None:
+    app, client = kg_client
+    version = _version()
+    service = SimpleNamespace(
+        create=AsyncMock(return_value=version),
+        update=AsyncMock(return_value=version),
+        set_archived=AsyncMock(return_value=version),
+        count_batches=AsyncMock(return_value=4),
+    )
+    _configure_principal(app, mocker, SimpleNamespace(), Role.ADMINISTRATOR)
+    mocker.patch.object(app.state, "kg_version_management", service)
+
+    response = getattr(client, method)(
+        url.format(id=version.id),
+        headers=_headers(),
+        json=payload,
+    )
+
+    assert response.status_code == expected_status
+    assert response.json()["batch_count"] == 4
+    service.count_batches.assert_awaited_once_with(version.id)
+    getattr(service, operation).assert_awaited_once()
+
+
+@pytest.mark.api
+@pytest.mark.parametrize(
+    ("method", "url", "payload", "operation", "expected_status"),
+    [
+        pytest.param(
+            "post",
+            "/kg/dev-eui-prefixes",
+            {"prefix": "a1b2c3d4e5", "short_code": "kg", "name": "Основной"},
+            "create",
+            status.HTTP_201_CREATED,
+            id="create-prefix",
+        ),
+        pytest.param(
+            "patch",
+            "/kg/dev-eui-prefixes/a1b2c3d4e5",
+            {"name": "Резервный"},
+            "update",
+            status.HTTP_200_OK,
+            id="update-prefix",
+        ),
+        pytest.param(
+            "put",
+            "/kg/dev-eui-prefixes/a1b2c3d4e5/archived",
+            {"archived": True},
+            "set_archived",
+            status.HTTP_200_OK,
+            id="archive-prefix",
+        ),
+    ],
+)
+def test_prefix_mutations_return_actual_batch_count(
+    kg_client: tuple[FastAPI, TestClient],
+    mocker: MockerFixture,
+    method: str,
+    url: str,
+    payload: dict[str, object],
+    operation: str,
+    expected_status: int,
+) -> None:
+    app, client = kg_client
+    prefix = _prefix()
+    service = SimpleNamespace(
+        create=AsyncMock(return_value=prefix),
+        update=AsyncMock(return_value=prefix),
+        set_archived=AsyncMock(return_value=prefix),
+        count_batches=AsyncMock(return_value=4),
+    )
+    _configure_principal(app, mocker, SimpleNamespace(), Role.ADMINISTRATOR)
+    mocker.patch.object(app.state, "kg_dev_eui_prefix_management", service)
+
+    response = getattr(client, method)(url, headers=_headers(), json=payload)
+
+    assert response.status_code == expected_status
+    assert response.json()["batch_count"] == 4
+    service.count_batches.assert_awaited_once_with(prefix.prefix)
+    getattr(service, operation).assert_awaited_once()
 
 
 @pytest.mark.api

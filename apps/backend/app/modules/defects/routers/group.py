@@ -52,9 +52,9 @@ async def list_defect_groups(
     return DefectGroupListResponse(
         items=[
             DefectGroupListItemResponse(
-                **_group_response(group).model_dump(),
-                active_types_count=active_types_count,
-                types_count=types_count,
+                **_group_response(
+                    group, active_types_count=active_types_count, types_count=types_count
+                ).model_dump(),
             )
             for group, active_types_count, types_count in groups
         ],

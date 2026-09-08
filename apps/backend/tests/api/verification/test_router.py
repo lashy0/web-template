@@ -58,6 +58,7 @@ def _verification_session(pak: PakDevice) -> VerificationSession:
         id=uuid4(),
         kg_dev_eui="a1b2c3d4e5f60708",
         pak_id=pak.id,
+        pak=pak,
         slot_no=1,
         firmware_version="1.2.3",
         total_steps=2,
@@ -130,6 +131,11 @@ def test_list_sessions_serializes_items_and_forwards_filters(
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["items"][0]["id"] == str(verification_session.id)
+    assert response.json()["items"][0]["pak"] == {
+        "id": str(pak.id),
+        "code": pak.code,
+        "kind": pak.kind.value,
+    }
     service.list.assert_awaited_once_with(
         q="a1b2",
         pak_id=pak.id,
@@ -250,7 +256,9 @@ def test_pak_lifecycle_routes_forward_normalized_payloads(
         json={"status": "PASSED"},
     )
 
-    assert [response.status_code for response in (opened, started, completed_step, completed_session)] == [
+    assert [
+        response.status_code for response in (opened, started, completed_step, completed_session)
+    ] == [
         status.HTTP_201_CREATED,
         status.HTTP_201_CREATED,
         status.HTTP_200_OK,

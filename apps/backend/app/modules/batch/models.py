@@ -14,9 +14,11 @@ from sqlalchemy import (
     Uuid,
     func,
 )
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.infrastructure.database.base import Base
+from app.modules.kg.models import KgDevEuiPrefix, KgVersion
+from app.modules.users.models import User
 
 
 class BatchStatus(StrEnum):
@@ -57,6 +59,7 @@ class Batch(Base):
         ForeignKey("kg_versions.id"),
         nullable=True,
     )
+    created_by_user: Mapped[User | None] = relationship(lazy="selectin")
     created_by_user_id: Mapped[UUID | None] = mapped_column(
         Uuid(as_uuid=True),
         ForeignKey("users.id", ondelete="SET NULL"),
@@ -81,6 +84,8 @@ class Batch(Base):
         DateTime(timezone=True),
         nullable=True,
     )
+    kg_version: Mapped[KgVersion | None] = relationship()
+    kg_dev_eui_prefix: Mapped[KgDevEuiPrefix] = relationship()
 
     __table_args__ = (
         CheckConstraint(
@@ -110,6 +115,7 @@ class BatchReceipt(Base):
     )
     quantity: Mapped[int] = mapped_column(Integer, nullable=False)
     comment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_by_user: Mapped[User | None] = relationship(lazy="selectin")
     created_by_user_id: Mapped[UUID | None] = mapped_column(
         Uuid(as_uuid=True),
         ForeignKey("users.id", ondelete="SET NULL"),
@@ -159,6 +165,7 @@ class BatchShipment(Base):
         nullable=False,
     )
     comment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_by_user: Mapped[User | None] = relationship(lazy="selectin")
     created_by_user_id: Mapped[UUID | None] = mapped_column(
         Uuid(as_uuid=True),
         ForeignKey("users.id", ondelete="SET NULL"),

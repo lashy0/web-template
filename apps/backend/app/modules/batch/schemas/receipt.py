@@ -3,6 +3,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.modules.users.schemas import UserSummaryResponse
+
 from .common import normalize_trimmed
 
 
@@ -31,6 +33,7 @@ class BatchReceiptResponse(BaseModel):
     quantity: int
     comment: str | None
     created_by_user_id: UUID | None
+    created_by_user: UserSummaryResponse | None
     created_at: datetime
     updated_at: datetime
     voided_at: datetime | None

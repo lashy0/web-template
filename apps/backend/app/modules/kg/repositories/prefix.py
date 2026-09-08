@@ -34,6 +34,13 @@ class KgDevEuiPrefixRepository:
 
         return result.first()
 
+    async def count_batches(self, prefix: str) -> int:
+        count = await self._session.scalar(
+            select(func.count(Batch.id)).where(Batch.dev_eui_prefix == prefix)
+        )
+
+        return int(count or 0)
+
     async def search(
         self,
         *,

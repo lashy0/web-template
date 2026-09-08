@@ -4,6 +4,7 @@ from uuid import UUID
 
 from sqlalchemy import ColumnElement, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from ..models import Batch, BatchStatus
 
@@ -11,6 +12,13 @@ from ..models import Batch, BatchStatus
 class BatchRepository:
     def __init__(self, session: AsyncSession):
         self._session = session
+
+    @staticmethod
+    def _response_options():
+        return (
+            selectinload(Batch.kg_version),
+            selectinload(Batch.kg_dev_eui_prefix),
+        )
 
     async def create(
         self,
@@ -38,6 +46,10 @@ class BatchRepository:
 
         await self._session.flush()
         await self._session.refresh(batch)
+        await self._session.refresh(
+            batch,
+            attribute_names=["kg_version", "kg_dev_eui_prefix"],
+        )
 
         return batch
 
@@ -52,6 +64,7 @@ class BatchRepository:
             batch_id,
             with_for_update=for_update,
             populate_existing=for_update,
+            options=self._response_options(),
         )
 
     async def update_details(
@@ -65,6 +78,10 @@ class BatchRepository:
 
         await self._session.flush()
         await self._session.refresh(batch)
+        await self._session.refresh(
+            batch,
+            attribute_names=["kg_version", "kg_dev_eui_prefix"],
+        )
 
         return batch
 
@@ -79,6 +96,10 @@ class BatchRepository:
 
         await self._session.flush()
         await self._session.refresh(batch)
+        await self._session.refresh(
+            batch,
+            attribute_names=["kg_version", "kg_dev_eui_prefix"],
+        )
 
         return batch
 
@@ -92,6 +113,10 @@ class BatchRepository:
 
         await self._session.flush()
         await self._session.refresh(batch)
+        await self._session.refresh(
+            batch,
+            attribute_names=["kg_version", "kg_dev_eui_prefix"],
+        )
 
         return batch
 
@@ -126,7 +151,7 @@ class BatchRepository:
         if status is not None:
             filters.append(Batch.status == status)
 
-        statement = select(Batch).where(*filters)
+        statement = select(Batch).options(*self._response_options()).where(*filters)
 
         column = {
             "name": Batch.name,

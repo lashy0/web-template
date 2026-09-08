@@ -42,6 +42,12 @@ class KgVersionResponse(BaseModel):
     archived_at: datetime | None
 
 
+class KgVersionSummaryResponse(BaseModel):
+    id: UUID
+    code: str
+    name: str
+
+
 class KgVersionListResponse(BaseModel):
     items: list[KgVersionResponse]
     total: int

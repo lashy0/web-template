@@ -39,6 +39,7 @@ async def list_batch_shipments(
         include_voided=include_voided,
     )
 
+    quantities = await _service(request).count_shipment_quantities(batch_id) if shipments else {}
     items: list[BatchShipmentResponse] = []
 
     for shipment in shipments:
@@ -47,6 +48,7 @@ async def list_batch_shipments(
                 request,
                 batch_id=batch_id,
                 shipment=shipment,
+                quantity=quantities.get(shipment.id, 0),
             )
         )
 

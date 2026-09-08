@@ -4,6 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field, field_validator
 
 from app.modules.kg.schemas import DevEui
+from app.modules.users.schemas import UserSummaryResponse
 
 from .common import normalize_trimmed
 
@@ -41,6 +42,7 @@ class BatchShipmentResponse(BaseModel):
     comment: str | None
     quantity: int
     created_by_user_id: UUID | None
+    created_by_user: UserSummaryResponse | None
     created_at: datetime
     updated_at: datetime
     completed_at: datetime | None

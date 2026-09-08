@@ -19,6 +19,7 @@ from app.core.config import Settings
 from app.main import create_app
 from app.modules.batch import exceptions as batch_errors
 from app.modules.batch.models import Batch, BatchReceipt, BatchShipment, BatchStatus
+from app.modules.kg.models import KgDevEuiPrefix, KgVersion
 
 _ALLOWED_ORIGIN = "https://admin.example"
 _SESSION_COOKIE = "ory_kratos_session=opaque"
@@ -45,8 +46,14 @@ class _SessionFactory:
         return None
 
 
-def _batch(*, batch_id: UUID | None = None) -> Batch:
+def _batch(*, batch_id: UUID | None = None, version: KgVersion | None = None) -> Batch:
     now = datetime.now(UTC)
+    prefix = KgDevEuiPrefix(
+        prefix="a1b2c3d4e5",
+        short_code="kg",
+        name="Основной",
+        created_at=now,
+    )
     return Batch(
         id=batch_id or uuid4(),
         name="August production",
@@ -60,6 +67,21 @@ def _batch(*, batch_id: UUID | None = None) -> Batch:
         updated_at=now,
         completed_at=None,
         archived_at=None,
+        kg_dev_eui_prefix=prefix,
+        kg_version=version,
+    )
+
+
+def _version(*, archived: bool = False) -> KgVersion:
+    now = datetime.now(UTC)
+    return KgVersion(
+        id=uuid4(),
+        code="3.0",
+        name="Слон 3.0",
+        description=None,
+        created_at=now,
+        updated_at=now,
+        archived_at=now if archived else None,
     )
 
 
@@ -146,6 +168,12 @@ def test_list_batches_serializes_items_and_forwards_filters(
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["items"][0]["name"] == batch.name
+    assert response.json()["items"][0]["dev_eui_prefix"] == {
+        "prefix": "a1b2c3d4e5",
+        "short_code": "kg",
+        "name": "Основной",
+    }
+    assert response.json()["items"][0]["kg_version"] is None
     service.list.assert_awaited_once_with(
         q="August",
         status=BatchStatus.IN_PRODUCTION,
@@ -189,6 +217,28 @@ def test_create_batch_normalizes_payload_and_forwards_actor(
         day_plan_qty=20,
     )
     assert service.create.await_args.kwargs["actor"].user_id == actor_id
+
+
+@pytest.mark.api
+def test_batch_response_includes_archived_version_details(
+    batch_client: tuple[FastAPI, TestClient],
+    mocker: MockerFixture,
+) -> None:
+    app, client = batch_client
+    version = _version(archived=True)
+    batch = _batch(version=version)
+    service = SimpleNamespace(get=AsyncMock(return_value=batch))
+    _configure_principal(app, mocker, service, Role.MANAGER)
+
+    response = client.get(f"/batches/{batch.id}", headers=_headers())
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["kg_version"] == {
+        "id": str(version.id),
+        "code": "3.0",
+        "name": "Слон 3.0",
+    }
+    assert "kg_version_id" not in response.json()
 
 
 @pytest.mark.api
@@ -346,3 +396,44 @@ def test_domain_failures_have_stable_error_envelope(batch_client, mocker, error,
     assert response.status_code == expected
     assert response.json()["code"] == error.code
     assert set(response.json()) == {"code", "message", "request_id"}
+
+
+@pytest.mark.api
+@pytest.mark.parametrize("empty", [False, True])
+def test_shipment_list_uses_bulk_quantities(batch_client, mocker, empty):
+    app, client = batch_client
+    batch = _batch()
+    first, second = _shipment(batch_id=batch.id), _shipment(batch_id=batch.id)
+    service = SimpleNamespace(
+        list_shipments=AsyncMock(return_value=[] if empty else [first, second]),
+        count_shipment_quantities=AsyncMock(return_value={first.id: 3}),
+        count_shipment_items=AsyncMock(side_effect=AssertionError("per-item query")),
+    )
+    _configure_principal(app, mocker, service, Role.MANAGER)
+    response = client.get(f"/batches/{batch.id}/shipments", headers=_headers())
+    assert response.status_code == 200
+    assert [item["quantity"] for item in response.json()["items"]] == ([] if empty else [3, 0])
+    service.count_shipment_items.assert_not_awaited()
+    if empty:
+        service.count_shipment_quantities.assert_not_awaited()
+    else:
+        service.count_shipment_quantities.assert_awaited_once_with(batch.id)
+
+
+@pytest.mark.api
+@pytest.mark.parametrize("has_author", [False, True])
+def test_batch_response_author_is_a_safe_summary(batch_client, mocker, has_author):
+    from app.modules.users.models import User
+
+    app, client = batch_client
+    batch = _batch()
+    author = User(id=uuid4(), name="Author", identity_login="private-login") if has_author else None
+    batch.created_by_user = author
+    batch.created_by_user_id = author.id if author else None
+    service = SimpleNamespace(get=AsyncMock(return_value=batch))
+    _configure_principal(app, mocker, service, Role.MANAGER)
+    response = client.get(f"/batches/{batch.id}", headers=_headers())
+    assert response.status_code == 200
+    assert response.json()["created_by_user"] == (
+        {"id": str(author.id), "name": "Author"} if author else None
+    )

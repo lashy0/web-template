@@ -51,10 +51,7 @@ async def list_dev_eui_prefixes(
     )
 
     return KgDevEuiPrefixListResponse(
-        items=[
-            _prefix_response(item, batch_count=batch_count)
-            for item, batch_count in items
-        ],
+        items=[_prefix_response(item, batch_count=batch_count) for item, batch_count in items],
         total=total,
         page=page,
         page_size=page_size,
@@ -74,14 +71,18 @@ async def create_dev_eui_prefix(
     ],
     request: Request,
 ) -> KgDevEuiPrefixResponse:
-    item = await _prefix_service(request).create(
+    service = _prefix_service(request)
+    item = await service.create(
         actor=principal,
         prefix=payload.prefix,
         short_code=payload.short_code,
         name=payload.name,
     )
 
-    return _prefix_response(item)
+    return _prefix_response(
+        item,
+        batch_count=await service.count_batches(item.prefix),
+    )
 
 
 @router.patch(
@@ -97,13 +98,17 @@ async def update_dev_eui_prefix(
     ],
     request: Request,
 ) -> KgDevEuiPrefixResponse:
-    item = await _prefix_service(request).update(
+    service = _prefix_service(request)
+    item = await service.update(
         actor=principal,
         prefix=prefix,
         updates=payload.model_dump(exclude_unset=True),
     )
 
-    return _prefix_response(item)
+    return _prefix_response(
+        item,
+        batch_count=await service.count_batches(item.prefix),
+    )
 
 
 @router.put(
@@ -119,13 +124,17 @@ async def update_dev_eui_prefix_archived(
     ],
     request: Request,
 ) -> KgDevEuiPrefixResponse:
-    item = await _prefix_service(request).set_archived(
+    service = _prefix_service(request)
+    item = await service.set_archived(
         actor=principal,
         prefix=prefix,
         archived=payload.archived,
     )
 
-    return _prefix_response(item)
+    return _prefix_response(
+        item,
+        batch_count=await service.count_batches(item.prefix),
+    )
 
 
 @router.delete(

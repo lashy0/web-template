@@ -124,6 +124,19 @@ class BatchShipmentRepository:
 
         return list(result.scalars())
 
+    async def count_items_by_batch(self, batch_id: UUID) -> dict[UUID, int]:
+        result = await self._session.execute(
+            select(BatchShipmentItem.shipment_id, func.count())
+            .join(
+                BatchShipment,
+                BatchShipment.id == BatchShipmentItem.shipment_id
+            )
+            .where(BatchShipment.batch_id == batch_id)
+            .group_by(BatchShipmentItem.shipment_id)
+        )
+
+        return {shipment_id: int(count) for shipment_id, count in result.tuples()}
+
     async def count_items(self, shipment_id: UUID) -> int:
         count = await self._session.scalar(
             select(func.count())
@@ -196,5 +209,7 @@ class BatchShipmentRepository:
 
     async def exists_by_batch(self, batch_id: UUID) -> bool:
         return bool(
-            await self._session.scalar(select(exists().where(BatchShipment.batch_id == batch_id)))
+            await self._session.scalar(
+                select(exists().where(BatchShipment.batch_id == batch_id))
+            )
         )

@@ -4,6 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel
 
 from app.modules.kg.schemas import DevEui
+from app.modules.pak.schemas import PakDeviceSummaryResponse
 
 from ..models import (
     VerificationSessionStatus,
@@ -35,6 +36,7 @@ class VerificationSessionResponse(BaseModel):
     id: UUID
     kg_dev_eui: DevEui
     pak_id: UUID
+    pak: PakDeviceSummaryResponse
     slot_no: int
     firmware_version: str
     total_steps: int

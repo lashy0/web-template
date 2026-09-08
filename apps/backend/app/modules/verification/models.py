@@ -16,9 +16,10 @@ from sqlalchemy import (
     func,
     text,
 )
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.infrastructure.database.base import Base
+from app.modules.pak.models import PakDevice
 
 
 class VerificationSessionStatus(StrEnum):
@@ -68,6 +69,7 @@ class VerificationSession(Base):
         ),
         nullable=False,
     )
+    pak: Mapped[PakDevice] = relationship(lazy="selectin")
     firmware_version: Mapped[str] = mapped_column(String(64), nullable=False)
     pak_id: Mapped[UUID] = mapped_column(
         Uuid(as_uuid=True),

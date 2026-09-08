@@ -261,6 +261,16 @@
             "title": "Created At",
             "type": "string"
           },
+          "created_by_user": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserSummaryResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "created_by_user_id": {
             "anyOf": [
               {
@@ -317,6 +327,7 @@
           "quantity",
           "comment",
           "created_by_user_id",
+          "created_by_user",
           "created_at",
           "updated_at",
           "voided_at",
@@ -356,6 +367,16 @@
             "title": "Created At",
             "type": "string"
           },
+          "created_by_user": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserSummaryResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "created_by_user_id": {
             "anyOf": [
               {
@@ -384,25 +405,22 @@
             "title": "Description"
           },
           "dev_eui_prefix": {
-            "title": "Dev Eui Prefix",
-            "type": "string"
+            "$ref": "#/components/schemas/KgDevEuiPrefixSummaryResponse"
           },
           "id": {
             "format": "uuid",
             "title": "Id",
             "type": "string"
           },
-          "kg_version_id": {
+          "kg_version": {
             "anyOf": [
               {
-                "format": "uuid",
-                "type": "string"
+                "$ref": "#/components/schemas/KgVersionSummaryResponse"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Kg Version Id"
+            ]
           },
           "name": {
             "title": "Name",
@@ -429,8 +447,9 @@
           "day_plan_qty",
           "status",
           "dev_eui_prefix",
-          "kg_version_id",
+          "kg_version",
           "created_by_user_id",
+          "created_by_user",
           "created_at",
           "updated_at",
           "completed_at",
@@ -520,6 +539,16 @@
             "title": "Created At",
             "type": "string"
           },
+          "created_by_user": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserSummaryResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "created_by_user_id": {
             "anyOf": [
               {
@@ -576,6 +605,7 @@
           "comment",
           "quantity",
           "created_by_user_id",
+          "created_by_user",
           "created_at",
           "updated_at",
           "completed_at",
@@ -1041,6 +1071,11 @@
       },
       "DefectGroupResponse": {
         "properties": {
+          "active_types_count": {
+            "minimum": 0.0,
+            "title": "Active Types Count",
+            "type": "integer"
+          },
           "archived_at": {
             "anyOf": [
               {
@@ -1082,6 +1117,11 @@
             "title": "Name",
             "type": "string"
           },
+          "types_count": {
+            "minimum": 0.0,
+            "title": "Types Count",
+            "type": "integer"
+          },
           "updated_at": {
             "format": "date-time",
             "title": "Updated At",
@@ -1095,7 +1135,9 @@
           "description",
           "archived_at",
           "created_at",
-          "updated_at"
+          "updated_at",
+          "active_types_count",
+          "types_count"
         ],
         "title": "DefectGroupResponse",
         "type": "object"
@@ -1269,6 +1311,25 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "KgBatchSummaryResponse": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "KgBatchSummaryResponse",
+        "type": "object"
+      },
       "KgDevEuiPrefixListResponse": {
         "properties": {
           "items": {
@@ -1355,6 +1416,36 @@
         "title": "KgDevEuiPrefixResponse",
         "type": "object"
       },
+      "KgDevEuiPrefixSummaryResponse": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "prefix": {
+            "title": "Prefix",
+            "type": "string"
+          },
+          "short_code": {
+            "title": "Short Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "prefix",
+          "short_code",
+          "name"
+        ],
+        "title": "KgDevEuiPrefixSummaryResponse",
+        "type": "object"
+      },
       "KgListResponse": {
         "properties": {
           "items": {
@@ -1388,6 +1479,9 @@
       },
       "KgResponse": {
         "properties": {
+          "batch": {
+            "$ref": "#/components/schemas/KgBatchSummaryResponse"
+          },
           "batch_id": {
             "format": "uuid",
             "title": "Batch Id",
@@ -1419,6 +1513,7 @@
           "dev_eui",
           "short_id",
           "batch_id",
+          "batch",
           "status",
           "created_at",
           "updated_at"
@@ -1540,6 +1635,30 @@
         "title": "KgVersionResponse",
         "type": "object"
       },
+      "KgVersionSummaryResponse": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name"
+        ],
+        "title": "KgVersionSummaryResponse",
+        "type": "object"
+      },
       "PakAccessKeyResponse": {
         "properties": {
           "access_key": {
@@ -1650,6 +1769,29 @@
         "title": "PakDeviceResponse",
         "type": "object"
       },
+      "PakDeviceSummaryResponse": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/PakDeviceKind"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "kind"
+        ],
+        "title": "PakDeviceSummaryResponse",
+        "type": "object"
+      },
       "PakStatus": {
         "enum": [
           "active",
@@ -1696,6 +1838,9 @@
             "title": "Created At",
             "type": "string"
           },
+          "defect_group": {
+            "$ref": "#/components/schemas/DefectGroupSummaryResponse"
+          },
           "defect_group_id": {
             "format": "uuid",
             "title": "Defect Group Id",
@@ -1730,6 +1875,7 @@
           "test_name",
           "test_label",
           "defect_group_id",
+          "defect_group",
           "last_seen_at",
           "created_at",
           "updated_at"
@@ -2260,6 +2406,25 @@
         "title": "UserResponse",
         "type": "object"
       },
+      "UserSummaryResponse": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "UserSummaryResponse",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -2337,6 +2502,9 @@
             "title": "Last Activity At",
             "type": "string"
           },
+          "pak": {
+            "$ref": "#/components/schemas/PakDeviceSummaryResponse"
+          },
           "pak_id": {
             "format": "uuid",
             "title": "Pak Id",
@@ -2375,6 +2543,7 @@
           "id",
           "kg_dev_eui",
           "pak_id",
+          "pak",
           "slot_no",
           "firmware_version",
           "total_steps",
@@ -2457,6 +2626,9 @@
             "title": "Last Activity At",
             "type": "string"
           },
+          "pak": {
+            "$ref": "#/components/schemas/PakDeviceSummaryResponse"
+          },
           "pak_id": {
             "format": "uuid",
             "title": "Pak Id",
@@ -2488,6 +2660,7 @@
           "id",
           "kg_dev_eui",
           "pak_id",
+          "pak",
           "slot_no",
           "firmware_version",
           "total_steps",

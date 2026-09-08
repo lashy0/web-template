@@ -179,6 +179,12 @@ class ShipmentService:
 
             return await repository.list_items(shipment.id)
 
+    async def count_shipment_quantities(self, batch_id: UUID) -> dict[UUID, int]:
+        async with self._session_factory() as session:
+            await queries.required_batch(BatchRepository(session), batch_id)
+
+            return await BatchShipmentRepository(session).count_items_by_batch(batch_id)
+
     async def count_shipment_items(
         self,
         *,

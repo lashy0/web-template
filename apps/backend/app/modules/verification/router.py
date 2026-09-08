@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Query, Request, status
 
 from app.api.auth_deps import CurrentPrincipalDep, require_permission
 from app.modules.pak.deps import CurrentPakDep
+from app.modules.pak.schemas import PakDeviceSummaryResponse
 
 from .exceptions import VerificationSessionNotFoundError
 from .models import (
@@ -44,6 +45,11 @@ def _session_response(session: VerificationSession) -> VerificationSessionRespon
         id=session.id,
         kg_dev_eui=session.kg_dev_eui,
         pak_id=session.pak_id,
+        pak=PakDeviceSummaryResponse(
+            id=session.pak.id,
+            code=session.pak.code,
+            kind=session.pak.kind,
+        ),
         slot_no=session.slot_no,
         firmware_version=session.firmware_version,
         total_steps=session.total_steps,

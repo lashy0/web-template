@@ -17,6 +17,7 @@ from app.auth.contracts import AuthSession, Identity
 from app.auth.roles import Role
 from app.core.config import Settings
 from app.main import create_app
+from app.modules.defects.models import DefectGroup
 from app.modules.pak.exceptions import (
     PakAlreadyExistsError,
     PakCannotBeDeletedError,
@@ -67,11 +68,13 @@ def _pak(*, pak_id: UUID | None = None) -> PakDevice:
 
 def _pak_test(*, test_id: UUID | None = None) -> PakTest:
     now = datetime.now(UTC)
+    group = DefectGroup(id=uuid4(), code="INSULATION", name="Insulation", archived_at=now)
     return PakTest(
         id=test_id or uuid4(),
         test_name="INSULATION_RESISTANCE",
         test_label="Insulation resistance",
-        defect_group_id=uuid4(),
+        defect_group_id=group.id,
+        defect_group=group,
         last_seen_at=now,
         created_at=now,
         updated_at=now,
@@ -208,6 +211,8 @@ def test_pak_test_list_forwards_filters_and_returns_catalog_fields(
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["items"][0]["test_name"] == test.test_name
     assert response.json()["items"][0]["defect_group_id"] == str(test.defect_group_id)
+    assert response.json()["items"][0]["defect_group"]["name"] == test.defect_group.name
+    assert response.json()["items"][0]["defect_group"]["archived_at"] is not None
     assert response.json()["total"] == 1
     catalog.list.assert_awaited_once_with(
         q="insulation",

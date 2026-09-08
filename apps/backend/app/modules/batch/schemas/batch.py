@@ -3,7 +3,12 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.modules.kg.schemas import DevEuiPrefix
+from app.modules.kg.schemas import (
+    DevEuiPrefix,
+    KgDevEuiPrefixSummaryResponse,
+    KgVersionSummaryResponse,
+)
+from app.modules.users.schemas import UserSummaryResponse
 
 from ..models import BatchStatus
 from .common import normalize_trimmed
@@ -16,9 +21,10 @@ class BatchResponse(BaseModel):
     planned_qty: int
     day_plan_qty: int
     status: BatchStatus
-    dev_eui_prefix: DevEuiPrefix
-    kg_version_id: UUID | None
+    dev_eui_prefix: KgDevEuiPrefixSummaryResponse
+    kg_version: KgVersionSummaryResponse | None
     created_by_user_id: UUID | None
+    created_by_user: UserSummaryResponse | None
     created_at: datetime
     updated_at: datetime
     completed_at: datetime | None

@@ -239,6 +239,9 @@ class BatchManagementService:
             shipment_id=shipment_id,
         )
 
+    async def count_shipment_quantities(self, batch_id: UUID) -> dict[UUID, int]:
+        return await self.shipment.count_shipment_quantities(batch_id)
+
     async def count_shipment_items(
         self,
         *,

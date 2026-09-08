@@ -15,6 +15,11 @@ UserLogin = Annotated[
 ]
 
 
+class UserSummaryResponse(BaseModel):
+    id: UUID
+    name: str
+
+
 class UserResponse(BaseModel):
     id: UUID
     is_system: bool

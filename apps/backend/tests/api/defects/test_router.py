@@ -315,3 +315,36 @@ def test_group_write_requires_defect_permission(
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
     service.create_group.assert_not_awaited()
+
+
+@pytest.mark.api
+@pytest.mark.parametrize("operation", ["get", "create", "update", "archive", "restore"])
+def test_group_single_responses_include_type_counts(defects_client, mocker, operation):
+    app, client = defects_client
+    group = _group()
+    _type(group)
+    archived_type = _type(group)
+    archived_type.archived_at = datetime.now(UTC)
+    service = SimpleNamespace(
+        get_group=AsyncMock(return_value=group),
+        create_group=AsyncMock(return_value=group),
+        update_group=AsyncMock(return_value=group),
+        set_group_archived=AsyncMock(return_value=group),
+    )
+    _configure_principal(app, mocker, service, Role.ADMINISTRATOR)
+    url = f"/defects/groups/{group.id}"
+    if operation == "get":
+        response = client.get(url, headers=_headers())
+    elif operation == "create":
+        response = client.post(
+            "/defects/groups", json={"code": "POWER", "name": "Power"}, headers=_headers()
+        )
+    elif operation == "update":
+        response = client.patch(url, json={"name": "Updated"}, headers=_headers())
+    else:
+        response = client.put(
+            f"{url}/archived", json={"archived": operation == "archive"}, headers=_headers()
+        )
+    assert response.status_code in (200, 201)
+    assert response.json()["active_types_count"] == 1
+    assert response.json()["types_count"] == 2

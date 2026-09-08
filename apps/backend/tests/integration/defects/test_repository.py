@@ -41,7 +41,9 @@ async def test_defect_groups_and_types_can_be_created_and_searched(
     )
 
     assert group_total == 1
-    assert [item.id for item in groups] == [group.id]
+    assert [(item.id, active_count, total_count) for item, active_count, total_count in groups] == [
+        (group.id, 1, 1)
+    ]
     assert type_total == 1
     assert [item.id for item in types] == [defect_type.id]
     assert await type_repository.exists_by_group(group.id)

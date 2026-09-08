@@ -44,29 +44,6 @@ export const zAuditListResponse = z.object({
 export const zAuthState = z.enum(['active', 'inactive']);
 
 /**
- * BatchReceiptResponse
- */
-export const zBatchReceiptResponse = z.object({
-    batch_id: z.uuid(),
-    comment: z.string().nullable(),
-    created_at: z.iso.datetime(),
-    created_by_user_id: z.uuid().nullable(),
-    id: z.uuid(),
-    quantity: z.int(),
-    updated_at: z.iso.datetime(),
-    void_reason: z.string().nullable(),
-    voided_at: z.iso.datetime().nullable()
-});
-
-/**
- * BatchReceiptListResponse
- */
-export const zBatchReceiptListResponse = z.object({
-    items: z.array(zBatchReceiptResponse),
-    total: z.int()
-});
-
-/**
  * BatchShipmentItemResponse
  */
 export const zBatchShipmentItemResponse = z.object({
@@ -76,62 +53,9 @@ export const zBatchShipmentItemResponse = z.object({
 });
 
 /**
- * BatchShipmentResponse
- */
-export const zBatchShipmentResponse = z.object({
-    batch_id: z.uuid(),
-    comment: z.string().nullable(),
-    completed_at: z.iso.datetime().nullable(),
-    created_at: z.iso.datetime(),
-    created_by_user_id: z.uuid().nullable(),
-    id: z.uuid(),
-    quantity: z.int(),
-    updated_at: z.iso.datetime(),
-    void_reason: z.string().nullable(),
-    voided_at: z.iso.datetime().nullable()
-});
-
-/**
- * BatchShipmentListResponse
- */
-export const zBatchShipmentListResponse = z.object({
-    items: z.array(zBatchShipmentResponse),
-    total: z.int()
-});
-
-/**
  * BatchStatus
  */
 export const zBatchStatus = z.enum(['IN_PRODUCTION', 'COMPLETED']);
-
-/**
- * BatchResponse
- */
-export const zBatchResponse = z.object({
-    archived_at: z.iso.datetime().nullable(),
-    completed_at: z.iso.datetime().nullable(),
-    created_at: z.iso.datetime(),
-    created_by_user_id: z.uuid().nullable(),
-    day_plan_qty: z.int(),
-    description: z.string().nullable(),
-    dev_eui_prefix: z.string(),
-    id: z.uuid(),
-    kg_version_id: z.uuid().nullable(),
-    name: z.string(),
-    planned_qty: z.int(),
-    status: zBatchStatus,
-    updated_at: z.iso.datetime()
-});
-
-/**
- * BatchListResponse
- */
-export const zBatchListResponse = z.object({
-    items: z.array(zBatchResponse),
-    page: z.int(),
-    page_size: z.int(),
-    total: z.int()
-});
 
 /**
  * CreateBatchReceiptRequest
@@ -228,12 +152,14 @@ export const zDefectGroupListResponse = z.object({
  * DefectGroupResponse
  */
 export const zDefectGroupResponse = z.object({
+    active_types_count: z.int().gte(0),
     archived_at: z.iso.datetime().nullable(),
     code: z.string(),
     created_at: z.iso.datetime(),
     description: z.string().nullable(),
     id: z.uuid(),
     name: z.string(),
+    types_count: z.int().gte(0),
     updated_at: z.iso.datetime()
 });
 
@@ -275,6 +201,14 @@ export const zDefectTypeListResponse = z.object({
 });
 
 /**
+ * KgBatchSummaryResponse
+ */
+export const zKgBatchSummaryResponse = z.object({
+    id: z.uuid(),
+    name: z.string()
+});
+
+/**
  * KgDevEuiPrefixResponse
  */
 export const zKgDevEuiPrefixResponse = z.object({
@@ -297,6 +231,15 @@ export const zKgDevEuiPrefixListResponse = z.object({
 });
 
 /**
+ * KgDevEuiPrefixSummaryResponse
+ */
+export const zKgDevEuiPrefixSummaryResponse = z.object({
+    name: z.string().nullable(),
+    prefix: z.string(),
+    short_code: z.string()
+});
+
+/**
  * KgStatus
  */
 export const zKgStatus = z.enum([
@@ -316,6 +259,7 @@ export const zKgStatus = z.enum([
  * KgResponse
  */
 export const zKgResponse = z.object({
+    batch: zKgBatchSummaryResponse,
     batch_id: z.uuid(),
     created_at: z.iso.datetime(),
     dev_eui: z.string(),
@@ -359,6 +303,15 @@ export const zKgVersionListResponse = z.object({
 });
 
 /**
+ * KgVersionSummaryResponse
+ */
+export const zKgVersionSummaryResponse = z.object({
+    code: z.string(),
+    id: z.uuid(),
+    name: z.string()
+});
+
+/**
  * PakAccessKeyResponse
  */
 export const zPakAccessKeyResponse = z.object({
@@ -376,6 +329,15 @@ export const zPakDeviceKind = z.enum(['engineering', 'otk_line']);
 export const zCreatePakDeviceRequest = z.object({
     active: z.boolean().optional().default(true),
     code: z.string().min(1).max(255).regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/),
+    kind: zPakDeviceKind
+});
+
+/**
+ * PakDeviceSummaryResponse
+ */
+export const zPakDeviceSummaryResponse = z.object({
+    code: z.string(),
+    id: z.uuid(),
     kind: zPakDeviceKind
 });
 
@@ -420,6 +382,7 @@ export const zPakDeviceListResponse = z.object({
  */
 export const zPakTestResponse = z.object({
     created_at: z.iso.datetime(),
+    defect_group: zDefectGroupSummaryResponse,
     defect_group_id: z.uuid(),
     id: z.uuid(),
     last_seen_at: z.iso.datetime(),
@@ -616,6 +579,93 @@ export const zUserListResponse = z.object({
 });
 
 /**
+ * UserSummaryResponse
+ */
+export const zUserSummaryResponse = z.object({
+    id: z.uuid(),
+    name: z.string()
+});
+
+/**
+ * BatchReceiptResponse
+ */
+export const zBatchReceiptResponse = z.object({
+    batch_id: z.uuid(),
+    comment: z.string().nullable(),
+    created_at: z.iso.datetime(),
+    created_by_user: zUserSummaryResponse.nullable(),
+    created_by_user_id: z.uuid().nullable(),
+    id: z.uuid(),
+    quantity: z.int(),
+    updated_at: z.iso.datetime(),
+    void_reason: z.string().nullable(),
+    voided_at: z.iso.datetime().nullable()
+});
+
+/**
+ * BatchReceiptListResponse
+ */
+export const zBatchReceiptListResponse = z.object({
+    items: z.array(zBatchReceiptResponse),
+    total: z.int()
+});
+
+/**
+ * BatchResponse
+ */
+export const zBatchResponse = z.object({
+    archived_at: z.iso.datetime().nullable(),
+    completed_at: z.iso.datetime().nullable(),
+    created_at: z.iso.datetime(),
+    created_by_user: zUserSummaryResponse.nullable(),
+    created_by_user_id: z.uuid().nullable(),
+    day_plan_qty: z.int(),
+    description: z.string().nullable(),
+    dev_eui_prefix: zKgDevEuiPrefixSummaryResponse,
+    id: z.uuid(),
+    kg_version: zKgVersionSummaryResponse.nullable(),
+    name: z.string(),
+    planned_qty: z.int(),
+    status: zBatchStatus,
+    updated_at: z.iso.datetime()
+});
+
+/**
+ * BatchListResponse
+ */
+export const zBatchListResponse = z.object({
+    items: z.array(zBatchResponse),
+    page: z.int(),
+    page_size: z.int(),
+    total: z.int()
+});
+
+/**
+ * BatchShipmentResponse
+ */
+export const zBatchShipmentResponse = z.object({
+    batch_id: z.uuid(),
+    comment: z.string().nullable(),
+    completed_at: z.iso.datetime().nullable(),
+    created_at: z.iso.datetime(),
+    created_by_user: zUserSummaryResponse.nullable(),
+    created_by_user_id: z.uuid().nullable(),
+    id: z.uuid(),
+    quantity: z.int(),
+    updated_at: z.iso.datetime(),
+    void_reason: z.string().nullable(),
+    voided_at: z.iso.datetime().nullable()
+});
+
+/**
+ * BatchShipmentListResponse
+ */
+export const zBatchShipmentListResponse = z.object({
+    items: z.array(zBatchShipmentResponse),
+    total: z.int()
+});
+
+/**
  * ValidationError
  */
 export const zValidationError = z.object({
@@ -654,6 +704,7 @@ export const zVerificationSessionResponse = z.object({
     id: z.uuid(),
     kg_dev_eui: z.string(),
     last_activity_at: z.iso.datetime(),
+    pak: zPakDeviceSummaryResponse,
     pak_id: z.uuid(),
     slot_no: z.int(),
     started_at: z.iso.datetime(),
@@ -715,6 +766,7 @@ export const zVerificationSessionDetailResponse = z.object({
     id: z.uuid(),
     kg_dev_eui: z.string(),
     last_activity_at: z.iso.datetime(),
+    pak: zPakDeviceSummaryResponse,
     pak_id: z.uuid(),
     slot_no: z.int(),
     started_at: z.iso.datetime(),

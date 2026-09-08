@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.auth.principal import CurrentPrincipal
 
 from ..models import KgDevEuiPrefix, KgStatus, KgUnit, KgVersion
+from ..repositories import KgDevEuiPrefixRepository, KgVersionRepository
 from .prefix import KgPrefixService as KgPrefixService
 from .transactions import transaction
 from .unit import KgService as KgService
@@ -59,7 +60,11 @@ class KgManagementService:
         async with transaction(self._session_factory) as session:
             return await KgService(
                 session,
-            ).set_status(actor=actor, dev_eui=dev_eui, status=status)
+            ).set_status(
+                actor=actor,
+                dev_eui=dev_eui,
+                status=status,
+            )
 
     async def delete(
         self,
@@ -68,7 +73,10 @@ class KgManagementService:
         dev_eui: str,
     ) -> None:
         async with transaction(self._session_factory) as session:
-            return await KgService(session).delete(actor=actor, dev_eui=dev_eui)
+            return await KgService(session).delete(
+                actor=actor,
+                dev_eui=dev_eui,
+            )
 
 
 class KgDevEuiPrefixManagementService:
@@ -115,6 +123,10 @@ class KgDevEuiPrefixManagementService:
                 short_code=short_code,
                 name=name,
             )
+
+    async def count_batches(self, prefix: str) -> int:
+        async with self._session_factory() as session:
+            return await KgDevEuiPrefixRepository(session).count_batches(prefix)
 
     async def update(
         self,
@@ -198,6 +210,10 @@ class KgVersionManagementService:
                 name=name,
                 description=description,
             )
+
+    async def count_batches(self, version_id: UUID) -> int:
+        async with self._session_factory() as session:
+            return await KgVersionRepository(session).count_batches(version_id)
 
     async def update(
         self,

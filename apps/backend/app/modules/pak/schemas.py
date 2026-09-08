@@ -3,7 +3,15 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+from app.modules.defects.schemas import DefectGroupSummaryResponse
+
 from .enums import PakDeviceKind, PakStatus
+
+
+class PakDeviceSummaryResponse(BaseModel):
+    id: UUID
+    code: str
+    kind: PakDeviceKind
 
 
 class PakDeviceResponse(BaseModel):
@@ -24,7 +32,11 @@ class PakDeviceListResponse(BaseModel):
 
 
 class CreatePakDeviceRequest(BaseModel):
-    code: str = Field(min_length=1, max_length=255, pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+    code: str = Field(
+        min_length=1,
+        max_length=255,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*$",
+    )
     kind: PakDeviceKind
     active: bool = True
 
@@ -61,6 +73,7 @@ class PakTestResponse(BaseModel):
     test_name: str
     test_label: str
     defect_group_id: UUID
+    defect_group: DefectGroupSummaryResponse
     last_seen_at: datetime
     created_at: datetime
     updated_at: datetime

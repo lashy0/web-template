@@ -35,6 +35,13 @@ class KgVersionRepository:
 
         return result.first()
 
+    async def count_batches(self, version_id: UUID) -> int:
+        count = await self._session.scalar(
+            select(func.count(Batch.id)).where(Batch.kg_version_id == version_id)
+        )
+
+        return int(count or 0)
+
     async def search(
         self,
         *,

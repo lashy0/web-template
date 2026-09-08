@@ -155,6 +155,7 @@ export type BatchReceiptResponse = {
      * Created At
      */
     created_at: string;
+    created_by_user: UserSummaryResponse | null;
     /**
      * Created By User Id
      */
@@ -197,6 +198,7 @@ export type BatchResponse = {
      * Created At
      */
     created_at: string;
+    created_by_user: UserSummaryResponse | null;
     /**
      * Created By User Id
      */
@@ -209,18 +211,12 @@ export type BatchResponse = {
      * Description
      */
     description: string | null;
-    /**
-     * Dev Eui Prefix
-     */
-    dev_eui_prefix: string;
+    dev_eui_prefix: KgDevEuiPrefixSummaryResponse;
     /**
      * Id
      */
     id: string;
-    /**
-     * Kg Version Id
-     */
-    kg_version_id: string | null;
+    kg_version: KgVersionSummaryResponse | null;
     /**
      * Name
      */
@@ -288,6 +284,7 @@ export type BatchShipmentResponse = {
      * Created At
      */
     created_at: string;
+    created_by_user: UserSummaryResponse | null;
     /**
      * Created By User Id
      */
@@ -575,6 +572,10 @@ export type DefectGroupListResponse = {
  */
 export type DefectGroupResponse = {
     /**
+     * Active Types Count
+     */
+    active_types_count: number;
+    /**
      * Archived At
      */
     archived_at: string | null;
@@ -598,6 +599,10 @@ export type DefectGroupResponse = {
      * Name
      */
     name: string;
+    /**
+     * Types Count
+     */
+    types_count: number;
     /**
      * Updated At
      */
@@ -706,6 +711,20 @@ export type HttpValidationError = {
 };
 
 /**
+ * KgBatchSummaryResponse
+ */
+export type KgBatchSummaryResponse = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
  * KgDevEuiPrefixListResponse
  */
 export type KgDevEuiPrefixListResponse = {
@@ -758,6 +777,24 @@ export type KgDevEuiPrefixResponse = {
 };
 
 /**
+ * KgDevEuiPrefixSummaryResponse
+ */
+export type KgDevEuiPrefixSummaryResponse = {
+    /**
+     * Name
+     */
+    name: string | null;
+    /**
+     * Prefix
+     */
+    prefix: string;
+    /**
+     * Short Code
+     */
+    short_code: string;
+};
+
+/**
  * KgListResponse
  */
 export type KgListResponse = {
@@ -783,6 +820,7 @@ export type KgListResponse = {
  * KgResponse
  */
 export type KgResponse = {
+    batch: KgBatchSummaryResponse;
     /**
      * Batch Id
      */
@@ -872,6 +910,24 @@ export type KgVersionResponse = {
 };
 
 /**
+ * KgVersionSummaryResponse
+ */
+export type KgVersionSummaryResponse = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
  * PakAccessKeyResponse
  */
 export type PakAccessKeyResponse = {
@@ -937,6 +993,21 @@ export type PakDeviceResponse = {
 };
 
 /**
+ * PakDeviceSummaryResponse
+ */
+export type PakDeviceSummaryResponse = {
+    /**
+     * Code
+     */
+    code: string;
+    /**
+     * Id
+     */
+    id: string;
+    kind: PakDeviceKind;
+};
+
+/**
  * PakStatus
  */
 export type PakStatus = 'active' | 'inactive';
@@ -971,6 +1042,7 @@ export type PakTestResponse = {
      * Created At
      */
     created_at: string;
+    defect_group: DefectGroupSummaryResponse;
     /**
      * Defect Group Id
      */
@@ -1269,6 +1341,20 @@ export type UserResponse = {
 };
 
 /**
+ * UserSummaryResponse
+ */
+export type UserSummaryResponse = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
  * ValidationError
  */
 export type ValidationError = {
@@ -1324,6 +1410,7 @@ export type VerificationSessionDetailResponse = {
      * Last Activity At
      */
     last_activity_at: string;
+    pak: PakDeviceSummaryResponse;
     /**
      * Pak Id
      */
@@ -1401,6 +1488,7 @@ export type VerificationSessionResponse = {
      * Last Activity At
      */
     last_activity_at: string;
+    pak: PakDeviceSummaryResponse;
     /**
      * Pak Id
      */
