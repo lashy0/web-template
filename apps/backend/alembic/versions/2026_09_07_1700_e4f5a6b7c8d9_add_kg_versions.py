@@ -1,6 +1,6 @@
 """add KG versions and link batches
 
-Revision ID: e4f5a6b7c8d9
+Revision ID: e5f6a7b8c9d0
 Revises: d3e4f5a6b7c8
 """
 
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision: str = "e4f5a6b7c8d9"
+revision: str = "e5f6a7b8c9d0"
 down_revision: str | Sequence[str] | None = "d3e4f5a6b7c8"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
