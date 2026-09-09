@@ -10,6 +10,13 @@ export const zAddBatchShipmentItemRequest = z.object({
 });
 
 /**
+ * AssignProductionOrderRequest
+ */
+export const zAssignProductionOrderRequest = z.object({
+    production_order_id: z.uuid().nullable()
+});
+
+/**
  * AuditEventResponse
  */
 export const zAuditEventResponse = z.object({
@@ -74,7 +81,8 @@ export const zCreateBatchRequest = z.object({
     dev_eui_prefix: z.string(),
     kg_version_id: z.uuid().nullish(),
     name: z.string().min(1).max(128),
-    planned_qty: z.int().gt(0)
+    planned_qty: z.int().gt(0),
+    production_order_id: z.uuid().nullish()
 });
 
 /**
@@ -119,6 +127,14 @@ export const zCreateKgDevEuiPrefixRequest = z.object({
  */
 export const zCreateKgVersionRequest = z.object({
     code: z.string().min(1).max(32),
+    description: z.string().max(2000).nullish(),
+    name: z.string().min(1).max(128)
+});
+
+/**
+ * CreateProductionOrderRequest
+ */
+export const zCreateProductionOrderRequest = z.object({
     description: z.string().max(2000).nullish(),
     name: z.string().min(1).max(128)
 });
@@ -402,6 +418,39 @@ export const zPakTestListResponse = z.object({
 });
 
 /**
+ * ProductionOrderResponse
+ */
+export const zProductionOrderResponse = z.object({
+    archived_at: z.iso.datetime().nullable(),
+    batches_count: z.int(),
+    created_at: z.iso.datetime(),
+    description: z.string().nullable(),
+    id: z.uuid(),
+    name: z.string(),
+    total_planned_qty: z.int(),
+    updated_at: z.iso.datetime()
+});
+
+/**
+ * ProductionOrderListResponse
+ */
+export const zProductionOrderListResponse = z.object({
+    items: z.array(zProductionOrderResponse),
+    page: z.int(),
+    page_size: z.int(),
+    total: z.int()
+});
+
+/**
+ * ProductionOrderSummaryResponse
+ */
+export const zProductionOrderSummaryResponse = z.object({
+    archived_at: z.iso.datetime().nullable(),
+    id: z.uuid(),
+    name: z.string()
+});
+
+/**
  * Role
  */
 export const zRole = z.enum([
@@ -545,6 +594,21 @@ export const zUpdatePasswordRequest = z.object({
 });
 
 /**
+ * UpdateProductionOrderArchivedRequest
+ */
+export const zUpdateProductionOrderArchivedRequest = z.object({
+    archived: z.boolean()
+});
+
+/**
+ * UpdateProductionOrderRequest
+ */
+export const zUpdateProductionOrderRequest = z.object({
+    description: z.string().max(2000).nullish(),
+    name: z.string().min(1).max(128).nullish()
+});
+
+/**
  * UpdateUserRequest
  */
 export const zUpdateUserRequest = z.object({
@@ -626,6 +690,8 @@ export const zBatchResponse = z.object({
     kg_version: zKgVersionSummaryResponse.nullable(),
     name: z.string(),
     planned_qty: z.int(),
+    production_order: zProductionOrderSummaryResponse.nullish(),
+    production_order_id: z.uuid().nullish(),
     status: zBatchStatus,
     updated_at: z.iso.datetime()
 });
@@ -833,7 +899,9 @@ export const zBatchListBatchesQuery = z.object({
         'completed_at',
         'archived_at'
     ]).optional().default('created_at'),
-    order: z.enum(['asc', 'desc']).optional().default('desc')
+    order: z.enum(['asc', 'desc']).optional().default('desc'),
+    production_order_id: z.uuid().nullish(),
+    without_production_order: z.boolean().optional().default(false)
 });
 
 /**
@@ -889,6 +957,17 @@ export const zBatchCompleteBatchPath = z.object({
  * Successful Response
  */
 export const zBatchCompleteBatchResponse = zBatchResponse;
+
+export const zBatchAssignProductionOrderBody = zAssignProductionOrderRequest;
+
+export const zBatchAssignProductionOrderPath = z.object({
+    batch_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zBatchAssignProductionOrderResponse = zBatchResponse;
 
 export const zBatchListBatchReceiptsPath = z.object({
     batch_id: z.uuid()
@@ -1439,6 +1518,74 @@ export const zPakUpdateArchivedPath = z.object({
  * Successful Response
  */
 export const zPakUpdateArchivedResponse = zPakDeviceResponse;
+
+export const zProductionOrderCreateOrderBody = zCreateProductionOrderRequest;
+
+/**
+ * Successful Response
+ */
+export const zProductionOrderCreateOrderResponse = zProductionOrderResponse;
+
+export const zProductionOrderListOrdersQuery = z.object({
+    q: z.string().nullish(),
+    archived: z.boolean().optional().default(false),
+    page: z.int().gte(1).optional().default(1),
+    page_size: z.int().gte(1).lte(100).optional().default(25),
+    sort: z.enum([
+        'name',
+        'created_at',
+        'updated_at',
+        'archived_at',
+        'batches_count',
+        'total_planned_qty'
+    ]).optional().default('created_at'),
+    order: z.enum(['asc', 'desc']).optional().default('desc')
+});
+
+/**
+ * Successful Response
+ */
+export const zProductionOrderListOrdersResponse = zProductionOrderListResponse;
+
+export const zProductionOrderDeleteOrderPath = z.object({
+    order_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zProductionOrderDeleteOrderResponse = z.void();
+
+export const zProductionOrderGetOrderPath = z.object({
+    order_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zProductionOrderGetOrderResponse = zProductionOrderResponse;
+
+export const zProductionOrderUpdateOrderBody = zUpdateProductionOrderRequest;
+
+export const zProductionOrderUpdateOrderPath = z.object({
+    order_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zProductionOrderUpdateOrderResponse = zProductionOrderResponse;
+
+export const zProductionOrderArchiveOrderBody = zUpdateProductionOrderArchivedRequest;
+
+export const zProductionOrderArchiveOrderPath = z.object({
+    order_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zProductionOrderArchiveOrderResponse = zProductionOrderResponse;
 
 export const zUsersListUsersQuery = z.object({
     q: z.string().nullish(),

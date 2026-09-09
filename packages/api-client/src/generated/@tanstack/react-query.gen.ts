@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { auditListAuditEvents, authMe, batchAddBatchShipmentItem, batchCompleteBatch, batchCompleteBatchShipment, batchCreateBatch, batchCreateBatchReceipt, batchCreateBatchShipment, batchDeleteBatch, batchGetBatch, batchListBatches, batchListBatchReceipts, batchListBatchShipmentItems, batchListBatchShipments, batchRemoveBatchShipmentItem, batchUpdateBatch, batchUpdateBatchArchived, batchUpdateBatchReceipt, batchUpdateBatchShipment, batchVoidBatchReceipt, batchVoidBatchShipment, defectsCreateDefectGroup, defectsCreateDefectType, defectsDeleteDefectGroup, defectsDeleteDefectType, defectsGetDefectGroup, defectsGetDefectType, defectsListDefectGroups, defectsListDefectTypes, defectsUpdateDefectGroup, defectsUpdateDefectGroupArchived, defectsUpdateDefectType, defectsUpdateDefectTypeArchived, kgCreateDevEuiPrefix, kgCreateKgVersion, kgDeleteDevEuiPrefix, kgDeleteKgVersion, kgGetKg, kgListDevEuiPrefixes, kgListKg, kgListKgVersions, kgUpdateDevEuiPrefix, kgUpdateDevEuiPrefixArchived, kgUpdateKgVersion, kgUpdateKgVersionArchived, type Options, pakCreatePak, pakDeletePak, pakGetAccessKey, pakGetPak, pakGetPakTest, pakListPak, pakListPakTests, pakRotateAccessKey, pakUpdateActive, pakUpdateArchived, pakUpdatePak, usersCreateUser, usersDeleteUser, usersGetUser, usersListUsers, usersUpdateActive, usersUpdateArchived, usersUpdatePassword, usersUpdateUser, verificationGetSession, verificationListSessions } from '../sdk.gen';
-import type { AuditListAuditEventsData, AuditListAuditEventsError, AuditListAuditEventsResponse, AuthMeData, AuthMeResponse, BatchAddBatchShipmentItemData, BatchAddBatchShipmentItemError, BatchAddBatchShipmentItemResponse, BatchCompleteBatchData, BatchCompleteBatchError, BatchCompleteBatchResponse, BatchCompleteBatchShipmentData, BatchCompleteBatchShipmentError, BatchCompleteBatchShipmentResponse, BatchCreateBatchData, BatchCreateBatchError, BatchCreateBatchReceiptData, BatchCreateBatchReceiptError, BatchCreateBatchReceiptResponse, BatchCreateBatchResponse, BatchCreateBatchShipmentData, BatchCreateBatchShipmentError, BatchCreateBatchShipmentResponse, BatchDeleteBatchData, BatchDeleteBatchError, BatchDeleteBatchResponse, BatchGetBatchData, BatchGetBatchError, BatchGetBatchResponse, BatchListBatchesData, BatchListBatchesError, BatchListBatchesResponse, BatchListBatchReceiptsData, BatchListBatchReceiptsError, BatchListBatchReceiptsResponse, BatchListBatchShipmentItemsData, BatchListBatchShipmentItemsError, BatchListBatchShipmentItemsResponse, BatchListBatchShipmentsData, BatchListBatchShipmentsError, BatchListBatchShipmentsResponse, BatchRemoveBatchShipmentItemData, BatchRemoveBatchShipmentItemError, BatchRemoveBatchShipmentItemResponse, BatchUpdateBatchArchivedData, BatchUpdateBatchArchivedError, BatchUpdateBatchArchivedResponse, BatchUpdateBatchData, BatchUpdateBatchError, BatchUpdateBatchReceiptData, BatchUpdateBatchReceiptError, BatchUpdateBatchReceiptResponse, BatchUpdateBatchResponse, BatchUpdateBatchShipmentData, BatchUpdateBatchShipmentError, BatchUpdateBatchShipmentResponse, BatchVoidBatchReceiptData, BatchVoidBatchReceiptError, BatchVoidBatchReceiptResponse, BatchVoidBatchShipmentData, BatchVoidBatchShipmentError, BatchVoidBatchShipmentResponse, DefectsCreateDefectGroupData, DefectsCreateDefectGroupError, DefectsCreateDefectGroupResponse, DefectsCreateDefectTypeData, DefectsCreateDefectTypeError, DefectsCreateDefectTypeResponse, DefectsDeleteDefectGroupData, DefectsDeleteDefectGroupError, DefectsDeleteDefectGroupResponse, DefectsDeleteDefectTypeData, DefectsDeleteDefectTypeError, DefectsDeleteDefectTypeResponse, DefectsGetDefectGroupData, DefectsGetDefectGroupError, DefectsGetDefectGroupResponse, DefectsGetDefectTypeData, DefectsGetDefectTypeError, DefectsGetDefectTypeResponse, DefectsListDefectGroupsData, DefectsListDefectGroupsError, DefectsListDefectGroupsResponse, DefectsListDefectTypesData, DefectsListDefectTypesError, DefectsListDefectTypesResponse, DefectsUpdateDefectGroupArchivedData, DefectsUpdateDefectGroupArchivedError, DefectsUpdateDefectGroupArchivedResponse, DefectsUpdateDefectGroupData, DefectsUpdateDefectGroupError, DefectsUpdateDefectGroupResponse, DefectsUpdateDefectTypeArchivedData, DefectsUpdateDefectTypeArchivedError, DefectsUpdateDefectTypeArchivedResponse, DefectsUpdateDefectTypeData, DefectsUpdateDefectTypeError, DefectsUpdateDefectTypeResponse, KgCreateDevEuiPrefixData, KgCreateDevEuiPrefixError, KgCreateDevEuiPrefixResponse, KgCreateKgVersionData, KgCreateKgVersionError, KgCreateKgVersionResponse, KgDeleteDevEuiPrefixData, KgDeleteDevEuiPrefixError, KgDeleteDevEuiPrefixResponse, KgDeleteKgVersionData, KgDeleteKgVersionError, KgDeleteKgVersionResponse, KgGetKgData, KgGetKgError, KgGetKgResponse, KgListDevEuiPrefixesData, KgListDevEuiPrefixesError, KgListDevEuiPrefixesResponse, KgListKgData, KgListKgError, KgListKgResponse, KgListKgVersionsData, KgListKgVersionsError, KgListKgVersionsResponse, KgUpdateDevEuiPrefixArchivedData, KgUpdateDevEuiPrefixArchivedError, KgUpdateDevEuiPrefixArchivedResponse, KgUpdateDevEuiPrefixData, KgUpdateDevEuiPrefixError, KgUpdateDevEuiPrefixResponse, KgUpdateKgVersionArchivedData, KgUpdateKgVersionArchivedError, KgUpdateKgVersionArchivedResponse, KgUpdateKgVersionData, KgUpdateKgVersionError, KgUpdateKgVersionResponse, PakCreatePakData, PakCreatePakError, PakCreatePakResponse, PakDeletePakData, PakDeletePakError, PakDeletePakResponse, PakGetAccessKeyData, PakGetAccessKeyError, PakGetAccessKeyResponse, PakGetPakData, PakGetPakError, PakGetPakResponse, PakGetPakTestData, PakGetPakTestError, PakGetPakTestResponse, PakListPakData, PakListPakError, PakListPakResponse, PakListPakTestsData, PakListPakTestsError, PakListPakTestsResponse, PakRotateAccessKeyData, PakRotateAccessKeyError, PakRotateAccessKeyResponse, PakUpdateActiveData, PakUpdateActiveError, PakUpdateActiveResponse, PakUpdateArchivedData, PakUpdateArchivedError, PakUpdateArchivedResponse, PakUpdatePakData, PakUpdatePakError, PakUpdatePakResponse, UsersCreateUserData, UsersCreateUserError, UsersCreateUserResponse, UsersDeleteUserData, UsersDeleteUserError, UsersDeleteUserResponse, UsersGetUserData, UsersGetUserError, UsersGetUserResponse, UsersListUsersData, UsersListUsersError, UsersListUsersResponse, UsersUpdateActiveData, UsersUpdateActiveError, UsersUpdateActiveResponse, UsersUpdateArchivedData, UsersUpdateArchivedError, UsersUpdateArchivedResponse, UsersUpdatePasswordData, UsersUpdatePasswordError, UsersUpdatePasswordResponse, UsersUpdateUserData, UsersUpdateUserError, UsersUpdateUserResponse, VerificationGetSessionData, VerificationGetSessionError, VerificationGetSessionResponse, VerificationListSessionsData, VerificationListSessionsError, VerificationListSessionsResponse } from '../types.gen';
+import { auditListAuditEvents, authMe, batchAddBatchShipmentItem, batchAssignProductionOrder, batchCompleteBatch, batchCompleteBatchShipment, batchCreateBatch, batchCreateBatchReceipt, batchCreateBatchShipment, batchDeleteBatch, batchGetBatch, batchListBatches, batchListBatchReceipts, batchListBatchShipmentItems, batchListBatchShipments, batchRemoveBatchShipmentItem, batchUpdateBatch, batchUpdateBatchArchived, batchUpdateBatchReceipt, batchUpdateBatchShipment, batchVoidBatchReceipt, batchVoidBatchShipment, defectsCreateDefectGroup, defectsCreateDefectType, defectsDeleteDefectGroup, defectsDeleteDefectType, defectsGetDefectGroup, defectsGetDefectType, defectsListDefectGroups, defectsListDefectTypes, defectsUpdateDefectGroup, defectsUpdateDefectGroupArchived, defectsUpdateDefectType, defectsUpdateDefectTypeArchived, kgCreateDevEuiPrefix, kgCreateKgVersion, kgDeleteDevEuiPrefix, kgDeleteKgVersion, kgGetKg, kgListDevEuiPrefixes, kgListKg, kgListKgVersions, kgUpdateDevEuiPrefix, kgUpdateDevEuiPrefixArchived, kgUpdateKgVersion, kgUpdateKgVersionArchived, type Options, pakCreatePak, pakDeletePak, pakGetAccessKey, pakGetPak, pakGetPakTest, pakListPak, pakListPakTests, pakRotateAccessKey, pakUpdateActive, pakUpdateArchived, pakUpdatePak, productionOrderArchiveOrder, productionOrderCreateOrder, productionOrderDeleteOrder, productionOrderGetOrder, productionOrderListOrders, productionOrderUpdateOrder, usersCreateUser, usersDeleteUser, usersGetUser, usersListUsers, usersUpdateActive, usersUpdateArchived, usersUpdatePassword, usersUpdateUser, verificationGetSession, verificationListSessions } from '../sdk.gen';
+import type { AuditListAuditEventsData, AuditListAuditEventsError, AuditListAuditEventsResponse, AuthMeData, AuthMeResponse, BatchAddBatchShipmentItemData, BatchAddBatchShipmentItemError, BatchAddBatchShipmentItemResponse, BatchAssignProductionOrderData, BatchAssignProductionOrderError, BatchAssignProductionOrderResponse, BatchCompleteBatchData, BatchCompleteBatchError, BatchCompleteBatchResponse, BatchCompleteBatchShipmentData, BatchCompleteBatchShipmentError, BatchCompleteBatchShipmentResponse, BatchCreateBatchData, BatchCreateBatchError, BatchCreateBatchReceiptData, BatchCreateBatchReceiptError, BatchCreateBatchReceiptResponse, BatchCreateBatchResponse, BatchCreateBatchShipmentData, BatchCreateBatchShipmentError, BatchCreateBatchShipmentResponse, BatchDeleteBatchData, BatchDeleteBatchError, BatchDeleteBatchResponse, BatchGetBatchData, BatchGetBatchError, BatchGetBatchResponse, BatchListBatchesData, BatchListBatchesError, BatchListBatchesResponse, BatchListBatchReceiptsData, BatchListBatchReceiptsError, BatchListBatchReceiptsResponse, BatchListBatchShipmentItemsData, BatchListBatchShipmentItemsError, BatchListBatchShipmentItemsResponse, BatchListBatchShipmentsData, BatchListBatchShipmentsError, BatchListBatchShipmentsResponse, BatchRemoveBatchShipmentItemData, BatchRemoveBatchShipmentItemError, BatchRemoveBatchShipmentItemResponse, BatchUpdateBatchArchivedData, BatchUpdateBatchArchivedError, BatchUpdateBatchArchivedResponse, BatchUpdateBatchData, BatchUpdateBatchError, BatchUpdateBatchReceiptData, BatchUpdateBatchReceiptError, BatchUpdateBatchReceiptResponse, BatchUpdateBatchResponse, BatchUpdateBatchShipmentData, BatchUpdateBatchShipmentError, BatchUpdateBatchShipmentResponse, BatchVoidBatchReceiptData, BatchVoidBatchReceiptError, BatchVoidBatchReceiptResponse, BatchVoidBatchShipmentData, BatchVoidBatchShipmentError, BatchVoidBatchShipmentResponse, DefectsCreateDefectGroupData, DefectsCreateDefectGroupError, DefectsCreateDefectGroupResponse, DefectsCreateDefectTypeData, DefectsCreateDefectTypeError, DefectsCreateDefectTypeResponse, DefectsDeleteDefectGroupData, DefectsDeleteDefectGroupError, DefectsDeleteDefectGroupResponse, DefectsDeleteDefectTypeData, DefectsDeleteDefectTypeError, DefectsDeleteDefectTypeResponse, DefectsGetDefectGroupData, DefectsGetDefectGroupError, DefectsGetDefectGroupResponse, DefectsGetDefectTypeData, DefectsGetDefectTypeError, DefectsGetDefectTypeResponse, DefectsListDefectGroupsData, DefectsListDefectGroupsError, DefectsListDefectGroupsResponse, DefectsListDefectTypesData, DefectsListDefectTypesError, DefectsListDefectTypesResponse, DefectsUpdateDefectGroupArchivedData, DefectsUpdateDefectGroupArchivedError, DefectsUpdateDefectGroupArchivedResponse, DefectsUpdateDefectGroupData, DefectsUpdateDefectGroupError, DefectsUpdateDefectGroupResponse, DefectsUpdateDefectTypeArchivedData, DefectsUpdateDefectTypeArchivedError, DefectsUpdateDefectTypeArchivedResponse, DefectsUpdateDefectTypeData, DefectsUpdateDefectTypeError, DefectsUpdateDefectTypeResponse, KgCreateDevEuiPrefixData, KgCreateDevEuiPrefixError, KgCreateDevEuiPrefixResponse, KgCreateKgVersionData, KgCreateKgVersionError, KgCreateKgVersionResponse, KgDeleteDevEuiPrefixData, KgDeleteDevEuiPrefixError, KgDeleteDevEuiPrefixResponse, KgDeleteKgVersionData, KgDeleteKgVersionError, KgDeleteKgVersionResponse, KgGetKgData, KgGetKgError, KgGetKgResponse, KgListDevEuiPrefixesData, KgListDevEuiPrefixesError, KgListDevEuiPrefixesResponse, KgListKgData, KgListKgError, KgListKgResponse, KgListKgVersionsData, KgListKgVersionsError, KgListKgVersionsResponse, KgUpdateDevEuiPrefixArchivedData, KgUpdateDevEuiPrefixArchivedError, KgUpdateDevEuiPrefixArchivedResponse, KgUpdateDevEuiPrefixData, KgUpdateDevEuiPrefixError, KgUpdateDevEuiPrefixResponse, KgUpdateKgVersionArchivedData, KgUpdateKgVersionArchivedError, KgUpdateKgVersionArchivedResponse, KgUpdateKgVersionData, KgUpdateKgVersionError, KgUpdateKgVersionResponse, PakCreatePakData, PakCreatePakError, PakCreatePakResponse, PakDeletePakData, PakDeletePakError, PakDeletePakResponse, PakGetAccessKeyData, PakGetAccessKeyError, PakGetAccessKeyResponse, PakGetPakData, PakGetPakError, PakGetPakResponse, PakGetPakTestData, PakGetPakTestError, PakGetPakTestResponse, PakListPakData, PakListPakError, PakListPakResponse, PakListPakTestsData, PakListPakTestsError, PakListPakTestsResponse, PakRotateAccessKeyData, PakRotateAccessKeyError, PakRotateAccessKeyResponse, PakUpdateActiveData, PakUpdateActiveError, PakUpdateActiveResponse, PakUpdateArchivedData, PakUpdateArchivedError, PakUpdateArchivedResponse, PakUpdatePakData, PakUpdatePakError, PakUpdatePakResponse, ProductionOrderArchiveOrderData, ProductionOrderArchiveOrderError, ProductionOrderArchiveOrderResponse, ProductionOrderCreateOrderData, ProductionOrderCreateOrderError, ProductionOrderCreateOrderResponse, ProductionOrderDeleteOrderData, ProductionOrderDeleteOrderError, ProductionOrderDeleteOrderResponse, ProductionOrderGetOrderData, ProductionOrderGetOrderError, ProductionOrderGetOrderResponse, ProductionOrderListOrdersData, ProductionOrderListOrdersError, ProductionOrderListOrdersResponse, ProductionOrderUpdateOrderData, ProductionOrderUpdateOrderError, ProductionOrderUpdateOrderResponse, UsersCreateUserData, UsersCreateUserError, UsersCreateUserResponse, UsersDeleteUserData, UsersDeleteUserError, UsersDeleteUserResponse, UsersGetUserData, UsersGetUserError, UsersGetUserResponse, UsersListUsersData, UsersListUsersError, UsersListUsersResponse, UsersUpdateActiveData, UsersUpdateActiveError, UsersUpdateActiveResponse, UsersUpdateArchivedData, UsersUpdateArchivedError, UsersUpdateArchivedResponse, UsersUpdatePasswordData, UsersUpdatePasswordError, UsersUpdatePasswordResponse, UsersUpdateUserData, UsersUpdateUserError, UsersUpdateUserResponse, VerificationGetSessionData, VerificationGetSessionError, VerificationGetSessionResponse, VerificationListSessionsData, VerificationListSessionsError, VerificationListSessionsResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -275,6 +275,23 @@ export const batchCompleteBatchMutation = (options?: Partial<Options<BatchComple
     const mutationOptions: UseMutationOptions<BatchCompleteBatchResponse, BatchCompleteBatchError, Options<BatchCompleteBatchData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await batchCompleteBatch({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Assign Production Order
+ */
+export const batchAssignProductionOrderMutation = (options?: Partial<Options<BatchAssignProductionOrderData>>): UseMutationOptions<BatchAssignProductionOrderResponse, BatchAssignProductionOrderError, Options<BatchAssignProductionOrderData>> => {
+    const mutationOptions: UseMutationOptions<BatchAssignProductionOrderResponse, BatchAssignProductionOrderError, Options<BatchAssignProductionOrderData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await batchAssignProductionOrder({
                 ...options,
                 ...fnOptions,
                 throwOnError: true
@@ -1300,6 +1317,140 @@ export const pakUpdateArchivedMutation = (options?: Partial<Options<PakUpdateArc
     const mutationOptions: UseMutationOptions<PakUpdateArchivedResponse, PakUpdateArchivedError, Options<PakUpdateArchivedData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await pakUpdateArchived({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Create Order
+ */
+export const productionOrderCreateOrderMutation = (options?: Partial<Options<ProductionOrderCreateOrderData>>): UseMutationOptions<ProductionOrderCreateOrderResponse, ProductionOrderCreateOrderError, Options<ProductionOrderCreateOrderData>> => {
+    const mutationOptions: UseMutationOptions<ProductionOrderCreateOrderResponse, ProductionOrderCreateOrderError, Options<ProductionOrderCreateOrderData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await productionOrderCreateOrder({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const productionOrderListOrdersQueryKey = (options?: Options<ProductionOrderListOrdersData>) => createQueryKey('productionOrderListOrders', options);
+
+/**
+ * List Orders
+ */
+export const productionOrderListOrdersOptions = (options?: Options<ProductionOrderListOrdersData>) => queryOptions<ProductionOrderListOrdersResponse, ProductionOrderListOrdersError, ProductionOrderListOrdersResponse, ReturnType<typeof productionOrderListOrdersQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await productionOrderListOrders({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: productionOrderListOrdersQueryKey(options)
+});
+
+export const productionOrderListOrdersInfiniteQueryKey = (options?: Options<ProductionOrderListOrdersData>): QueryKey<Options<ProductionOrderListOrdersData>> => createQueryKey('productionOrderListOrders', options, true);
+
+/**
+ * List Orders
+ */
+export const productionOrderListOrdersInfiniteOptions = (options?: Options<ProductionOrderListOrdersData>) => {
+    const opts = infiniteQueryOptions<ProductionOrderListOrdersResponse, ProductionOrderListOrdersError, InfiniteData<ProductionOrderListOrdersResponse>, QueryKey<Options<ProductionOrderListOrdersData>>, number | Pick<QueryKey<Options<ProductionOrderListOrdersData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<ProductionOrderListOrdersData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    page: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await productionOrderListOrders({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: productionOrderListOrdersInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+/**
+ * Delete Order
+ */
+export const productionOrderDeleteOrderMutation = (options?: Partial<Options<ProductionOrderDeleteOrderData>>): UseMutationOptions<ProductionOrderDeleteOrderResponse, ProductionOrderDeleteOrderError, Options<ProductionOrderDeleteOrderData>> => {
+    const mutationOptions: UseMutationOptions<ProductionOrderDeleteOrderResponse, ProductionOrderDeleteOrderError, Options<ProductionOrderDeleteOrderData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await productionOrderDeleteOrder({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const productionOrderGetOrderQueryKey = (options: Options<ProductionOrderGetOrderData>) => createQueryKey('productionOrderGetOrder', options);
+
+/**
+ * Get Order
+ */
+export const productionOrderGetOrderOptions = (options: Options<ProductionOrderGetOrderData>) => queryOptions<ProductionOrderGetOrderResponse, ProductionOrderGetOrderError, ProductionOrderGetOrderResponse, ReturnType<typeof productionOrderGetOrderQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await productionOrderGetOrder({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: productionOrderGetOrderQueryKey(options)
+});
+
+/**
+ * Update Order
+ */
+export const productionOrderUpdateOrderMutation = (options?: Partial<Options<ProductionOrderUpdateOrderData>>): UseMutationOptions<ProductionOrderUpdateOrderResponse, ProductionOrderUpdateOrderError, Options<ProductionOrderUpdateOrderData>> => {
+    const mutationOptions: UseMutationOptions<ProductionOrderUpdateOrderResponse, ProductionOrderUpdateOrderError, Options<ProductionOrderUpdateOrderData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await productionOrderUpdateOrder({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Archive Order
+ */
+export const productionOrderArchiveOrderMutation = (options?: Partial<Options<ProductionOrderArchiveOrderData>>): UseMutationOptions<ProductionOrderArchiveOrderResponse, ProductionOrderArchiveOrderError, Options<ProductionOrderArchiveOrderData>> => {
+    const mutationOptions: UseMutationOptions<ProductionOrderArchiveOrderResponse, ProductionOrderArchiveOrderError, Options<ProductionOrderArchiveOrderData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await productionOrderArchiveOrder({
                 ...options,
                 ...fnOptions,
                 throwOnError: true

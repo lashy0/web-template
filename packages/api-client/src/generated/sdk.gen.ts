@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AuditListAuditEventsData, AuditListAuditEventsErrors, AuditListAuditEventsResponses, AuthMeData, AuthMeResponses, BatchAddBatchShipmentItemData, BatchAddBatchShipmentItemErrors, BatchAddBatchShipmentItemResponses, BatchCompleteBatchData, BatchCompleteBatchErrors, BatchCompleteBatchResponses, BatchCompleteBatchShipmentData, BatchCompleteBatchShipmentErrors, BatchCompleteBatchShipmentResponses, BatchCreateBatchData, BatchCreateBatchErrors, BatchCreateBatchReceiptData, BatchCreateBatchReceiptErrors, BatchCreateBatchReceiptResponses, BatchCreateBatchResponses, BatchCreateBatchShipmentData, BatchCreateBatchShipmentErrors, BatchCreateBatchShipmentResponses, BatchDeleteBatchData, BatchDeleteBatchErrors, BatchDeleteBatchResponses, BatchGetBatchData, BatchGetBatchErrors, BatchGetBatchResponses, BatchListBatchesData, BatchListBatchesErrors, BatchListBatchesResponses, BatchListBatchReceiptsData, BatchListBatchReceiptsErrors, BatchListBatchReceiptsResponses, BatchListBatchShipmentItemsData, BatchListBatchShipmentItemsErrors, BatchListBatchShipmentItemsResponses, BatchListBatchShipmentsData, BatchListBatchShipmentsErrors, BatchListBatchShipmentsResponses, BatchRemoveBatchShipmentItemData, BatchRemoveBatchShipmentItemErrors, BatchRemoveBatchShipmentItemResponses, BatchUpdateBatchArchivedData, BatchUpdateBatchArchivedErrors, BatchUpdateBatchArchivedResponses, BatchUpdateBatchData, BatchUpdateBatchErrors, BatchUpdateBatchReceiptData, BatchUpdateBatchReceiptErrors, BatchUpdateBatchReceiptResponses, BatchUpdateBatchResponses, BatchUpdateBatchShipmentData, BatchUpdateBatchShipmentErrors, BatchUpdateBatchShipmentResponses, BatchVoidBatchReceiptData, BatchVoidBatchReceiptErrors, BatchVoidBatchReceiptResponses, BatchVoidBatchShipmentData, BatchVoidBatchShipmentErrors, BatchVoidBatchShipmentResponses, DefectsCreateDefectGroupData, DefectsCreateDefectGroupErrors, DefectsCreateDefectGroupResponses, DefectsCreateDefectTypeData, DefectsCreateDefectTypeErrors, DefectsCreateDefectTypeResponses, DefectsDeleteDefectGroupData, DefectsDeleteDefectGroupErrors, DefectsDeleteDefectGroupResponses, DefectsDeleteDefectTypeData, DefectsDeleteDefectTypeErrors, DefectsDeleteDefectTypeResponses, DefectsGetDefectGroupData, DefectsGetDefectGroupErrors, DefectsGetDefectGroupResponses, DefectsGetDefectTypeData, DefectsGetDefectTypeErrors, DefectsGetDefectTypeResponses, DefectsListDefectGroupsData, DefectsListDefectGroupsErrors, DefectsListDefectGroupsResponses, DefectsListDefectTypesData, DefectsListDefectTypesErrors, DefectsListDefectTypesResponses, DefectsUpdateDefectGroupArchivedData, DefectsUpdateDefectGroupArchivedErrors, DefectsUpdateDefectGroupArchivedResponses, DefectsUpdateDefectGroupData, DefectsUpdateDefectGroupErrors, DefectsUpdateDefectGroupResponses, DefectsUpdateDefectTypeArchivedData, DefectsUpdateDefectTypeArchivedErrors, DefectsUpdateDefectTypeArchivedResponses, DefectsUpdateDefectTypeData, DefectsUpdateDefectTypeErrors, DefectsUpdateDefectTypeResponses, KgCreateDevEuiPrefixData, KgCreateDevEuiPrefixErrors, KgCreateDevEuiPrefixResponses, KgCreateKgVersionData, KgCreateKgVersionErrors, KgCreateKgVersionResponses, KgDeleteDevEuiPrefixData, KgDeleteDevEuiPrefixErrors, KgDeleteDevEuiPrefixResponses, KgDeleteKgVersionData, KgDeleteKgVersionErrors, KgDeleteKgVersionResponses, KgGetKgData, KgGetKgErrors, KgGetKgResponses, KgListDevEuiPrefixesData, KgListDevEuiPrefixesErrors, KgListDevEuiPrefixesResponses, KgListKgData, KgListKgErrors, KgListKgResponses, KgListKgVersionsData, KgListKgVersionsErrors, KgListKgVersionsResponses, KgUpdateDevEuiPrefixArchivedData, KgUpdateDevEuiPrefixArchivedErrors, KgUpdateDevEuiPrefixArchivedResponses, KgUpdateDevEuiPrefixData, KgUpdateDevEuiPrefixErrors, KgUpdateDevEuiPrefixResponses, KgUpdateKgVersionArchivedData, KgUpdateKgVersionArchivedErrors, KgUpdateKgVersionArchivedResponses, KgUpdateKgVersionData, KgUpdateKgVersionErrors, KgUpdateKgVersionResponses, PakCreatePakData, PakCreatePakErrors, PakCreatePakResponses, PakDeletePakData, PakDeletePakErrors, PakDeletePakResponses, PakGetAccessKeyData, PakGetAccessKeyErrors, PakGetAccessKeyResponses, PakGetPakData, PakGetPakErrors, PakGetPakResponses, PakGetPakTestData, PakGetPakTestErrors, PakGetPakTestResponses, PakListPakData, PakListPakErrors, PakListPakResponses, PakListPakTestsData, PakListPakTestsErrors, PakListPakTestsResponses, PakRotateAccessKeyData, PakRotateAccessKeyErrors, PakRotateAccessKeyResponses, PakUpdateActiveData, PakUpdateActiveErrors, PakUpdateActiveResponses, PakUpdateArchivedData, PakUpdateArchivedErrors, PakUpdateArchivedResponses, PakUpdatePakData, PakUpdatePakErrors, PakUpdatePakResponses, UsersCreateUserData, UsersCreateUserErrors, UsersCreateUserResponses, UsersDeleteUserData, UsersDeleteUserErrors, UsersDeleteUserResponses, UsersGetUserData, UsersGetUserErrors, UsersGetUserResponses, UsersListUsersData, UsersListUsersErrors, UsersListUsersResponses, UsersUpdateActiveData, UsersUpdateActiveErrors, UsersUpdateActiveResponses, UsersUpdateArchivedData, UsersUpdateArchivedErrors, UsersUpdateArchivedResponses, UsersUpdatePasswordData, UsersUpdatePasswordErrors, UsersUpdatePasswordResponses, UsersUpdateUserData, UsersUpdateUserErrors, UsersUpdateUserResponses, VerificationGetSessionData, VerificationGetSessionErrors, VerificationGetSessionResponses, VerificationListSessionsData, VerificationListSessionsErrors, VerificationListSessionsResponses } from './types.gen';
+import type { AuditListAuditEventsData, AuditListAuditEventsErrors, AuditListAuditEventsResponses, AuthMeData, AuthMeResponses, BatchAddBatchShipmentItemData, BatchAddBatchShipmentItemErrors, BatchAddBatchShipmentItemResponses, BatchAssignProductionOrderData, BatchAssignProductionOrderErrors, BatchAssignProductionOrderResponses, BatchCompleteBatchData, BatchCompleteBatchErrors, BatchCompleteBatchResponses, BatchCompleteBatchShipmentData, BatchCompleteBatchShipmentErrors, BatchCompleteBatchShipmentResponses, BatchCreateBatchData, BatchCreateBatchErrors, BatchCreateBatchReceiptData, BatchCreateBatchReceiptErrors, BatchCreateBatchReceiptResponses, BatchCreateBatchResponses, BatchCreateBatchShipmentData, BatchCreateBatchShipmentErrors, BatchCreateBatchShipmentResponses, BatchDeleteBatchData, BatchDeleteBatchErrors, BatchDeleteBatchResponses, BatchGetBatchData, BatchGetBatchErrors, BatchGetBatchResponses, BatchListBatchesData, BatchListBatchesErrors, BatchListBatchesResponses, BatchListBatchReceiptsData, BatchListBatchReceiptsErrors, BatchListBatchReceiptsResponses, BatchListBatchShipmentItemsData, BatchListBatchShipmentItemsErrors, BatchListBatchShipmentItemsResponses, BatchListBatchShipmentsData, BatchListBatchShipmentsErrors, BatchListBatchShipmentsResponses, BatchRemoveBatchShipmentItemData, BatchRemoveBatchShipmentItemErrors, BatchRemoveBatchShipmentItemResponses, BatchUpdateBatchArchivedData, BatchUpdateBatchArchivedErrors, BatchUpdateBatchArchivedResponses, BatchUpdateBatchData, BatchUpdateBatchErrors, BatchUpdateBatchReceiptData, BatchUpdateBatchReceiptErrors, BatchUpdateBatchReceiptResponses, BatchUpdateBatchResponses, BatchUpdateBatchShipmentData, BatchUpdateBatchShipmentErrors, BatchUpdateBatchShipmentResponses, BatchVoidBatchReceiptData, BatchVoidBatchReceiptErrors, BatchVoidBatchReceiptResponses, BatchVoidBatchShipmentData, BatchVoidBatchShipmentErrors, BatchVoidBatchShipmentResponses, DefectsCreateDefectGroupData, DefectsCreateDefectGroupErrors, DefectsCreateDefectGroupResponses, DefectsCreateDefectTypeData, DefectsCreateDefectTypeErrors, DefectsCreateDefectTypeResponses, DefectsDeleteDefectGroupData, DefectsDeleteDefectGroupErrors, DefectsDeleteDefectGroupResponses, DefectsDeleteDefectTypeData, DefectsDeleteDefectTypeErrors, DefectsDeleteDefectTypeResponses, DefectsGetDefectGroupData, DefectsGetDefectGroupErrors, DefectsGetDefectGroupResponses, DefectsGetDefectTypeData, DefectsGetDefectTypeErrors, DefectsGetDefectTypeResponses, DefectsListDefectGroupsData, DefectsListDefectGroupsErrors, DefectsListDefectGroupsResponses, DefectsListDefectTypesData, DefectsListDefectTypesErrors, DefectsListDefectTypesResponses, DefectsUpdateDefectGroupArchivedData, DefectsUpdateDefectGroupArchivedErrors, DefectsUpdateDefectGroupArchivedResponses, DefectsUpdateDefectGroupData, DefectsUpdateDefectGroupErrors, DefectsUpdateDefectGroupResponses, DefectsUpdateDefectTypeArchivedData, DefectsUpdateDefectTypeArchivedErrors, DefectsUpdateDefectTypeArchivedResponses, DefectsUpdateDefectTypeData, DefectsUpdateDefectTypeErrors, DefectsUpdateDefectTypeResponses, KgCreateDevEuiPrefixData, KgCreateDevEuiPrefixErrors, KgCreateDevEuiPrefixResponses, KgCreateKgVersionData, KgCreateKgVersionErrors, KgCreateKgVersionResponses, KgDeleteDevEuiPrefixData, KgDeleteDevEuiPrefixErrors, KgDeleteDevEuiPrefixResponses, KgDeleteKgVersionData, KgDeleteKgVersionErrors, KgDeleteKgVersionResponses, KgGetKgData, KgGetKgErrors, KgGetKgResponses, KgListDevEuiPrefixesData, KgListDevEuiPrefixesErrors, KgListDevEuiPrefixesResponses, KgListKgData, KgListKgErrors, KgListKgResponses, KgListKgVersionsData, KgListKgVersionsErrors, KgListKgVersionsResponses, KgUpdateDevEuiPrefixArchivedData, KgUpdateDevEuiPrefixArchivedErrors, KgUpdateDevEuiPrefixArchivedResponses, KgUpdateDevEuiPrefixData, KgUpdateDevEuiPrefixErrors, KgUpdateDevEuiPrefixResponses, KgUpdateKgVersionArchivedData, KgUpdateKgVersionArchivedErrors, KgUpdateKgVersionArchivedResponses, KgUpdateKgVersionData, KgUpdateKgVersionErrors, KgUpdateKgVersionResponses, PakCreatePakData, PakCreatePakErrors, PakCreatePakResponses, PakDeletePakData, PakDeletePakErrors, PakDeletePakResponses, PakGetAccessKeyData, PakGetAccessKeyErrors, PakGetAccessKeyResponses, PakGetPakData, PakGetPakErrors, PakGetPakResponses, PakGetPakTestData, PakGetPakTestErrors, PakGetPakTestResponses, PakListPakData, PakListPakErrors, PakListPakResponses, PakListPakTestsData, PakListPakTestsErrors, PakListPakTestsResponses, PakRotateAccessKeyData, PakRotateAccessKeyErrors, PakRotateAccessKeyResponses, PakUpdateActiveData, PakUpdateActiveErrors, PakUpdateActiveResponses, PakUpdateArchivedData, PakUpdateArchivedErrors, PakUpdateArchivedResponses, PakUpdatePakData, PakUpdatePakErrors, PakUpdatePakResponses, ProductionOrderArchiveOrderData, ProductionOrderArchiveOrderErrors, ProductionOrderArchiveOrderResponses, ProductionOrderCreateOrderData, ProductionOrderCreateOrderErrors, ProductionOrderCreateOrderResponses, ProductionOrderDeleteOrderData, ProductionOrderDeleteOrderErrors, ProductionOrderDeleteOrderResponses, ProductionOrderGetOrderData, ProductionOrderGetOrderErrors, ProductionOrderGetOrderResponses, ProductionOrderListOrdersData, ProductionOrderListOrdersErrors, ProductionOrderListOrdersResponses, ProductionOrderUpdateOrderData, ProductionOrderUpdateOrderErrors, ProductionOrderUpdateOrderResponses, UsersCreateUserData, UsersCreateUserErrors, UsersCreateUserResponses, UsersDeleteUserData, UsersDeleteUserErrors, UsersDeleteUserResponses, UsersGetUserData, UsersGetUserErrors, UsersGetUserResponses, UsersListUsersData, UsersListUsersErrors, UsersListUsersResponses, UsersUpdateActiveData, UsersUpdateActiveErrors, UsersUpdateActiveResponses, UsersUpdateArchivedData, UsersUpdateArchivedErrors, UsersUpdateArchivedResponses, UsersUpdatePasswordData, UsersUpdatePasswordErrors, UsersUpdatePasswordResponses, UsersUpdateUserData, UsersUpdateUserErrors, UsersUpdateUserResponses, VerificationGetSessionData, VerificationGetSessionErrors, VerificationGetSessionResponses, VerificationListSessionsData, VerificationListSessionsErrors, VerificationListSessionsResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -83,6 +83,18 @@ export const batchUpdateBatchArchived = <ThrowOnError extends boolean = false>(o
  * Complete Batch
  */
 export const batchCompleteBatch = <ThrowOnError extends boolean = false>(options: Options<BatchCompleteBatchData, ThrowOnError>): RequestResult<BatchCompleteBatchResponses, BatchCompleteBatchErrors, ThrowOnError> => (options.client ?? client).post<BatchCompleteBatchResponses, BatchCompleteBatchErrors, ThrowOnError>({ url: '/batches/{batch_id}/complete', ...options });
+
+/**
+ * Assign Production Order
+ */
+export const batchAssignProductionOrder = <ThrowOnError extends boolean = false>(options: Options<BatchAssignProductionOrderData, ThrowOnError>): RequestResult<BatchAssignProductionOrderResponses, BatchAssignProductionOrderErrors, ThrowOnError> => (options.client ?? client).put<BatchAssignProductionOrderResponses, BatchAssignProductionOrderErrors, ThrowOnError>({
+    url: '/batches/{batch_id}/production-order',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
  * List Batch Receipts
@@ -473,6 +485,57 @@ export const pakUpdateActive = <ThrowOnError extends boolean = false>(options: O
  */
 export const pakUpdateArchived = <ThrowOnError extends boolean = false>(options: Options<PakUpdateArchivedData, ThrowOnError>): RequestResult<PakUpdateArchivedResponses, PakUpdateArchivedErrors, ThrowOnError> => (options.client ?? client).put<PakUpdateArchivedResponses, PakUpdateArchivedErrors, ThrowOnError>({
     url: '/pak/{pak_id}/archived',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Create Order
+ */
+export const productionOrderCreateOrder = <ThrowOnError extends boolean = false>(options: Options<ProductionOrderCreateOrderData, ThrowOnError>): RequestResult<ProductionOrderCreateOrderResponses, ProductionOrderCreateOrderErrors, ThrowOnError> => (options.client ?? client).post<ProductionOrderCreateOrderResponses, ProductionOrderCreateOrderErrors, ThrowOnError>({
+    url: '/production-orders',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * List Orders
+ */
+export const productionOrderListOrders = <ThrowOnError extends boolean = false>(options?: Options<ProductionOrderListOrdersData, ThrowOnError>): RequestResult<ProductionOrderListOrdersResponses, ProductionOrderListOrdersErrors, ThrowOnError> => (options?.client ?? client).get<ProductionOrderListOrdersResponses, ProductionOrderListOrdersErrors, ThrowOnError>({ url: '/production-orders/', ...options });
+
+/**
+ * Delete Order
+ */
+export const productionOrderDeleteOrder = <ThrowOnError extends boolean = false>(options: Options<ProductionOrderDeleteOrderData, ThrowOnError>): RequestResult<ProductionOrderDeleteOrderResponses, ProductionOrderDeleteOrderErrors, ThrowOnError> => (options.client ?? client).delete<ProductionOrderDeleteOrderResponses, ProductionOrderDeleteOrderErrors, ThrowOnError>({ url: '/production-orders/{order_id}', ...options });
+
+/**
+ * Get Order
+ */
+export const productionOrderGetOrder = <ThrowOnError extends boolean = false>(options: Options<ProductionOrderGetOrderData, ThrowOnError>): RequestResult<ProductionOrderGetOrderResponses, ProductionOrderGetOrderErrors, ThrowOnError> => (options.client ?? client).get<ProductionOrderGetOrderResponses, ProductionOrderGetOrderErrors, ThrowOnError>({ url: '/production-orders/{order_id}', ...options });
+
+/**
+ * Update Order
+ */
+export const productionOrderUpdateOrder = <ThrowOnError extends boolean = false>(options: Options<ProductionOrderUpdateOrderData, ThrowOnError>): RequestResult<ProductionOrderUpdateOrderResponses, ProductionOrderUpdateOrderErrors, ThrowOnError> => (options.client ?? client).patch<ProductionOrderUpdateOrderResponses, ProductionOrderUpdateOrderErrors, ThrowOnError>({
+    url: '/production-orders/{order_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Archive Order
+ */
+export const productionOrderArchiveOrder = <ThrowOnError extends boolean = false>(options: Options<ProductionOrderArchiveOrderData, ThrowOnError>): RequestResult<ProductionOrderArchiveOrderResponses, ProductionOrderArchiveOrderErrors, ThrowOnError> => (options.client ?? client).put<ProductionOrderArchiveOrderResponses, ProductionOrderArchiveOrderErrors, ThrowOnError>({
+    url: '/production-orders/{order_id}/archived',
     ...options,
     headers: {
         'Content-Type': 'application/json',

@@ -1,5 +1,12 @@
 import { Link as RouterLink, useRouterState } from '@tanstack/react-router'
-import { BugIcon, ChevronRightIcon, CpuIcon, RadioTowerIcon, UsersIcon } from 'lucide-react'
+import {
+  BugIcon,
+  ChevronRightIcon,
+  ClipboardListIcon,
+  CpuIcon,
+  RadioTowerIcon,
+  UsersIcon,
+} from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 import {
@@ -44,6 +51,11 @@ const sections = [
       { label: 'Список', to: '/admin/pak/paks' },
       { label: 'Аудит', to: '/admin/pak/audit' },
     ],
+  },
+  {
+    label: 'Производство',
+    icon: ClipboardListIcon,
+    items: [{ label: 'Заказы', to: '/admin/production-orders' }],
   },
   {
     label: 'Дефекты',

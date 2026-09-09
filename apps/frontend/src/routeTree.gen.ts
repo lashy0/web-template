@@ -15,6 +15,7 @@ import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
 import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
 import { Route as AuthErrorRouteImport } from './routes/auth/error'
 import { Route as LayoutAdminIndexRouteImport } from './routes/_layout/admin/index'
+import { Route as LayoutAdminProductionOrdersRouteImport } from './routes/_layout/admin/production-orders'
 import { Route as LayoutAdminDefectsAuditRouteImport } from './routes/_layout/admin/defects/audit'
 import { Route as LayoutAdminDefectsGroupsRouteImport } from './routes/_layout/admin/defects/groups'
 import { Route as LayoutAdminDefectsTypesRouteImport } from './routes/_layout/admin/defects/types'
@@ -55,6 +56,12 @@ const LayoutAdminIndexRoute = LayoutAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => LayoutAdminRoute,
 } as any)
+const LayoutAdminProductionOrdersRoute =
+  LayoutAdminProductionOrdersRouteImport.update({
+    id: '/production-orders',
+    path: '/production-orders',
+    getParentRoute: () => LayoutAdminRoute,
+  } as any)
 const LayoutAdminDefectsAuditRoute = LayoutAdminDefectsAuditRouteImport.update({
   id: '/defects/audit',
   path: '/defects/audit',
@@ -112,6 +119,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/admin': typeof LayoutAdminRouteWithChildren
   '/auth/error': typeof AuthErrorRoute
+  '/admin/production-orders': typeof LayoutAdminProductionOrdersRoute
   '/admin/': typeof LayoutAdminIndexRoute
   '/admin/defects/audit': typeof LayoutAdminDefectsAuditRoute
   '/admin/defects/groups': typeof LayoutAdminDefectsGroupsRoute
@@ -128,6 +136,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/auth/error': typeof AuthErrorRoute
   '/': typeof LayoutIndexRoute
+  '/admin/production-orders': typeof LayoutAdminProductionOrdersRoute
   '/admin': typeof LayoutAdminIndexRoute
   '/admin/defects/audit': typeof LayoutAdminDefectsAuditRoute
   '/admin/defects/groups': typeof LayoutAdminDefectsGroupsRoute
@@ -147,6 +156,7 @@ export interface FileRoutesById {
   '/_layout/admin': typeof LayoutAdminRouteWithChildren
   '/auth/error': typeof AuthErrorRoute
   '/_layout/': typeof LayoutIndexRoute
+  '/_layout/admin/production-orders': typeof LayoutAdminProductionOrdersRoute
   '/_layout/admin/': typeof LayoutAdminIndexRoute
   '/_layout/admin/defects/audit': typeof LayoutAdminDefectsAuditRoute
   '/_layout/admin/defects/groups': typeof LayoutAdminDefectsGroupsRoute
@@ -166,6 +176,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/admin'
     | '/auth/error'
+    | '/admin/production-orders'
     | '/admin/'
     | '/admin/defects/audit'
     | '/admin/defects/groups'
@@ -182,6 +193,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/auth/error'
     | '/'
+    | '/admin/production-orders'
     | '/admin'
     | '/admin/defects/audit'
     | '/admin/defects/groups'
@@ -200,6 +212,7 @@ export interface FileRouteTypes {
     | '/_layout/admin'
     | '/auth/error'
     | '/_layout/'
+    | '/_layout/admin/production-orders'
     | '/_layout/admin/'
     | '/_layout/admin/defects/audit'
     | '/_layout/admin/defects/groups'
@@ -261,6 +274,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/admin/'
       preLoaderRoute: typeof LayoutAdminIndexRouteImport
+      parentRoute: typeof LayoutAdminRoute
+    }
+    '/_layout/admin/production-orders': {
+      id: '/_layout/admin/production-orders'
+      path: '/production-orders'
+      fullPath: '/admin/production-orders'
+      preLoaderRoute: typeof LayoutAdminProductionOrdersRouteImport
       parentRoute: typeof LayoutAdminRoute
     }
     '/_layout/admin/defects/audit': {
@@ -337,6 +357,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface LayoutAdminRouteChildren {
+  LayoutAdminProductionOrdersRoute: typeof LayoutAdminProductionOrdersRoute
   LayoutAdminIndexRoute: typeof LayoutAdminIndexRoute
   LayoutAdminDefectsAuditRoute: typeof LayoutAdminDefectsAuditRoute
   LayoutAdminDefectsGroupsRoute: typeof LayoutAdminDefectsGroupsRoute
@@ -351,6 +372,7 @@ interface LayoutAdminRouteChildren {
 }
 
 const LayoutAdminRouteChildren: LayoutAdminRouteChildren = {
+  LayoutAdminProductionOrdersRoute: LayoutAdminProductionOrdersRoute,
   LayoutAdminIndexRoute: LayoutAdminIndexRoute,
   LayoutAdminDefectsAuditRoute: LayoutAdminDefectsAuditRoute,
   LayoutAdminDefectsGroupsRoute: LayoutAdminDefectsGroupsRoute,

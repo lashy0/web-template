@@ -15,6 +15,16 @@ export type AddBatchShipmentItemRequest = {
 };
 
 /**
+ * AssignProductionOrderRequest
+ */
+export type AssignProductionOrderRequest = {
+    /**
+     * Production Order Id
+     */
+    production_order_id: string | null;
+};
+
+/**
  * AuditEventResponse
  */
 export type AuditEventResponse = {
@@ -225,6 +235,11 @@ export type BatchResponse = {
      * Planned Qty
      */
     planned_qty: number;
+    production_order?: ProductionOrderSummaryResponse | null;
+    /**
+     * Production Order Id
+     */
+    production_order_id?: string | null;
     status: BatchStatus;
     /**
      * Updated At
@@ -358,6 +373,10 @@ export type CreateBatchRequest = {
      * Planned Qty
      */
     planned_qty: number;
+    /**
+     * Production Order Id
+     */
+    production_order_id?: string | null;
 };
 
 /**
@@ -478,6 +497,20 @@ export type CreatePakDeviceResponse = {
      */
     access_key: string;
     device: PakDeviceResponse;
+};
+
+/**
+ * CreateProductionOrderRequest
+ */
+export type CreateProductionOrderRequest = {
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Name
+     */
+    name: string;
 };
 
 /**
@@ -1070,6 +1103,84 @@ export type PakTestResponse = {
 };
 
 /**
+ * ProductionOrderListResponse
+ */
+export type ProductionOrderListResponse = {
+    /**
+     * Items
+     */
+    items: Array<ProductionOrderResponse>;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
+ * ProductionOrderResponse
+ */
+export type ProductionOrderResponse = {
+    /**
+     * Archived At
+     */
+    archived_at: string | null;
+    /**
+     * Batches Count
+     */
+    batches_count: number;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Description
+     */
+    description: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Total Planned Qty
+     */
+    total_planned_qty: number;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+};
+
+/**
+ * ProductionOrderSummaryResponse
+ */
+export type ProductionOrderSummaryResponse = {
+    /**
+     * Archived At
+     */
+    archived_at: string | null;
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
  * Role
  */
 export type Role = 'administrator' | 'manager' | 'engineer' | 'packer' | 'operator';
@@ -1265,6 +1376,30 @@ export type UpdatePasswordRequest = {
      * Password
      */
     password: string;
+};
+
+/**
+ * UpdateProductionOrderArchivedRequest
+ */
+export type UpdateProductionOrderArchivedRequest = {
+    /**
+     * Archived
+     */
+    archived: boolean;
+};
+
+/**
+ * UpdateProductionOrderRequest
+ */
+export type UpdateProductionOrderRequest = {
+    /**
+     * Description
+     */
+    description?: string | null;
+    /**
+     * Name
+     */
+    name?: string | null;
 };
 
 /**
@@ -1740,6 +1875,14 @@ export type BatchListBatchesData = {
          * Order
          */
         order?: 'asc' | 'desc';
+        /**
+         * Production Order Id
+         */
+        production_order_id?: string | null;
+        /**
+         * Without Production Order
+         */
+        without_production_order?: boolean;
     };
     url: '/batches/';
 };
@@ -1911,6 +2054,36 @@ export type BatchCompleteBatchResponses = {
 };
 
 export type BatchCompleteBatchResponse = BatchCompleteBatchResponses[keyof BatchCompleteBatchResponses];
+
+export type BatchAssignProductionOrderData = {
+    body: AssignProductionOrderRequest;
+    path: {
+        /**
+         * Batch Id
+         */
+        batch_id: string;
+    };
+    query?: never;
+    url: '/batches/{batch_id}/production-order';
+};
+
+export type BatchAssignProductionOrderErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type BatchAssignProductionOrderError = BatchAssignProductionOrderErrors[keyof BatchAssignProductionOrderErrors];
+
+export type BatchAssignProductionOrderResponses = {
+    /**
+     * Successful Response
+     */
+    200: BatchResponse;
+};
+
+export type BatchAssignProductionOrderResponse = BatchAssignProductionOrderResponses[keyof BatchAssignProductionOrderResponses];
 
 export type BatchListBatchReceiptsData = {
     body?: never;
@@ -3500,6 +3673,201 @@ export type PakUpdateArchivedResponses = {
 };
 
 export type PakUpdateArchivedResponse = PakUpdateArchivedResponses[keyof PakUpdateArchivedResponses];
+
+export type ProductionOrderCreateOrderData = {
+    body: CreateProductionOrderRequest;
+    path?: never;
+    query?: never;
+    url: '/production-orders';
+};
+
+export type ProductionOrderCreateOrderErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ProductionOrderCreateOrderError = ProductionOrderCreateOrderErrors[keyof ProductionOrderCreateOrderErrors];
+
+export type ProductionOrderCreateOrderResponses = {
+    /**
+     * Successful Response
+     */
+    201: ProductionOrderResponse;
+};
+
+export type ProductionOrderCreateOrderResponse = ProductionOrderCreateOrderResponses[keyof ProductionOrderCreateOrderResponses];
+
+export type ProductionOrderListOrdersData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Q
+         */
+        q?: string | null;
+        /**
+         * Archived
+         */
+        archived?: boolean;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+        /**
+         * Sort
+         */
+        sort?: 'name' | 'created_at' | 'updated_at' | 'archived_at' | 'batches_count' | 'total_planned_qty';
+        /**
+         * Order
+         */
+        order?: 'asc' | 'desc';
+    };
+    url: '/production-orders/';
+};
+
+export type ProductionOrderListOrdersErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ProductionOrderListOrdersError = ProductionOrderListOrdersErrors[keyof ProductionOrderListOrdersErrors];
+
+export type ProductionOrderListOrdersResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProductionOrderListResponse;
+};
+
+export type ProductionOrderListOrdersResponse = ProductionOrderListOrdersResponses[keyof ProductionOrderListOrdersResponses];
+
+export type ProductionOrderDeleteOrderData = {
+    body?: never;
+    path: {
+        /**
+         * Order Id
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/production-orders/{order_id}';
+};
+
+export type ProductionOrderDeleteOrderErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ProductionOrderDeleteOrderError = ProductionOrderDeleteOrderErrors[keyof ProductionOrderDeleteOrderErrors];
+
+export type ProductionOrderDeleteOrderResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type ProductionOrderDeleteOrderResponse = ProductionOrderDeleteOrderResponses[keyof ProductionOrderDeleteOrderResponses];
+
+export type ProductionOrderGetOrderData = {
+    body?: never;
+    path: {
+        /**
+         * Order Id
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/production-orders/{order_id}';
+};
+
+export type ProductionOrderGetOrderErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ProductionOrderGetOrderError = ProductionOrderGetOrderErrors[keyof ProductionOrderGetOrderErrors];
+
+export type ProductionOrderGetOrderResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProductionOrderResponse;
+};
+
+export type ProductionOrderGetOrderResponse = ProductionOrderGetOrderResponses[keyof ProductionOrderGetOrderResponses];
+
+export type ProductionOrderUpdateOrderData = {
+    body: UpdateProductionOrderRequest;
+    path: {
+        /**
+         * Order Id
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/production-orders/{order_id}';
+};
+
+export type ProductionOrderUpdateOrderErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ProductionOrderUpdateOrderError = ProductionOrderUpdateOrderErrors[keyof ProductionOrderUpdateOrderErrors];
+
+export type ProductionOrderUpdateOrderResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProductionOrderResponse;
+};
+
+export type ProductionOrderUpdateOrderResponse = ProductionOrderUpdateOrderResponses[keyof ProductionOrderUpdateOrderResponses];
+
+export type ProductionOrderArchiveOrderData = {
+    body: UpdateProductionOrderArchivedRequest;
+    path: {
+        /**
+         * Order Id
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/production-orders/{order_id}/archived';
+};
+
+export type ProductionOrderArchiveOrderErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ProductionOrderArchiveOrderError = ProductionOrderArchiveOrderErrors[keyof ProductionOrderArchiveOrderErrors];
+
+export type ProductionOrderArchiveOrderResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProductionOrderResponse;
+};
+
+export type ProductionOrderArchiveOrderResponse = ProductionOrderArchiveOrderResponses[keyof ProductionOrderArchiveOrderResponses];
 
 export type UsersListUsersData = {
     body?: never;
