@@ -4,6 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, Request, status
 
 from app.api.auth_deps import CurrentPrincipalDep, require_permission
+from app.modules.production_order.schemas import AssignProductionOrderRequest
 
 from ..exceptions import BatchNotFoundError
 from ..models import BatchStatus
@@ -43,6 +44,8 @@ async def list_batches(
         "archived_at",
     ] = "created_at",
     order: Literal["asc", "desc"] = "desc",
+    production_order_id: UUID | None = None,
+    without_production_order: bool = False,
 ) -> BatchListResponse:
     batches, total = await _service(request).list(
         q=q,
@@ -52,6 +55,8 @@ async def list_batches(
         page_size=page_size,
         sort=sort,
         order=order,
+        production_order_id=production_order_id,
+        without_production_order=without_production_order,
     )
 
     return BatchListResponse(
@@ -96,6 +101,7 @@ async def create_batch(
             dev_eui_prefix=payload.dev_eui_prefix,
             planned_qty=payload.planned_qty,
             day_plan_qty=payload.day_plan_qty,
+            production_order_id=payload.production_order_id,
             kg_version_id=payload.kg_version_id,
         )
 
@@ -107,6 +113,7 @@ async def create_batch(
             dev_eui_prefix=payload.dev_eui_prefix,
             planned_qty=payload.planned_qty,
             day_plan_qty=payload.day_plan_qty,
+            production_order_id=payload.production_order_id,
         )
 
     return _batch_response(batch)
@@ -180,3 +187,21 @@ async def delete_batch(
         actor=principal,
         batch_id=batch_id,
     )
+
+
+@router.put("/{batch_id}/production-order", response_model=BatchResponse)
+async def assign_production_order(
+    batch_id: UUID,
+    payload: AssignProductionOrderRequest,
+    principal: Annotated[
+        CurrentPrincipalDep, Depends(require_permission(BatchPermission.ASSIGN_PRODUCTION_ORDER))
+    ],
+    request: Request,
+) -> BatchResponse:
+    batch = await _service(request).assign_production_order(
+        actor=principal,
+        batch_id=batch_id,
+        production_order_id=payload.production_order_id,
+    )
+
+    return _batch_response(batch)

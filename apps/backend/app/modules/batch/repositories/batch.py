@@ -16,6 +16,7 @@ class BatchRepository:
     @staticmethod
     def _response_options():
         return (
+            selectinload(Batch.production_order),
             selectinload(Batch.kg_version),
             selectinload(Batch.kg_dev_eui_prefix),
         )
@@ -30,12 +31,14 @@ class BatchRepository:
         day_plan_qty: int,
         created_by_user_id: UUID | None,
         kg_version_id: UUID | None = None,
+        production_order_id: UUID | None = None,
     ) -> Batch:
         batch = Batch(
             name=name,
             description=description,
             dev_eui_prefix=dev_eui_prefix,
             kg_version_id=kg_version_id,
+            production_order_id=production_order_id,
             planned_qty=planned_qty,
             day_plan_qty=day_plan_qty,
             status=BatchStatus.IN_PRODUCTION,
@@ -48,7 +51,11 @@ class BatchRepository:
         await self._session.refresh(batch)
         await self._session.refresh(
             batch,
-            attribute_names=["kg_version", "kg_dev_eui_prefix"],
+            attribute_names=[
+                "kg_version",
+                "kg_dev_eui_prefix",
+                "production_order",
+            ],
         )
 
         return batch
@@ -80,7 +87,11 @@ class BatchRepository:
         await self._session.refresh(batch)
         await self._session.refresh(
             batch,
-            attribute_names=["kg_version", "kg_dev_eui_prefix"],
+            attribute_names=[
+                "kg_version",
+                "kg_dev_eui_prefix",
+                "production_order",
+            ],
         )
 
         return batch
@@ -98,7 +109,11 @@ class BatchRepository:
         await self._session.refresh(batch)
         await self._session.refresh(
             batch,
-            attribute_names=["kg_version", "kg_dev_eui_prefix"],
+            attribute_names=[
+                "kg_version",
+                "kg_dev_eui_prefix",
+                "production_order",
+            ],
         )
 
         return batch
@@ -115,7 +130,11 @@ class BatchRepository:
         await self._session.refresh(batch)
         await self._session.refresh(
             batch,
-            attribute_names=["kg_version", "kg_dev_eui_prefix"],
+            attribute_names=[
+                "kg_version",
+                "kg_dev_eui_prefix",
+                "production_order",
+            ],
         )
 
         return batch
@@ -134,6 +153,8 @@ class BatchRepository:
         page_size: int,
         sort: str,
         order: str,
+        production_order_id: UUID | None = None,
+        without_production_order: bool = False,
     ) -> tuple[list[Batch], int]:
         filters: list[ColumnElement[bool]] = [
             (Batch.archived_at.is_not(None) if archived else Batch.archived_at.is_(None))
@@ -147,6 +168,12 @@ class BatchRepository:
                     Batch.description.ilike(pattern),
                 )
             )
+
+        if production_order_id is not None:
+            filters.append(Batch.production_order_id == production_order_id)
+
+        if without_production_order:
+            filters.append(Batch.production_order_id.is_(None))
 
         if status is not None:
             filters.append(Batch.status == status)

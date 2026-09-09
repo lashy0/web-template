@@ -5,6 +5,7 @@ from app.modules.batch.models import Batch, BatchReceipt, BatchShipment, BatchSh
 from app.modules.defects.models import DefectGroup, DefectType
 from app.modules.kg.models import KgDevEuiPrefix, KgUnit, KgVersion
 from app.modules.pak.models import PakDevice, PakTest
+from app.modules.production_order.models import ProductionOrder
 from app.modules.users.models import User
 from app.modules.verification.models import VerificationSession, VerificationStep
 
@@ -13,6 +14,7 @@ __all__: list[str] = [
     "AuditEvent",
     "PakDevice",
     "PakTest",
+    "ProductionOrder",
     "Batch",
     "BatchReceipt",
     "BatchShipment",

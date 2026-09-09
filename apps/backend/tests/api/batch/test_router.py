@@ -182,6 +182,8 @@ def test_list_batches_serializes_items_and_forwards_filters(
         page_size=10,
         sort="name",
         order="asc",
+        production_order_id=None,
+        without_production_order=False,
     )
 
 
@@ -215,6 +217,7 @@ def test_create_batch_normalizes_payload_and_forwards_actor(
         dev_eui_prefix="a1b2c3d4e5",
         planned_qty=100,
         day_plan_qty=20,
+        production_order_id=None,
     )
     assert service.create.await_args.kwargs["actor"].user_id == actor_id
 

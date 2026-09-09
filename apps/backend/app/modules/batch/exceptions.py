@@ -1,4 +1,4 @@
-from app.core.exceptions import AppError, ConflictError, NotFoundError
+from app.core.exceptions import AppError, ConflictError, InvalidInputError, NotFoundError
 
 
 class BatchError(AppError):
@@ -167,3 +167,9 @@ class BatchKgVersionNotFoundError(BatchError, NotFoundError):
     """The requested KG version does not exist."""
 
     code = "batch_kg_version_not_found"
+
+
+class BatchInvalidFiltersError(BatchError, InvalidInputError):
+    """Production order filters cannot be combined."""
+
+    code = "batch_invalid_filters"

@@ -8,6 +8,7 @@ from app.modules.kg.schemas import (
     KgDevEuiPrefixSummaryResponse,
     KgVersionSummaryResponse,
 )
+from app.modules.production_order.schemas import ProductionOrderSummaryResponse
 from app.modules.users.schemas import UserSummaryResponse
 
 from ..models import BatchStatus
@@ -23,6 +24,8 @@ class BatchResponse(BaseModel):
     status: BatchStatus
     dev_eui_prefix: KgDevEuiPrefixSummaryResponse
     kg_version: KgVersionSummaryResponse | None
+    production_order_id: UUID | None = None
+    production_order: ProductionOrderSummaryResponse | None = None
     created_by_user_id: UUID | None
     created_by_user: UserSummaryResponse | None
     created_at: datetime
@@ -43,6 +46,7 @@ class CreateBatchRequest(BaseModel):
     description: str | None = Field(default=None, max_length=2000)
     dev_eui_prefix: DevEuiPrefix
     kg_version_id: UUID | None = None
+    production_order_id: UUID | None = None
     planned_qty: int = Field(gt=0)
     day_plan_qty: int = Field(gt=0)
 

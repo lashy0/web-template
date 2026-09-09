@@ -14,6 +14,7 @@ from app.modules.batch.permissions import BatchPermission
 from app.modules.defects.permissions import DefectPermission
 from app.modules.kg.permissions import KgPermission
 from app.modules.pak.permissions import PakPermission
+from app.modules.production_order.permissions import ProductionOrderPermission
 from app.modules.users.permissions import UserPermission
 from app.modules.verification.permissions import VerificationPermission
 
@@ -42,6 +43,7 @@ def test_all_permissions_are_declared_by_modules() -> None:
             *AuditPermission,
             *KgPermission,
             *BatchPermission,
+            *ProductionOrderPermission,
             *DefectPermission,
             *VerificationPermission,
         )

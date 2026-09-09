@@ -4,6 +4,7 @@ from uuid import UUID
 from fastapi import Request
 
 from app.modules.kg.schemas import KgDevEuiPrefixSummaryResponse, KgVersionSummaryResponse
+from app.modules.production_order.schemas import ProductionOrderSummaryResponse
 from app.modules.users.models import User
 from app.modules.users.schemas import UserSummaryResponse
 
@@ -50,6 +51,12 @@ def _batch_response(batch: Batch) -> BatchResponse:
                 name=version.name,
             )
             if version is not None
+            else None
+        ),
+        production_order_id=batch.production_order_id,
+        production_order=(
+            ProductionOrderSummaryResponse.model_validate(batch.production_order)
+            if batch.production_order is not None
             else None
         ),
         planned_qty=batch.planned_qty,

@@ -6,12 +6,14 @@ from app.core.exceptions import (
     AppError,
     ConflictError,
     DependencyUnavailableError,
+    InvalidInputError,
     NotFoundError,
     PermissionDeniedError,
     UnauthenticatedError,
 )
 
 ERROR_STATUS_CODES: dict[type[AppError], int] = {
+    InvalidInputError: status.HTTP_422_UNPROCESSABLE_CONTENT,
     NotFoundError: status.HTTP_404_NOT_FOUND,
     ConflictError: status.HTTP_409_CONFLICT,
     PermissionDeniedError: status.HTTP_403_FORBIDDEN,

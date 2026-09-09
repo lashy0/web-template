@@ -47,6 +47,8 @@ class BatchManagementService:
         page_size: int,
         sort: str,
         order: str,
+        production_order_id: UUID | None = None,
+        without_production_order: bool = False,
     ) -> tuple[list[Batch], int]:
         return await self.batch.list(
             q=q,
@@ -56,6 +58,8 @@ class BatchManagementService:
             page_size=page_size,
             sort=sort,
             order=order,
+            production_order_id=production_order_id,
+            without_production_order=without_production_order,
         )
 
     async def create(
@@ -68,6 +72,7 @@ class BatchManagementService:
         planned_qty: int,
         day_plan_qty: int,
         kg_version_id: UUID | None = None,
+        production_order_id: UUID | None = None,
     ) -> Batch:
         return await self.batch.create(
             actor=actor,
@@ -77,6 +82,7 @@ class BatchManagementService:
             planned_qty=planned_qty,
             day_plan_qty=day_plan_qty,
             kg_version_id=kg_version_id,
+            production_order_id=production_order_id,
         )
 
     async def update(
@@ -90,6 +96,19 @@ class BatchManagementService:
             actor=actor,
             batch_id=batch_id,
             updates=updates,
+        )
+
+    async def assign_production_order(
+        self,
+        *,
+        actor: CurrentPrincipal,
+        batch_id: UUID,
+        production_order_id: UUID | None,
+    ) -> Batch:
+        return await self.batch.assign_production_order(
+            actor=actor,
+            batch_id=batch_id,
+            production_order_id=production_order_id,
         )
 
     async def complete(

@@ -18,6 +18,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.infrastructure.database.base import Base
 from app.modules.kg.models import KgDevEuiPrefix, KgVersion
+from app.modules.production_order.models import ProductionOrder
 from app.modules.users.models import User
 
 
@@ -84,6 +85,10 @@ class Batch(Base):
         DateTime(timezone=True),
         nullable=True,
     )
+    production_order_id: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("production_orders.id", ondelete="RESTRICT"), nullable=True
+    )
+    production_order: Mapped[ProductionOrder | None] = relationship(lazy="selectin")
     kg_version: Mapped[KgVersion | None] = relationship()
     kg_dev_eui_prefix: Mapped[KgDevEuiPrefix] = relationship()
 
@@ -96,6 +101,7 @@ class Batch(Base):
             "day_plan_qty  > 0",
             name="batch_day_plan_qty_positive",
         ),
+        Index("ix_batches_production_order_id", production_order_id),
         Index("ix_batches_status", status),
         Index("ix_batches_created_at", created_at),
         Index("ix_batches_archived_at", archived_at),

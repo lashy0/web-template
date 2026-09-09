@@ -22,6 +22,10 @@ class NotFoundError(AppError):
     """The requested resource does not exist."""
 
 
+class InvalidInputError(AppError):
+    """The supplied input is invalid."""
+
+
 class ConflictError(AppError):
     """The operation conflicts with current application state."""
 

@@ -7,6 +7,7 @@ from app.modules.batch.permissions import BatchPermission
 from app.modules.defects.permissions import DefectPermission
 from app.modules.kg.permissions import KgPermission
 from app.modules.pak.permissions import PakPermission
+from app.modules.production_order.permissions import ProductionOrderPermission
 from app.modules.users.permissions import UserPermission
 from app.modules.verification.permissions import VerificationPermission
 
@@ -19,6 +20,7 @@ ALL_PERMISSIONS: Final[frozenset[Permission]] = frozenset(
         *AuditPermission,
         *KgPermission,
         *BatchPermission,
+        *ProductionOrderPermission,
         *VerificationPermission,
         *DefectPermission,
     )
@@ -26,6 +28,8 @@ ALL_PERMISSIONS: Final[frozenset[Permission]] = frozenset(
 
 MANAGER_PERMISSIONS: Final[frozenset[Permission]] = frozenset(
     (
+        *ProductionOrderPermission,
+        BatchPermission.ASSIGN_PRODUCTION_ORDER,
         BatchPermission.CREATE,
         BatchPermission.READ,
         BatchPermission.UPDATE,

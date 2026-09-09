@@ -11,9 +11,14 @@ from app.modules.audit.service import AuditService
 from app.modules.kg.exceptions import KgVersionNotFoundError
 from app.modules.kg.repositories import KgVersionRepository
 from app.modules.kg.services import KgPrefixService, KgService
+from app.modules.production_order.service import ProductionOrderService
 from app.modules.verification.services import VerificationManagementService
 
-from ..exceptions import BatchCannotBeDeletedError, BatchKgVersionArchivedError
+from ..exceptions import (
+    BatchCannotBeDeletedError,
+    BatchInvalidFiltersError,
+    BatchKgVersionArchivedError,
+)
 from ..models import Batch, BatchStatus
 from ..repositories import (
     BatchReceiptRepository,
@@ -49,7 +54,12 @@ class BatchService:
         page_size: int,
         sort: str,
         order: str,
+        production_order_id: UUID | None = None,
+        without_production_order: bool = False,
     ) -> tuple[list[Batch], int]:
+        if production_order_id is not None and without_production_order:
+            raise BatchInvalidFiltersError
+
         async with self._session_factory() as session:
             return await BatchRepository(session).search(
                 q=q,
@@ -59,6 +69,8 @@ class BatchService:
                 page_size=page_size,
                 sort=sort,
                 order=order,
+                production_order_id=production_order_id,
+                without_production_order=without_production_order,
             )
 
     async def create(
@@ -71,12 +83,16 @@ class BatchService:
         planned_qty: int,
         day_plan_qty: int,
         kg_version_id: UUID | None = None,
+        production_order_id: UUID | None = None,
     ) -> Batch:
         lifecycle.ensure_management_allowed(actor)
 
         async with transaction(self._session_factory) as session:
             batch_repository = BatchRepository(session)
             kg_operations = KgService(session)
+
+            if production_order_id is not None:
+                await ProductionOrderService(session).assign(production_order_id)
 
             if kg_version_id is not None:
                 version = await KgVersionRepository(session).get(kg_version_id)
@@ -99,6 +115,7 @@ class BatchService:
                     planned_qty=planned_qty,
                     day_plan_qty=day_plan_qty,
                     created_by_user_id=actor.user_id,
+                    production_order_id=production_order_id,
                 )
 
             else:
@@ -110,6 +127,7 @@ class BatchService:
                     planned_qty=planned_qty,
                     day_plan_qty=day_plan_qty,
                     created_by_user_id=actor.user_id,
+                    production_order_id=production_order_id,
                 )
 
             kg_units = await kg_operations.allocate_for_batch(
@@ -123,6 +141,9 @@ class BatchService:
                 action="batch.created",
                 entity=audit.batch_entity(batch),
                 new_data={
+                    "production_order_id": str(batch.production_order_id)
+                    if batch.production_order_id
+                    else None,
                     "name": batch.name,
                     "description": batch.description,
                     "dev_eui_prefix": prefix.prefix,
@@ -183,6 +204,45 @@ class BatchService:
                     old_data={field: old_values[field] for field in changed},
                     new_data=changed,
                 )
+
+            return batch
+
+    async def assign_production_order(
+        self,
+        *,
+        actor: CurrentPrincipal,
+        batch_id: UUID,
+        production_order_id: UUID | None,
+    ) -> Batch:
+        lifecycle.ensure_management_allowed(actor)
+
+        async with transaction(self._session_factory) as session:
+            repository = BatchRepository(session)
+            batch = await queries.required_batch(repository, batch_id, for_update=True)
+
+            lifecycle.ensure_not_archived(batch)
+
+            old_id = batch.production_order_id
+
+            if old_id == production_order_id:
+                return batch
+
+            if production_order_id is not None:
+                await ProductionOrderService(session).assign(production_order_id)
+
+            batch = await repository.update_details(
+                batch, updates={"production_order_id": production_order_id}
+            )
+
+            await AuditService.from_session(session).record(
+                actor=audit.audit_actor(actor),
+                action="batch.production_order_changed",
+                entity=audit.batch_entity(batch),
+                old_data={"production_order_id": str(old_id) if old_id else None},
+                new_data={
+                    "production_order_id": str(production_order_id) if production_order_id else None
+                },
+            )
 
             return batch
 
@@ -335,6 +395,9 @@ class BatchService:
                 action="batch.deleted",
                 entity=audit.batch_entity(batch),
                 old_data={
+                    "production_order_id": str(batch.production_order_id)
+                    if batch.production_order_id
+                    else None,
                     "name": batch.name,
                     "description": batch.description,
                     "planned_qty": batch.planned_qty,

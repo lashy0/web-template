@@ -20,6 +20,7 @@ AUDIENCE_TAGS: dict[Audience, frozenset[str]] = {
             "defects",
             "kg",
             "pak",
+            "production_order",
             "users",
             "verification",
         }

@@ -29,6 +29,7 @@ from app.modules.kg.services import (
     KgVersionManagementService,
 )
 from app.modules.pak.services import PakManagementService, PakTestCatalogService
+from app.modules.production_order.services import ProductionOrderManagementService
 from app.modules.users.services import UserManagementService
 from app.modules.verification.services import VerificationManagementService
 
@@ -76,6 +77,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
     app.state.kg_version_management = KgVersionManagementService(
         database.session_factory,
+    )
+
+    app.state.production_order_management = ProductionOrderManagementService(
+        database.session_factory
     )
 
     app.state.batch_management = BatchManagementService(

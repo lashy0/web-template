@@ -217,6 +217,7 @@ async def test_create_persists_batch_for_actor_and_records_audit_event(
         planned_qty=batch.planned_qty,
         day_plan_qty=20,
         created_by_user_id=actor.user_id,
+        production_order_id=None,
     )
     prefixes.return_value.get.assert_awaited_once_with(batch.dev_eui_prefix)
     kg_units.return_value.lock_dev_eui_allocation.assert_awaited_once_with(batch.dev_eui_prefix)

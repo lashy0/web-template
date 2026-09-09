@@ -5,6 +5,7 @@ class BatchPermission(StrEnum):
     CREATE = "batch:create"
     READ = "batch:read"
     UPDATE = "batch:update"
+    ASSIGN_PRODUCTION_ORDER = "batch:assign_production_order"
     ARCHIVE = "batch:archive"
     COMPLETE = "batch:complete"
     DELETE = "batch:delete"
