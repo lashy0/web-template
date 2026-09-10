@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
+from secrets import token_hex
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -19,7 +20,7 @@ from ..exceptions import (
     BatchInvalidFiltersError,
     BatchKgVersionArchivedError,
 )
-from ..models import Batch, BatchStatus
+from ..models import ActivationType, Batch, BatchStatus, LoRaWanVersion
 from ..repositories import (
     BatchReceiptRepository,
     BatchRepository,
@@ -82,6 +83,8 @@ class BatchService:
         dev_eui_prefix: str,
         planned_qty: int,
         day_plan_qty: int,
+        activation_type: ActivationType,
+        lorawan_version: LoRaWanVersion,
         kg_version_id: UUID | None = None,
         production_order_id: UUID | None = None,
     ) -> Batch:
@@ -107,6 +110,8 @@ class BatchService:
                 dev_eui_prefix, planned_qty
             )
 
+            join_eui = token_hex(8)
+
             if kg_version_id is None:
                 batch = await batch_repository.create(
                     name=name,
@@ -115,6 +120,9 @@ class BatchService:
                     planned_qty=planned_qty,
                     day_plan_qty=day_plan_qty,
                     created_by_user_id=actor.user_id,
+                    activation_type=activation_type,
+                    lorawan_version=lorawan_version,
+                    join_eui=join_eui,
                     production_order_id=production_order_id,
                 )
 
@@ -127,6 +135,9 @@ class BatchService:
                     planned_qty=planned_qty,
                     day_plan_qty=day_plan_qty,
                     created_by_user_id=actor.user_id,
+                    activation_type=activation_type,
+                    lorawan_version=lorawan_version,
+                    join_eui=join_eui,
                     production_order_id=production_order_id,
                 )
 
@@ -153,6 +164,11 @@ class BatchService:
                     "planned_qty": batch.planned_qty,
                     "day_plan_qty": batch.day_plan_qty,
                     "status": batch.status.value,
+                    "lorawan_config": {
+                        "activation_type": activation_type.value,
+                        "lorawan_version": lorawan_version.value,
+                        "join_eui": join_eui,
+                    },
                     "kg_quantity": len(kg_units),
                 },
             )

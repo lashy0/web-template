@@ -1,4 +1,5 @@
 import asyncio
+import re
 from uuid import uuid4
 
 import pytest
@@ -13,7 +14,13 @@ from app.modules.batch.exceptions import (
     BatchShipmentAlreadyCompletedError,
     BatchShipmentKgAlreadyAssignedError,
 )
-from app.modules.batch.models import BatchShipment, BatchShipmentItem, BatchStatus
+from app.modules.batch.models import (
+    ActivationType,
+    BatchShipment,
+    BatchShipmentItem,
+    BatchStatus,
+    LoRaWanVersion,
+)
 from app.modules.batch.services import BatchManagementService
 from app.modules.kg.models import KgDevEuiPrefix, KgStatus, KgUnit
 from app.modules.kg.services import KgManagementService
@@ -47,8 +54,24 @@ async def scenario(database_session_factory: async_sessionmaker[AsyncSession]):
         dev_eui_prefix=prefix,
         planned_qty=1,
         day_plan_qty=1,
+        activation_type=ActivationType.OTAA,
+        lorawan_version=LoRaWanVersion.V1_1,
     )
     return factory, actor, service, batch, prefix + "000001"
+
+
+async def test_create_persists_generated_lorawan_config(scenario):
+    _, _, service, batch, _ = scenario
+
+    assert batch.lorawan_config is not None
+    assert batch.lorawan_config.activation_type is ActivationType.OTAA
+    assert batch.lorawan_config.lorawan_version is LoRaWanVersion.V1_1
+    assert re.fullmatch(r"[0-9a-f]{16}", batch.lorawan_config.join_eui)
+
+    loaded = await service.get(batch.id)
+    assert loaded is not None
+    assert loaded.lorawan_config is not None
+    assert loaded.lorawan_config.join_eui == batch.lorawan_config.join_eui
 
 
 async def test_full_lifecycle_restores_kg_and_records_audit(scenario):

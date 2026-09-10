@@ -6,7 +6,7 @@ from sqlalchemy import delete, event
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.roles import Role
-from app.modules.batch.models import Batch, BatchShipmentItem
+from app.modules.batch.models import ActivationType, Batch, BatchShipmentItem, LoRaWanVersion
 from app.modules.batch.repositories import BatchRepository
 from app.modules.batch.repositories.receipt import BatchReceiptRepository
 from app.modules.batch.repositories.shipment import BatchShipmentRepository
@@ -40,6 +40,9 @@ async def make_batch(session: AsyncSession) -> Batch:
         planned_qty=10,
         day_plan_qty=2,
         created_by_user_id=author.id,
+        activation_type=ActivationType.OTAA,
+        lorawan_version=LoRaWanVersion.V1_1,
+        join_eui="0123456789abcdef",
     )
 
 

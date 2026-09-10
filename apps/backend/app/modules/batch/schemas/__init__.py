@@ -1,6 +1,8 @@
 from .batch import (
     BatchListResponse,
+    BatchLoRaWanConfigResponse,
     BatchResponse,
+    CreateBatchLoRaWanConfigRequest,
     CreateBatchRequest,
     UpdateBatchArchivedRequest,
     UpdateBatchRequest,
@@ -24,6 +26,7 @@ from .shipment import (
 
 __all__ = [
     "AddBatchShipmentItemRequest",
+    "BatchLoRaWanConfigResponse",
     "BatchListResponse",
     "BatchReceiptListResponse",
     "BatchReceiptResponse",
@@ -32,6 +35,7 @@ __all__ = [
     "BatchShipmentListResponse",
     "BatchShipmentResponse",
     "CreateBatchReceiptRequest",
+    "CreateBatchLoRaWanConfigRequest",
     "CreateBatchRequest",
     "CreateBatchShipmentRequest",
     "UpdateBatchArchivedRequest",

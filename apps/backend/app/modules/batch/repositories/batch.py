@@ -6,7 +6,13 @@ from sqlalchemy import ColumnElement, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from ..models import Batch, BatchStatus
+from ..models import (
+    ActivationType,
+    Batch,
+    BatchLoRaWanConfig,
+    BatchStatus,
+    LoRaWanVersion,
+)
 
 
 class BatchRepository:
@@ -19,6 +25,7 @@ class BatchRepository:
             selectinload(Batch.production_order),
             selectinload(Batch.kg_version),
             selectinload(Batch.kg_dev_eui_prefix),
+            selectinload(Batch.lorawan_config),
         )
 
     async def create(
@@ -30,6 +37,9 @@ class BatchRepository:
         planned_qty: int,
         day_plan_qty: int,
         created_by_user_id: UUID | None,
+        activation_type: ActivationType,
+        lorawan_version: LoRaWanVersion,
+        join_eui: str,
         kg_version_id: UUID | None = None,
         production_order_id: UUID | None = None,
     ) -> Batch:
@@ -43,6 +53,11 @@ class BatchRepository:
             day_plan_qty=day_plan_qty,
             status=BatchStatus.IN_PRODUCTION,
             created_by_user_id=created_by_user_id,
+            lorawan_config=BatchLoRaWanConfig(
+                activation_type=activation_type,
+                lorawan_version=lorawan_version,
+                join_eui=join_eui,
+            ),
         )
 
         self._session.add(batch)
@@ -55,6 +70,7 @@ class BatchRepository:
                 "kg_version",
                 "kg_dev_eui_prefix",
                 "production_order",
+                "lorawan_config",
             ],
         )
 
@@ -91,6 +107,7 @@ class BatchRepository:
                 "kg_version",
                 "kg_dev_eui_prefix",
                 "production_order",
+                "lorawan_config",
             ],
         )
 
@@ -113,6 +130,7 @@ class BatchRepository:
                 "kg_version",
                 "kg_dev_eui_prefix",
                 "production_order",
+                "lorawan_config",
             ],
         )
 
@@ -134,6 +152,7 @@ class BatchRepository:
                 "kg_version",
                 "kg_dev_eui_prefix",
                 "production_order",
+                "lorawan_config",
             ],
         )
 

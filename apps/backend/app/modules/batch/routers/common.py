@@ -15,6 +15,7 @@ from ..models import (
     BatchShipmentItem,
 )
 from ..schemas import (
+    BatchLoRaWanConfigResponse,
     BatchReceiptResponse,
     BatchResponse,
     BatchShipmentItemResponse,
@@ -62,6 +63,15 @@ def _batch_response(batch: Batch) -> BatchResponse:
         planned_qty=batch.planned_qty,
         day_plan_qty=batch.day_plan_qty,
         status=batch.status,
+        lorawan_config=(
+            BatchLoRaWanConfigResponse(
+                activation_type=batch.lorawan_config.activation_type,
+                lorawan_version=batch.lorawan_config.lorawan_version,
+                join_eui=batch.lorawan_config.join_eui,
+            )
+            if batch.lorawan_config is not None
+            else None
+        ),
         created_by_user_id=batch.created_by_user_id,
         created_by_user=_user_response(batch.created_by_user),
         created_at=batch.created_at,

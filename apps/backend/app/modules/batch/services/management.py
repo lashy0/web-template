@@ -9,11 +9,13 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.auth.principal import CurrentPrincipal
 
 from ..models import (
+    ActivationType,
     Batch,
     BatchReceipt,
     BatchShipment,
     BatchShipmentItem,
     BatchStatus,
+    LoRaWanVersion,
 )
 from .batch import BatchService
 from .lifecycle import BATCH_EDIT_WINDOW
@@ -71,6 +73,8 @@ class BatchManagementService:
         dev_eui_prefix: str,
         planned_qty: int,
         day_plan_qty: int,
+        activation_type: ActivationType,
+        lorawan_version: LoRaWanVersion,
         kg_version_id: UUID | None = None,
         production_order_id: UUID | None = None,
     ) -> Batch:
@@ -81,6 +85,8 @@ class BatchManagementService:
             dev_eui_prefix=dev_eui_prefix,
             planned_qty=planned_qty,
             day_plan_qty=day_plan_qty,
+            activation_type=activation_type,
+            lorawan_version=lorawan_version,
             kg_version_id=kg_version_id,
             production_order_id=production_order_id,
         )

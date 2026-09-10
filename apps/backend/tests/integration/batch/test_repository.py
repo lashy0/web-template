@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.batch.models import BatchStatus
+from app.modules.batch.models import ActivationType, BatchStatus, LoRaWanVersion
 from app.modules.batch.repositories import (
     BatchReceiptRepository,
     BatchRepository,
@@ -23,6 +23,9 @@ async def _batch(session: AsyncSession, *, name: str = "August production"):
         planned_qty=100,
         day_plan_qty=20,
         created_by_user_id=None,
+        activation_type=ActivationType.OTAA,
+        lorawan_version=LoRaWanVersion.V1_1,
+        join_eui="0123456789abcdef",
     )
 
 

@@ -101,6 +101,8 @@ async def create_batch(
             dev_eui_prefix=payload.dev_eui_prefix,
             planned_qty=payload.planned_qty,
             day_plan_qty=payload.day_plan_qty,
+            activation_type=payload.lorawan_config.activation_type,
+            lorawan_version=payload.lorawan_config.lorawan_version,
             production_order_id=payload.production_order_id,
             kg_version_id=payload.kg_version_id,
         )
@@ -113,6 +115,8 @@ async def create_batch(
             dev_eui_prefix=payload.dev_eui_prefix,
             planned_qty=payload.planned_qty,
             day_plan_qty=payload.day_plan_qty,
+            activation_type=payload.lorawan_config.activation_type,
+            lorawan_version=payload.lorawan_config.lorawan_version,
             production_order_id=payload.production_order_id,
         )
 

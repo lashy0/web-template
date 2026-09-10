@@ -18,6 +18,7 @@ def test_batch_name_is_trimmed() -> None:
             "dev_eui_prefix": "a1b2c3d4e5",
             "planned_qty": 100,
             "day_plan_qty": 20,
+            "lorawan_config": {"activation_type": "otaa", "lorawan_version": "1.1"},
         }
     )
 
@@ -65,3 +66,32 @@ def test_void_reason_is_trimmed_and_cannot_be_empty(
 
     with pytest.raises(ValidationError):
         schema.model_validate({"reason": ""})
+
+
+@pytest.mark.unit
+def test_lorawan_config_requires_supported_values_and_does_not_accept_join_eui() -> None:
+    payload = {
+        "name": "Batch",
+        "dev_eui_prefix": "a1b2c3d4e5",
+        "planned_qty": 10,
+        "day_plan_qty": 10,
+        "lorawan_config": {"activation_type": "otaa", "lorawan_version": "1.1"},
+    }
+
+    assert CreateBatchRequest.model_validate(payload).lorawan_config.activation_type.value == "otaa"
+    assert (
+        CreateBatchRequest.model_validate(
+            {**payload, "lorawan_config": {"activation_type": "abp", "lorawan_version": "1.0"}}
+        ).lorawan_config.lorawan_version.value
+        == "1.0"
+    )
+
+    with pytest.raises(ValidationError):
+        CreateBatchRequest.model_validate(
+            {**payload, "lorawan_config": {**payload["lorawan_config"], "join_eui": "0" * 16}}
+        )
+
+    with pytest.raises(ValidationError):
+        CreateBatchRequest.model_validate(
+            {**payload, "lorawan_config": {"activation_type": "otaa", "lorawan_version": "1.2"}}
+        )

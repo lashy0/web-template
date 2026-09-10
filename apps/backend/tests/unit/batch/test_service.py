@@ -19,11 +19,14 @@ from app.modules.batch.exceptions import (
     BatchShipmentKgNotPackedError,
 )
 from app.modules.batch.models import (
+    ActivationType,
     Batch,
+    BatchLoRaWanConfig,
     BatchReceipt,
     BatchShipment,
     BatchShipmentItem,
     BatchStatus,
+    LoRaWanVersion,
 )
 from app.modules.batch.services import BatchManagementService
 from app.modules.kg.models import KgDevEuiPrefix, KgStatus, KgUnit
@@ -193,12 +196,19 @@ def _service() -> BatchManagementService:
 @pytest.mark.unit
 async def test_create_persists_batch_for_actor_and_records_audit_event(
     dependencies: tuple[MagicMock, MagicMock, MagicMock, MagicMock, MagicMock, MagicMock],
+    mocker: MockerFixture,
 ) -> None:
     batches, _, _, kg_units, prefixes, audits = dependencies
     actor = _principal()
     batch = _batch(created_by_user_id=actor.user_id)
     batch.planned_qty = 68
+    batch.lorawan_config = BatchLoRaWanConfig(
+        activation_type=ActivationType.OTAA,
+        lorawan_version=LoRaWanVersion.V1_1,
+        join_eui="0123456789abcdef",
+    )
     batches.return_value.create.return_value = batch
+    mocker.patch("app.modules.batch.services.batch.token_hex", return_value="0123456789abcdef")
 
     created = await _service().create(
         actor=actor,
@@ -207,6 +217,8 @@ async def test_create_persists_batch_for_actor_and_records_audit_event(
         dev_eui_prefix=batch.dev_eui_prefix,
         planned_qty=batch.planned_qty,
         day_plan_qty=batch.day_plan_qty,
+        activation_type=ActivationType.OTAA,
+        lorawan_version=LoRaWanVersion.V1_1,
     )
 
     assert created is batch
@@ -217,6 +229,9 @@ async def test_create_persists_batch_for_actor_and_records_audit_event(
         planned_qty=batch.planned_qty,
         day_plan_qty=20,
         created_by_user_id=actor.user_id,
+        activation_type=ActivationType.OTAA,
+        lorawan_version=LoRaWanVersion.V1_1,
+        join_eui="0123456789abcdef",
         production_order_id=None,
     )
     prefixes.return_value.get.assert_awaited_once_with(batch.dev_eui_prefix)
@@ -296,6 +311,13 @@ async def test_create_persists_batch_for_actor_and_records_audit_event(
         batch_id=batch.id,
     )
     assert audits.from_session.return_value.record.await_args.kwargs["action"] == "batch.created"
+    assert audits.from_session.return_value.record.await_args.kwargs["new_data"][
+        "lorawan_config"
+    ] == {
+        "activation_type": "otaa",
+        "lorawan_version": "1.1",
+        "join_eui": "0123456789abcdef",
+    }
 
 
 @pytest.mark.unit

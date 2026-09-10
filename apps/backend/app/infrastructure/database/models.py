@@ -1,7 +1,13 @@
 """Central registry of SQLAlchemy models used by Alembic."""
 
 from app.modules.audit.models import AuditEvent
-from app.modules.batch.models import Batch, BatchReceipt, BatchShipment, BatchShipmentItem
+from app.modules.batch.models import (
+    Batch,
+    BatchLoRaWanConfig,
+    BatchReceipt,
+    BatchShipment,
+    BatchShipmentItem,
+)
 from app.modules.defects.models import DefectGroup, DefectType
 from app.modules.kg.models import KgDevEuiPrefix, KgUnit, KgVersion
 from app.modules.pak.models import PakDevice, PakTest
@@ -16,6 +22,7 @@ __all__: list[str] = [
     "PakTest",
     "ProductionOrder",
     "Batch",
+    "BatchLoRaWanConfig",
     "BatchReceipt",
     "BatchShipment",
     "BatchShipmentItem",

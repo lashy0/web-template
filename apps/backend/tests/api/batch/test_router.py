@@ -18,7 +18,15 @@ from app.auth.roles import Role
 from app.core.config import Settings
 from app.main import create_app
 from app.modules.batch import exceptions as batch_errors
-from app.modules.batch.models import Batch, BatchReceipt, BatchShipment, BatchStatus
+from app.modules.batch.models import (
+    ActivationType,
+    Batch,
+    BatchLoRaWanConfig,
+    BatchReceipt,
+    BatchShipment,
+    BatchStatus,
+    LoRaWanVersion,
+)
 from app.modules.kg.models import KgDevEuiPrefix, KgVersion
 
 _ALLOWED_ORIGIN = "https://admin.example"
@@ -206,6 +214,7 @@ def test_create_batch_normalizes_payload_and_forwards_actor(
             "dev_eui_prefix": "A1B2C3D4E5",
             "planned_qty": 100,
             "day_plan_qty": 20,
+            "lorawan_config": {"activation_type": "otaa", "lorawan_version": "1.1"},
         },
     )
 
@@ -217,9 +226,34 @@ def test_create_batch_normalizes_payload_and_forwards_actor(
         dev_eui_prefix="a1b2c3d4e5",
         planned_qty=100,
         day_plan_qty=20,
+        activation_type=ActivationType.OTAA,
+        lorawan_version=LoRaWanVersion.V1_1,
         production_order_id=None,
     )
     assert service.create.await_args.kwargs["actor"].user_id == actor_id
+
+
+@pytest.mark.api
+def test_batch_response_includes_lorawan_config(batch_client, mocker) -> None:
+    app, client = batch_client
+    batch = _batch()
+    batch.lorawan_config = BatchLoRaWanConfig(
+        batch_id=batch.id,
+        activation_type=ActivationType.OTAA,
+        lorawan_version=LoRaWanVersion.V1_1,
+        join_eui="0123456789abcdef",
+    )
+    service = SimpleNamespace(get=AsyncMock(return_value=batch))
+    _configure_principal(app, mocker, service, Role.MANAGER)
+
+    response = client.get(f"/batches/{batch.id}", headers=_headers())
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["lorawan_config"] == {
+        "activation_type": "otaa",
+        "lorawan_version": "1.1",
+        "join_eui": "0123456789abcdef",
+    }
 
 
 @pytest.mark.api

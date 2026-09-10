@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.modules.kg.schemas import (
     DevEuiPrefix,
@@ -11,8 +11,21 @@ from app.modules.kg.schemas import (
 from app.modules.production_order.schemas import ProductionOrderSummaryResponse
 from app.modules.users.schemas import UserSummaryResponse
 
-from ..models import BatchStatus
+from ..models import ActivationType, BatchStatus, LoRaWanVersion
 from .common import normalize_trimmed
+
+
+class BatchLoRaWanConfigResponse(BaseModel):
+    activation_type: ActivationType
+    lorawan_version: LoRaWanVersion
+    join_eui: str
+
+
+class CreateBatchLoRaWanConfigRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    activation_type: ActivationType
+    lorawan_version: LoRaWanVersion
 
 
 class BatchResponse(BaseModel):
@@ -22,6 +35,7 @@ class BatchResponse(BaseModel):
     planned_qty: int
     day_plan_qty: int
     status: BatchStatus
+    lorawan_config: BatchLoRaWanConfigResponse | None
     dev_eui_prefix: KgDevEuiPrefixSummaryResponse
     kg_version: KgVersionSummaryResponse | None
     production_order_id: UUID | None = None
@@ -49,6 +63,7 @@ class CreateBatchRequest(BaseModel):
     production_order_id: UUID | None = None
     planned_qty: int = Field(gt=0)
     day_plan_qty: int = Field(gt=0)
+    lorawan_config: CreateBatchLoRaWanConfigRequest
 
     @field_validator("name", mode="before")
     @classmethod

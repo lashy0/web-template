@@ -27,6 +27,16 @@ class BatchStatus(StrEnum):
     COMPLETED = "COMPLETED"
 
 
+class ActivationType(StrEnum):
+    OTAA = "otaa"
+    ABP = "abp"
+
+
+class LoRaWanVersion(StrEnum):
+    V1_0 = "1.0"
+    V1_1 = "1.1"
+
+
 BATCH_STATUS_DB_TYPE = Enum(
     BatchStatus,
     name="batch_status",
@@ -34,6 +44,24 @@ BATCH_STATUS_DB_TYPE = Enum(
     create_constraint=True,
     validate_strings=True,
     values_callable=lambda enum_type: [status.value for status in enum_type],
+)
+
+ACTIVATION_TYPE_DB_TYPE = Enum(
+    ActivationType,
+    name="activation_type",
+    native_enum=False,
+    create_constraint=True,
+    validate_strings=True,
+    values_callable=lambda enum_type: [activation_type.value for activation_type in enum_type],
+)
+
+LORAWAN_VERSION_DB_TYPE = Enum(
+    LoRaWanVersion,
+    name="lorawan_version",
+    native_enum=False,
+    create_constraint=True,
+    validate_strings=True,
+    values_callable=lambda enum_type: [version.value for version in enum_type],
 )
 
 
@@ -91,6 +119,10 @@ class Batch(Base):
     production_order: Mapped[ProductionOrder | None] = relationship(lazy="selectin")
     kg_version: Mapped[KgVersion | None] = relationship()
     kg_dev_eui_prefix: Mapped[KgDevEuiPrefix] = relationship()
+    lorawan_config: Mapped["BatchLoRaWanConfig | None"] = relationship(
+        lazy="selectin",
+        cascade="all, delete-orphan",
+    )
 
     __table_args__ = (
         CheckConstraint(
@@ -107,6 +139,32 @@ class Batch(Base):
         Index("ix_batches_archived_at", archived_at),
         Index("ix_batches_dev_eui_prefix", dev_eui_prefix),
         Index("ix_batches_kg_version_id", kg_version_id),
+    )
+
+
+class BatchLoRaWanConfig(Base):
+    __tablename__ = "batch_lorawan_configs"
+
+    batch_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("batches.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    activation_type: Mapped[ActivationType] = mapped_column(
+        ACTIVATION_TYPE_DB_TYPE,
+        nullable=False,
+    )
+    lorawan_version: Mapped[LoRaWanVersion] = mapped_column(
+        LORAWAN_VERSION_DB_TYPE,
+        nullable=False,
+    )
+    join_eui: Mapped[str] = mapped_column(String(16), nullable=False, unique=True)
+
+    __table_args__ = (
+        CheckConstraint(
+            "join_eui ~ '^[0-9a-f]{16}$'",
+            name="batch_lorawan_config_join_eui_format",
+        ),
     )
 
 
