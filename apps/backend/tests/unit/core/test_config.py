@@ -26,6 +26,16 @@ def test_hydra_urls_have_internal_service_defaults() -> None:
     settings = Settings()
 
     assert settings.HYDRA_PUBLIC_URL == "http://hydra:4444"
+
+
+@pytest.mark.unit
+def test_lorawan_credentials_encryption_key_is_read_as_a_secret() -> None:
+    settings = Settings.model_validate(
+        {"BACKEND_LORAWAN_CREDENTIALS_ENCRYPTION_KEY": "secret-value"}
+    )
+
+    assert settings.LORAWAN_CREDENTIALS_ENCRYPTION_KEY is not None
+    assert settings.LORAWAN_CREDENTIALS_ENCRYPTION_KEY.get_secret_value() == "secret-value"
     assert settings.HYDRA_ADMIN_URL == "http://hydra:4445"
 
 

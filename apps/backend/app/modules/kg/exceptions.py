@@ -1,4 +1,4 @@
-from app.core.exceptions import AppError, ConflictError, NotFoundError
+from app.core.exceptions import AppError, ConflictError, InvalidInputError, NotFoundError
 
 
 class KgError(AppError):
@@ -39,6 +39,24 @@ class KgCannotBeDeletedError(KgError, ConflictError):
     """The KG unit cannot be deleted in its current state."""
 
     code = "kg_cannot_be_deleted"
+
+
+class KgLoRaWanCredentialsAlreadyExistError(KgError, ConflictError):
+    code = "kg_lorawan_credentials_already_exist"
+
+    default_message = "LoRaWAN credentials already exist for this KG unit"
+
+
+class KgLoRaWanCredentialsNotFoundError(KgError, NotFoundError):
+    code = "kg_lorawan_credentials_not_found"
+
+    default_message = "LoRaWAN credentials do not exist for this KG unit"
+
+
+class KgLoRaWanConfigurationMissingError(KgError, InvalidInputError):
+    code = "kg_lorawan_configuration_missing"
+
+    default_message = "KG batch does not have a LoRaWAN configuration"
 
 
 class KgDevEuiPrefixNotFoundError(KgError, NotFoundError):

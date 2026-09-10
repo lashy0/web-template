@@ -26,6 +26,7 @@ case-sensitive. Empty values are ignored, so the documented default is used inst
 | `BACKEND_HYDRA_ADMIN_TIMEOUT` | `10.0` | Admin API timeout in seconds |
 | `BACKEND_HYDRA_ADMIN_CONCURRENCY` | `4` | Maximum concurrent blocking Hydra Admin SDK calls |
 | `BACKEND_PAK_ACCESS_KEY_ENCRYPTION_KEY` | empty | Required Fernet key for encrypted PAK access-key storage; provide it via the deployment secret manager and keep it stable across restarts |
+| `BACKEND_LORAWAN_CREDENTIALS_ENCRYPTION_KEY` | empty | Required URL-safe base64-encoded 32-byte AES-256-GCM key for persisted LoRaWAN credentials; provide it via the deployment secret manager and keep it stable across restarts |
 | `BACKEND_BOOTSTRAP_ADMIN_LOGIN` | `admin` | Lowercase login for the first administrator |
 | `BACKEND_BOOTSTRAP_ADMIN_NAME` | `Администратор` | Display name for the first administrator |
 | `BACKEND_BOOTSTRAP_ADMIN_PASSWORD` | empty | Development-only initial password; use this or `*_PASSWORD_FILE`, never both |

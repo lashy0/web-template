@@ -9,7 +9,7 @@ from app.modules.batch.models import (
     BatchShipmentItem,
 )
 from app.modules.defects.models import DefectGroup, DefectType
-from app.modules.kg.models import KgDevEuiPrefix, KgUnit, KgVersion
+from app.modules.kg.models import KgDevEuiPrefix, KgUnit, KgVersion, LoRaWanCredentials
 from app.modules.pak.models import PakDevice, PakTest
 from app.modules.production_order.models import ProductionOrder
 from app.modules.users.models import User
@@ -31,6 +31,7 @@ __all__: list[str] = [
     "KgUnit",
     "KgDevEuiPrefix",
     "KgVersion",
+    "LoRaWanCredentials",
     "VerificationSession",
     "VerificationStep",
 ]

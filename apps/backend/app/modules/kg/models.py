@@ -9,6 +9,8 @@ from sqlalchemy import (
     Enum,
     ForeignKey,
     Index,
+    LargeBinary,
+    SmallInteger,
     String,
     Text,
     Uuid,
@@ -77,6 +79,12 @@ class KgUnit(Base):
         server_default=func.now(),
         onupdate=func.now(),
     )
+    lorawan_credentials: Mapped["LoRaWanCredentials | None"] = relationship(
+        back_populates="kg_unit",
+        uselist=False,
+        lazy="noload",
+        cascade="all, delete-orphan",
+    )
 
     __table_args__ = (
         CheckConstraint(
@@ -86,6 +94,30 @@ class KgUnit(Base):
         Index("ix_kg_units_batch_id", "batch_id"),
         Index("ix_kg_units_status", "status"),
     )
+
+
+class LoRaWanCredentials(Base):
+    __tablename__ = "lorawan_credentials"
+
+    kg_dev_eui: Mapped[str] = mapped_column(
+        String(16),
+        ForeignKey("kg_units.dev_eui", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    schema_version: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    encrypted_data: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+    kg_unit: Mapped["KgUnit"] = relationship(back_populates="lorawan_credentials")
+
+    def __repr__(self) -> str:
+        return (
+            "LoRaWanCredentials("
+            f"kg_dev_eui={self.kg_dev_eui!r}, schema_version={self.schema_version!r})"
+        )
 
 
 class KgDevEuiPrefix(Base):

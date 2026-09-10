@@ -5,6 +5,7 @@ from .services import (
     KgService,
     KgVersionManagementService,
     KgVersionService,
+    LoRaWanCredentialsService,
 )
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "KgPrefixService",
     "KgService",
     "KgVersionService",
+    "LoRaWanCredentialsService",
 ]

@@ -1,3 +1,4 @@
+from .credentials import LoRaWanCredentialsService
 from .management import (
     KgDevEuiPrefixManagementService,
     KgManagementService,
@@ -9,6 +10,7 @@ from .version import KgVersionService
 
 __all__ = [
     "KgDevEuiPrefixManagementService",
+    "LoRaWanCredentialsService",
     "KgManagementService",
     "KgVersionManagementService",
     "KgPrefixService",

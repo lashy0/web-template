@@ -131,6 +131,13 @@ class Settings(BaseSettings):
         validation_alias="BACKEND_PAK_ACCESS_KEY_ENCRYPTION_KEY",
     )
 
+    # AES-256-GCM key for encrypted, persisted LoRaWAN credentials.  The value
+    # is a 32-byte URL-safe base64 value supplied by the deployment secret manager.
+    LORAWAN_CREDENTIALS_ENCRYPTION_KEY: SecretStr | None = Field(
+        default=None,
+        validation_alias="BACKEND_LORAWAN_CREDENTIALS_ENCRYPTION_KEY",
+    )
+
     # Verification
     VERIFICATION_SESSION_REOPEN_INACTIVITY_MINUTES: int = Field(
         default=60,
