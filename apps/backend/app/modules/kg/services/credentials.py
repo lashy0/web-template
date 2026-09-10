@@ -10,7 +10,7 @@ from app.modules.lorawan.crypto import (
     SCHEMA_VERSION_V1,
     CredentialsEncryptionContext,
     LoRaWanCredentialsCipher,
-    decode_encryption_key,
+    resolve_encryption_key,
 )
 from app.modules.lorawan.schemas import Credentials
 
@@ -26,14 +26,12 @@ from ..repositories.credentials import LoRaWanCredentialsRepository
 class LoRaWanCredentialsService:
     """Save and load a KG unit's typed credentials in a caller-owned transaction."""
 
-    def __init__(
-        self,
-        session: AsyncSession,
-        encryption_key: SecretStr | None,
-    ) -> None:
+    def __init__(self, session: AsyncSession, encryption_key: SecretStr | None) -> None:
         self._session = session
         self._repository = LoRaWanCredentialsRepository(session)
-        self._encryption_key = encryption_key
+        self._cipher = LoRaWanCredentialsCipher(
+            resolve_encryption_key(encryption_key)
+        )
 
     async def save_credentials(
         self,
@@ -42,7 +40,7 @@ class LoRaWanCredentialsService:
         credentials: Credentials,
     ) -> None:
         context = await self._context_for_kg(kg_dev_eui)
-        encrypted_data = self._cipher().encrypt_credentials(credentials, context)
+        encrypted_data = self._cipher.encrypt_credentials(credentials, context)
 
         await self._repository.save(
             kg_dev_eui=kg_dev_eui,
@@ -68,16 +66,11 @@ class LoRaWanCredentialsService:
         if stored is None:
             raise KgLoRaWanCredentialsNotFoundError
 
-        return self._cipher().decrypt_credentials(
+        return self._cipher.decrypt_credentials(
             stored.encrypted_data,
             stored.schema_version,
             context,
         )
-
-    def _cipher(self) -> LoRaWanCredentialsCipher:
-        secret = self._encryption_key.get_secret_value() if self._encryption_key else None
-
-        return LoRaWanCredentialsCipher(decode_encryption_key(secret))
 
     async def _context_for_kg(self, kg_dev_eui: str) -> CredentialsEncryptionContext:
         result = await self._session.execute(
@@ -92,7 +85,6 @@ class LoRaWanCredentialsService:
 
         if kg.batch.lorawan_config is None:
             raise KgLoRaWanConfigurationMissingError
-
 
         return CredentialsEncryptionContext(
             kg_dev_eui=kg.dev_eui,

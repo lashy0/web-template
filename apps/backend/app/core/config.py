@@ -131,8 +131,7 @@ class Settings(BaseSettings):
         validation_alias="BACKEND_PAK_ACCESS_KEY_ENCRYPTION_KEY",
     )
 
-    # AES-256-GCM key for encrypted, persisted LoRaWAN credentials.  The value
-    # is a 32-byte URL-safe base64 value supplied by the deployment secret manager.
+    # AES-256-GCM key for encrypted, persisted LoRaWAN credentials.
     LORAWAN_CREDENTIALS_ENCRYPTION_KEY: SecretStr | None = Field(
         default=None,
         validation_alias="BACKEND_LORAWAN_CREDENTIALS_ENCRYPTION_KEY",
@@ -441,6 +440,7 @@ class Settings(BaseSettings):
             else None
         )
         password_file = self.BOOTSTRAP_ADMIN_PASSWORD_FILE
+
         if password is not None and password_file is not None:
             raise ValueError(
                 "Set only one of BACKEND_BOOTSTRAP_ADMIN_PASSWORD or "
@@ -449,10 +449,13 @@ class Settings(BaseSettings):
         if password_file is not None:
             try:
                 password = password_file.read_text(encoding="utf-8").rstrip("\r\n")
+
             except OSError as error:
                 raise ValueError("Cannot read BACKEND_BOOTSTRAP_ADMIN_PASSWORD_FILE") from error
+
         if password is not None and len(password) < 12:
             raise ValueError("BACKEND_BOOTSTRAP_ADMIN_PASSWORD must contain at least 12 characters")
+
         return password
 
 

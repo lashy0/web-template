@@ -7,7 +7,7 @@ from typing import Final, cast
 
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from pydantic import ValidationError
+from pydantic import SecretStr, ValidationError
 
 from .domain import ActivationType, LoRaWanVersion
 from .exceptions import (
@@ -99,11 +99,20 @@ def decode_encryption_key(encoded_key: str | None) -> bytes:
     return key
 
 
+def resolve_encryption_key(secret: SecretStr | None) -> bytes:
+    if not isinstance(secret, SecretStr):
+        raise CredentialsEncryptionConfigurationError
+
+    encoded_key = secret.get_secret_value()
+
+    return decode_encryption_key(encoded_key)
+
+
 class LoRaWanCredentialsCipher:
     """AES-256-GCM encryptor with a versioned payload and bound AAD."""
 
-    def __init__(self, encryption_key: bytes) -> None:
-        if len(encryption_key) != _AES_256_KEY_SIZE:
+    def __init__(self, encryption_key: bytes | None) -> None:
+        if not isinstance(encryption_key, bytes) or len(encryption_key) != _AES_256_KEY_SIZE:
             raise CredentialsEncryptionConfigurationError
 
         self._aesgcm = AESGCM(encryption_key)
