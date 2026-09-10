@@ -8,10 +8,11 @@ from app.modules.kg.schemas import (
     KgDevEuiPrefixSummaryResponse,
     KgVersionSummaryResponse,
 )
+from app.modules.lorawan.domain import ActivationType, LoRaWanVersion
 from app.modules.production_order.schemas import ProductionOrderSummaryResponse
 from app.modules.users.schemas import UserSummaryResponse
 
-from ..models import ActivationType, BatchStatus, LoRaWanVersion
+from ..models import BatchStatus
 from .common import normalize_trimmed
 
 

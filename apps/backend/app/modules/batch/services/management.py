@@ -7,15 +7,14 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.auth.principal import CurrentPrincipal
+from app.modules.lorawan.domain import ActivationType, LoRaWanVersion
 
 from ..models import (
-    ActivationType,
     Batch,
     BatchReceipt,
     BatchShipment,
     BatchShipmentItem,
     BatchStatus,
-    LoRaWanVersion,
 )
 from .batch import BatchService
 from .lifecycle import BATCH_EDIT_WINDOW

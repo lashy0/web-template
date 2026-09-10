@@ -18,6 +18,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.infrastructure.database.base import Base
 from app.modules.kg.models import KgDevEuiPrefix, KgVersion
+from app.modules.lorawan.domain import ActivationType, LoRaWanVersion
 from app.modules.production_order.models import ProductionOrder
 from app.modules.users.models import User
 
@@ -25,16 +26,6 @@ from app.modules.users.models import User
 class BatchStatus(StrEnum):
     IN_PRODUCTION = "IN_PRODUCTION"
     COMPLETED = "COMPLETED"
-
-
-class ActivationType(StrEnum):
-    OTAA = "otaa"
-    ABP = "abp"
-
-
-class LoRaWanVersion(StrEnum):
-    V1_0 = "1.0"
-    V1_1 = "1.1"
 
 
 BATCH_STATUS_DB_TYPE = Enum(

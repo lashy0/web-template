@@ -12,6 +12,7 @@ from app.modules.audit.service import AuditService
 from app.modules.kg.exceptions import KgVersionNotFoundError
 from app.modules.kg.repositories import KgVersionRepository
 from app.modules.kg.services import KgPrefixService, KgService
+from app.modules.lorawan.domain import ActivationType, LoRaWanVersion
 from app.modules.production_order.service import ProductionOrderService
 from app.modules.verification.services import VerificationManagementService
 
@@ -20,7 +21,7 @@ from ..exceptions import (
     BatchInvalidFiltersError,
     BatchKgVersionArchivedError,
 )
-from ..models import ActivationType, Batch, BatchStatus, LoRaWanVersion
+from ..models import Batch, BatchStatus
 from ..repositories import (
     BatchReceiptRepository,
     BatchRepository,

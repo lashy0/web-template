@@ -6,12 +6,12 @@ from sqlalchemy import ColumnElement, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.modules.lorawan.domain import ActivationType, LoRaWanVersion
+
 from ..models import (
-    ActivationType,
     Batch,
     BatchLoRaWanConfig,
     BatchStatus,
-    LoRaWanVersion,
 )
 
 
