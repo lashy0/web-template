@@ -45,20 +45,20 @@ def _generate_abp_credentials(
 
     if lorawan_version is LoRaWanVersion.V1_0:
         return Abp10Credentials(
-            devAddr=dev_addr,
-            appSKey=app_s_key,
-            nwkSKey=f_nwk_s_int_key.hex(),
-            appKey=app_key.hex(),
+            dev_addr=dev_addr,
+            app_s_key=app_s_key,
+            nwk_s_key=f_nwk_s_int_key.hex(),
+            app_key=app_key.hex(),
         )
 
     if lorawan_version is LoRaWanVersion.V1_1:
         return Abp11Credentials(
-            devAddr=dev_addr,
-            appSKey=app_s_key,
-            fNwkSIntKey=f_nwk_s_int_key.hex(),
-            sNwkSIntKey=s_nwk_s_int_key.hex(),
-            nwkSEncKey=nwk_s_enc_key.hex(),
-            appKey=app_key.hex(),
+            dev_addr=dev_addr,
+            app_s_key=app_s_key,
+            f_nwk_s_int_key=f_nwk_s_int_key.hex(),
+            s_nwk_s_int_key=s_nwk_s_int_key.hex(),
+            nwk_s_enc_key=nwk_s_enc_key.hex(),
+            app_key=app_key.hex(),
         )
 
     raise CredentialsGenerationError(
@@ -74,13 +74,16 @@ def _generate_otaa_credentials(
     nwk_key, app_key = _derive_otaa_base_keys(dev_eui)
 
     if lorawan_version is LoRaWanVersion.V1_0:
-        return Otaa10Credentials(devAddr=dev_addr, appKey=app_key.hex())
+        return Otaa10Credentials(
+            dev_addr=dev_addr,
+            app_key=app_key.hex(),
+        )
 
     if lorawan_version is LoRaWanVersion.V1_1:
         return Otaa11Credentials(
-            devAddr=dev_addr,
-            appKey=app_key.hex(),
-            nwkKey=nwk_key.hex(),
+            dev_addr=dev_addr,
+            app_key=app_key.hex(),
+            nwk_key=nwk_key.hex(),
         )
 
     raise CredentialsGenerationError(

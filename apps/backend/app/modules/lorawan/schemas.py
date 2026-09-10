@@ -6,30 +6,30 @@ class CredentialsPayload(BaseModel):
 
 
 class Abp10Credentials(CredentialsPayload):
-    devAddr: str
-    appSKey: str
-    nwkSKey: str
-    appKey: str
+    dev_addr: str
+    app_s_key: str
+    nwk_s_key: str
+    app_key: str
 
 
 class Abp11Credentials(CredentialsPayload):
-    devAddr: str
-    appSKey: str
-    fNwkSIntKey: str
-    sNwkSIntKey: str
-    nwkSEncKey: str
-    appKey: str
+    dev_addr: str
+    app_s_key: str
+    f_nwk_s_int_key: str
+    s_nwk_s_int_key: str
+    nwk_s_enc_key: str
+    app_key: str
 
 
 class Otaa10Credentials(CredentialsPayload):
-    devAddr: str
-    appKey: str
+    dev_addr: str
+    app_key: str
 
 
 class Otaa11Credentials(CredentialsPayload):
-    devAddr: str
-    appKey: str
-    nwkKey: str
+    dev_addr: str
+    app_key: str
+    nwk_key: str
 
 
 Credentials = Abp10Credentials | Abp11Credentials | Otaa10Credentials | Otaa11Credentials
