@@ -3,6 +3,11 @@
 import * as z from 'zod';
 
 /**
+ * ActivationType
+ */
+export const zActivationType = z.enum(['otaa', 'abp']);
+
+/**
  * AddBatchShipmentItemRequest
  */
 export const zAddBatchShipmentItemRequest = z.object({
@@ -51,6 +56,16 @@ export const zAuditListResponse = z.object({
 export const zAuthState = z.enum(['active', 'inactive']);
 
 /**
+ * BatchKeyGenerationStatus
+ */
+export const zBatchKeyGenerationStatus = z.enum([
+    'PENDING',
+    'RUNNING',
+    'COMPLETED',
+    'FAILED'
+]);
+
+/**
  * BatchShipmentItemResponse
  */
 export const zBatchShipmentItemResponse = z.object({
@@ -70,19 +85,6 @@ export const zBatchStatus = z.enum(['IN_PRODUCTION', 'COMPLETED']);
 export const zCreateBatchReceiptRequest = z.object({
     comment: z.string().max(2000).nullish(),
     quantity: z.int().gt(0)
-});
-
-/**
- * CreateBatchRequest
- */
-export const zCreateBatchRequest = z.object({
-    day_plan_qty: z.int().gt(0),
-    description: z.string().max(2000).nullish(),
-    dev_eui_prefix: z.string(),
-    kg_version_id: z.uuid().nullish(),
-    name: z.string().min(1).max(128),
-    planned_qty: z.int().gt(0),
-    production_order_id: z.uuid().nullish()
 });
 
 /**
@@ -217,6 +219,14 @@ export const zDefectTypeListResponse = z.object({
 });
 
 /**
+ * DevEuiRangePreviewResponse
+ */
+export const zDevEuiRangePreviewResponse = z.object({
+    first_dev_eui: z.string(),
+    last_dev_eui: z.string()
+});
+
+/**
  * KgBatchSummaryResponse
  */
 export const zKgBatchSummaryResponse = z.object({
@@ -325,6 +335,42 @@ export const zKgVersionSummaryResponse = z.object({
     code: z.string(),
     id: z.uuid(),
     name: z.string()
+});
+
+/**
+ * LoRaWanVersion
+ */
+export const zLoRaWanVersion = z.enum(['1.0', '1.1']);
+
+/**
+ * BatchLoRaWanConfigResponse
+ */
+export const zBatchLoRaWanConfigResponse = z.object({
+    activation_type: zActivationType,
+    join_eui: z.string(),
+    lorawan_version: zLoRaWanVersion
+});
+
+/**
+ * CreateBatchLoRaWanConfigRequest
+ */
+export const zCreateBatchLoRaWanConfigRequest = z.object({
+    activation_type: zActivationType,
+    lorawan_version: zLoRaWanVersion
+});
+
+/**
+ * CreateBatchRequest
+ */
+export const zCreateBatchRequest = z.object({
+    day_plan_qty: z.int().gt(0),
+    description: z.string().max(2000).nullish(),
+    dev_eui_prefix: z.string(),
+    kg_version_id: z.uuid().nullish(),
+    lorawan_config: zCreateBatchLoRaWanConfigRequest,
+    name: z.string().min(1).max(128),
+    planned_qty: z.int().gt(0),
+    production_order_id: z.uuid().nullish()
 });
 
 /**
@@ -679,6 +725,7 @@ export const zBatchReceiptListResponse = z.object({
  */
 export const zBatchResponse = z.object({
     archived_at: z.iso.datetime().nullable(),
+    can_delete: z.boolean(),
     completed_at: z.iso.datetime().nullable(),
     created_at: z.iso.datetime(),
     created_by_user: zUserSummaryResponse.nullable(),
@@ -687,7 +734,9 @@ export const zBatchResponse = z.object({
     description: z.string().nullable(),
     dev_eui_prefix: zKgDevEuiPrefixSummaryResponse,
     id: z.uuid(),
+    key_generation_status: zBatchKeyGenerationStatus,
     kg_version: zKgVersionSummaryResponse.nullable(),
+    lorawan_config: zBatchLoRaWanConfigResponse.nullable(),
     name: z.string(),
     planned_qty: z.int(),
     production_order: zProductionOrderSummaryResponse.nullish(),
@@ -908,6 +957,16 @@ export const zBatchListBatchesQuery = z.object({
  * Successful Response
  */
 export const zBatchListBatchesResponse = zBatchListResponse;
+
+export const zBatchPreviewDevEuiRangeQuery = z.object({
+    dev_eui_prefix: z.string(),
+    planned_qty: z.int().gt(0)
+});
+
+/**
+ * Successful Response
+ */
+export const zBatchPreviewDevEuiRangeResponse = zDevEuiRangePreviewResponse;
 
 export const zBatchDeleteBatchPath = z.object({
     batch_id: z.uuid()

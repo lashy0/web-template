@@ -5,6 +5,11 @@ export type ClientOptions = {
 };
 
 /**
+ * ActivationType
+ */
+export type ActivationType = 'otaa' | 'abp';
+
+/**
  * AddBatchShipmentItemRequest
  */
 export type AddBatchShipmentItemRequest = {
@@ -114,6 +119,11 @@ export type AuditListResponse = {
 export type AuthState = 'active' | 'inactive';
 
 /**
+ * BatchKeyGenerationStatus
+ */
+export type BatchKeyGenerationStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+
+/**
  * BatchListResponse
  */
 export type BatchListResponse = {
@@ -133,6 +143,18 @@ export type BatchListResponse = {
      * Total
      */
     total: number;
+};
+
+/**
+ * BatchLoRaWanConfigResponse
+ */
+export type BatchLoRaWanConfigResponse = {
+    activation_type: ActivationType;
+    /**
+     * Join Eui
+     */
+    join_eui: string;
+    lorawan_version: LoRaWanVersion;
 };
 
 /**
@@ -201,6 +223,10 @@ export type BatchResponse = {
      */
     archived_at: string | null;
     /**
+     * Can Delete
+     */
+    can_delete: boolean;
+    /**
      * Completed At
      */
     completed_at: string | null;
@@ -226,7 +252,9 @@ export type BatchResponse = {
      * Id
      */
     id: string;
+    key_generation_status: BatchKeyGenerationStatus;
     kg_version: KgVersionSummaryResponse | null;
+    lorawan_config: BatchLoRaWanConfigResponse | null;
     /**
      * Name
      */
@@ -332,6 +360,14 @@ export type BatchShipmentResponse = {
 export type BatchStatus = 'IN_PRODUCTION' | 'COMPLETED';
 
 /**
+ * CreateBatchLoRaWanConfigRequest
+ */
+export type CreateBatchLoRaWanConfigRequest = {
+    activation_type: ActivationType;
+    lorawan_version: LoRaWanVersion;
+};
+
+/**
  * CreateBatchReceiptRequest
  */
 export type CreateBatchReceiptRequest = {
@@ -365,6 +401,7 @@ export type CreateBatchRequest = {
      * Kg Version Id
      */
     kg_version_id?: string | null;
+    lorawan_config: CreateBatchLoRaWanConfigRequest;
     /**
      * Name
      */
@@ -734,6 +771,20 @@ export type DefectTypeResponse = {
 };
 
 /**
+ * DevEuiRangePreviewResponse
+ */
+export type DevEuiRangePreviewResponse = {
+    /**
+     * First Dev Eui
+     */
+    first_dev_eui: string;
+    /**
+     * Last Dev Eui
+     */
+    last_dev_eui: string;
+};
+
+/**
  * HTTPValidationError
  */
 export type HttpValidationError = {
@@ -959,6 +1010,11 @@ export type KgVersionSummaryResponse = {
      */
     name: string;
 };
+
+/**
+ * LoRaWanVersion
+ */
+export type LoRaWanVersion = '1.0' | '1.1';
 
 /**
  * PakAccessKeyResponse
@@ -1904,6 +1960,40 @@ export type BatchListBatchesResponses = {
 };
 
 export type BatchListBatchesResponse = BatchListBatchesResponses[keyof BatchListBatchesResponses];
+
+export type BatchPreviewDevEuiRangeData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Dev Eui Prefix
+         */
+        dev_eui_prefix: string;
+        /**
+         * Planned Qty
+         */
+        planned_qty: number;
+    };
+    url: '/batches/dev-eui-range-preview';
+};
+
+export type BatchPreviewDevEuiRangeErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type BatchPreviewDevEuiRangeError = BatchPreviewDevEuiRangeErrors[keyof BatchPreviewDevEuiRangeErrors];
+
+export type BatchPreviewDevEuiRangeResponses = {
+    /**
+     * Successful Response
+     */
+    200: DevEuiRangePreviewResponse;
+};
+
+export type BatchPreviewDevEuiRangeResponse = BatchPreviewDevEuiRangeResponses[keyof BatchPreviewDevEuiRangeResponses];
 
 export type BatchDeleteBatchData = {
     body?: never;

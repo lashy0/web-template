@@ -131,6 +131,11 @@ def _configure_principal(
     service: SimpleNamespace,
     role: Role,
 ) -> UUID:
+    if not hasattr(service, "deletion_availability"):
+        service.deletion_availability = AsyncMock(
+            side_effect=lambda batches: {batch.id: True for batch in batches}
+        )
+
     user_id = uuid4()
     session = AuthSession(
         id=uuid4(),
@@ -184,6 +189,7 @@ def test_list_batches_serializes_items_and_forwards_filters(
         "name": "Основной",
     }
     assert response.json()["items"][0]["kg_version"] is None
+    assert response.json()["items"][0]["can_delete"] is True
     service.list.assert_awaited_once_with(
         q="August",
         status=BatchStatus.IN_PRODUCTION,
@@ -194,6 +200,33 @@ def test_list_batches_serializes_items_and_forwards_filters(
         order="asc",
         production_order_id=None,
         without_production_order=False,
+    )
+
+
+@pytest.mark.api
+def test_preview_dev_eui_range_returns_current_bounds(
+    batch_client: tuple[FastAPI, TestClient],
+    mocker: MockerFixture,
+) -> None:
+    app, client = batch_client
+    service = SimpleNamespace(
+        preview_dev_eui_range=AsyncMock(return_value=("a1b2c3d4e5000001", "a1b2c3d4e5000064"))
+    )
+    _configure_principal(app, mocker, service, Role.MANAGER)
+
+    response = client.get(
+        "/batches/dev-eui-range-preview?dev_eui_prefix=A1B2C3D4E5&planned_qty=100",
+        headers=_headers(),
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() == {
+        "first_dev_eui": "a1b2c3d4e5000001",
+        "last_dev_eui": "a1b2c3d4e5000064",
+    }
+    service.preview_dev_eui_range.assert_awaited_once_with(
+        dev_eui_prefix="a1b2c3d4e5",
+        planned_qty=100,
     )
 
 

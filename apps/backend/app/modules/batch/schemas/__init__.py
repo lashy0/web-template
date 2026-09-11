@@ -4,6 +4,7 @@ from .batch import (
     BatchResponse,
     CreateBatchLoRaWanConfigRequest,
     CreateBatchRequest,
+    DevEuiRangePreviewResponse,
     UpdateBatchArchivedRequest,
     UpdateBatchRequest,
 )
@@ -37,6 +38,7 @@ __all__ = [
     "CreateBatchReceiptRequest",
     "CreateBatchLoRaWanConfigRequest",
     "CreateBatchRequest",
+    "DevEuiRangePreviewResponse",
     "CreateBatchShipmentRequest",
     "UpdateBatchArchivedRequest",
     "UpdateBatchReceiptRequest",

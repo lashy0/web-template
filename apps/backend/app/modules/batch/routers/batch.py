@@ -4,6 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, Request, status
 
 from app.api.auth_deps import CurrentPrincipalDep, require_permission
+from app.modules.kg.schemas import DevEuiPrefix
 from app.modules.production_order.schemas import AssignProductionOrderRequest
 
 from ..exceptions import BatchNotFoundError
@@ -13,12 +14,34 @@ from ..schemas import (
     BatchListResponse,
     BatchResponse,
     CreateBatchRequest,
+    DevEuiRangePreviewResponse,
     UpdateBatchArchivedRequest,
     UpdateBatchRequest,
 )
 from .common import _batch_response, _service
 
 router = APIRouter(prefix="/batches", tags=["batch"])
+
+
+@router.get("/dev-eui-range-preview", response_model=DevEuiRangePreviewResponse)
+async def preview_dev_eui_range(
+    _: Annotated[
+        CurrentPrincipalDep,
+        Depends(require_permission(BatchPermission.CREATE)),
+    ],
+    request: Request,
+    dev_eui_prefix: DevEuiPrefix,
+    planned_qty: int = Query(gt=0),
+) -> DevEuiRangePreviewResponse:
+    first_dev_eui, last_dev_eui = await _service(request).preview_dev_eui_range(
+        dev_eui_prefix=dev_eui_prefix,
+        planned_qty=planned_qty,
+    )
+
+    return DevEuiRangePreviewResponse(
+        first_dev_eui=first_dev_eui,
+        last_dev_eui=last_dev_eui,
+    )
 
 
 @router.get("/", response_model=BatchListResponse)
@@ -59,8 +82,17 @@ async def list_batches(
         without_production_order=without_production_order,
     )
 
+    deletion_availability = await _service(request).deletion_availability(batches)
+
     return BatchListResponse(
-        items=[_batch_response(batch) for batch in batches],
+        items=[
+            await _batch_response(
+                request,
+                batch,
+                can_delete=deletion_availability[batch.id],
+            )
+            for batch in batches
+        ],
         total=total,
         page=page,
         page_size=page_size,
@@ -81,7 +113,7 @@ async def get_batch(
     if batch is None:
         raise BatchNotFoundError
 
-    return _batch_response(batch)
+    return await _batch_response(request, batch)
 
 
 @router.post("", response_model=BatchResponse, status_code=status.HTTP_201_CREATED)
@@ -120,7 +152,7 @@ async def create_batch(
             production_order_id=payload.production_order_id,
         )
 
-    return _batch_response(batch)
+    return await _batch_response(request, batch)
 
 
 @router.patch("/{batch_id}", response_model=BatchResponse)
@@ -139,7 +171,7 @@ async def update_batch(
         updates=payload.model_dump(exclude_unset=True),
     )
 
-    return _batch_response(batch)
+    return await _batch_response(request, batch)
 
 
 @router.put("/{batch_id}/archived", response_model=BatchResponse)
@@ -158,7 +190,7 @@ async def update_batch_archived(
         archived=payload.archived,
     )
 
-    return _batch_response(batch)
+    return await _batch_response(request, batch)
 
 
 @router.post("/{batch_id}/complete", response_model=BatchResponse)
@@ -175,7 +207,7 @@ async def complete_batch(
         batch_id=batch_id,
     )
 
-    return _batch_response(batch)
+    return await _batch_response(request, batch)
 
 
 @router.delete("/{batch_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -208,4 +240,4 @@ async def assign_production_order(
         production_order_id=payload.production_order_id,
     )
 
-    return _batch_response(batch)
+    return await _batch_response(request, batch)

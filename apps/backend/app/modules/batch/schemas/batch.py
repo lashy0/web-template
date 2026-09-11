@@ -48,6 +48,7 @@ class BatchResponse(BaseModel):
     updated_at: datetime
     completed_at: datetime | None
     archived_at: datetime | None
+    can_delete: bool
 
 
 class BatchListResponse(BaseModel):
@@ -55,6 +56,11 @@ class BatchListResponse(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+class DevEuiRangePreviewResponse(BaseModel):
+    first_dev_eui: str
+    last_dev_eui: str
 
 
 class CreateBatchRequest(BaseModel):

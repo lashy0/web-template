@@ -186,7 +186,7 @@ def dependencies(
     mocker.patch("app.modules.batch.services.receipt.AuditService", audits)
     mocker.patch("app.modules.batch.services.shipment.AuditService", audits)
     audits.from_session.return_value.record = AsyncMock()
-    mocker.patch("app.worker.tasks.generate_batch_keys.delay")
+    mocker.patch("app.modules.batch.services.batch.celery_app.send_task")
     return batches, receipts, shipments, kg_units, prefixes, audits
 
 
@@ -223,9 +223,11 @@ async def test_create_persists_batch_for_actor_and_records_audit_event(
     )
 
     assert created is batch
-    from app.worker.tasks import generate_batch_keys
+    from app.modules.batch.services.batch import celery_app
 
-    generate_batch_keys.delay.assert_called_once_with(str(batch.id))
+    celery_app.send_task.assert_called_once_with(
+        "app.worker.generate_batch_keys", args=[str(batch.id)]
+    )
     batches.return_value.create.assert_awaited_once_with(
         name=batch.name,
         description=batch.description,

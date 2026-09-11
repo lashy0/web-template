@@ -199,6 +199,24 @@ class KgPrefixService:
         quantity: int,
     ) -> tuple[KgDevEuiPrefix, list[str]]:
         await self._repository.lock_dev_eui_allocation(prefix)
+        item, start, end = await self._allocation_bounds(prefix, quantity)
+
+        return item, [f"{item.prefix}{value:06x}" for value in range(start, end + 1)]
+
+    async def preview_allocation(
+        self,
+        prefix: str,
+        quantity: int,
+    ) -> tuple[str, str]:
+        item, start, end = await self._allocation_bounds(prefix, quantity)
+
+        return f"{item.prefix}{start:06x}", f"{item.prefix}{end:06x}"
+
+    async def _allocation_bounds(
+        self,
+        prefix: str,
+        quantity: int,
+    ) -> tuple[KgDevEuiPrefix, int, int]:
         item = await self._prefixes.get(prefix)
 
         if item is None:
@@ -209,8 +227,9 @@ class KgPrefixService:
 
         maximum = await self._repository.get_max_dev_eui_by_prefix(item.prefix)
         start = int(maximum[-6:], 16) + 1 if maximum else 1
+        end = start + quantity - 1
 
-        if start + quantity - 1 > 0xFFFFFF:
+        if end > 0xFFFFFF:
             raise KgDevEuiRangeOverflowError
 
-        return item, [f"{item.prefix}{start + offset:06x}" for offset in range(quantity)]
+        return item, start, end

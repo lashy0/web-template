@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import timedelta
 from uuid import UUID
 
@@ -63,6 +63,9 @@ class BatchManagementService:
             without_production_order=without_production_order,
         )
 
+    async def deletion_availability(self, batches: Sequence[Batch]) -> dict[UUID, bool]:
+        return await self.batch.deletion_availability(batches)
+
     async def create(
         self,
         *,
@@ -88,6 +91,17 @@ class BatchManagementService:
             lorawan_version=lorawan_version,
             kg_version_id=kg_version_id,
             production_order_id=production_order_id,
+        )
+
+    async def preview_dev_eui_range(
+        self,
+        *,
+        dev_eui_prefix: str,
+        planned_qty: int,
+    ) -> tuple[str, str]:
+        return await self.batch.preview_dev_eui_range(
+            dev_eui_prefix=dev_eui_prefix,
+            planned_qty=planned_qty,
         )
 
     async def update(

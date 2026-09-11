@@ -1,28 +1,31 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 from secrets import token_hex
 from uuid import UUID
 
+from sqlalchemy import select, union
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.auth.principal import CurrentPrincipal
 from app.modules.audit.service import AuditService
 from app.modules.kg.exceptions import KgVersionNotFoundError
+from app.modules.kg.models import KgStatus, KgUnit
 from app.modules.kg.repositories import KgVersionRepository
 from app.modules.kg.services import KgPrefixService, KgService
 from app.modules.lorawan.domain import ActivationType, LoRaWanVersion
 from app.modules.production_order.service import ProductionOrderService
+from app.modules.verification.models import VerificationSession
 from app.modules.verification.services import VerificationManagementService
-from app.worker.tasks import generate_batch_keys
+from app.worker.celery_app import celery_app
 
 from ..exceptions import (
     BatchCannotBeDeletedError,
     BatchInvalidFiltersError,
     BatchKgVersionArchivedError,
 )
-from ..models import Batch, BatchStatus
+from ..models import Batch, BatchReceipt, BatchShipment, BatchStatus
 from ..repositories import (
     BatchReceiptRepository,
     BatchRepository,
@@ -31,6 +34,8 @@ from ..repositories import (
 from . import audit, lifecycle, queries
 from .lifecycle import BATCH_EDIT_WINDOW
 from .transactions import transaction
+
+GENERATE_BATCH_KEYS_TASK = "app.worker.generate_batch_keys"
 
 
 class BatchService:
@@ -75,6 +80,52 @@ class BatchService:
                 production_order_id=production_order_id,
                 without_production_order=without_production_order,
             )
+
+    async def deletion_availability(self, batches: Sequence[Batch]) -> dict[UUID, bool]:
+        batch_ids = [batch.id for batch in batches]
+
+        if not batch_ids:
+            return {}
+
+        async with self._session_factory() as session:
+            activity_ids = set(
+                (
+                    await session.scalars(
+                        union(
+                            select(BatchReceipt.batch_id).where(
+                                BatchReceipt.batch_id.in_(batch_ids)
+                            ),
+                            select(BatchShipment.batch_id).where(
+                                BatchShipment.batch_id.in_(batch_ids)
+                            ),
+                            select(KgUnit.batch_id).where(
+                                KgUnit.batch_id.in_(batch_ids),
+                                KgUnit.status != KgStatus.REGISTERED,
+                            ),
+                            select(KgUnit.batch_id)
+                            .join(
+                                VerificationSession,
+                                VerificationSession.kg_dev_eui == KgUnit.dev_eui,
+                            )
+                            .where(KgUnit.batch_id.in_(batch_ids)),
+                        )
+                    )
+                ).all()
+            )
+
+        return {
+            batch.id: batch.status is BatchStatus.IN_PRODUCTION and batch.id not in activity_ids
+            for batch in batches
+        }
+
+    async def preview_dev_eui_range(
+        self,
+        *,
+        dev_eui_prefix: str,
+        planned_qty: int,
+    ) -> tuple[str, str]:
+        async with self._session_factory() as session:
+            return await KgPrefixService(session).preview_allocation(dev_eui_prefix, planned_qty)
 
     async def create(
         self,
@@ -177,7 +228,7 @@ class BatchService:
                 },
             )
 
-        generate_batch_keys.delay(str(batch.id))  # pyright: ignore[reportFunctionMemberAccess]
+        celery_app.send_task(GENERATE_BATCH_KEYS_TASK, args=[str(batch.id)])
 
         return batch
 

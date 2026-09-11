@@ -32,7 +32,17 @@ def _user_response(user: User | None) -> UserSummaryResponse | None:
     return UserSummaryResponse(id=user.id, name=user.name) if user is not None else None
 
 
-def _batch_response(batch: Batch) -> BatchResponse:
+async def _batch_response(
+    request: Request,
+    batch: Batch,
+    *,
+    can_delete: bool | None = None,
+) -> BatchResponse:
+    if can_delete is None:
+        can_delete = (
+            await _service(request).deletion_availability([batch])
+        )[batch.id]
+
     prefix = batch.kg_dev_eui_prefix
     version = batch.kg_version
 
@@ -79,6 +89,7 @@ def _batch_response(batch: Batch) -> BatchResponse:
         updated_at=batch.updated_at,
         completed_at=batch.completed_at,
         archived_at=batch.archived_at,
+        can_delete=can_delete,
     )
 
 

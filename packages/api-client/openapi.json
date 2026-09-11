@@ -1,6 +1,14 @@
 {
   "components": {
     "schemas": {
+      "ActivationType": {
+        "enum": [
+          "otaa",
+          "abp"
+        ],
+        "title": "ActivationType",
+        "type": "string"
+      },
       "AddBatchShipmentItemRequest": {
         "properties": {
           "dev_eui": {
@@ -207,6 +215,16 @@
         "title": "AuthState",
         "type": "string"
       },
+      "BatchKeyGenerationStatus": {
+        "enum": [
+          "PENDING",
+          "RUNNING",
+          "COMPLETED",
+          "FAILED"
+        ],
+        "title": "BatchKeyGenerationStatus",
+        "type": "string"
+      },
       "BatchListResponse": {
         "properties": {
           "items": {
@@ -236,6 +254,27 @@
           "page_size"
         ],
         "title": "BatchListResponse",
+        "type": "object"
+      },
+      "BatchLoRaWanConfigResponse": {
+        "properties": {
+          "activation_type": {
+            "$ref": "#/components/schemas/ActivationType"
+          },
+          "join_eui": {
+            "title": "Join Eui",
+            "type": "string"
+          },
+          "lorawan_version": {
+            "$ref": "#/components/schemas/LoRaWanVersion"
+          }
+        },
+        "required": [
+          "activation_type",
+          "lorawan_version",
+          "join_eui"
+        ],
+        "title": "BatchLoRaWanConfigResponse",
         "type": "object"
       },
       "BatchReceiptListResponse": {
@@ -371,6 +410,10 @@
             ],
             "title": "Archived At"
           },
+          "can_delete": {
+            "title": "Can Delete",
+            "type": "boolean"
+          },
           "completed_at": {
             "anyOf": [
               {
@@ -433,10 +476,23 @@
             "title": "Id",
             "type": "string"
           },
+          "key_generation_status": {
+            "$ref": "#/components/schemas/BatchKeyGenerationStatus"
+          },
           "kg_version": {
             "anyOf": [
               {
                 "$ref": "#/components/schemas/KgVersionSummaryResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lorawan_config": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BatchLoRaWanConfigResponse"
               },
               {
                 "type": "null"
@@ -489,6 +545,8 @@
           "planned_qty",
           "day_plan_qty",
           "status",
+          "key_generation_status",
+          "lorawan_config",
           "dev_eui_prefix",
           "kg_version",
           "created_by_user_id",
@@ -496,7 +554,8 @@
           "created_at",
           "updated_at",
           "completed_at",
-          "archived_at"
+          "archived_at",
+          "can_delete"
         ],
         "title": "BatchResponse",
         "type": "object"
@@ -666,6 +725,23 @@
         "title": "BatchStatus",
         "type": "string"
       },
+      "CreateBatchLoRaWanConfigRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "activation_type": {
+            "$ref": "#/components/schemas/ActivationType"
+          },
+          "lorawan_version": {
+            "$ref": "#/components/schemas/LoRaWanVersion"
+          }
+        },
+        "required": [
+          "activation_type",
+          "lorawan_version"
+        ],
+        "title": "CreateBatchLoRaWanConfigRequest",
+        "type": "object"
+      },
       "CreateBatchReceiptRequest": {
         "properties": {
           "comment": {
@@ -727,6 +803,9 @@
             ],
             "title": "Kg Version Id"
           },
+          "lorawan_config": {
+            "$ref": "#/components/schemas/CreateBatchLoRaWanConfigRequest"
+          },
           "name": {
             "maxLength": 128,
             "minLength": 1,
@@ -755,7 +834,8 @@
           "name",
           "dev_eui_prefix",
           "planned_qty",
-          "day_plan_qty"
+          "day_plan_qty",
+          "lorawan_config"
         ],
         "title": "CreateBatchRequest",
         "type": "object"
@@ -1380,6 +1460,24 @@
         "title": "DefectTypeResponse",
         "type": "object"
       },
+      "DevEuiRangePreviewResponse": {
+        "properties": {
+          "first_dev_eui": {
+            "title": "First Dev Eui",
+            "type": "string"
+          },
+          "last_dev_eui": {
+            "title": "Last Dev Eui",
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_dev_eui",
+          "last_dev_eui"
+        ],
+        "title": "DevEuiRangePreviewResponse",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -1740,6 +1838,14 @@
         ],
         "title": "KgVersionSummaryResponse",
         "type": "object"
+      },
+      "LoRaWanVersion": {
+        "enum": [
+          "1.0",
+          "1.1"
+        ],
+        "title": "LoRaWanVersion",
+        "type": "string"
       },
       "PakAccessKeyResponse": {
         "properties": {
@@ -3476,6 +3582,58 @@
           }
         },
         "summary": "List Batches",
+        "tags": [
+          "batch"
+        ]
+      }
+    },
+    "/batches/dev-eui-range-preview": {
+      "get": {
+        "operationId": "batch-preview_dev_eui_range",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "dev_eui_prefix",
+            "required": true,
+            "schema": {
+              "title": "Dev Eui Prefix",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "planned_qty",
+            "required": true,
+            "schema": {
+              "exclusiveMinimum": 0,
+              "title": "Planned Qty",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevEuiRangePreviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Dev Eui Range",
         "tags": [
           "batch"
         ]
