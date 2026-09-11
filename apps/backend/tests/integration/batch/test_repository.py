@@ -3,7 +3,12 @@ from datetime import UTC, datetime
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.batch.models import ActivationType, BatchStatus, LoRaWanVersion
+from app.modules.batch.models import (
+    ActivationType,
+    BatchKeyGenerationStatus,
+    BatchStatus,
+    LoRaWanVersion,
+)
 from app.modules.batch.repositories import (
     BatchReceiptRepository,
     BatchRepository,
@@ -50,6 +55,13 @@ async def test_batch_details_state_and_search_can_be_updated(db_session: AsyncSe
     assert completed.status is BatchStatus.COMPLETED
     assert total == 1
     assert [item.id for item in archived] == [batch.id]
+
+
+@pytest.mark.integration
+async def test_new_batch_has_pending_key_generation(db_session: AsyncSession) -> None:
+    batch = await _batch(db_session)
+
+    assert batch.key_generation_status is BatchKeyGenerationStatus.PENDING
 
 
 @pytest.mark.integration

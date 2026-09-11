@@ -28,9 +28,25 @@ class BatchStatus(StrEnum):
     COMPLETED = "COMPLETED"
 
 
+class BatchKeyGenerationStatus(StrEnum):
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+
+
 BATCH_STATUS_DB_TYPE = Enum(
     BatchStatus,
     name="batch_status",
+    native_enum=False,
+    create_constraint=True,
+    validate_strings=True,
+    values_callable=lambda enum_type: [status.value for status in enum_type],
+)
+
+BATCH_KEY_GENERATION_STATUS_DB_TYPE = Enum(
+    BatchKeyGenerationStatus,
+    name="batch_key_generation_status",
     native_enum=False,
     create_constraint=True,
     validate_strings=True,
@@ -68,6 +84,12 @@ class Batch(Base):
         BATCH_STATUS_DB_TYPE,
         nullable=False,
         default=BatchStatus.IN_PRODUCTION,
+    )
+    key_generation_status: Mapped[BatchKeyGenerationStatus] = mapped_column(
+        BATCH_KEY_GENERATION_STATUS_DB_TYPE,
+        nullable=False,
+        default=BatchKeyGenerationStatus.PENDING,
+        server_default=BatchKeyGenerationStatus.PENDING.value,
     )
     dev_eui_prefix: Mapped[str] = mapped_column(
         String(10),

@@ -15,6 +15,7 @@ from app.modules.kg.services import KgPrefixService, KgService
 from app.modules.lorawan.domain import ActivationType, LoRaWanVersion
 from app.modules.production_order.service import ProductionOrderService
 from app.modules.verification.services import VerificationManagementService
+from app.worker.tasks import generate_batch_keys
 
 from ..exceptions import (
     BatchCannotBeDeletedError,
@@ -90,6 +91,8 @@ class BatchService:
         production_order_id: UUID | None = None,
     ) -> Batch:
         lifecycle.ensure_management_allowed(actor)
+
+        batch: Batch
 
         async with transaction(self._session_factory) as session:
             batch_repository = BatchRepository(session)
@@ -174,7 +177,9 @@ class BatchService:
                 },
             )
 
-            return batch
+        generate_batch_keys.delay(str(batch.id))  # pyright: ignore[reportFunctionMemberAccess]
+
+        return batch
 
     async def update(
         self,

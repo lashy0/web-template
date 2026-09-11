@@ -21,6 +21,7 @@ from app.modules.batch import exceptions as batch_errors
 from app.modules.batch.models import (
     ActivationType,
     Batch,
+    BatchKeyGenerationStatus,
     BatchLoRaWanConfig,
     BatchReceipt,
     BatchShipment,
@@ -70,6 +71,7 @@ def _batch(*, batch_id: UUID | None = None, version: KgVersion | None = None) ->
         planned_qty=100,
         day_plan_qty=20,
         status=BatchStatus.IN_PRODUCTION,
+        key_generation_status=BatchKeyGenerationStatus.PENDING,
         created_by_user_id=uuid4(),
         created_at=now,
         updated_at=now,
@@ -219,6 +221,7 @@ def test_create_batch_normalizes_payload_and_forwards_actor(
     )
 
     assert response.status_code == status.HTTP_201_CREATED
+    assert response.json()["key_generation_status"] == "PENDING"
     service.create.assert_awaited_once_with(
         actor=ANY,
         name="August production",

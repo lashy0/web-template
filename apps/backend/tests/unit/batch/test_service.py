@@ -186,6 +186,7 @@ def dependencies(
     mocker.patch("app.modules.batch.services.receipt.AuditService", audits)
     mocker.patch("app.modules.batch.services.shipment.AuditService", audits)
     audits.from_session.return_value.record = AsyncMock()
+    mocker.patch("app.worker.tasks.generate_batch_keys.delay")
     return batches, receipts, shipments, kg_units, prefixes, audits
 
 
@@ -222,6 +223,9 @@ async def test_create_persists_batch_for_actor_and_records_audit_event(
     )
 
     assert created is batch
+    from app.worker.tasks import generate_batch_keys
+
+    generate_batch_keys.delay.assert_called_once_with(str(batch.id))
     batches.return_value.create.assert_awaited_once_with(
         name=batch.name,
         description=batch.description,

@@ -12,7 +12,7 @@ from app.modules.lorawan.domain import ActivationType, LoRaWanVersion
 from app.modules.production_order.schemas import ProductionOrderSummaryResponse
 from app.modules.users.schemas import UserSummaryResponse
 
-from ..models import BatchStatus
+from ..models import BatchKeyGenerationStatus, BatchStatus
 from .common import normalize_trimmed
 
 
@@ -36,6 +36,7 @@ class BatchResponse(BaseModel):
     planned_qty: int
     day_plan_qty: int
     status: BatchStatus
+    key_generation_status: BatchKeyGenerationStatus
     lorawan_config: BatchLoRaWanConfigResponse | None
     dev_eui_prefix: KgDevEuiPrefixSummaryResponse
     kg_version: KgVersionSummaryResponse | None

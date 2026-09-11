@@ -6,7 +6,7 @@ from uuid import UUID
 from sqlalchemy import ColumnElement, delete, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..models import KgStatus, KgUnit
+from ..models import KgStatus, KgUnit, LoRaWanCredentials
 
 
 class KgRepository:
@@ -62,6 +62,29 @@ class KgRepository:
         if for_update:
             statement = statement.with_for_update().execution_options(populate_existing=True)
 
+        result = await self._session.execute(statement)
+
+        return list(result.scalars())
+
+    async def list_without_credentials_by_batch(
+        self,
+        batch_id: UUID,
+        *,
+        limit: int,
+    ) -> list[KgUnit]:
+        statement = (
+            select(KgUnit)
+            .outerjoin(
+                LoRaWanCredentials,
+                LoRaWanCredentials.kg_dev_eui == KgUnit.dev_eui,
+            )
+            .where(
+                KgUnit.batch_id == batch_id,
+                LoRaWanCredentials.kg_dev_eui.is_(None),
+            )
+            .order_by(KgUnit.dev_eui.asc())
+            .limit(limit)
+        )
         result = await self._session.execute(statement)
 
         return list(result.scalars())
@@ -128,7 +151,9 @@ class KgRepository:
         sorted_column = column.desc() if order == "desc" else column.asc()
         statement = statement.order_by(sorted_column, KgUnit.dev_eui.asc())
         statement = statement.offset((page - 1) * page_size).limit(page_size)
-        count = await self._session.scalar(select(func.count()).select_from(KgUnit).where(*filters))
+        count = await self._session.scalar(
+            select(func.count()).select_from(KgUnit).where(*filters)
+        )
         result = await self._session.execute(statement)
 
         return list(result.scalars()), int(count or 0)

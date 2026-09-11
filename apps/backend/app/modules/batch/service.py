@@ -1,4 +1,5 @@
 from .services import (
+    BatchKeyGenerationService,
     BatchManagementService,
     BatchService,
     ReceiptService,
@@ -7,6 +8,7 @@ from .services import (
 
 __all__ = [
     "BatchManagementService",
+    "BatchKeyGenerationService",
     "BatchService",
     "ReceiptService",
     "ShipmentService",

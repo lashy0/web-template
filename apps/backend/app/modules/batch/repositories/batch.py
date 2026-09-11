@@ -10,6 +10,7 @@ from app.modules.lorawan.domain import ActivationType, LoRaWanVersion
 
 from ..models import (
     Batch,
+    BatchKeyGenerationStatus,
     BatchLoRaWanConfig,
     BatchStatus,
 )
@@ -52,6 +53,7 @@ class BatchRepository:
             planned_qty=planned_qty,
             day_plan_qty=day_plan_qty,
             status=BatchStatus.IN_PRODUCTION,
+            key_generation_status=BatchKeyGenerationStatus.PENDING,
             created_by_user_id=created_by_user_id,
             lorawan_config=BatchLoRaWanConfig(
                 activation_type=activation_type,
@@ -73,6 +75,18 @@ class BatchRepository:
                 "lorawan_config",
             ],
         )
+
+        return batch
+
+    async def update_key_generation_status(
+        self,
+        batch: Batch,
+        *,
+        status: BatchKeyGenerationStatus,
+    ) -> Batch:
+        batch.key_generation_status = status
+
+        await self._session.flush()
 
         return batch
 
