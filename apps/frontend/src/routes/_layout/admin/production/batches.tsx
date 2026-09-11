@@ -2,8 +2,6 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useMemo, useState } from 'react'
 
-import { Tabs, TabsList, TabsTrigger } from '@web-app/ui/components/tabs'
-
 import { DataLoadError } from '@/components/Common/DataLoadError'
 import {
   DataTable,
@@ -11,64 +9,71 @@ import {
   type DataTableSorting,
   type PageSize,
 } from '@/components/Common/DataTable'
-import { AddProductionOrder } from '@/components/ProductionOrders/AddProductionOrder'
-import { ProductionOrderFilters } from '@/components/ProductionOrders/ProductionOrderFilters'
-import PendingProductionOrders from '@/components/ProductionOrders/PendingProductionOrders'
-import { createProductionOrderColumns } from '@/components/ProductionOrders/columns'
+import { BatchFilters } from '@/components/Batches/BatchFilters'
+import { AddBatch } from '@/components/Batches/AddBatch'
+import PendingBatches from '@/components/Batches/PendingBatches'
+import { createBatchColumns } from '@/components/Batches/columns'
 import {
-  listProductionOrders,
-  productionOrderQueryKeys,
-  type ProductionOrderSort,
+  batchQueryKeys,
+  listBatches,
+  type BatchSort,
+  type BatchStatus,
   type SortOrder,
-} from '@/features/production-orders/production-order-api'
+} from '@/features/batches/batches-api'
 import { listEnum, listOrder, listPage, listPageSize, listQuery } from '@/lib/list-search'
+import { Tabs, TabsList, TabsTrigger } from '@web-app/ui/components/tabs'
 
-const productionOrderSorts = [
+const batchSorts = [
   'archived_at',
-  'batches_count',
+  'completed_at',
   'created_at',
+  'day_plan_qty',
   'name',
-  'total_planned_qty',
+  'planned_qty',
+  'status',
   'updated_at',
-] as const satisfies readonly ProductionOrderSort[]
+] as const satisfies readonly BatchSort[]
 
-export const Route = createFileRoute('/_layout/admin/production-orders')({
-  component: ProductionOrders,
-  pendingComponent: () => <PendingProductionOrders showPageHeader />,
-  validateSearch: validateProductionOrdersSearch,
+const batchStatuses = ['IN_PRODUCTION', 'COMPLETED'] as const
+
+export const Route = createFileRoute('/_layout/admin/production/batches')({
+  component: Batches,
+  pendingComponent: () => <PendingBatches showPageHeader />,
+  validateSearch: validateBatchesSearch,
 })
 
-type ProductionOrdersSearch = Readonly<{
+type BatchesSearch = Readonly<{
   archived?: true
   order?: SortOrder
   page?: number
   pageSize?: PageSize
   q?: string
-  sort?: ProductionOrderSort
+  sort?: BatchSort
+  status?: BatchStatus
 }>
-type ProductionOrdersQuery = Readonly<{
+type BatchesQuery = Readonly<{
   archived: boolean
   order: SortOrder
   page: number
   pageSize: number
   query?: string
-  sort: ProductionOrderSort
+  sort: BatchSort
+  status?: BatchStatus
 }>
 
-export function validateProductionOrdersSearch(
-  search: Record<string, unknown>,
-): ProductionOrdersSearch {
+export function validateBatchesSearch(search: Record<string, unknown>): BatchesSearch {
   return {
     archived: search.archived === true ? true : undefined,
     order: listOrder(search.order),
     page: listPage(search.page),
     pageSize: listPageSize(search.pageSize),
     q: listQuery(search.q),
-    sort: listEnum(productionOrderSorts, search.sort),
+    sort: listEnum(batchSorts, search.sort),
+    status: listEnum(batchStatuses, search.status),
   }
 }
 
-function ProductionOrders() {
+function Batches() {
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
   const archived = search.archived ?? false
@@ -93,41 +98,41 @@ function ProductionOrders() {
     return () => window.clearTimeout(timeout)
   }, [navigate, queryInput, search.q])
 
-  const params: ProductionOrdersQuery = {
+  const params: BatchesQuery = {
     archived,
     page: pagination.pageIndex + 1,
     pageSize: pagination.pageSize,
     query: search.q,
+    status: search.status,
     ...sortParams(sorting),
   }
-  const columns = useMemo(() => createProductionOrderColumns(archived), [archived])
+  const columns = useMemo(() => createBatchColumns(), [])
   const { data, isError, isFetching, refetch } = useQuery({
     placeholderData: keepPreviousData,
-    queryFn: () => listProductionOrders(params),
-    queryKey: productionOrderQueryKeys.list(params),
+    queryFn: () => listBatches(params),
+    queryKey: batchQueryKeys.list(params),
   })
-
-  function resetList(nextArchived: boolean) {
-    navigate({
-      search: (previous) => ({
-        ...previous,
-        archived: nextArchived ? true : undefined,
-        order: undefined,
-        page: undefined,
-        sort: undefined,
-      }),
-    })
-  }
 
   return (
     <section className="mx-auto w-full max-w-[82.5rem] px-4 py-8 sm:px-8 lg:px-12">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-3xl font-semibold tracking-tight">Производственные заказы</h1>
-        <AddProductionOrder />
+        <h1 className="text-3xl font-semibold tracking-tight">Партии</h1>
+        {!archived ? <AddBatch /> : null}
       </div>
       <Tabs
         className="mt-5"
-        onValueChange={(value) => resetList(value === 'archived')}
+        onValueChange={(value) =>
+          navigate({
+            search: (previous) => ({
+              ...previous,
+              archived: value === 'archived' ? true : undefined,
+              order: undefined,
+              page: undefined,
+              sort: undefined,
+              status: undefined,
+            }),
+          })
+        }
         value={archived ? 'archived' : 'current'}
       >
         <TabsList>
@@ -135,18 +140,31 @@ function ProductionOrders() {
           <TabsTrigger value="archived">Архивные</TabsTrigger>
         </TabsList>
       </Tabs>
-      <div className="mt-4">
-        <ProductionOrderFilters onQueryChange={setQueryInput} query={queryInput} />
+      <div className="mt-5">
+        <BatchFilters
+          onQueryChange={setQueryInput}
+          onStatusChange={(status) =>
+            navigate({
+              search: (previous) => ({
+                ...previous,
+                page: undefined,
+                status: status === 'all' ? undefined : status,
+              }),
+            })
+          }
+          query={queryInput}
+          status={search.status ?? 'all'}
+        />
       </div>
       <div className="mt-4">
         {!data ? (
           isError ? (
             <DataLoadError onRetry={() => void refetch()} />
           ) : (
-            <PendingProductionOrders />
+            <PendingBatches />
           )
         ) : data.items.length === 0 ? (
-          <EmptyState archived={archived} hasQuery={Boolean(search.q)} />
+          <EmptyState archived={archived} hasQuery={Boolean(search.q) || Boolean(search.status)} />
         ) : (
           <DataTable
             columns={columns}
@@ -180,17 +198,15 @@ function ProductionOrders() {
   )
 }
 
-function sortParams(
-  sorting: DataTableSorting,
-): Readonly<{ order: SortOrder; sort: ProductionOrderSort }> {
+function sortParams(sorting: DataTableSorting): Readonly<{ order: SortOrder; sort: BatchSort }> {
   const [current] = sorting
-  const sort = listEnum(productionOrderSorts, current?.id)
+  const sort = listEnum(batchSorts, current?.id)
   return sort
     ? { order: current?.desc ? 'desc' : 'asc', sort }
     : { order: 'desc', sort: 'created_at' }
 }
 
-function sortingFromSearch(search: ProductionOrdersSearch, archived: boolean): DataTableSorting {
+function sortingFromSearch(search: BatchesSearch, archived: boolean): DataTableSorting {
   const defaultSort = archived ? 'archived_at' : 'created_at'
   return [{ desc: search.order ? search.order === 'desc' : true, id: search.sort ?? defaultSort }]
 }
@@ -198,7 +214,7 @@ function sortingFromSearch(search: ProductionOrdersSearch, archived: boolean): D
 function searchForSorting(sorting: DataTableSorting, archived: boolean) {
   const [current] = sorting
   const defaultSort = archived ? 'archived_at' : 'created_at'
-  const sort = listEnum(productionOrderSorts, current?.id) ?? defaultSort
+  const sort = listEnum(batchSorts, current?.id) ?? defaultSort
   const desc = current?.desc ?? true
   return {
     order: desc ? undefined : 'asc',
@@ -211,14 +227,14 @@ function EmptyState({ archived, hasQuery }: Readonly<{ archived: boolean; hasQue
     <div className="flex min-h-56 items-center justify-center rounded-lg border border-dashed">
       <div className="flex flex-col gap-1 text-center">
         <p className="font-medium">
-          {hasQuery ? 'Ничего не найдено' : archived ? 'Архив пуст' : 'Заказов пока нет'}
+          {hasQuery ? 'Ничего не найдено' : archived ? 'Архив пуст' : 'Партий пока нет'}
         </p>
         <p className="text-sm text-muted-foreground">
           {hasQuery
             ? 'Попробуйте изменить параметры поиска.'
             : archived
-              ? 'Архивированные заказы появятся здесь.'
-              : 'Добавьте заказ, чтобы он появился в списке.'}
+              ? 'Архивированные партии появятся здесь.'
+              : 'Добавьте партию, чтобы она появилась в списке.'}
         </p>
       </div>
     </div>

@@ -55,7 +55,10 @@ const sections = [
   {
     label: 'Производство',
     icon: ClipboardListIcon,
-    items: [{ label: 'Заказы', to: '/admin/production-orders' }],
+    items: [
+      { label: 'Заказы', to: '/admin/production/production-orders' },
+      { label: 'Партии', to: '/admin/production/batches' },
+    ],
   },
   {
     label: 'Дефекты',

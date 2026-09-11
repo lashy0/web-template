@@ -44,6 +44,31 @@ describe('AdminNavigation', () => {
     expect(screen.queryByRole('link', { name: 'Список' })).not.toBeInTheDocument()
   })
 
+  it('lists production orders before batches', async () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockReturnValue({
+        matches: false,
+        addEventListener: vi.fn<() => void>(),
+        removeEventListener: vi.fn<() => void>(),
+      }),
+    )
+    const user = userEvent.setup()
+    render(
+      <SidebarProvider>
+        <AdminNavigation />
+      </SidebarProvider>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Производство' }))
+
+    const batches = screen.getByRole('link', { name: 'Партии' })
+    const orders = screen.getByRole('link', { name: 'Заказы' })
+    expect(batches).toHaveAttribute('href', '/admin/production/batches')
+    expect(orders).toHaveAttribute('href', '/admin/production/production-orders')
+    expect(orders.compareDocumentPosition(batches) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
   it('opens collapsed navigation on hover and keeps it open while entering the menu', async () => {
     vi.stubGlobal(
       'matchMedia',
