@@ -35,6 +35,15 @@ case-sensitive. Empty values are ignored, so the documented default is used inst
 Database settings are documented in [database.md](database.md#configuration).
 Redis settings are documented in [redis.md](redis.md#configuration).
 
+## Worker and realtime
+
+Celery and the standalone realtime application use the same `BACKEND_REDIS_*`
+settings as the backend. `BACKEND_REDIS_URL`, when set, remains the single
+connection URL for all three processes; otherwise the individual Redis fields
+are used. Celery namespaces its broker keys beneath
+`<BACKEND_REDIS_PREFIX>:celery:` and realtime publishes and subscribes on
+`<BACKEND_REDIS_PREFIX>:events`.
+
 ## CORS origins
 
 `BACKEND_CORS_ORIGINS` accepts one format: a JSON array of HTTP or HTTPS origins.

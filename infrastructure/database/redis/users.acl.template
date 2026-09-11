@@ -1,3 +1,19 @@
 user default off
+
+# Full administrative access for infrastructure maintenance.
 user web_app_admin reset on #__ADMIN_PASSWORD_HASH__ ~* &* +@all
-user web_app_runtime reset on #__RUNTIME_PASSWORD_HASH__ ~web-app:* resetchannels -@all +ping +client|setinfo +get +set +del +unlink +exists +expire +pexpire +ttl +pttl
+
+# Application runtime: only this application's Redis keys and channels.
+# The entrypoint joins these continuation lines into Redis's required single
+# user directive before starting the server.
+user web_app_runtime reset on #__RUNTIME_PASSWORD_HASH__ ~web-app:* &web-app:* -@all \
+  +ping +client|setinfo \
+  +get +set +del +unlink +exists \
+  +expire +pexpire +ttl +pttl \
+  +brpop +lpush +llen \
+  +sadd +srem +smembers \
+  +hset +hget +hdel +hgetall \
+  +zadd +zrem +zrangebyscore +zrevrangebyscore +zcard \
+  +multi +exec +watch +unwatch \
+  +script|load +evalsha \
+  +publish +subscribe +unsubscribe

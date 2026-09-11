@@ -72,11 +72,32 @@ Build application-owned keys with `build_redis_key()` so the configured prefix
 and key format remain consistent between reads, writes, and invalidation.
 
 Every session write must set a TTL. The runtime ACL is restricted to
-`web-app:*` and the small command set needed by TTL-backed sessions. It excludes
-flush, configuration, scripting, Pub/Sub, and all other keys.
+`web-app:*` keys and channels. In addition to the small command set needed by
+TTL-backed sessions, it allows the list, hash, sorted-set, transaction, and
+Pub/Sub commands required by realtime events and the Celery Redis broker.
+Celery remote control and gossip are disabled because this base worker does not
+need their pattern-Pub/Sub channels. It also permits `SCRIPT LOAD` and
+`EVALSHA`, which Kombu uses exclusively to
+release its visibility-timeout mutex when late acknowledgements are enabled.
+`EVAL`, flush, configuration, and keys outside this prefix remain excluded.
 
 The client explicitly uses RESP2 so its connection setup stays within the
 documented `PING` and `CLIENT SETINFO` ACL permissions.
+
+## Realtime events
+
+Both the backend and Celery tasks can publish a JSON event through the shared
+synchronous publisher. The standalone realtime service subscribes to this
+channel and forwards each message to all `/events` SSE clients.
+
+```python
+from app.infrastructure.redis.publisher import publish_event
+
+publish_event(
+    type="test.event",
+    data={"message": "hello"},
+)
+```
 
 ```python
 from redis.asyncio import Redis

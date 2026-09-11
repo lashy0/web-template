@@ -3,7 +3,7 @@
 set -euo pipefail
 
 if [[ "${BACKEND_DEBUG:-false}" == "true" ]]; then
-    echo "Debug mode enabled."
+    echo "API debug mode enabled."
     set -x
 fi
 
@@ -15,20 +15,18 @@ if [[ ! "$workers" =~ ^[1-9][0-9]*$ ]]; then
 fi
 
 if [[ "${BACKEND_RELOAD:-false}" == "true" ]]; then
-    echo "Starting backend with auto-reload..."
+    echo "Starting API with auto-reload..."
 
-    exec uvicorn app.main:create_app \
-        --factory \
+    exec uvicorn app.main:app \
         --host 0.0.0.0 \
         --port 8000 \
         --no-access-log \
         --reload
 fi
 
-echo "Starting backend with $workers worker(s)..."
+echo "Starting API with $workers worker(s)..."
 
-exec uvicorn app.main:create_app \
-    --factory \
+exec uvicorn app.main:app \
     --host 0.0.0.0 \
     --port 8000 \
     --workers "$workers" \

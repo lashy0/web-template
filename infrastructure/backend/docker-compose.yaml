@@ -41,7 +41,7 @@ services:
       <<: *backend-environment
       BACKEND_POSTGRES_MIGRATOR_PASSWORD: ${POSTGRES_MIGRATOR_PASSWORD:?POSTGRES_MIGRATOR_PASSWORD is required}
 
-  backend:
+  api:
     <<: *backend-image
     logging: *default-logging
     init: true
@@ -62,11 +62,55 @@ services:
     depends_on:
       prestart:
         condition: service_completed_successfully
-    command: ["bash", "scripts/start.sh"]
+    command: ["bash", "scripts/start-api.sh"]
     environment:
       <<: *backend-environment
       BACKEND_POSTGRES_PASSWORD: ${POSTGRES_RUNTIME_PASSWORD:?POSTGRES_RUNTIME_PASSWORD is required}
       BACKEND_REDIS_PASSWORD: ${REDIS_RUNTIME_PASSWORD:?REDIS_RUNTIME_PASSWORD is required}
+    healthcheck:
+      test: ["CMD", "python", "scripts/healthcheck.py"]
+      interval: 1m
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+      start_interval: 5s
+
+  worker:
+    <<: *backend-image
+    logging: *default-logging
+    init: true
+    env_file:
+      - ../../.env
+    networks:
+      - default
+      - web-database
+    command: ["bash", "scripts/start-worker.sh"]
+    environment:
+      <<: *backend-environment
+      BACKEND_REDIS_PASSWORD: ${REDIS_RUNTIME_PASSWORD:?REDIS_RUNTIME_PASSWORD is required}
+
+  realtime:
+    <<: *backend-image
+    logging: *default-logging
+    init: true
+    env_file:
+      - ../../.env
+    networks:
+      - default
+      - traefik-public
+      - web-database
+    labels:
+      traefik.enable: "true"
+      traefik.constraint-label: traefik-public
+      traefik.docker.network: traefik-public
+      traefik.http.routers.realtime.rule: "Host(`realtime.${BASE_DOMAIN:?BASE_DOMAIN is required}`)"
+      traefik.http.routers.realtime.entrypoints: http
+      traefik.http.services.realtime.loadbalancer.server.port: "8000"
+    command: ["bash", "scripts/start-realtime.sh"]
+    environment:
+      <<: *backend-environment
+      BACKEND_REDIS_PASSWORD: ${REDIS_RUNTIME_PASSWORD:?REDIS_RUNTIME_PASSWORD is required}
+      HEALTHCHECK_PATH: /health
     healthcheck:
       test: ["CMD", "python", "scripts/healthcheck.py"]
       interval: 1m

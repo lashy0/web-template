@@ -214,3 +214,6 @@ def create_app(
     install_error_handlers(app)
 
     return app
+
+
+app = create_app()

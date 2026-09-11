@@ -4,7 +4,7 @@ services:
     environment:
       BACKEND_DEBUG: "false"
 
-  backend:
+  api:
     image: "web-app-backend:${BACKEND_TAG:?BACKEND_TAG is required}"
     restart: unless-stopped
     labels:
@@ -22,3 +22,15 @@ services:
     environment:
       BACKEND_CORS_ORIGINS: "${BACKEND_CORS_ORIGINS:?BACKEND_CORS_ORIGINS is required}"
       BACKEND_DEBUG: "false"
+
+  worker:
+    image: "web-app-backend:${BACKEND_TAG:?BACKEND_TAG is required}"
+    restart: unless-stopped
+
+  realtime:
+    image: "web-app-backend:${BACKEND_TAG:?BACKEND_TAG is required}"
+    restart: unless-stopped
+    labels:
+      traefik.http.routers.realtime.entrypoints: https
+      traefik.http.routers.realtime.tls: "true"
+      traefik.http.routers.realtime.tls.certresolver: letsencrypt

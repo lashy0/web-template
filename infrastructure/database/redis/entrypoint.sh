@@ -25,7 +25,9 @@ mkdir -p "${ACL_DIRECTORY}"
 sed \
     -e "s/__ADMIN_PASSWORD_HASH__/${ADMIN_PASSWORD_HASH}/g" \
     -e "s/__RUNTIME_PASSWORD_HASH__/${RUNTIME_PASSWORD_HASH}/g" \
-    "${ACL_TEMPLATE}" >"${ACL_FILE}"
+    "${ACL_TEMPLATE}" \
+    | awk '/\\$/ { sub(/\\$/, ""); printf "%s ", $0; next } { print }' \
+    >"${ACL_FILE}"
 
 chown redis:redis "${ACL_DIRECTORY}" "${ACL_FILE}"
 

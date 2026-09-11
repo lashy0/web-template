@@ -3,7 +3,7 @@ services:
     environment:
       BACKEND_DEBUG: "true"
 
-  backend:
+  api:
     restart: "no"
     environment:
       BACKEND_DEBUG: "true"
@@ -20,6 +20,42 @@ services:
           target: /app/backend/alembic
 
         - action: sync
+          path: ../../apps/backend/scripts
+          target: /app/backend/scripts
+
+        - action: rebuild
+          path: ../../apps/backend/pyproject.toml
+
+        - action: rebuild
+          path: ../../apps/backend/uv.lock
+
+  worker:
+    restart: "no"
+    develop:
+      watch:
+        - action: sync+restart
+          path: ../../apps/backend/app
+          target: /app/backend/app
+
+        - action: sync+restart
+          path: ../../apps/backend/scripts
+          target: /app/backend/scripts
+
+        - action: rebuild
+          path: ../../apps/backend/pyproject.toml
+
+        - action: rebuild
+          path: ../../apps/backend/uv.lock
+
+  realtime:
+    restart: "no"
+    develop:
+      watch:
+        - action: sync+restart
+          path: ../../apps/backend/app
+          target: /app/backend/app
+
+        - action: sync+restart
           path: ../../apps/backend/scripts
           target: /app/backend/scripts
 
