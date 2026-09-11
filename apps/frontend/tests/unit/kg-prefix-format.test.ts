@@ -10,6 +10,6 @@ describe('normalizeDevEuiPrefix', () => {
 
 describe('formatDevEuiPrefix', () => {
   it('groups hexadecimal characters into bytes for display', () => {
-    expect(formatDevEuiPrefix('aabbccddee')).toBe('aa bb cc dd ee')
+    expect(formatDevEuiPrefix('aabbccddee')).toBe('AA BB CC DD EE')
   })
 })
