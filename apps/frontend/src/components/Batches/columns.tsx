@@ -1,4 +1,5 @@
 import { Badge } from '@web-app/ui/components/badge'
+import { Link } from '@tanstack/react-router'
 
 import { type DataTableColumn } from '@/components/Common/DataTable'
 import { batchStatusLabels, type Batch } from '@/features/batches/batches-api'
@@ -14,7 +15,13 @@ export function createBatchColumns(): readonly DataTableColumn<Batch>[] {
         const batch = row.original
         return (
           <div className="flex flex-col gap-1">
-            <span className="font-medium">{batch.name}</span>
+            <Link
+              className="font-medium hover:underline"
+              params={{ batchId: batch.id }}
+              to="/admin/production/batches/$batchId"
+            >
+              {batch.name}
+            </Link>
             <span className="text-muted-foreground">
               {batch.productionOrder ? `Заказ: ${batch.productionOrder.name}` : 'Без заказа'}
             </span>

@@ -1,5 +1,6 @@
 from datetime import datetime
 from enum import StrEnum
+from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from sqlalchemy import (
@@ -20,6 +21,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.infrastructure.database.base import Base
 from app.modules.pak.models import PakDevice
+
+if TYPE_CHECKING:
+    from app.modules.kg.models import KgUnit
 
 
 class VerificationSessionStatus(StrEnum):
@@ -69,6 +73,7 @@ class VerificationSession(Base):
         ),
         nullable=False,
     )
+    kg_unit: Mapped["KgUnit"] = relationship(back_populates="verification_sessions")
     pak: Mapped[PakDevice] = relationship(lazy="selectin")
     firmware_version: Mapped[str] = mapped_column(String(64), nullable=False)
     pak_id: Mapped[UUID] = mapped_column(

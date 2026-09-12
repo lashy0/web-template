@@ -43,6 +43,7 @@ export function DataTable<Row extends RowData>({
   onPaginationChange,
   onSortingChange,
   pagination,
+  showPageSize = true,
   sorting,
   total,
 }: Readonly<{
@@ -54,6 +55,7 @@ export function DataTable<Row extends RowData>({
   onPaginationChange: (pagination: DataTablePaginationState) => void
   onSortingChange: (sorting: DataTableSorting) => void
   pagination: DataTablePaginationState
+  showPageSize?: boolean
   sorting: DataTableSorting
   total: number
 }>) {
@@ -170,6 +172,7 @@ export function DataTable<Row extends RowData>({
           }
         }}
         pagination={pagination}
+        showPageSize={showPageSize}
         total={total}
       />
     </div>

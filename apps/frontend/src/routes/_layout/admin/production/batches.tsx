@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
+import { Outlet, createFileRoute } from '@tanstack/react-router'
 import { useEffect, useMemo, useState } from 'react'
 
 import { DataLoadError } from '@/components/Common/DataLoadError'
@@ -37,7 +37,7 @@ const batchSorts = [
 const batchStatuses = ['IN_PRODUCTION', 'COMPLETED'] as const
 
 export const Route = createFileRoute('/_layout/admin/production/batches')({
-  component: Batches,
+  component: BatchesRoute,
   pendingComponent: () => <PendingBatches showPageHeader />,
   validateSearch: validateBatchesSearch,
 })
@@ -73,7 +73,11 @@ export function validateBatchesSearch(search: Record<string, unknown>): BatchesS
   }
 }
 
-function Batches() {
+function BatchesRoute() {
+  return <Outlet />
+}
+
+export function Batches() {
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
   const archived = search.archived ?? false

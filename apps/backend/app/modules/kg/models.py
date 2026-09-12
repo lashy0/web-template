@@ -22,6 +22,7 @@ from app.infrastructure.database.base import Base
 
 if TYPE_CHECKING:
     from app.modules.batch.models import Batch
+    from app.modules.verification.models import VerificationSession
 
 
 class KgStatus(StrEnum):
@@ -84,6 +85,10 @@ class KgUnit(Base):
         uselist=False,
         lazy="noload",
         cascade="all, delete-orphan",
+    )
+    verification_sessions: Mapped[list["VerificationSession"]] = relationship(
+        back_populates="kg_unit",
+        lazy="noload",
     )
 
     __table_args__ = (

@@ -4,7 +4,7 @@ from fastapi import Request
 
 from ..models import KgDevEuiPrefix, KgUnit, KgVersion
 from ..schemas import KgDevEuiPrefixResponse, KgResponse, KgVersionResponse
-from ..schemas.unit import KgBatchSummaryResponse
+from ..schemas.unit import KgBatchListItem, KgBatchListItemResponse, KgBatchSummaryResponse
 from ..services import (
     KgDevEuiPrefixManagementService,
     KgManagementService,
@@ -24,6 +24,15 @@ def _response(kg: KgUnit) -> KgResponse:
         status=kg.status,
         created_at=kg.created_at,
         updated_at=kg.updated_at,
+    )
+
+
+def _batch_list_item_response(item: KgBatchListItem) -> KgBatchListItemResponse:
+    return KgBatchListItemResponse(
+        dev_eui=item.dev_eui,
+        status=item.status,
+        firmware_version=item.firmware_version,
+        last_verification_at=item.last_verification_at,
     )
 
 
@@ -60,12 +69,21 @@ def _version_response(
 
 
 def _service(request: Request) -> KgManagementService:
-    return cast(KgManagementService, request.app.state.kg_management)
+    return cast(
+        KgManagementService,
+        request.app.state.kg_management,
+    )
 
 
 def _prefix_service(request: Request) -> KgDevEuiPrefixManagementService:
-    return cast(KgDevEuiPrefixManagementService, request.app.state.kg_dev_eui_prefix_management)
+    return cast(
+        KgDevEuiPrefixManagementService,
+        request.app.state.kg_dev_eui_prefix_management,
+    )
 
 
 def _version_service(request: Request) -> KgVersionManagementService:
-    return cast(KgVersionManagementService, request.app.state.kg_version_management)
+    return cast(
+        KgVersionManagementService,
+        request.app.state.kg_version_management,
+    )

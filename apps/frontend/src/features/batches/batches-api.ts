@@ -2,6 +2,7 @@ import {
   batchCompleteBatch,
   batchCreateBatch,
   batchDeleteBatch,
+  batchGetBatch,
   batchListBatches,
   batchPreviewDevEuiRange,
   batchUpdateBatch,
@@ -130,6 +131,11 @@ export async function listBatches({
     pageSize: payload.page_size,
     total: payload.total,
   }
+}
+
+export async function getBatch(batchId: string): Promise<Batch> {
+  const result = await batchGetBatch({ path: { batch_id: batchId } })
+  return toBatch(requireData(result.data, result.response?.status, result.error))
 }
 
 export function batchErrorCode(error: unknown): string | undefined {

@@ -9,6 +9,7 @@ from app.auth.principal import CurrentPrincipal
 
 from ..models import KgDevEuiPrefix, KgStatus, KgUnit, KgVersion
 from ..repositories import KgDevEuiPrefixRepository, KgVersionRepository
+from ..schemas.unit import KgBatchListItem
 from .prefix import KgPrefixService as KgPrefixService
 from .transactions import transaction
 from .unit import KgService as KgService
@@ -48,6 +49,24 @@ class KgManagementService:
                 page_size=page_size,
                 sort=sort,
                 order=order,
+            )
+
+    async def list_batch_items(
+        self,
+        batch_id: UUID,
+        *,
+        page: int,
+        page_size: int,
+        q: str | None,
+        status: KgStatus | None,
+    ) -> tuple[list[KgBatchListItem], int]:
+        async with self._session_factory() as session:
+            return await KgService(session).list_batch_items(
+                batch_id,
+                page=page,
+                page_size=page_size,
+                q=q,
+                status=status,
             )
 
     async def set_status(

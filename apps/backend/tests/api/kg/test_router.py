@@ -19,6 +19,7 @@ from app.core.config import Settings
 from app.main import create_app
 from app.modules.batch.models import Batch
 from app.modules.kg.models import KgDevEuiPrefix, KgStatus, KgUnit, KgVersion
+from app.modules.kg.schemas.unit import KgBatchListItem
 
 _ALLOWED_ORIGIN = "https://admin.example"
 _SESSION_COOKIE = "ory_kratos_session=opaque"
@@ -144,6 +145,70 @@ def test_list_kg_serializes_items_and_forwards_filters(
         sort="dev_eui",
         order="asc",
     )
+
+
+@pytest.mark.api
+def test_list_kg_by_batch_serializes_latest_verification_data(
+    kg_client: tuple[FastAPI, TestClient],
+    mocker: MockerFixture,
+) -> None:
+    app, client = kg_client
+    batch_id = uuid4()
+    verified_at = datetime(2026, 9, 12, 10, 30, tzinfo=UTC)
+    item = KgBatchListItem(
+        dev_eui="a1b2c3d4e5f60708",
+        firmware_version="1.4.2",
+        last_verification_at=verified_at,
+        status=KgStatus.READY_FOR_PACKING,
+    )
+    service = SimpleNamespace(list_batch_items=AsyncMock(return_value=([item], 1)))
+    _configure_principal(app, mocker, service, Role.MANAGER)
+
+    response = client.get(
+        f"/kg/batch/{batch_id}?page=2&page_size=10&q=a1b2&status=READY_FOR_PACKING",
+        headers=_headers(),
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["items"][0] == {
+        "dev_eui": item.dev_eui,
+        "status": item.status.value,
+        "firmware_version": "1.4.2",
+        "last_verification_at": "2026-09-12T10:30:00Z",
+    }
+    assert response.json()["total"] == 1
+    assert response.json()["page"] == 2
+    assert response.json()["page_size"] == 10
+    service.list_batch_items.assert_awaited_once_with(
+        batch_id,
+        page=2,
+        page_size=10,
+        q="a1b2",
+        status=KgStatus.READY_FOR_PACKING,
+    )
+
+
+@pytest.mark.api
+def test_list_kg_by_batch_serializes_missing_verification_data_as_null(
+    kg_client: tuple[FastAPI, TestClient],
+    mocker: MockerFixture,
+) -> None:
+    app, client = kg_client
+    batch_id = uuid4()
+    item = KgBatchListItem(
+        dev_eui="a1b2c3d4e5f60708",
+        firmware_version=None,
+        last_verification_at=None,
+        status=KgStatus.REGISTERED,
+    )
+    service = SimpleNamespace(list_batch_items=AsyncMock(return_value=([item], 1)))
+    _configure_principal(app, mocker, service, Role.MANAGER)
+
+    response = client.get(f"/kg/batch/{batch_id}", headers=_headers())
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["items"][0]["firmware_version"] is None
+    assert response.json()["items"][0]["last_verification_at"] is None
 
 
 @pytest.mark.api

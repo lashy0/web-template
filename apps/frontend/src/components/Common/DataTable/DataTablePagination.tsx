@@ -17,11 +17,13 @@ export function DataTablePagination({
   loading,
   onPaginationChange,
   pagination,
+  showPageSize = true,
   total,
 }: Readonly<{
   loading: boolean
   onPaginationChange: (pagination: DataTablePaginationState) => void
   pagination: DataTablePaginationState
+  showPageSize?: boolean
   total: number
 }>) {
   const pageCount = Math.ceil(total / pagination.pageSize)
@@ -39,32 +41,34 @@ export function DataTablePagination({
         </span>
         {loading ? <Spinner className="size-4 text-muted-foreground" /> : null}
       </div>
-      <div className="flex items-center gap-x-2">
-        <p className="text-sm text-muted-foreground">Строк на странице</p>
-        <Select
-          disabled={loading}
-          onValueChange={(value) => {
-            const pageSize = Number(value)
-            if (isDataTablePageSize(pageSize)) {
-              onPaginationChange({ pageIndex: 0, pageSize })
-            }
-          }}
-          value={`${pagination.pageSize}`}
-        >
-          <SelectTrigger className="h-8 w-[70px] cursor-pointer disabled:cursor-not-allowed">
-            <SelectValue placeholder={pagination.pageSize} />
-          </SelectTrigger>
-          <SelectContent className="min-w-[70px]">
-            <SelectGroup>
-              {dataTablePageSizes.map((size) => (
-                <SelectItem key={size} value={`${size}`}>
-                  {size}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-      </div>
+      {showPageSize ? (
+        <div className="flex items-center gap-x-2">
+          <p className="text-sm text-muted-foreground">Строк на странице</p>
+          <Select
+            disabled={loading}
+            onValueChange={(value) => {
+              const pageSize = Number(value)
+              if (isDataTablePageSize(pageSize)) {
+                onPaginationChange({ pageIndex: 0, pageSize })
+              }
+            }}
+            value={`${pagination.pageSize}`}
+          >
+            <SelectTrigger className="h-8 w-[70px] cursor-pointer disabled:cursor-not-allowed">
+              <SelectValue placeholder={pagination.pageSize} />
+            </SelectTrigger>
+            <SelectContent className="min-w-[70px]">
+              <SelectGroup>
+                {dataTablePageSizes.map((size) => (
+                  <SelectItem key={size} value={`${size}`}>
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
+      ) : null}
       {pageCount > 1 ? (
         <div className="ml-auto flex items-center gap-x-2 @[48rem]:gap-x-1">
           <Button

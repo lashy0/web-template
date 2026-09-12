@@ -7,7 +7,12 @@ from .prefix import (
     UpdateKgDevEuiPrefixArchivedRequest,
     UpdateKgDevEuiPrefixRequest,
 )
-from .unit import KgListResponse, KgResponse
+from .unit import (
+    KgBatchListItemResponse,
+    KgBatchListResponse,
+    KgListResponse,
+    KgResponse,
+)
 from .version import (
     CreateKgVersionRequest,
     KgVersionListResponse,
@@ -25,6 +30,8 @@ __all__ = [
     "KgDevEuiPrefixListResponse",
     "KgDevEuiPrefixResponse",
     "KgDevEuiPrefixSummaryResponse",
+    "KgBatchListItemResponse",
+    "KgBatchListResponse",
     "KgListResponse",
     "KgResponse",
     "KgVersionListResponse",

@@ -12,6 +12,7 @@ from app.modules.verification.repositories import VerificationSessionRepository
 from ..exceptions import KgCannotBeDeletedError, KgNotFoundError
 from ..models import KgStatus, KgUnit
 from ..repositories import KgRepository
+from ..schemas.unit import KgBatchListItem
 from . import audit, lifecycle
 
 
@@ -82,6 +83,23 @@ class KgService:
             page_size=page_size,
             sort=sort,
             order=order,
+        )
+
+    async def list_batch_items(
+        self,
+        batch_id: UUID,
+        *,
+        page: int,
+        page_size: int,
+        q: str | None,
+        status: KgStatus | None,
+    ) -> tuple[list[KgBatchListItem], int]:
+        return await self._repository.list_batch_items(
+            batch_id,
+            page=page,
+            page_size=page_size,
+            q=q,
+            status=status,
         )
 
     async def set_status(

@@ -3,10 +3,13 @@ from __future__ import annotations
 from collections.abc import Sequence
 from uuid import UUID
 
-from sqlalchemy import ColumnElement, delete, exists, func, or_, select
+from sqlalchemy import ColumnElement, and_, delete, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.modules.verification.models import VerificationSession
+
 from ..models import KgStatus, KgUnit, LoRaWanCredentials
+from ..schemas.unit import KgBatchListItem
 
 
 class KgRepository:
@@ -57,7 +60,9 @@ class KgRepository:
         *,
         for_update: bool = False,
     ) -> list[KgUnit]:
-        statement = select(KgUnit).where(KgUnit.batch_id == batch_id).order_by(KgUnit.dev_eui.asc())
+        statement = select(KgUnit).where(
+            KgUnit.batch_id == batch_id,
+        ).order_by(KgUnit.dev_eui.asc())
 
         if for_update:
             statement = statement.with_for_update().execution_options(populate_existing=True)
@@ -65,6 +70,79 @@ class KgRepository:
         result = await self._session.execute(statement)
 
         return list(result.scalars())
+
+    async def list_batch_items(
+        self,
+        batch_id: UUID,
+        *,
+        page: int,
+        page_size: int,
+        q: str | None,
+        status: KgStatus | None,
+    ) -> tuple[list[KgBatchListItem], int]:
+        filters: list[ColumnElement[bool]] = [KgUnit.batch_id == batch_id]
+
+        if q:
+            filters.append(KgUnit.dev_eui.ilike(f"%{q.strip()}%"))
+
+        if status is not None:
+            filters.append(KgUnit.status == status)
+
+        latest_session_rank = (
+            select(
+                VerificationSession.id.label("id"),
+                VerificationSession.kg_dev_eui.label("kg_dev_eui"),
+                func.row_number()
+                .over(
+                    partition_by=VerificationSession.kg_dev_eui,
+                    order_by=(
+                        VerificationSession.started_at.desc(),
+                        VerificationSession.id.desc(),
+                    ),
+                )
+                .label("rank"),
+            )
+            .subquery()
+        )
+        statement = (
+            select(
+                KgUnit.dev_eui,
+                KgUnit.status,
+                VerificationSession.firmware_version,
+                VerificationSession.started_at,
+                func.count().over().label("total"),
+            )
+            .outerjoin(
+                latest_session_rank,
+                and_(
+                    latest_session_rank.c.rank == 1,
+                    KgUnit.dev_eui == latest_session_rank.c.kg_dev_eui,
+                ),
+            )
+            .outerjoin(
+                VerificationSession,
+                VerificationSession.id == latest_session_rank.c.id,
+            )
+            .where(*filters)
+            .order_by(KgUnit.dev_eui.asc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
+        result = await self._session.execute(statement)
+        rows = list(result.tuples())
+
+        return (
+            [
+                KgBatchListItem(
+                    dev_eui=dev_eui,
+                    status=status,
+                    firmware_version=firmware_version,
+                    last_verification_at=last_verification_at,
+                )
+                for dev_eui, status, firmware_version, last_verification_at, _ in rows
+            ],
+            rows[0][4] if rows else 0,
+        )
 
     async def list_without_credentials_by_batch(
         self,
