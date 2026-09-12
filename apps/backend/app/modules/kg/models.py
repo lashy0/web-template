@@ -25,27 +25,14 @@ if TYPE_CHECKING:
     from app.modules.verification.models import VerificationSession
 
 
-class KgStatus(StrEnum):
+class KgState(StrEnum):
     REGISTERED = "REGISTERED"
-
-    TESTING = "TESTING"
-    TEST_FAILED = "TEST_FAILED"
-
-    IN_ENGINEER_REPAIR = "IN_ENGINEER_REPAIR"
-    IN_PRODUCTION_REPAIR = "IN_PRODUCTION_REPAIR"
-
-    READY_FOR_RETEST = "READY_FOR_RETEST"
-
-    READY_FOR_PACKING = "READY_FOR_PACKING"
-    PACKED = "PACKED"
-    SHIPPED = "SHIPPED"
-
     SCRAPPED = "SCRAPPED"
 
 
-KG_STATUS_DB_TYPE = Enum(
-    KgStatus,
-    name="kg_status",
+KG_STATE_DB_TYPE = Enum(
+    KgState,
+    name="kg_state",
     native_enum=False,
     create_constraint=True,
     validate_strings=True,
@@ -64,10 +51,10 @@ class KgUnit(Base):
         ForeignKey("batches.id"),
         nullable=False,
     )
-    status: Mapped[KgStatus] = mapped_column(
-        KG_STATUS_DB_TYPE,
+    state: Mapped[KgState] = mapped_column(
+        KG_STATE_DB_TYPE,
         nullable=False,
-        default=KgStatus.REGISTERED,
+        default=KgState.REGISTERED,
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -97,7 +84,7 @@ class KgUnit(Base):
             name="dev_eui_format",
         ),
         Index("ix_kg_units_batch_id", "batch_id"),
-        Index("ix_kg_units_status", "status"),
+        Index("ix_kg_units_state", "state"),
     )
 
 
@@ -177,6 +164,4 @@ class KgVersion(Base):
         nullable=True,
     )
 
-    __table_args__ = (
-        Index("ix_kg_versions_archived_at", "archived_at"),
-    )
+    __table_args__ = (Index("ix_kg_versions_archived_at", "archived_at"),)

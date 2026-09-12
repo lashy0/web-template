@@ -6,9 +6,9 @@ from fastapi import APIRouter, Depends, Query, Request
 from app.api.auth_deps import CurrentPrincipalDep, require_permission
 
 from ..exceptions import KgNotFoundError
-from ..models import KgStatus
 from ..permissions import KgPermission
 from ..schemas import DevEui, KgBatchListResponse, KgListResponse, KgResponse
+from ..schemas.state import KgCurrentState
 from .common import _batch_list_item_response, _response, _service
 
 router = APIRouter()
@@ -23,7 +23,7 @@ async def list_kg_by_batch(
     ],
     request: Request,
     q: str | None = None,
-    status: KgStatus | None = None,
+    current_state: KgCurrentState | None = None,
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=25, ge=1, le=100),
 ) -> KgBatchListResponse:
@@ -32,7 +32,7 @@ async def list_kg_by_batch(
         page=page,
         page_size=page_size,
         q=q,
-        status=status,
+        current_state=current_state,
     )
 
     return KgBatchListResponse(
@@ -52,13 +52,13 @@ async def list_kg(
     request: Request,
     q: str | None = None,
     batch_id: UUID | None = None,
-    status: KgStatus | None = None,
+    current_state: KgCurrentState | None = None,
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=25, ge=1, le=100),
     sort: Literal[
         "dev_eui",
         "batch_id",
-        "status",
+        "current_state",
         "created_at",
         "updated_at",
     ] = "created_at",
@@ -67,7 +67,7 @@ async def list_kg(
     kg_units, total = await _service(request).list(
         q=q,
         batch_id=batch_id,
-        status=status,
+        current_state=current_state,
         page=page,
         page_size=page_size,
         sort=sort,
@@ -75,7 +75,10 @@ async def list_kg(
     )
 
     return KgListResponse(
-        items=[_response(kg) for kg in kg_units],
+        items=[
+            _response(item.kg, current_state=item.current_state)
+            for item in kg_units
+        ],
         total=total,
         page=page,
         page_size=page_size,
@@ -91,9 +94,12 @@ async def get_kg(
     ],
     request: Request,
 ) -> KgResponse:
-    kg = await _service(request).get(dev_eui=dev_eui)
+    item = await _service(request).get_with_current_state(dev_eui=dev_eui)
 
-    if kg is None:
+    if item is None:
         raise KgNotFoundError
 
-    return _response(kg)
+    return _response(
+        item.kg,
+        current_state=item.current_state,
+    )

@@ -4,8 +4,6 @@ from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.modules.kg.services import KgService
-
 from ..repositories import (
     VerificationSessionRepository,
     VerificationStepRepository,
@@ -43,8 +41,6 @@ class VerificationCleanupService:
             async with transaction(self._session_factory) as session:
                 verification_repository = VerificationSessionRepository(session)
                 step_repository = VerificationStepRepository(session)
-                kg_service = KgService(session)
-
                 stale_sessions = await verification_repository.list_stale_running_for_update(
                     cutoff=cutoff,
                     limit=batch_size,
@@ -53,13 +49,10 @@ class VerificationCleanupService:
                 if not stale_sessions:
                     return total_expired
 
-                await kg_service.lock_for_update([item.kg_dev_eui for item in stale_sessions])
-
                 for verification_session in stale_sessions:
                     await VerificationSessionService(session).close_incomplete(
                         verification_repository,
                         step_repository,
-                        kg_service,
                         verification_session,
                         completed_at=now,
                     )

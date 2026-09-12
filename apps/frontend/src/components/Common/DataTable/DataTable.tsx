@@ -13,6 +13,7 @@ import { useRef } from 'react'
 import { DataTableColumnHeader } from './DataTableColumnHeader'
 import { DataTablePagination } from './DataTablePagination'
 import type { DataTablePaginationState, DataTableSorting } from './DataTable.types'
+import { cn } from '@web-app/ui/lib/utils'
 import {
   Table,
   TableBody,
@@ -92,14 +93,18 @@ export function DataTable<Row extends RowData>({
     },
     (state) => ({ pagination: state.pagination, sorting: state.sorting }),
   )
-  const tableClassName = fixedLayout
-    ? `min-w-[48rem] ${loading ? 'opacity-60 ' : ''}table-fixed border-collapse`
-    : `min-w-[45rem] md:min-w-0 ${loading ? 'opacity-60 ' : ''}xl:border-separate xl:border-spacing-0`
+  const tableClassName = cn(
+    'rounded-lg border',
+    loading && 'opacity-60',
+    fixedLayout
+      ? 'min-w-[48rem] table-fixed border-collapse'
+      : 'min-w-[45rem] md:min-w-0 xl:border-separate xl:border-spacing-0',
+  )
 
   return (
     <div aria-busy={loading} className="flex flex-col gap-4" ref={tableRef}>
-      <Table className={tableClassName} containerClassName="xl:overflow-visible">
-        <TableHeader className="xl:bg-transparent">
+      <Table className={tableClassName}>
+        <TableHeader className="bg-muted/50 xl:bg-transparent">
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow className="hover:bg-transparent" key={headerGroup.id}>
               {headerGroup.headers.map((header) => {
@@ -117,7 +122,10 @@ export function DataTable<Row extends RowData>({
                             : 'none'
                         : undefined
                     }
-                    className={`xl:sticky xl:top-0 xl:z-10 xl:bg-muted xl:first:rounded-tl-lg xl:last:rounded-tr-lg ${header.column.columnDef.meta?.widthClassName ?? ''}`}
+                    className={cn(
+                      'h-11 px-4 text-sm font-semibold text-muted-foreground xl:sticky xl:top-0 xl:z-10 xl:bg-muted xl:first:rounded-tl-lg xl:last:rounded-tr-lg',
+                      header.column.columnDef.meta?.widthClassName,
+                    )}
                     key={header.id}
                   >
                     {header.isPlaceholder ? null : canSort ? (
@@ -145,7 +153,7 @@ export function DataTable<Row extends RowData>({
             table.getRowModel().rows.map((row) => (
               <TableRow className={getRowClassName?.(row.original)} key={row.id}>
                 {row.getAllCells().map((cell) => (
-                  <TableCell key={cell.id}>
+                  <TableCell className="px-4 py-3" key={cell.id}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>
                 ))}

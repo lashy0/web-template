@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.auth.principal import CurrentPrincipal
 from app.modules.audit.service import AuditService
 from app.modules.kg.exceptions import KgVersionNotFoundError
-from app.modules.kg.models import KgStatus, KgUnit
+from app.modules.kg.models import KgState, KgUnit
 from app.modules.kg.repositories import KgVersionRepository
 from app.modules.kg.services import KgPrefixService, KgService
 from app.modules.lorawan.domain import ActivationType, LoRaWanVersion
@@ -100,7 +100,7 @@ class BatchService:
                             ),
                             select(KgUnit.batch_id).where(
                                 KgUnit.batch_id.in_(batch_ids),
-                                KgUnit.status != KgStatus.REGISTERED,
+                                KgUnit.state != KgState.REGISTERED,
                             ),
                             select(KgUnit.batch_id)
                             .join(

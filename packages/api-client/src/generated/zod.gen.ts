@@ -235,6 +235,42 @@ export const zKgBatchSummaryResponse = z.object({
 });
 
 /**
+ * KgCurrentState
+ *
+ * Presentation state derived from independently owned process states.
+ */
+export const zKgCurrentState = z.enum([
+    'REGISTERED',
+    'ON_OTK',
+    'OTK_PASSED',
+    'OTK_FAILED',
+    'IN_REPAIR',
+    'PACKED',
+    'SHIPPED',
+    'SCRAPPED'
+]);
+
+/**
+ * KgBatchListItemResponse
+ */
+export const zKgBatchListItemResponse = z.object({
+    current_state: zKgCurrentState,
+    dev_eui: z.string(),
+    firmware_version: z.string().nullable(),
+    last_verification_at: z.iso.datetime().nullable()
+});
+
+/**
+ * KgBatchListResponse
+ */
+export const zKgBatchListResponse = z.object({
+    items: z.array(zKgBatchListItemResponse),
+    page: z.int(),
+    page_size: z.int(),
+    total: z.int()
+});
+
+/**
  * KgDevEuiPrefixResponse
  */
 export const zKgDevEuiPrefixResponse = z.object({
@@ -266,40 +302,9 @@ export const zKgDevEuiPrefixSummaryResponse = z.object({
 });
 
 /**
- * KgStatus
+ * KgState
  */
-export const zKgStatus = z.enum([
-    'REGISTERED',
-    'TESTING',
-    'TEST_FAILED',
-    'IN_ENGINEER_REPAIR',
-    'IN_PRODUCTION_REPAIR',
-    'READY_FOR_RETEST',
-    'READY_FOR_PACKING',
-    'PACKED',
-    'SHIPPED',
-    'SCRAPPED'
-]);
-
-/**
- * KgBatchListItemResponse
- */
-export const zKgBatchListItemResponse = z.object({
-    dev_eui: z.string(),
-    firmware_version: z.string().nullable(),
-    last_verification_at: z.iso.datetime().nullable(),
-    status: zKgStatus
-});
-
-/**
- * KgBatchListResponse
- */
-export const zKgBatchListResponse = z.object({
-    items: z.array(zKgBatchListItemResponse),
-    page: z.int(),
-    page_size: z.int(),
-    total: z.int()
-});
+export const zKgState = z.enum(['REGISTERED', 'SCRAPPED']);
 
 /**
  * KgResponse
@@ -308,9 +313,10 @@ export const zKgResponse = z.object({
     batch: zKgBatchSummaryResponse,
     batch_id: z.uuid(),
     created_at: z.iso.datetime(),
+    current_state: zKgCurrentState,
     dev_eui: z.string(),
     short_id: z.string(),
-    status: zKgStatus,
+    state: zKgState,
     updated_at: z.iso.datetime()
 });
 
@@ -1327,13 +1333,13 @@ export const zDefectsUpdateDefectTypeArchivedResponse = zDefectTypeResponse;
 export const zKgListKgQuery = z.object({
     q: z.string().nullish(),
     batch_id: z.uuid().nullish(),
-    status: zKgStatus.nullish(),
+    current_state: zKgCurrentState.nullish(),
     page: z.int().gte(1).optional().default(1),
     page_size: z.int().gte(1).lte(100).optional().default(25),
     sort: z.enum([
         'dev_eui',
         'batch_id',
-        'status',
+        'current_state',
         'created_at',
         'updated_at'
     ]).optional().default('created_at'),
@@ -1351,7 +1357,7 @@ export const zKgListKgByBatchPath = z.object({
 
 export const zKgListKgByBatchQuery = z.object({
     q: z.string().nullish(),
-    status: zKgStatus.nullish(),
+    current_state: zKgCurrentState.nullish(),
     page: z.int().gte(1).optional().default(1),
     page_size: z.int().gte(1).lte(100).optional().default(25)
 });

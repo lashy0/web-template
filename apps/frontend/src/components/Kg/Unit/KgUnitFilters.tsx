@@ -15,9 +15,9 @@ import {
   SelectValue,
 } from '@web-app/ui/components/select'
 
-import { kgStatusFilterOptions, type KgStatus } from '@/features/kg/kg-api'
+import { kgCurrentStateFilterOptions, type KgCurrentState } from '@/features/kg/kg-api'
 
-type StatusFilter = KgStatus | 'all'
+type StatusFilter = KgCurrentState | 'all'
 
 export function KgUnitFilters({
   onQueryChange,
@@ -30,7 +30,7 @@ export function KgUnitFilters({
   query: string
   status: StatusFilter
 }>) {
-  const statusLabel = kgStatusFilterOptions.find((item) => item.value === status)?.label
+  const statusLabel = kgCurrentStateFilterOptions.find((item) => item.value === status)?.label
 
   return (
     <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
@@ -62,7 +62,7 @@ export function KgUnitFilters({
         </SelectTrigger>
         <SelectContent>
           <SelectGroup>
-            {kgStatusFilterOptions.map((item) => (
+            {kgCurrentStateFilterOptions.map((item) => (
               <SelectItem key={item.value} value={item.value}>
                 {item.label}
               </SelectItem>

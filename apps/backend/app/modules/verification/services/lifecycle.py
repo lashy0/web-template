@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-from app.modules.kg.models import KgStatus
 from app.modules.pak.models import PakDevice
 
 from ..exceptions import (
@@ -47,19 +46,6 @@ def is_reopen_stale(
     reopen_inactivity: timedelta,
 ) -> bool:
     return now - verification_session.last_activity_at >= reopen_inactivity
-
-
-def kg_status_after_completion(status: VerificationSessionStatus) -> KgStatus:
-    if status == VerificationSessionStatus.PASSED:
-        return KgStatus.READY_FOR_PACKING
-
-    if status == VerificationSessionStatus.FAILED:
-        return KgStatus.TEST_FAILED
-
-    if status == VerificationSessionStatus.ABORTED:
-        return KgStatus.READY_FOR_RETEST
-
-    raise ValueError("Unsupported verification completion status")
 
 
 def same_step_result(

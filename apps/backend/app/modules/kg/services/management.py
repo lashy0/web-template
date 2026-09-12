@@ -7,8 +7,10 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.auth.principal import CurrentPrincipal
 
-from ..models import KgDevEuiPrefix, KgStatus, KgUnit, KgVersion
+from ..models import KgDevEuiPrefix, KgState, KgUnit, KgVersion
 from ..repositories import KgDevEuiPrefixRepository, KgVersionRepository
+from ..repositories.unit import KgListItem
+from ..schemas.state import KgCurrentState
 from ..schemas.unit import KgBatchListItem
 from .prefix import KgPrefixService as KgPrefixService
 from .transactions import transaction
@@ -25,26 +27,26 @@ class KgManagementService:
     ) -> None:
         self._session_factory = session_factory
 
-    async def get(self, dev_eui: str) -> KgUnit | None:
+    async def get_with_current_state(self, dev_eui: str) -> KgListItem | None:
         async with self._session_factory() as session:
-            return await KgService(session).get(dev_eui)
+            return await KgService(session).get_with_current_state(dev_eui)
 
     async def list(
         self,
         *,
         q: str | None,
         batch_id: UUID | None,
-        status: KgStatus | None,
+        current_state: KgCurrentState | None,
         page: int,
         page_size: int,
         sort: str,
         order: str,
-    ) -> tuple[list[KgUnit], int]:
+    ) -> tuple[list[KgListItem], int]:
         async with self._session_factory() as session:
             return await KgService(session).list(
                 q=q,
                 batch_id=batch_id,
-                status=status,
+                current_state=current_state,
                 page=page,
                 page_size=page_size,
                 sort=sort,
@@ -58,7 +60,7 @@ class KgManagementService:
         page: int,
         page_size: int,
         q: str | None,
-        status: KgStatus | None,
+        current_state: KgCurrentState | None,
     ) -> tuple[list[KgBatchListItem], int]:
         async with self._session_factory() as session:
             return await KgService(session).list_batch_items(
@@ -66,23 +68,23 @@ class KgManagementService:
                 page=page,
                 page_size=page_size,
                 q=q,
-                status=status,
+                current_state=current_state,
             )
 
-    async def set_status(
+    async def set_state(
         self,
         *,
         actor: CurrentPrincipal,
         dev_eui: str,
-        status: KgStatus,
+        state: KgState,
     ) -> KgUnit:
         async with transaction(self._session_factory) as session:
             return await KgService(
                 session,
-            ).set_status(
+            ).set_state(
                 actor=actor,
                 dev_eui=dev_eui,
-                status=status,
+                state=state,
             )
 
     async def delete(

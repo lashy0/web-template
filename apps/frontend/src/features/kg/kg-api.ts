@@ -1,42 +1,38 @@
 import {
   kgListKgByBatch,
   type KgBatchListItemResponse,
-  type KgStatus as ApiKgStatus,
+  type KgCurrentState as ApiKgCurrentState,
 } from '@web-app/api-client'
 
-export type KgStatus = ApiKgStatus
+export type KgCurrentState = ApiKgCurrentState
 
-export const kgStatuses = [
-  'IN_ENGINEER_REPAIR',
-  'IN_PRODUCTION_REPAIR',
+export const kgCurrentStates = [
+  'IN_REPAIR',
+  'ON_OTK',
+  'OTK_FAILED',
+  'OTK_PASSED',
   'PACKED',
-  'READY_FOR_PACKING',
-  'READY_FOR_RETEST',
   'REGISTERED',
   'SCRAPPED',
   'SHIPPED',
-  'TEST_FAILED',
-  'TESTING',
-] as const satisfies readonly KgStatus[]
+] as const satisfies readonly KgCurrentState[]
 
-export const kgStatusLabels: Readonly<Record<KgStatus, string>> = {
-  IN_ENGINEER_REPAIR: 'Инженерный ремонт',
-  IN_PRODUCTION_REPAIR: 'Производственный ремонт',
+export const kgCurrentStateLabels: Readonly<Record<KgCurrentState, string>> = {
+  IN_REPAIR: 'В ремонте',
+  ON_OTK: 'На ОТК',
+  OTK_FAILED: 'ОТК не пройдена',
+  OTK_PASSED: 'ОТК пройдена',
   PACKED: 'Упакована',
-  READY_FOR_PACKING: 'Готова к упаковке',
-  READY_FOR_RETEST: 'Готова к повторной ОТК',
   REGISTERED: 'Зарегистрирована',
   SCRAPPED: 'Списана',
   SHIPPED: 'Отгружена',
-  TEST_FAILED: 'ОТК не пройдена',
-  TESTING: 'На ОТК',
 }
 
-export const kgStatusFilterOptions: readonly Readonly<{
+export const kgCurrentStateFilterOptions: readonly Readonly<{
   label: string
-  value: KgStatus | 'all'
-}>[] = [{ label: 'Все статусы', value: 'all' }, ...kgStatuses.map((value) => ({
-  label: kgStatusLabels[value],
+  value: KgCurrentState | 'all'
+}>[] = [{ label: 'Все состояния', value: 'all' }, ...kgCurrentStates.map((value) => ({
+  label: kgCurrentStateLabels[value],
   value,
 }))]
 
@@ -44,7 +40,7 @@ export type Kg = Readonly<{
   devEui: string
   firmwareVersion: string | null
   lastVerificationAt: string | null
-  status: KgStatus
+  currentState: KgCurrentState
 }>
 
 export type KgList = Readonly<{
@@ -69,17 +65,17 @@ export async function listKgByBatch({
   page,
   pageSize,
   query,
-  status,
+  currentState,
 }: Readonly<{
   batchId: string
   page: number
   pageSize: number
   query?: string
-  status?: KgStatus
+  currentState?: KgCurrentState
 }>): Promise<KgList> {
   const result = await kgListKgByBatch({
     path: { batch_id: batchId },
-    query: { page, page_size: pageSize, q: query || undefined, status },
+    query: { page, page_size: pageSize, q: query || undefined, current_state: currentState },
   })
   if (result.data === undefined) throw new KgRequestError()
 
@@ -96,6 +92,6 @@ function toKg(kg: KgBatchListItemResponse): Kg {
     devEui: kg.dev_eui,
     firmwareVersion: kg.firmware_version ?? null,
     lastVerificationAt: kg.last_verification_at ?? null,
-    status: kg.status,
+    currentState: kg.current_state,
   }
 }

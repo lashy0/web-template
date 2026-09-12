@@ -4,8 +4,9 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from ..models import KgStatus
+from ..models import KgState
 from .common import DevEui
+from .state import KgCurrentState
 
 
 class KgBatchSummaryResponse(BaseModel):
@@ -18,7 +19,8 @@ class KgResponse(BaseModel):
     short_id: str
     batch_id: UUID
     batch: KgBatchSummaryResponse
-    status: KgStatus
+    state: KgState
+    current_state: KgCurrentState
     created_at: datetime
     updated_at: datetime
 
@@ -32,7 +34,7 @@ class KgListResponse(BaseModel):
 
 class KgBatchListItemResponse(BaseModel):
     dev_eui: DevEui
-    status: KgStatus
+    current_state: KgCurrentState
     firmware_version: str | None
     last_verification_at: datetime | None
 
@@ -40,7 +42,7 @@ class KgBatchListItemResponse(BaseModel):
 @dataclass(frozen=True, slots=True)
 class KgBatchListItem:
     dev_eui: str
-    status: KgStatus
+    current_state: KgCurrentState
     firmware_version: str | None
     last_verification_at: datetime | None
 

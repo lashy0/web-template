@@ -4,6 +4,7 @@ from fastapi import Request
 
 from ..models import KgDevEuiPrefix, KgUnit, KgVersion
 from ..schemas import KgDevEuiPrefixResponse, KgResponse, KgVersionResponse
+from ..schemas.state import KgCurrentState
 from ..schemas.unit import KgBatchListItem, KgBatchListItemResponse, KgBatchSummaryResponse
 from ..services import (
     KgDevEuiPrefixManagementService,
@@ -12,7 +13,11 @@ from ..services import (
 )
 
 
-def _response(kg: KgUnit) -> KgResponse:
+def _response(
+    kg: KgUnit,
+    *,
+    current_state: KgCurrentState,
+) -> KgResponse:
     return KgResponse(
         dev_eui=kg.dev_eui,
         short_id=kg.short_id,
@@ -21,7 +26,8 @@ def _response(kg: KgUnit) -> KgResponse:
             id=kg.batch.id,
             name=kg.batch.name,
         ),
-        status=kg.status,
+        state=kg.state,
+        current_state=current_state,
         created_at=kg.created_at,
         updated_at=kg.updated_at,
     )
@@ -30,7 +36,7 @@ def _response(kg: KgUnit) -> KgResponse:
 def _batch_list_item_response(item: KgBatchListItem) -> KgBatchListItemResponse:
     return KgBatchListItemResponse(
         dev_eui=item.dev_eui,
-        status=item.status,
+        current_state=item.current_state,
         firmware_version=item.firmware_version,
         last_verification_at=item.last_verification_at,
     )

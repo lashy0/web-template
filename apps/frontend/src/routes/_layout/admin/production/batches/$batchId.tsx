@@ -18,7 +18,12 @@ import { KgUnitFilters } from '@/components/Kg/Unit/KgUnitFilters'
 import { PendingKgUnits } from '@/components/Kg/Unit/PendingKgUnits'
 import { KgUnitTable } from '@/components/Kg/Unit/KgUnitTable'
 import { getBatch } from '@/features/batches/batches-api'
-import { kgQueryKeys, kgStatuses, listKgByBatch, type KgStatus } from '@/features/kg/kg-api'
+import {
+  kgCurrentStates,
+  kgQueryKeys,
+  listKgByBatch,
+  type KgCurrentState,
+} from '@/features/kg/kg-api'
 import { listEnum, listPage, listQuery } from '@/lib/list-search'
 
 const KG_PAGE_SIZE = 10
@@ -31,14 +36,14 @@ export const Route = createFileRoute('/_layout/admin/production/batches/$batchId
 type BatchPageSearch = Readonly<{
   page?: number
   q?: string
-  unitStatus?: KgStatus
+  unitStatus?: KgCurrentState
 }>
 
 function validateBatchPageSearch(search: Record<string, unknown>): BatchPageSearch {
   return {
     page: listPage(search.page),
     q: listQuery(search.q),
-    unitStatus: listEnum(kgStatuses, search.unitStatus),
+    unitStatus: listEnum(kgCurrentStates, search.unitStatus),
   }
 }
 
@@ -77,7 +82,7 @@ function BatchPage() {
         page: pagination.pageIndex + 1,
         pageSize: pagination.pageSize,
         query: search.q,
-        status: status === 'all' ? undefined : status,
+        currentState: status === 'all' ? undefined : status,
       }),
     queryKey: kgQueryKeys.batch({
       batchId,

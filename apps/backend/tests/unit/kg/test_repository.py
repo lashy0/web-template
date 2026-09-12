@@ -4,8 +4,8 @@ from uuid import uuid4
 
 import pytest
 
-from app.modules.kg.models import KgStatus
 from app.modules.kg.repositories import KgRepository
+from app.modules.kg.schemas.state import KgCurrentState
 
 
 @pytest.mark.unit
@@ -15,14 +15,14 @@ async def test_list_batch_items_returns_latest_session_data_in_one_query() -> No
         tuples=lambda: [
             (
                 "a1b2c3d4e5f60708",
-                KgStatus.READY_FOR_PACKING,
+                KgCurrentState.OTK_PASSED,
                 "1.4.2",
                 None,
                 2,
             ),
             (
                 "a1b2c3d4e5f60709",
-                KgStatus.REGISTERED,
+                KgCurrentState.REGISTERED,
                 None,
                 None,
                 2,
@@ -36,11 +36,13 @@ async def test_list_batch_items_returns_latest_session_data_in_one_query() -> No
         page=1,
         page_size=25,
         q=None,
-        status=None,
+        current_state=None,
     )
 
     assert [item.dev_eui for item in items] == ["a1b2c3d4e5f60708", "a1b2c3d4e5f60709"]
     assert items[0].firmware_version == "1.4.2"
+    assert items[0].current_state is KgCurrentState.OTK_PASSED
+    assert items[1].current_state is KgCurrentState.REGISTERED
     assert items[1].firmware_version is None
     assert items[1].last_verification_at is None
     assert total == 2

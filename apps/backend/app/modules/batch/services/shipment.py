@@ -8,8 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.auth.principal import CurrentPrincipal
 from app.modules.audit.service import AuditService
-from app.modules.kg.exceptions import KgInvalidStateError
-from app.modules.kg.services import KgService
+from app.modules.kg.repositories import KgRepository
 
 from ..exceptions import (
     BatchShipmentEmptyError,
@@ -241,7 +240,10 @@ class ShipmentService:
                 edit_window=self._edit_window,
             )
 
-            kg = await KgService(session).require_packed(dev_eui, batch_id=batch.id)
+            kg = await KgRepository(session).get_by_dev_eui(dev_eui, for_update=True)
+
+            if kg is None or kg.batch_id != batch.id:
+                raise BatchShipmentKgStateConflictError
 
             existing_shipment = await shipment_repository.find_non_voided_by_kg(kg.dev_eui)
 
@@ -357,10 +359,6 @@ class ShipmentService:
             if not items:
                 raise BatchShipmentEmptyError
 
-            dev_euis = [item.kg_dev_eui for item in items]
-
-            await KgService(session).mark_shipped(dev_euis, batch_id=batch.id)
-
             completed_at = datetime.now(UTC)
 
             shipment = await shipment_repository.complete(
@@ -419,15 +417,6 @@ class ShipmentService:
             )
 
             items = await shipment_repository.list_items(shipment.id)
-
-            if shipment.completed_at is not None and items:
-                dev_euis = [item.kg_dev_eui for item in items]
-
-                try:
-                    await KgService(session).return_to_packed(dev_euis, batch_id=batch.id)
-
-                except KgInvalidStateError as exc:
-                    raise BatchShipmentKgStateConflictError from exc
 
             voided_at = datetime.now(UTC)
 

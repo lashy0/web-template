@@ -10,8 +10,10 @@ from app.modules.audit.service import AuditService
 from app.modules.verification.repositories import VerificationSessionRepository
 
 from ..exceptions import KgCannotBeDeletedError, KgNotFoundError
-from ..models import KgStatus, KgUnit
+from ..models import KgState, KgUnit
 from ..repositories import KgRepository
+from ..repositories.unit import KgListItem
+from ..schemas.state import KgCurrentState
 from ..schemas.unit import KgBatchListItem
 from . import audit, lifecycle
 
@@ -24,7 +26,6 @@ class KgService:
         self._repository = KgRepository(session)
 
     async def lock_for_update(self, dev_euis: Sequence[str]) -> list[KgUnit]:
-        """Lock all affected KG in DevEUI order before changing several units."""
         return await self._repository.get_many_by_dev_euis(dev_euis, for_update=True)
 
     async def begin_verification(self, dev_eui: str) -> KgUnit:
@@ -32,53 +33,29 @@ class KgService:
 
         lifecycle.ensure_verification_ready(kg)
 
-        await self._repository.update_status(kg, status=KgStatus.TESTING)
-
         return kg
-
-    async def finish_verification(
-        self,
-        dev_eui: str,
-        *,
-        status: KgStatus,
-    ) -> KgUnit:
-        kg = await self._required_kg(self._repository, dev_eui)
-
-        lifecycle.ensure_verification_completion_allowed(kg, status)
-
-        await self._repository.update_status(kg, status=status)
-
-        return kg
-
-    async def release_incomplete_verification(self, dev_eui: str) -> None:
-        kg = await self._repository.get_by_dev_eui(dev_eui, for_update=True)
-
-        # Preserve explicit administrative corrections made while the run was active.
-        if kg is not None and kg.status == KgStatus.TESTING:
-            await self._repository.update_status(kg, status=KgStatus.READY_FOR_RETEST)
 
     async def get(self, dev_eui: str) -> KgUnit | None:
-        session = self._session
+        return await self._repository.get_by_dev_eui(dev_eui)
 
-        return await KgRepository(session).get_by_dev_eui(dev_eui)
+    async def get_with_current_state(self, dev_eui: str) -> KgListItem | None:
+        return await self._repository.get_with_current_state(dev_eui)
 
     async def list(
         self,
         *,
         q: str | None,
         batch_id: UUID | None,
-        status: KgStatus | None,
+        current_state: KgCurrentState | None,
         page: int,
         page_size: int,
         sort: str,
         order: str,
-    ) -> tuple[list[KgUnit], int]:
-        session = self._session
-
-        return await KgRepository(session).search(
+    ) -> tuple[list[KgListItem], int]:
+        return await self._repository.search(
             q=q,
             batch_id=batch_id,
-            status=status,
+            current_state=current_state,
             page=page,
             page_size=page_size,
             sort=sort,
@@ -92,45 +69,37 @@ class KgService:
         page: int,
         page_size: int,
         q: str | None,
-        status: KgStatus | None,
+        current_state: KgCurrentState | None,
     ) -> tuple[list[KgBatchListItem], int]:
         return await self._repository.list_batch_items(
             batch_id,
             page=page,
             page_size=page_size,
             q=q,
-            status=status,
+            current_state=current_state,
         )
 
-    async def set_status(
+    async def set_state(
         self,
         *,
         actor: CurrentPrincipal,
         dev_eui: str,
-        status: KgStatus,
+        state: KgState,
     ) -> KgUnit:
-        session = self._session
-        repository = KgRepository(session)
+        kg = await self._required_kg(self._repository, dev_eui)
 
-        kg = await self._required_kg(repository, dev_eui)
-
-        if kg.status == status:
+        if kg.state is state:
             return kg
 
-        old_status = kg.status
+        old_state = kg.state
+        kg = await self._repository.update_state(kg, state=state)
 
-        kg = await repository.update_status(kg, status=status)
-
-        await AuditService.from_session(session).record(
+        await AuditService.from_session(self._session).record(
             actor=audit.actor_identity(actor),
-            action="kg.status_changed",
+            action="kg.state_changed",
             entity=audit.unit_entity(kg),
-            old_data={
-                "status": old_status.value,
-            },
-            new_data={
-                "status": kg.status.value,
-            },
+            old_data={"state": old_state.value},
+            new_data={"state": kg.state.value},
         )
 
         return kg
@@ -141,34 +110,27 @@ class KgService:
         actor: CurrentPrincipal,
         dev_eui: str,
     ) -> None:
-        session = self._session
-        repository = KgRepository(session)
-
-        kg = await self._required_kg(repository, dev_eui)
-
+        kg = await self._required_kg(self._repository, dev_eui)
         lifecycle.ensure_can_delete(kg)
 
-        if await VerificationSessionRepository(session).exists_by_kg_dev_eui(kg.dev_eui):
+        if await VerificationSessionRepository(self._session).exists_by_kg_dev_eui(kg.dev_eui):
             raise KgCannotBeDeletedError
 
-        await AuditService.from_session(session).record(
+        await AuditService.from_session(self._session).record(
             actor=audit.actor_identity(actor),
             action="kg.deleted",
             entity=audit.unit_entity(kg),
             old_data={
                 "dev_eui": kg.dev_eui,
                 "batch_id": str(kg.batch_id),
-                "status": kg.status.value,
+                "state": kg.state.value,
             },
         )
 
-        await repository.delete(kg)
+        await self._repository.delete(kg)
 
     @staticmethod
-    async def _required_kg(
-        repository: KgRepository,
-        dev_eui: str,
-    ) -> KgUnit:
+    async def _required_kg(repository: KgRepository, dev_eui: str) -> KgUnit:
         kg = await repository.get_by_dev_eui(dev_eui, for_update=True)
 
         if kg is None:
@@ -184,73 +146,13 @@ class KgService:
         short_code: str,
     ) -> list[KgUnit]:
         return await self._repository.create_many(
-            batch_id=batch_id,
-            dev_euis=dev_euis,
-            short_code=short_code,
+            batch_id=batch_id, dev_euis=dev_euis, short_code=short_code
         )
-
-    async def require_packed(
-        self,
-        dev_eui: str,
-        *,
-        batch_id: UUID,
-    ) -> KgUnit:
-        kg = await self._repository.get_by_dev_eui(dev_eui, for_update=True)
-
-        if kg is None:
-            raise KgNotFoundError
-
-        lifecycle.ensure_batch_state([kg], batch_id=batch_id, status=KgStatus.PACKED)
-
-        return kg
-
-    async def mark_shipped(
-        self,
-        dev_euis: Sequence[str],
-        *,
-        batch_id: UUID,
-    ) -> None:
-        await self._transition(
-            dev_euis,
-            batch_id,
-            KgStatus.PACKED,
-            KgStatus.SHIPPED,
-        )
-
-    async def return_to_packed(
-        self,
-        dev_euis: Sequence[str],
-        *,
-        batch_id: UUID,
-    ) -> None:
-        await self._transition(
-            dev_euis,
-            batch_id,
-            KgStatus.SHIPPED,
-            KgStatus.PACKED,
-        )
-
-    async def _transition(
-        self,
-        dev_euis: Sequence[str],
-        batch_id: UUID,
-        previous: KgStatus,
-        target: KgStatus,
-    ) -> None:
-        units = await self._repository.get_many_by_dev_euis(dev_euis, for_update=True)
-
-        if len(units) != len(set(dev_euis)):
-            raise KgNotFoundError
-
-        lifecycle.ensure_batch_state(units, batch_id=batch_id, status=previous)
-
-        await self._repository.update_status_many(units, status=target)
 
     async def has_production_activity(self, batch_id: UUID) -> bool:
         return await self._repository.has_non_registered_by_batch(batch_id)
 
     async def delete_registered_for_batch(self, batch_id: UUID) -> None:
-        # Batch deletion has already checked history under the batch lock.
         units = await self._repository.list_by_batch(batch_id, for_update=True)
 
         for kg in units:

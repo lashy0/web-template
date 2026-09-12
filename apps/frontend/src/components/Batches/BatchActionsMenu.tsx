@@ -43,7 +43,7 @@ export function BatchActionsMenu({ batch }: Readonly<{ batch: Batch }>) {
         <EllipsisVerticalIcon />
         <span className="sr-only">Действия с партией {batch.name}</span>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuGroup>
           {!archived ? (
             <DropdownMenuItem onClick={() => setEditOpen(true)}>

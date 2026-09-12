@@ -46,7 +46,6 @@ class VerificationSessionService:
 
     @staticmethod
     async def has_batch_history(session: AsyncSession, batch_id: UUID) -> bool:
-        """Query history in the caller's transaction without opening another session."""
         return await VerificationSessionRepository(session).exists_by_batch_id(batch_id)
 
     async def get(self, session_id: UUID) -> VerificationSession | None:
@@ -139,7 +138,6 @@ class VerificationSessionService:
                 await self.close_incomplete(
                     verification_repository,
                     step_repository,
-                    kg_service,
                     running_by_kg,
                     completed_at=now,
                 )
@@ -169,7 +167,6 @@ class VerificationSessionService:
             await self.close_incomplete(
                 verification_repository,
                 step_repository,
-                kg_service,
                 running_by_slot,
                 completed_at=now,
             )
@@ -207,8 +204,6 @@ class VerificationSessionService:
         session = self._session
         verification_repository = VerificationSessionRepository(session)
         step_repository = VerificationStepRepository(session)
-        kg_service = KgService(session)
-
         verification_session = await required_session_for_update(
             verification_repository,
             session_id,
@@ -246,10 +241,6 @@ class VerificationSessionService:
             if passed_steps != verification_session.total_steps:
                 raise VerificationSessionIncompleteError
 
-        await kg_service.finish_verification(
-            verification_session.kg_dev_eui, status=lifecycle.kg_status_after_completion(status)
-        )
-
         verification_session = await verification_repository.complete(
             verification_session,
             status=status,
@@ -262,7 +253,6 @@ class VerificationSessionService:
         self,
         verification_repository: VerificationSessionRepository,
         step_repository: VerificationStepRepository,
-        kg_service: KgService,
         verification_session: VerificationSession,
         *,
         completed_at: datetime,
@@ -286,8 +276,6 @@ class VerificationSessionService:
             status=VerificationSessionStatus.INCOMPLETE,
             completed_at=completed_at,
         )
-
-        await kg_service.release_incomplete_verification(verification_session.kg_dev_eui)
 
     @staticmethod
     async def _abort_step(

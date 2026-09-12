@@ -41,7 +41,7 @@ export function ProductionOrderActionsMenu({ order }: Readonly<{ order: Producti
         <EllipsisVerticalIcon />
         <span className="sr-only">Действия с заказом {order.name}</span>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuGroup>
           <DropdownMenuItem onClick={() => setDetailsOpen(true)}>
             <EyeIcon />

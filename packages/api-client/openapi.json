@@ -1493,6 +1493,9 @@
       },
       "KgBatchListItemResponse": {
         "properties": {
+          "current_state": {
+            "$ref": "#/components/schemas/KgCurrentState"
+          },
           "dev_eui": {
             "title": "Dev Eui",
             "type": "string"
@@ -1519,14 +1522,11 @@
               }
             ],
             "title": "Last Verification At"
-          },
-          "status": {
-            "$ref": "#/components/schemas/KgStatus"
           }
         },
         "required": [
           "dev_eui",
-          "status",
+          "current_state",
           "firmware_version",
           "last_verification_at"
         ],
@@ -1582,6 +1582,21 @@
         ],
         "title": "KgBatchSummaryResponse",
         "type": "object"
+      },
+      "KgCurrentState": {
+        "description": "Presentation state derived from independently owned process states.",
+        "enum": [
+          "REGISTERED",
+          "ON_OTK",
+          "OTK_PASSED",
+          "OTK_FAILED",
+          "IN_REPAIR",
+          "PACKED",
+          "SHIPPED",
+          "SCRAPPED"
+        ],
+        "title": "KgCurrentState",
+        "type": "string"
       },
       "KgDevEuiPrefixListResponse": {
         "properties": {
@@ -1745,6 +1760,9 @@
             "title": "Created At",
             "type": "string"
           },
+          "current_state": {
+            "$ref": "#/components/schemas/KgCurrentState"
+          },
           "dev_eui": {
             "title": "Dev Eui",
             "type": "string"
@@ -1753,8 +1771,8 @@
             "title": "Short Id",
             "type": "string"
           },
-          "status": {
-            "$ref": "#/components/schemas/KgStatus"
+          "state": {
+            "$ref": "#/components/schemas/KgState"
           },
           "updated_at": {
             "format": "date-time",
@@ -1767,27 +1785,20 @@
           "short_id",
           "batch_id",
           "batch",
-          "status",
+          "state",
+          "current_state",
           "created_at",
           "updated_at"
         ],
         "title": "KgResponse",
         "type": "object"
       },
-      "KgStatus": {
+      "KgState": {
         "enum": [
           "REGISTERED",
-          "TESTING",
-          "TEST_FAILED",
-          "IN_ENGINEER_REPAIR",
-          "IN_PRODUCTION_REPAIR",
-          "READY_FOR_RETEST",
-          "READY_FOR_PACKING",
-          "PACKED",
-          "SHIPPED",
           "SCRAPPED"
         ],
-        "title": "KgStatus",
+        "title": "KgState",
         "type": "string"
       },
       "KgVersionListResponse": {
@@ -5397,18 +5408,18 @@
           },
           {
             "in": "query",
-            "name": "status",
+            "name": "current_state",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "$ref": "#/components/schemas/KgStatus"
+                  "$ref": "#/components/schemas/KgCurrentState"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "title": "Status"
+              "title": "Current State"
             }
           },
           {
@@ -5443,7 +5454,7 @@
               "enum": [
                 "dev_eui",
                 "batch_id",
-                "status",
+                "current_state",
                 "created_at",
                 "updated_at"
               ],
@@ -5526,18 +5537,18 @@
           },
           {
             "in": "query",
-            "name": "status",
+            "name": "current_state",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "$ref": "#/components/schemas/KgStatus"
+                  "$ref": "#/components/schemas/KgCurrentState"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "title": "Status"
+              "title": "Current State"
             }
           },
           {

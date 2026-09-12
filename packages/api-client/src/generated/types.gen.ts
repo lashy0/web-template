@@ -798,6 +798,7 @@ export type HttpValidationError = {
  * KgBatchListItemResponse
  */
 export type KgBatchListItemResponse = {
+    current_state: KgCurrentState;
     /**
      * Dev Eui
      */
@@ -810,7 +811,6 @@ export type KgBatchListItemResponse = {
      * Last Verification At
      */
     last_verification_at: string | null;
-    status: KgStatus;
 };
 
 /**
@@ -848,6 +848,13 @@ export type KgBatchSummaryResponse = {
      */
     name: string;
 };
+
+/**
+ * KgCurrentState
+ *
+ * Presentation state derived from independently owned process states.
+ */
+export type KgCurrentState = 'REGISTERED' | 'ON_OTK' | 'OTK_PASSED' | 'OTK_FAILED' | 'IN_REPAIR' | 'PACKED' | 'SHIPPED' | 'SCRAPPED';
 
 /**
  * KgDevEuiPrefixListResponse
@@ -954,6 +961,7 @@ export type KgResponse = {
      * Created At
      */
     created_at: string;
+    current_state: KgCurrentState;
     /**
      * Dev Eui
      */
@@ -962,7 +970,7 @@ export type KgResponse = {
      * Short Id
      */
     short_id: string;
-    status: KgStatus;
+    state: KgState;
     /**
      * Updated At
      */
@@ -970,9 +978,9 @@ export type KgResponse = {
 };
 
 /**
- * KgStatus
+ * KgState
  */
-export type KgStatus = 'REGISTERED' | 'TESTING' | 'TEST_FAILED' | 'IN_ENGINEER_REPAIR' | 'IN_PRODUCTION_REPAIR' | 'READY_FOR_RETEST' | 'READY_FOR_PACKING' | 'PACKED' | 'SHIPPED' | 'SCRAPPED';
+export type KgState = 'REGISTERED' | 'SCRAPPED';
 
 /**
  * KgVersionListResponse
@@ -3031,9 +3039,9 @@ export type KgListKgData = {
          */
         batch_id?: string | null;
         /**
-         * Status
+         * Current State
          */
-        status?: KgStatus | null;
+        current_state?: KgCurrentState | null;
         /**
          * Page
          */
@@ -3045,7 +3053,7 @@ export type KgListKgData = {
         /**
          * Sort
          */
-        sort?: 'dev_eui' | 'batch_id' | 'status' | 'created_at' | 'updated_at';
+        sort?: 'dev_eui' | 'batch_id' | 'current_state' | 'created_at' | 'updated_at';
         /**
          * Order
          */
@@ -3086,9 +3094,9 @@ export type KgListKgByBatchData = {
          */
         q?: string | null;
         /**
-         * Status
+         * Current State
          */
-        status?: KgStatus | null;
+        current_state?: KgCurrentState | null;
         /**
          * Page
          */

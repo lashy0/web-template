@@ -1,15 +1,24 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 from uuid import UUID
 
-from sqlalchemy import ColumnElement, and_, delete, exists, func, or_, select
+from sqlalchemy import ColumnElement, and_, case, delete, exists, func, literal, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.selectable import Subquery
 
-from app.modules.verification.models import VerificationSession
+from app.modules.verification.models import VerificationSession, VerificationSessionStatus
 
-from ..models import KgStatus, KgUnit, LoRaWanCredentials
+from ..models import KgState, KgUnit, LoRaWanCredentials
+from ..schemas.state import KgCurrentState
 from ..schemas.unit import KgBatchListItem
+
+
+@dataclass(frozen=True, slots=True)
+class KgListItem:
+    kg: KgUnit
+    current_state: KgCurrentState
 
 
 class KgRepository:
@@ -26,9 +35,9 @@ class KgRepository:
         kg_units = [
             KgUnit(
                 dev_eui=dev_eui,
-                short_id=(f"{short_code}-{dev_eui[-6:]}"),
+                short_id=f"{short_code}-{dev_eui[-6:]}",
                 batch_id=batch_id,
-                status=KgStatus.REGISTERED,
+                state=KgState.REGISTERED,
             )
             for dev_eui in dev_euis
         ]
@@ -54,6 +63,25 @@ class KgRepository:
             populate_existing=for_update,
         )
 
+    async def get_with_current_state(self, dev_eui: str) -> KgListItem | None:
+        latest_session = self._latest_session_rank()
+        current_state = self._current_state_expression(latest_session)
+
+        result = await self._session.execute(
+            select(KgUnit, current_state)
+            .outerjoin(
+                latest_session,
+                and_(
+                    latest_session.c.rank == 1,
+                    KgUnit.dev_eui == latest_session.c.kg_dev_eui,
+                ),
+            )
+            .where(KgUnit.dev_eui == dev_eui)
+        )
+        row = result.tuples().one_or_none()
+
+        return None if row is None else KgListItem(kg=row[0], current_state=KgCurrentState(row[1]))
+
     async def list_by_batch(
         self,
         batch_id: UUID,
@@ -78,50 +106,37 @@ class KgRepository:
         page: int,
         page_size: int,
         q: str | None,
-        status: KgStatus | None,
+        current_state: KgCurrentState | None,
     ) -> tuple[list[KgBatchListItem], int]:
         filters: list[ColumnElement[bool]] = [KgUnit.batch_id == batch_id]
 
         if q:
             filters.append(KgUnit.dev_eui.ilike(f"%{q.strip()}%"))
 
-        if status is not None:
-            filters.append(KgUnit.status == status)
+        latest_session = self._latest_session_rank()
+        computed_state = self._current_state_expression(latest_session)
 
-        latest_session_rank = (
-            select(
-                VerificationSession.id.label("id"),
-                VerificationSession.kg_dev_eui.label("kg_dev_eui"),
-                func.row_number()
-                .over(
-                    partition_by=VerificationSession.kg_dev_eui,
-                    order_by=(
-                        VerificationSession.started_at.desc(),
-                        VerificationSession.id.desc(),
-                    ),
-                )
-                .label("rank"),
-            )
-            .subquery()
-        )
+        if current_state is not None:
+            filters.append(computed_state == current_state)
+
         statement = (
             select(
                 KgUnit.dev_eui,
-                KgUnit.status,
+                computed_state,
                 VerificationSession.firmware_version,
                 VerificationSession.started_at,
                 func.count().over().label("total"),
             )
             .outerjoin(
-                latest_session_rank,
+                latest_session,
                 and_(
-                    latest_session_rank.c.rank == 1,
-                    KgUnit.dev_eui == latest_session_rank.c.kg_dev_eui,
+                    latest_session.c.rank == 1,
+                    KgUnit.dev_eui == latest_session.c.kg_dev_eui,
                 ),
             )
             .outerjoin(
                 VerificationSession,
-                VerificationSession.id == latest_session_rank.c.id,
+                VerificationSession.id == latest_session.c.id,
             )
             .where(*filters)
             .order_by(KgUnit.dev_eui.asc())
@@ -135,11 +150,11 @@ class KgRepository:
             [
                 KgBatchListItem(
                     dev_eui=dev_eui,
-                    status=status,
+                    current_state=KgCurrentState(value),
                     firmware_version=firmware_version,
                     last_verification_at=last_verification_at,
                 )
-                for dev_eui, status, firmware_version, last_verification_at, _ in rows
+                for dev_eui, value, firmware_version, last_verification_at, _ in rows
             ],
             rows[0][4] if rows else 0,
         )
@@ -167,13 +182,13 @@ class KgRepository:
 
         return list(result.scalars())
 
-    async def update_status(
+    async def update_state(
         self,
         kg: KgUnit,
         *,
-        status: KgStatus,
+        state: KgState,
     ) -> KgUnit:
-        kg.status = status
+        kg.state = state
 
         await self._session.flush()
         await self._session.refresh(kg)
@@ -192,49 +207,65 @@ class KgRepository:
         *,
         q: str | None,
         batch_id: UUID | None,
-        status: KgStatus | None,
+        current_state: KgCurrentState | None,
         page: int,
         page_size: int,
         sort: str,
         order: str,
-    ) -> tuple[list[KgUnit], int]:
+    ) -> tuple[list[KgListItem], int]:
         filters: list[ColumnElement[bool]] = []
 
         if q:
             pattern = f"%{q.strip().lower()}%"
-
-            filters.append(
-                or_(
-                    KgUnit.dev_eui.ilike(pattern),
-                    KgUnit.short_id.ilike(pattern),
-                )
-            )
+            filters.append(or_(
+                KgUnit.dev_eui.ilike(pattern),
+                KgUnit.short_id.ilike(pattern),
+            ))
 
         if batch_id is not None:
             filters.append(KgUnit.batch_id == batch_id)
 
-        if status is not None:
-            filters.append(KgUnit.status == status)
+        latest_session = self._latest_session_rank()
+        computed_state = self._current_state_expression(latest_session)
 
-        statement = select(KgUnit).where(*filters)
+        if current_state is not None:
+            filters.append(computed_state == current_state)
 
         column = {
             "dev_eui": KgUnit.dev_eui,
             "batch_id": KgUnit.batch_id,
-            "status": KgUnit.status,
+            "current_state": computed_state,
             "created_at": KgUnit.created_at,
             "updated_at": KgUnit.updated_at,
         }[sort]
 
         sorted_column = column.desc() if order == "desc" else column.asc()
-        statement = statement.order_by(sorted_column, KgUnit.dev_eui.asc())
-        statement = statement.offset((page - 1) * page_size).limit(page_size)
-        count = await self._session.scalar(
-            select(func.count()).select_from(KgUnit).where(*filters)
+
+        statement = (
+            select(
+                KgUnit,
+                computed_state,
+                func.count().over().label("total"),
+            )
+            .outerjoin(
+                latest_session,
+                and_(
+                    latest_session.c.rank == 1,
+                    KgUnit.dev_eui == latest_session.c.kg_dev_eui,
+                ),
+            )
+            .where(*filters)
+            .order_by(sorted_column, KgUnit.dev_eui.asc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
         )
         result = await self._session.execute(statement)
+        rows = list(result.tuples())
 
-        return list(result.scalars()), int(count or 0)
+        return (
+            [KgListItem(kg=kg, current_state=KgCurrentState(value)) for kg, value, _ in rows],
+            rows[0][2] if rows else 0,
+        )
 
     async def has_non_registered_by_batch(self, batch_id: UUID) -> bool:
         return bool(
@@ -242,7 +273,7 @@ class KgRepository:
                 select(
                     exists().where(
                         KgUnit.batch_id == batch_id,
-                        KgUnit.status != KgStatus.REGISTERED,
+                        KgUnit.state != KgState.REGISTERED,
                     )
                 )
             )
@@ -257,7 +288,9 @@ class KgRepository:
         if not dev_euis:
             return []
 
-        statement = select(KgUnit).where(KgUnit.dev_eui.in_(dev_euis)).order_by(KgUnit.dev_eui)
+        statement = select(KgUnit).where(
+            KgUnit.dev_eui.in_(dev_euis),
+        ).order_by(KgUnit.dev_eui)
 
         if for_update:
             statement = statement.with_for_update().execution_options(populate_existing=True)
@@ -266,25 +299,59 @@ class KgRepository:
 
         return list(result)
 
-    async def update_status_many(
-        self,
-        kg_units: Sequence[KgUnit],
-        *,
-        status: KgStatus,
-    ) -> None:
-        for kg in kg_units:
-            kg.status = status
-
-        await self._session.flush()
-
     async def get_max_dev_eui_by_prefix(self, prefix: str) -> str | None:
         result: str | None = await self._session.scalar(
-            select(func.max(KgUnit.dev_eui)).where(KgUnit.dev_eui.like(f"{prefix}%"))
+            select(
+                func.max(KgUnit.dev_eui),
+            ).where(KgUnit.dev_eui.like(f"{prefix}%"))
         )
 
         return result
 
     async def lock_dev_eui_allocation(self, prefix: str) -> None:
         await self._session.execute(
-            select(func.pg_advisory_xact_lock(func.hashtext(f"kg-dev-eui:{prefix}")))
+            select(
+                func.pg_advisory_xact_lock(func.hashtext(f"kg-dev-eui:{prefix}")),
+            )
+        )
+
+    @staticmethod
+    def _latest_session_rank() -> Subquery:
+        return select(
+            VerificationSession.id.label("id"),
+            VerificationSession.kg_dev_eui.label("kg_dev_eui"),
+            VerificationSession.status.label("status"),
+            func.row_number()
+            .over(
+                partition_by=VerificationSession.kg_dev_eui,
+                order_by=(
+                    VerificationSession.started_at.desc(),
+                    VerificationSession.id.desc(),
+                ),
+            )
+            .label("rank"),
+        ).subquery()
+
+    @staticmethod
+    def _current_state_expression(latest_session: Subquery) -> ColumnElement[str]:
+        return case(
+            (
+                KgUnit.state == KgState.SCRAPPED,
+                literal(KgCurrentState.SCRAPPED.value),
+            ),
+            (
+                latest_session.c.status == VerificationSessionStatus.RUNNING,
+                literal(KgCurrentState.ON_OTK.value),
+            ),
+            (
+                latest_session.c.status == VerificationSessionStatus.PASSED,
+                literal(KgCurrentState.OTK_PASSED.value),
+            ),
+            (
+                latest_session.c.status.in_(
+                    [VerificationSessionStatus.FAILED, VerificationSessionStatus.ABORTED]
+                ),
+                literal(KgCurrentState.OTK_FAILED.value),
+            ),
+            else_=literal(KgCurrentState.REGISTERED.value),
         )

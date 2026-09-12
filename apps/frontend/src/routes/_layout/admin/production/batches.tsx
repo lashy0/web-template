@@ -122,7 +122,7 @@ export function Batches() {
     <section className="mx-auto w-full max-w-[82.5rem] px-4 py-8 sm:px-8 lg:px-12">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-semibold tracking-tight">Партии</h1>
-        {!archived ? <AddBatch /> : null}
+        <AddBatch />
       </div>
       <Tabs
         className="mt-5"
