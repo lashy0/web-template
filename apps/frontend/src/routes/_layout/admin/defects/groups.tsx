@@ -9,6 +9,7 @@ import { DefectGroupFilters } from '@/components/Defects/Groups/DefectGroupFilte
 import PendingDefectGroups from '@/components/Defects/Groups/PendingDefectGroups'
 import { createDefectGroupColumns } from '@/components/Defects/Groups/columns'
 import { DataLoadError } from '@/components/Common/DataLoadError'
+import { ListEmptyState } from '@/components/Common/ListEmptyState'
 import {
   DataTable,
   type DataTablePaginationState,
@@ -193,23 +194,21 @@ export function Empty({
   item,
 }: Readonly<{ archived: boolean; filtered: boolean; item: string }>) {
   return (
-    <div className="flex min-h-56 items-center justify-center rounded-lg border border-dashed">
-      <div className="text-center">
-        <p className="font-medium">
-          {filtered
-            ? 'Ничего не найдено'
-            : archived
-              ? 'Архив пуст'
-              : `${item[0].toUpperCase()}${item.slice(1)} пока нет`}
-        </p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {filtered
-            ? 'Попробуйте изменить параметры поиска.'
-            : archived
-              ? 'Архивированные записи появятся здесь.'
-              : 'Добавьте запись, чтобы она появилась в списке.'}
-        </p>
-      </div>
-    </div>
+    <ListEmptyState
+      description={
+        filtered
+          ? 'Попробуйте изменить параметры поиска.'
+          : archived
+            ? 'Архивированные записи появятся здесь.'
+            : 'Добавьте запись, чтобы она появилась в списке.'
+      }
+      title={
+        filtered
+          ? 'Ничего не найдено'
+          : archived
+            ? 'Архив пуст'
+            : `${item[0].toUpperCase()}${item.slice(1)} пока нет`
+      }
+    />
   )
 }

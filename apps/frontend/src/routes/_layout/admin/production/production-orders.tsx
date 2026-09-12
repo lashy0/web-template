@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Tabs, TabsList, TabsTrigger } from '@web-app/ui/components/tabs'
 
 import { DataLoadError } from '@/components/Common/DataLoadError'
+import { ListEmptyState } from '@/components/Common/ListEmptyState'
 import {
   DataTable,
   type DataTablePaginationState,
@@ -208,19 +209,15 @@ function searchForSorting(sorting: DataTableSorting, archived: boolean) {
 
 function EmptyState({ archived, hasQuery }: Readonly<{ archived: boolean; hasQuery: boolean }>) {
   return (
-    <div className="flex min-h-56 items-center justify-center rounded-lg border border-dashed">
-      <div className="flex flex-col gap-1 text-center">
-        <p className="font-medium">
-          {hasQuery ? 'Ничего не найдено' : archived ? 'Архив пуст' : 'Заказов пока нет'}
-        </p>
-        <p className="text-sm text-muted-foreground">
-          {hasQuery
-            ? 'Попробуйте изменить параметры поиска.'
-            : archived
-              ? 'Архивированные заказы появятся здесь.'
-              : 'Добавьте заказ, чтобы он появился в списке.'}
-        </p>
-      </div>
-    </div>
+    <ListEmptyState
+      description={
+        hasQuery
+          ? 'Попробуйте изменить параметры поиска.'
+          : archived
+            ? 'Архивированные заказы появятся здесь.'
+            : 'Добавьте заказ, чтобы он появился в списке.'
+      }
+      title={hasQuery ? 'Ничего не найдено' : archived ? 'Архив пуст' : 'Заказов пока нет'}
+    />
   )
 }

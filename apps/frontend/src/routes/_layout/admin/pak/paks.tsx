@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Tabs, TabsList, TabsTrigger } from '@web-app/ui/components/tabs'
 
 import { DataLoadError } from '@/components/Common/DataLoadError'
+import { ListEmptyState } from '@/components/Common/ListEmptyState'
 import {
   DataTable,
   type DataTablePaginationState,
@@ -261,19 +262,15 @@ function EmptyState({
   hasFilters,
 }: Readonly<{ archived: boolean; hasFilters: boolean }>) {
   return (
-    <div className="flex min-h-56 items-center justify-center rounded-lg border border-dashed">
-      <div className="text-center">
-        <p className="font-medium">
-          {hasFilters ? 'Ничего не найдено' : archived ? 'Архив пуст' : 'ПАК пока нет'}
-        </p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {hasFilters
-            ? 'Попробуйте изменить параметры поиска.'
-            : archived
-              ? 'Архивированные ПАК появятся здесь.'
-              : 'Добавьте ПАК, чтобы он появился в списке.'}
-        </p>
-      </div>
-    </div>
+    <ListEmptyState
+      description={
+        hasFilters
+          ? 'Попробуйте изменить параметры поиска.'
+          : archived
+            ? 'Архивированные ПАК появятся здесь.'
+            : 'Добавьте ПАК, чтобы он появился в списке.'
+      }
+      title={hasFilters ? 'Ничего не найдено' : archived ? 'Архив пуст' : 'ПАК пока нет'}
+    />
   )
 }

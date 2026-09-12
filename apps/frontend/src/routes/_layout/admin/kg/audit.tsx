@@ -3,6 +3,7 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { AuditFilter } from '@/components/Common/AuditFilter'
 import { DataLoadError } from '@/components/Common/DataLoadError'
+import { ListEmptyState } from '@/components/Common/ListEmptyState'
 import {
   DataTable,
   type DataTablePaginationState,
@@ -115,12 +116,7 @@ function KgAudit() {
 
 function EmptyState() {
   return (
-    <div className="flex min-h-56 items-center justify-center rounded-lg border border-dashed">
-      <div className="text-center">
-        <p className="font-medium">Ничего не найдено</p>
-        <p className="mt-1 text-sm text-muted-foreground">Попробуйте изменить параметры поиска.</p>
-      </div>
-    </div>
+    <ListEmptyState description="Попробуйте изменить параметры поиска." title="Ничего не найдено" />
   )
 }
 

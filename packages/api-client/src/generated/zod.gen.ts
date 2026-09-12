@@ -282,6 +282,26 @@ export const zKgStatus = z.enum([
 ]);
 
 /**
+ * KgBatchListItemResponse
+ */
+export const zKgBatchListItemResponse = z.object({
+    dev_eui: z.string(),
+    firmware_version: z.string().nullable(),
+    last_verification_at: z.iso.datetime().nullable(),
+    status: zKgStatus
+});
+
+/**
+ * KgBatchListResponse
+ */
+export const zKgBatchListResponse = z.object({
+    items: z.array(zKgBatchListItemResponse),
+    page: z.int(),
+    page_size: z.int(),
+    total: z.int()
+});
+
+/**
  * KgResponse
  */
 export const zKgResponse = z.object({
@@ -1324,6 +1344,22 @@ export const zKgListKgQuery = z.object({
  * Successful Response
  */
 export const zKgListKgResponse = zKgListResponse;
+
+export const zKgListKgByBatchPath = z.object({
+    batch_id: z.uuid()
+});
+
+export const zKgListKgByBatchQuery = z.object({
+    q: z.string().nullish(),
+    status: zKgStatus.nullish(),
+    page: z.int().gte(1).optional().default(1),
+    page_size: z.int().gte(1).lte(100).optional().default(25)
+});
+
+/**
+ * Successful Response
+ */
+export const zKgListKgByBatchResponse = zKgBatchListResponse;
 
 export const zKgListDevEuiPrefixesQuery = z.object({
     q: z.string().nullish(),

@@ -3,6 +3,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useMemo, useState } from 'react'
 
 import { DataLoadError } from '@/components/Common/DataLoadError'
+import { ListEmptyState } from '@/components/Common/ListEmptyState'
 import {
   DataTable,
   type DataTablePaginationState,
@@ -190,25 +191,18 @@ function Users() {
             <PendingUsers />
           )
         ) : users.items.length === 0 ? (
-          <div className="flex min-h-56 items-center justify-center rounded-lg border border-dashed">
-            <div className="text-center">
-              <p className="font-medium">
-                {hasFilters
-                  ? 'Ничего не найдено'
-                  : archived
-                    ? 'Архив пуст'
-                    : 'Пользователей пока нет'}
-              </p>
-
-              <p className="mt-1 text-sm text-muted-foreground">
-                {hasFilters
-                  ? 'Попробуйте изменить параметры поиска.'
-                  : archived
-                    ? 'Архивированные пользователи появятся здесь.'
-                    : 'Добавьте пользователя, чтобы он появился в списке.'}
-              </p>
-            </div>
-          </div>
+          <ListEmptyState
+            description={
+              hasFilters
+                ? 'Попробуйте изменить параметры поиска.'
+                : archived
+                  ? 'Архивированные пользователи появятся здесь.'
+                  : 'Добавьте пользователя, чтобы он появился в списке.'
+            }
+            title={
+              hasFilters ? 'Ничего не найдено' : archived ? 'Архив пуст' : 'Пользователей пока нет'
+            }
+          />
         ) : (
           <DataTable
             columns={columns}

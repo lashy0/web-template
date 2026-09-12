@@ -795,6 +795,47 @@ export type HttpValidationError = {
 };
 
 /**
+ * KgBatchListItemResponse
+ */
+export type KgBatchListItemResponse = {
+    /**
+     * Dev Eui
+     */
+    dev_eui: string;
+    /**
+     * Firmware Version
+     */
+    firmware_version: string | null;
+    /**
+     * Last Verification At
+     */
+    last_verification_at: string | null;
+    status: KgStatus;
+};
+
+/**
+ * KgBatchListResponse
+ */
+export type KgBatchListResponse = {
+    /**
+     * Items
+     */
+    items: Array<KgBatchListItemResponse>;
+    /**
+     * Page
+     */
+    page: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+    /**
+     * Total
+     */
+    total: number;
+};
+
+/**
  * KgBatchSummaryResponse
  */
 export type KgBatchSummaryResponse = {
@@ -3030,6 +3071,53 @@ export type KgListKgResponses = {
 };
 
 export type KgListKgResponse = KgListKgResponses[keyof KgListKgResponses];
+
+export type KgListKgByBatchData = {
+    body?: never;
+    path: {
+        /**
+         * Batch Id
+         */
+        batch_id: string;
+    };
+    query?: {
+        /**
+         * Q
+         */
+        q?: string | null;
+        /**
+         * Status
+         */
+        status?: KgStatus | null;
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/kg/batch/{batch_id}';
+};
+
+export type KgListKgByBatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type KgListKgByBatchError = KgListKgByBatchErrors[keyof KgListKgByBatchErrors];
+
+export type KgListKgByBatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: KgBatchListResponse;
+};
+
+export type KgListKgByBatchResponse = KgListKgByBatchResponses[keyof KgListKgByBatchResponses];
 
 export type KgListDevEuiPrefixesData = {
     body?: never;

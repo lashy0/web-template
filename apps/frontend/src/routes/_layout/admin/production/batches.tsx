@@ -3,6 +3,7 @@ import { Outlet, createFileRoute } from '@tanstack/react-router'
 import { useEffect, useMemo, useState } from 'react'
 
 import { DataLoadError } from '@/components/Common/DataLoadError'
+import { ListEmptyState } from '@/components/Common/ListEmptyState'
 import {
   DataTable,
   type DataTablePaginationState,
@@ -228,19 +229,15 @@ function searchForSorting(sorting: DataTableSorting, archived: boolean) {
 
 function EmptyState({ archived, hasQuery }: Readonly<{ archived: boolean; hasQuery: boolean }>) {
   return (
-    <div className="flex min-h-56 items-center justify-center rounded-lg border border-dashed">
-      <div className="flex flex-col gap-1 text-center">
-        <p className="font-medium">
-          {hasQuery ? 'Ничего не найдено' : archived ? 'Архив пуст' : 'Партий пока нет'}
-        </p>
-        <p className="text-sm text-muted-foreground">
-          {hasQuery
-            ? 'Попробуйте изменить параметры поиска.'
-            : archived
-              ? 'Архивированные партии появятся здесь.'
-              : 'Добавьте партию, чтобы она появилась в списке.'}
-        </p>
-      </div>
-    </div>
+    <ListEmptyState
+      description={
+        hasQuery
+          ? 'Попробуйте изменить параметры поиска.'
+          : archived
+            ? 'Архивированные партии появятся здесь.'
+            : 'Добавьте партию, чтобы она появилась в списке.'
+      }
+      title={hasQuery ? 'Ничего не найдено' : archived ? 'Архив пуст' : 'Партий пока нет'}
+    />
   )
 }

@@ -8,6 +8,7 @@ import { AddKgPrefix } from '@/components/Kg/Prefixes/AddKgPrefix'
 import { createKgPrefixColumns } from '@/components/Kg/Prefixes/columns'
 import { KgPrefixFilters } from '@/components/Kg/Prefixes/KgPrefixFilters'
 import { DataLoadError } from '@/components/Common/DataLoadError'
+import { ListEmptyState } from '@/components/Common/ListEmptyState'
 import {
   DataTable,
   type DataTablePaginationState,
@@ -195,14 +196,10 @@ function searchForSorting(sorting: DataTableSorting, archived: boolean) {
 
 function EmptyState() {
   return (
-    <div className="flex min-h-56 items-center justify-center rounded-lg border border-dashed">
-      <div className="text-center">
-        <p className="font-medium">Префиксов пока нет</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Добавьте префикс, чтобы он появился в списке.
-        </p>
-      </div>
-    </div>
+    <ListEmptyState
+      description="Добавьте префикс, чтобы он появился в списке."
+      title="Префиксов пока нет"
+    />
   )
 }
 
