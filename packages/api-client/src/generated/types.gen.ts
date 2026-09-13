@@ -854,7 +854,7 @@ export type KgBatchSummaryResponse = {
  *
  * Presentation state derived from independently owned process states.
  */
-export type KgCurrentState = 'REGISTERED' | 'ON_OTK' | 'OTK_PASSED' | 'OTK_FAILED' | 'IN_REPAIR' | 'PACKED' | 'SHIPPED' | 'SCRAPPED';
+export type KgCurrentState = 'REGISTERED' | 'ON_OTK' | 'OTK_PASSED' | 'OTK_FAILED' | 'OTK_ABORTED' | 'OTK_INCOMPLETE' | 'IN_REPAIR' | 'PACKED' | 'SHIPPED' | 'SCRAPPED';
 
 /**
  * KgDevEuiPrefixListResponse

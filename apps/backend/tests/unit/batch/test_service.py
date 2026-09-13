@@ -164,7 +164,7 @@ def dependencies(
     kg_units.return_value.lock_dev_eui_allocation = AsyncMock()
     kg_units.return_value.get_max_dev_eui_by_prefix = AsyncMock(return_value=None)
     kg_units.return_value.create_many = AsyncMock()
-    kg_units.return_value.has_non_registered_by_batch = AsyncMock(return_value=False)
+    kg_units.return_value.has_scrapped_by_batch = AsyncMock(return_value=False)
     kg_units.return_value.delete_by_batch = AsyncMock()
 
     verification_sessions = mocker.patch(

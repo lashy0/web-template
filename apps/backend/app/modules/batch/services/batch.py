@@ -100,7 +100,7 @@ class BatchService:
                             ),
                             select(KgUnit.batch_id).where(
                                 KgUnit.batch_id.in_(batch_ids),
-                                KgUnit.state != KgState.REGISTERED,
+                                KgUnit.state == KgState.SCRAPPED,
                             ),
                             select(KgUnit.batch_id)
                             .join(
@@ -457,7 +457,7 @@ class BatchService:
             if await shipment_repository.exists_by_batch(batch.id):
                 raise BatchCannotBeDeletedError
 
-            if await kg_operations.has_production_activity(batch.id):
+            if await kg_operations.has_scrapped_units(batch.id):
                 raise BatchCannotBeDeletedError
 
             if await VerificationManagementService.has_batch_history(session, batch.id):

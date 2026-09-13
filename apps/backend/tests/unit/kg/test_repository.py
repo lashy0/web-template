@@ -1,11 +1,74 @@
 from types import SimpleNamespace
+from typing import cast
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
+from sqlalchemy import create_engine, literal, select
+from sqlalchemy.dialects import postgresql
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.modules.kg.models import KgState
 from app.modules.kg.repositories import KgRepository
+from app.modules.kg.repositories import unit as unit_repository
 from app.modules.kg.schemas.state import KgCurrentState
+from app.modules.verification.models import VerificationSessionStatus
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    ("session_status", "expected_current_state"),
+    [
+        pytest.param(
+            VerificationSessionStatus.FAILED,
+            KgCurrentState.OTK_FAILED,
+            id="failed",
+        ),
+        pytest.param(
+            VerificationSessionStatus.ABORTED,
+            KgCurrentState.OTK_ABORTED,
+            id="aborted",
+        ),
+        pytest.param(
+            VerificationSessionStatus.INCOMPLETE,
+            KgCurrentState.OTK_INCOMPLETE,
+            id="incomplete",
+        ),
+    ],
+)
+def test_current_state_keeps_terminal_verification_outcomes_distinct(
+    monkeypatch: pytest.MonkeyPatch,
+    session_status: VerificationSessionStatus,
+    expected_current_state: KgCurrentState,
+) -> None:
+    monkeypatch.setattr(
+        unit_repository,
+        "KgUnit",
+        SimpleNamespace(state=literal(KgState.REGISTERED.value)),
+    )
+    latest_session = select(literal(session_status.value).label("status")).subquery()
+    expression = KgRepository._current_state_expression(latest_session)
+
+    with create_engine("sqlite://").connect() as connection:
+        current_state = connection.scalar(select(expression))
+
+    assert current_state == expected_current_state.value
+
+
+@pytest.mark.unit
+async def test_has_scrapped_by_batch_checks_only_scrapped_units() -> None:
+    session = SimpleNamespace(scalar=AsyncMock(return_value=True))
+
+    assert await KgRepository(cast(AsyncSession, session)).has_scrapped_by_batch(uuid4())
+
+    statement = session.scalar.await_args.args[0]
+    sql = str(
+        statement.compile(
+            dialect=postgresql.dialect(),
+            compile_kwargs={"literal_binds": True},
+        )
+    )
+    assert "kg_units.state = 'SCRAPPED'" in sql
 
 
 @pytest.mark.unit

@@ -244,6 +244,8 @@ export const zKgCurrentState = z.enum([
     'ON_OTK',
     'OTK_PASSED',
     'OTK_FAILED',
+    'OTK_ABORTED',
+    'OTK_INCOMPLETE',
     'IN_REPAIR',
     'PACKED',
     'SHIPPED',

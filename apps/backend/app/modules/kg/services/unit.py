@@ -149,8 +149,8 @@ class KgService:
             batch_id=batch_id, dev_euis=dev_euis, short_code=short_code
         )
 
-    async def has_production_activity(self, batch_id: UUID) -> bool:
-        return await self._repository.has_non_registered_by_batch(batch_id)
+    async def has_scrapped_units(self, batch_id: UUID) -> bool:
+        return await self._repository.has_scrapped_by_batch(batch_id)
 
     async def delete_registered_for_batch(self, batch_id: UUID) -> None:
         units = await self._repository.list_by_batch(batch_id, for_update=True)

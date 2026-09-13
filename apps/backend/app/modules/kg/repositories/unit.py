@@ -267,13 +267,13 @@ class KgRepository:
             rows[0][2] if rows else 0,
         )
 
-    async def has_non_registered_by_batch(self, batch_id: UUID) -> bool:
+    async def has_scrapped_by_batch(self, batch_id: UUID) -> bool:
         return bool(
             await self._session.scalar(
                 select(
                     exists().where(
                         KgUnit.batch_id == batch_id,
-                        KgUnit.state != KgState.REGISTERED,
+                        KgUnit.state == KgState.SCRAPPED,
                     )
                 )
             )
@@ -348,10 +348,16 @@ class KgRepository:
                 literal(KgCurrentState.OTK_PASSED.value),
             ),
             (
-                latest_session.c.status.in_(
-                    [VerificationSessionStatus.FAILED, VerificationSessionStatus.ABORTED]
-                ),
+                latest_session.c.status == VerificationSessionStatus.FAILED,
                 literal(KgCurrentState.OTK_FAILED.value),
+            ),
+            (
+                latest_session.c.status == VerificationSessionStatus.ABORTED,
+                literal(KgCurrentState.OTK_ABORTED.value),
+            ),
+            (
+                latest_session.c.status == VerificationSessionStatus.INCOMPLETE,
+                literal(KgCurrentState.OTK_INCOMPLETE.value),
             ),
             else_=literal(KgCurrentState.REGISTERED.value),
         )

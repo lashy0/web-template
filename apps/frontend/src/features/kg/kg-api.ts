@@ -9,7 +9,9 @@ export type KgCurrentState = ApiKgCurrentState
 export const kgCurrentStates = [
   'IN_REPAIR',
   'ON_OTK',
+  'OTK_ABORTED',
   'OTK_FAILED',
+  'OTK_INCOMPLETE',
   'OTK_PASSED',
   'PACKED',
   'REGISTERED',
@@ -20,7 +22,9 @@ export const kgCurrentStates = [
 export const kgCurrentStateLabels: Readonly<Record<KgCurrentState, string>> = {
   IN_REPAIR: 'В ремонте',
   ON_OTK: 'На ОТК',
+  OTK_ABORTED: 'ОТК прервана',
   OTK_FAILED: 'ОТК не пройдена',
+  OTK_INCOMPLETE: 'ОТК не завершена',
   OTK_PASSED: 'ОТК пройдена',
   PACKED: 'Упакована',
   REGISTERED: 'Зарегистрирована',
