@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import dataclass
 from uuid import UUID
 
 from loguru import logger
@@ -11,18 +12,24 @@ from app.infrastructure.redis.publisher import publish_event
 from app.modules.kg.exceptions import KgLoRaWanCredentialsAlreadyExistError
 from app.modules.kg.repositories import KgRepository
 from app.modules.kg.services import LoRaWanCredentialsService
-from app.modules.lorawan.domain import ActivationType, LoRaWanVersion
 from app.modules.lorawan.generator import generate_credentials
 
 from ..models import BatchKeyGenerationStatus
 from ..repositories import BatchRepository
 
 KEY_GENERATION_CHUNK_SIZE = 500
-StatusPublisher = Callable[[UUID, BatchKeyGenerationStatus], None]
+KEY_GENERATION_FAILED_ERROR_CODE = "batch_key_generation_failed"
+StatusPublisher = Callable[[UUID, BatchKeyGenerationStatus, int], None]
 
 
-class BatchKeyGenerationService:
-    """Generate missing encrypted LoRaWAN credentials for a batch."""
+@dataclass(frozen=True, slots=True)
+class PreparationUpdate:
+    status: BatchKeyGenerationStatus
+    progress: int
+
+
+class BatchKeyGenerationJobService:
+    """Generate LoRaWAN credentials for KG rows created with the batch."""
 
     def __init__(
         self,
@@ -33,98 +40,76 @@ class BatchKeyGenerationService:
     ) -> None:
         self._session_factory = session_factory
         self._encryption_key = encryption_key
-        self._publish_status = publish_status or publish_key_generation_status
+        self._publish_status = publish_status or publish_preparation_status
 
-    async def generate(self, batch_id: UUID) -> None:
+    async def prepare(self, batch_id: UUID) -> None:
         try:
-            start = await self._start_generation(batch_id)
+            while (update := await self._generate_next_chunk(batch_id)) is not None:
+                self._publish(update, batch_id)
 
-            if start is None:
-                return
-
-            activation_type, lorawan_version, status_changed = start
-
-            if status_changed:
-                self._publish_status(batch_id, BatchKeyGenerationStatus.RUNNING)
-
-            while await self._generate_next_chunk(
-                batch_id=batch_id,
-                activation_type=activation_type,
-                lorawan_version=lorawan_version,
-            ):
-                pass
-
-            if await self._set_status(batch_id, BatchKeyGenerationStatus.COMPLETED):
-                self._publish_status(batch_id, BatchKeyGenerationStatus.COMPLETED)
+            if (update := await self._mark_ready(batch_id)) is not None:
+                self._publish(update, batch_id)
 
         except Exception:
-            if await self._set_status(batch_id, BatchKeyGenerationStatus.FAILED):
-                self._publish_status(batch_id, BatchKeyGenerationStatus.FAILED)
+            if (update := await self._mark_failed(batch_id)) is not None:
+                self._publish(update, batch_id)
 
             logger.bind(
-                event="batch.key_generation_failed",
+                event="batch.preparation_failed",
                 batch_id=str(batch_id),
-            ).exception("Batch LoRaWAN key generation failed")
+            ).exception(
+                "Batch LoRaWAN key generation failed"
+            )
 
             raise
 
-    async def _start_generation(
-        self,
-        batch_id: UUID,
-    ) -> tuple[ActivationType, LoRaWanVersion, bool] | None:
+    async def generate(self, batch_id: UUID) -> None:
+        await self.prepare(batch_id)
+
+    async def _generate_next_chunk(self, batch_id: UUID) -> PreparationUpdate | None:
         async with self._session_factory() as session, session.begin():
-            repository = BatchRepository(session)
-            batch = await repository.get_by_id(batch_id, for_update=True)
+            batches = BatchRepository(session)
+            batch = await batches.get_by_id(batch_id, for_update=True)
 
             if batch is None:
-                logger.bind(event="batch.key_generation_not_found", batch_id=str(batch_id)).warning(
-                    "Batch for LoRaWAN key generation was not found"
-                )
-
                 return None
 
-            if batch.key_generation_status is BatchKeyGenerationStatus.COMPLETED:
+            job = await batches.get_key_generation_job(batch_id, for_update=True)
+
+            if job is None:
+                return None
+
+            if job.status is BatchKeyGenerationStatus.CREATING:
+                await batches.update_key_generation_job(
+                    job,
+                    status=BatchKeyGenerationStatus.GENERATING,
+                    progress=job.progress,
+                )
+
+                return PreparationUpdate(BatchKeyGenerationStatus.GENERATING, job.progress)
+
+            if job.status is not BatchKeyGenerationStatus.GENERATING:
                 return None
 
             if batch.lorawan_config is None:
                 raise RuntimeError("Batch does not have a LoRaWAN configuration")
 
-            status_changed = batch.key_generation_status is not BatchKeyGenerationStatus.RUNNING
-
-            if status_changed:
-                await repository.update_key_generation_status(
-                    batch,
-                    status=BatchKeyGenerationStatus.RUNNING,
-                )
-
-            return (
-                batch.lorawan_config.activation_type,
-                batch.lorawan_config.lorawan_version,
-                status_changed,
-            )
-
-    async def _generate_next_chunk(
-        self,
-        *,
-        batch_id: UUID,
-        activation_type: ActivationType,
-        lorawan_version: LoRaWanVersion,
-    ) -> bool:
-        async with self._session_factory() as session, session.begin():
-            kg_units = await KgRepository(session).list_without_credentials_by_batch(
+            kg = KgRepository(session)
+            kg_units = await kg.list_without_credentials_by_batch(
                 batch_id,
                 limit=KEY_GENERATION_CHUNK_SIZE,
             )
 
             if not kg_units:
-                return False
+                return None
 
             credentials_service = LoRaWanCredentialsService(session, self._encryption_key)
+
             for kg_unit in kg_units:
                 credentials = generate_credentials(
                     kg_unit.dev_eui,
-                    activation_type,
-                    lorawan_version,
+                    batch.lorawan_config.activation_type,
+                    batch.lorawan_config.lorawan_version,
                 )
 
                 try:
@@ -134,36 +119,86 @@ class BatchKeyGenerationService:
                     )
 
                 except KgLoRaWanCredentialsAlreadyExistError:
-                    # A concurrent duplicate task may have saved this unit first.
                     continue
 
-        return True
+            generated_count = await kg.count_with_credentials_by_batch(batch.id)
+            progress = generated_count * 100 // batch.planned_qty
 
-    async def _set_status(
-        self,
-        batch_id: UUID,
-        status: BatchKeyGenerationStatus,
-    ) -> bool:
+            await batches.update_key_generation_job(
+                job,
+                status=BatchKeyGenerationStatus.GENERATING,
+                progress=progress,
+            )
+
+            return PreparationUpdate(BatchKeyGenerationStatus.GENERATING, progress)
+
+    async def _mark_ready(self, batch_id: UUID) -> PreparationUpdate | None:
         async with self._session_factory() as session, session.begin():
-            repository = BatchRepository(session)
-            batch = await repository.get_by_id(batch_id, for_update=True)
+            batches = BatchRepository(session)
+            batch = await batches.get_by_id(batch_id, for_update=True)
 
-            if batch is None or batch.key_generation_status is status:
-                return False
+            if batch is None:
+                return None
 
-            await repository.update_key_generation_status(batch, status=status)
+            job = await batches.get_key_generation_job(batch_id, for_update=True)
 
-        return True
+            if job is None or job.status is not BatchKeyGenerationStatus.GENERATING:
+                return None
+
+            credentials_count = await KgRepository(session).count_with_credentials_by_batch(batch.id)
+
+            if credentials_count != batch.planned_qty:
+                return None
+
+            await batches.update_key_generation_job(
+                job,
+                status=BatchKeyGenerationStatus.READY,
+                progress=100,
+            )
+
+            return PreparationUpdate(BatchKeyGenerationStatus.READY, 100)
+
+    async def _mark_failed(self, batch_id: UUID) -> PreparationUpdate | None:
+        async with self._session_factory() as session, session.begin():
+            batches = BatchRepository(session)
+            batch = await batches.get_by_id(batch_id, for_update=True)
+
+            if batch is None:
+                return None
+
+            job = await batches.get_key_generation_job(batch_id, for_update=True)
+
+            if job is None or job.status is BatchKeyGenerationStatus.CANCELLING:
+                return None
+
+            await batches.update_key_generation_job(
+                job,
+                status=BatchKeyGenerationStatus.FAILED,
+                progress=job.progress,
+                error_code=KEY_GENERATION_FAILED_ERROR_CODE,
+            )
+
+            return PreparationUpdate(BatchKeyGenerationStatus.FAILED, job.progress)
+
+    def _publish(self, update: PreparationUpdate, batch_id: UUID) -> None:
+        self._publish_status(batch_id, update.status, update.progress)
 
 
-def publish_key_generation_status(
+# The old names remain import-compatible for queued tasks and integrations.
+BatchKeyGenerationService = BatchKeyGenerationJobService
+BatchPreparationService = BatchKeyGenerationJobService
+
+
+def publish_preparation_status(
     batch_id: UUID,
     status: BatchKeyGenerationStatus,
+    progress: int,
 ) -> None:
     publish_event(
-        type="batch.key_generation_status",
+        type="batch.preparation_updated",
         data={
             "batch_id": str(batch_id),
             "status": status.value,
+            "progress": progress,
         },
     )

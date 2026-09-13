@@ -32,7 +32,8 @@ export function BatchActionsMenu({ batch }: Readonly<{ batch: Batch }>) {
   const [archiveOpen, setArchiveOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const archived = batch.archivedAt !== null
-  const canComplete = !archived && batch.status === 'IN_PRODUCTION'
+  const canManage = batch.preparationStatus === 'READY'
+  const canComplete = canManage && !archived && batch.status === 'IN_PRODUCTION'
   const closeMenu = () => setOpen(false)
 
   return (
@@ -45,7 +46,7 @@ export function BatchActionsMenu({ batch }: Readonly<{ batch: Batch }>) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuGroup>
-          {!archived ? (
+          {!archived && canManage ? (
             <DropdownMenuItem onClick={() => setEditOpen(true)}>
               <PencilIcon />
               Редактировать
@@ -57,10 +58,12 @@ export function BatchActionsMenu({ batch }: Readonly<{ batch: Batch }>) {
               Завершить
             </DropdownMenuItem>
           ) : null}
-          <DropdownMenuItem onClick={() => setArchiveOpen(true)}>
-            {archived ? <RotateCcwIcon /> : <ArchiveIcon />}
-            {archived ? 'Восстановить' : 'Архивировать'}
-          </DropdownMenuItem>
+          {canManage ? (
+            <DropdownMenuItem onClick={() => setArchiveOpen(true)}>
+              {archived ? <RotateCcwIcon /> : <ArchiveIcon />}
+              {archived ? 'Восстановить' : 'Архивировать'}
+            </DropdownMenuItem>
+          ) : null}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => setDeleteOpen(true)} variant="destructive">

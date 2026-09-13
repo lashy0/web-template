@@ -2,6 +2,7 @@ export * from './generated/index'
 export {
   zActivationType,
   zAuthState,
+  zBatchKeyGenerationStatus,
   zBatchStatus,
   zLoRaWanVersion,
   zPakDeviceKind,

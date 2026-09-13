@@ -88,9 +88,11 @@ class KgRepository:
         *,
         for_update: bool = False,
     ) -> list[KgUnit]:
-        statement = select(KgUnit).where(
-            KgUnit.batch_id == batch_id,
-        ).order_by(KgUnit.dev_eui.asc())
+        statement = (
+            select(KgUnit)
+            .where(KgUnit.batch_id == batch_id)
+            .order_by(KgUnit.dev_eui.asc())
+        )
 
         if for_update:
             statement = statement.with_for_update().execution_options(populate_existing=True)
@@ -182,6 +184,26 @@ class KgRepository:
 
         return list(result.scalars())
 
+    async def count_by_batch(self, batch_id: UUID) -> int:
+        count = await self._session.scalar(
+            select(func.count()).select_from(KgUnit).where(KgUnit.batch_id == batch_id)
+        )
+
+        return int(count or 0)
+
+    async def count_with_credentials_by_batch(self, batch_id: UUID) -> int:
+        count = await self._session.scalar(
+            select(func.count())
+            .select_from(KgUnit)
+            .join(
+                LoRaWanCredentials,
+                LoRaWanCredentials.kg_dev_eui == KgUnit.dev_eui,
+            )
+            .where(KgUnit.batch_id == batch_id)
+        )
+
+        return int(count or 0)
+
     async def update_state(
         self,
         kg: KgUnit,
@@ -217,10 +239,12 @@ class KgRepository:
 
         if q:
             pattern = f"%{q.strip().lower()}%"
-            filters.append(or_(
-                KgUnit.dev_eui.ilike(pattern),
-                KgUnit.short_id.ilike(pattern),
-            ))
+            filters.append(
+                or_(
+                    KgUnit.dev_eui.ilike(pattern),
+                    KgUnit.short_id.ilike(pattern),
+                )
+            )
 
         if batch_id is not None:
             filters.append(KgUnit.batch_id == batch_id)
@@ -288,9 +312,13 @@ class KgRepository:
         if not dev_euis:
             return []
 
-        statement = select(KgUnit).where(
-            KgUnit.dev_eui.in_(dev_euis),
-        ).order_by(KgUnit.dev_eui)
+        statement = (
+            select(KgUnit)
+            .where(
+                KgUnit.dev_eui.in_(dev_euis),
+            )
+            .order_by(KgUnit.dev_eui)
+        )
 
         if for_update:
             statement = statement.with_for_update().execution_options(populate_existing=True)

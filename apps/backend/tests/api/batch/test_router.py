@@ -21,6 +21,7 @@ from app.modules.batch import exceptions as batch_errors
 from app.modules.batch.models import (
     ActivationType,
     Batch,
+    BatchKeyGenerationJob,
     BatchKeyGenerationStatus,
     BatchLoRaWanConfig,
     BatchReceipt,
@@ -71,7 +72,6 @@ def _batch(*, batch_id: UUID | None = None, version: KgVersion | None = None) ->
         planned_qty=100,
         day_plan_qty=20,
         status=BatchStatus.IN_PRODUCTION,
-        key_generation_status=BatchKeyGenerationStatus.PENDING,
         created_by_user_id=uuid4(),
         created_at=now,
         updated_at=now,
@@ -134,6 +134,26 @@ def _configure_principal(
     if not hasattr(service, "deletion_availability"):
         service.deletion_availability = AsyncMock(
             side_effect=lambda batches: {batch.id: True for batch in batches}
+        )
+
+    if not hasattr(service, "get_key_generation_job"):
+        service.get_key_generation_job = AsyncMock(
+            return_value=BatchKeyGenerationJob(
+                status=BatchKeyGenerationStatus.CREATING,
+                progress=0,
+            )
+        )
+
+    if not hasattr(service, "get_key_generation_jobs"):
+        service.get_key_generation_jobs = AsyncMock(
+            side_effect=lambda batch_ids: {
+                batch_id: BatchKeyGenerationJob(
+                    batch_id=batch_id,
+                    status=BatchKeyGenerationStatus.CREATING,
+                    progress=0,
+                )
+                for batch_id in batch_ids
+            }
         )
 
     user_id = uuid4()
@@ -254,7 +274,7 @@ def test_create_batch_normalizes_payload_and_forwards_actor(
     )
 
     assert response.status_code == status.HTTP_201_CREATED
-    assert response.json()["key_generation_status"] == "PENDING"
+    assert response.json()["preparation_status"] == "CREATING"
     service.create.assert_awaited_once_with(
         actor=ANY,
         name="August production",
@@ -267,6 +287,27 @@ def test_create_batch_normalizes_payload_and_forwards_actor(
         production_order_id=None,
     )
     assert service.create.await_args.kwargs["actor"].user_id == actor_id
+
+
+@pytest.mark.api
+def test_retry_batch_preparation_forwards_actor(
+    batch_client: tuple[FastAPI, TestClient],
+    mocker: MockerFixture,
+) -> None:
+    app, client = batch_client
+    batch = _batch()
+    service = SimpleNamespace(retry_preparation=AsyncMock(return_value=batch))
+    actor_id = _configure_principal(app, mocker, service, Role.MANAGER)
+
+    response = client.post(
+        f"/batches/{batch.id}/preparation/retry",
+        headers=_headers(),
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["preparation_status"] == "CREATING"
+    service.retry_preparation.assert_awaited_once_with(actor=ANY, batch_id=batch.id)
+    assert service.retry_preparation.await_args.kwargs["actor"].user_id == actor_id
 
 
 @pytest.mark.api
@@ -290,6 +331,33 @@ def test_batch_response_includes_lorawan_config(batch_client, mocker) -> None:
         "lorawan_version": "1.1",
         "join_eui": "0123456789abcdef",
     }
+
+
+@pytest.mark.api
+def test_batch_response_exposes_preparation_error_code(
+    batch_client: tuple[FastAPI, TestClient],
+    mocker: MockerFixture,
+) -> None:
+    app, client = batch_client
+    batch = _batch()
+    job = BatchKeyGenerationJob(
+        batch_id=batch.id,
+        status=BatchKeyGenerationStatus.FAILED,
+        progress=37,
+        error_code="batch_key_generation_failed",
+    )
+    service = SimpleNamespace(
+        get=AsyncMock(return_value=batch),
+        get_key_generation_job=AsyncMock(return_value=job),
+    )
+    _configure_principal(app, mocker, service, Role.MANAGER)
+
+    response = client.get(f"/batches/{batch.id}", headers=_headers())
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["preparation_status"] == "FAILED"
+    assert response.json()["preparation_progress"] == 37
+    assert response.json()["preparation_error_code"] == "batch_key_generation_failed"
 
 
 @pytest.mark.api

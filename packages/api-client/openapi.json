@@ -217,10 +217,11 @@
       },
       "BatchKeyGenerationStatus": {
         "enum": [
-          "PENDING",
-          "RUNNING",
-          "COMPLETED",
-          "FAILED"
+          "CREATING",
+          "GENERATING",
+          "READY",
+          "FAILED",
+          "CANCELLING"
         ],
         "title": "BatchKeyGenerationStatus",
         "type": "string"
@@ -476,9 +477,6 @@
             "title": "Id",
             "type": "string"
           },
-          "key_generation_status": {
-            "$ref": "#/components/schemas/BatchKeyGenerationStatus"
-          },
           "kg_version": {
             "anyOf": [
               {
@@ -506,6 +504,24 @@
           "planned_qty": {
             "title": "Planned Qty",
             "type": "integer"
+          },
+          "preparation_error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preparation Error Code"
+          },
+          "preparation_progress": {
+            "title": "Preparation Progress",
+            "type": "integer"
+          },
+          "preparation_status": {
+            "$ref": "#/components/schemas/BatchKeyGenerationStatus"
           },
           "production_order": {
             "anyOf": [
@@ -545,7 +561,9 @@
           "planned_qty",
           "day_plan_qty",
           "status",
-          "key_generation_status",
+          "preparation_status",
+          "preparation_progress",
+          "preparation_error_code",
           "lorawan_config",
           "dev_eui_prefix",
           "kg_version",
@@ -1584,7 +1602,6 @@
         "type": "object"
       },
       "KgCurrentState": {
-        "description": "Presentation state derived from independently owned process states.",
         "enum": [
           "REGISTERED",
           "ON_OTK",
@@ -3944,6 +3961,49 @@
           }
         },
         "summary": "Complete Batch",
+        "tags": [
+          "batch"
+        ]
+      }
+    },
+    "/batches/{batch_id}/preparation/retry": {
+      "post": {
+        "operationId": "batch-retry_batch_preparation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "batch_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Batch Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Retry Batch Preparation",
         "tags": [
           "batch"
         ]

@@ -1,6 +1,7 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { useEffect, useState, type ReactNode } from 'react'
+import { CircleAlertIcon, RotateCwIcon } from 'lucide-react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -12,12 +13,20 @@ import { Alert, AlertDescription, AlertTitle } from '@web-app/ui/components/aler
 import { Button } from '@web-app/ui/components/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@web-app/ui/components/empty'
 import { Skeleton } from '@web-app/ui/components/skeleton'
+import { Spinner } from '@web-app/ui/components/spinner'
 
 import { type DataTablePaginationState } from '@/components/Common/DataTable'
 import { KgUnitFilters } from '@/components/Kg/Unit/KgUnitFilters'
 import { PendingKgUnits } from '@/components/Kg/Unit/PendingKgUnits'
 import { KgUnitTable } from '@/components/Kg/Unit/KgUnitTable'
-import { getBatch } from '@/features/batches/batches-api'
+import {
+  batchQueryKeys,
+  batchPreparationErrorMessage,
+  getBatch,
+  retryBatchPreparation,
+  type Batch,
+} from '@/features/batches/batches-api'
+import { useBatchPreparationRealtime } from '@/features/batches/use-batch-preparation-realtime'
 import {
   kgCurrentStates,
   kgQueryKeys,
@@ -51,6 +60,7 @@ function BatchPage() {
   const { batchId } = Route.useParams()
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
+  const queryClient = useQueryClient()
   const status = search.unitStatus ?? 'all'
   const [queryInput, setQueryInput] = useState(search.q ?? '')
   const pagination: DataTablePaginationState = {
@@ -60,7 +70,12 @@ function BatchPage() {
   const batch = useQuery({
     queryFn: () => getBatch(batchId),
     queryKey: ['batches', 'detail', batchId],
+    refetchInterval: (query) => (query.state.data?.preparationStatus === 'READY' ? false : 3_000),
   })
+  const refreshBatch = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: batchQueryKeys.detail(batchId) })
+  }, [batchId, queryClient])
+  useBatchPreparationRealtime(batchId, refreshBatch)
   useEffect(() => setQueryInput(search.q ?? ''), [search.q])
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -75,6 +90,7 @@ function BatchPage() {
     return () => window.clearTimeout(timeout)
   }, [navigate, queryInput, search.q])
   const kg = useQuery({
+    enabled: batch.data?.preparationStatus === 'READY',
     placeholderData: keepPreviousData,
     queryFn: () =>
       listKgByBatch({
@@ -93,22 +109,40 @@ function BatchPage() {
     }),
   })
 
-  if (batch.isPending || kg.isPending) return <PendingBatchPage />
+  if (batch.isPending) return <PendingBatchPage />
 
-  if (batch.isError || kg.isError || !batch.data || !kg.data) {
+  if (batch.isError || !batch.data) {
     return (
       <PageLayout>
         <Alert variant="destructive">
           <AlertTitle>Не удалось загрузить партию</AlertTitle>
-          <AlertDescription>
-            Проверьте подключение к серверу и повторите попытку.
-          </AlertDescription>
+          <AlertDescription>Проверьте подключение к серверу и повторите попытку.</AlertDescription>
         </Alert>
-        <Button
-          className="mt-4"
-          onClick={() => void Promise.all([batch.refetch(), kg.refetch()])}
-          variant="outline"
-        >
+        <Button className="mt-4" onClick={() => void batch.refetch()} variant="outline">
+          Повторить
+        </Button>
+      </PageLayout>
+    )
+  }
+
+  if (batch.data.preparationStatus !== 'READY') {
+    return (
+      <PageLayout batchName={batch.data.name}>
+        <BatchPreparation batch={batch.data} onRetry={refreshBatch} />
+      </PageLayout>
+    )
+  }
+
+  if (kg.isPending) return <PendingBatchPage />
+
+  if (kg.isError || !kg.data) {
+    return (
+      <PageLayout batchName={batch.data.name}>
+        <Alert variant="destructive">
+          <AlertTitle>Не удалось загрузить КГ</AlertTitle>
+          <AlertDescription>Проверьте подключение к серверу и повторите попытку.</AlertDescription>
+        </Alert>
+        <Button className="mt-4" onClick={() => void kg.refetch()} variant="outline">
           Повторить
         </Button>
       </PageLayout>
@@ -160,6 +194,58 @@ function BatchPage() {
   )
 }
 
+function BatchPreparation({
+  batch,
+  onRetry,
+}: Readonly<{
+  batch: Batch
+  onRetry: () => void
+}>) {
+  const retry = useMutation({
+    mutationFn: () => retryBatchPreparation(batch.id),
+    onSuccess: () => onRetry(),
+  })
+
+  if (batch.preparationStatus === 'FAILED') {
+    return (
+      <div className="flex min-h-80 flex-col items-center justify-center gap-4 text-center">
+        <Alert className="max-w-xl text-left" variant="destructive">
+          <CircleAlertIcon />
+          <AlertTitle>Не удалось подготовить партию</AlertTitle>
+          <AlertDescription>{batchPreparationErrorMessage(batch.preparationErrorCode)}</AlertDescription>
+        </Alert>
+        <div className="flex gap-2">
+          <Button disabled={retry.isPending} onClick={() => retry.mutate()}>
+            {retry.isPending ? (
+              <Spinner data-icon="inline-start" />
+            ) : (
+              <RotateCwIcon data-icon="inline-start" />
+            )}
+            Повторить подготовку
+          </Button>
+          <Button render={<Link to="/admin/production/batches" />} variant="outline">
+            К списку партий
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  const message =
+    batch.preparationStatus === 'CANCELLING'
+      ? `Отмена подготовки партии: ${batch.preparationProgress}%`
+      : `Подготовка партии: ${batch.preparationProgress}%`
+
+  return (
+    <div aria-live="polite" className="flex min-h-80 items-center justify-center text-center">
+      <p className="flex items-center gap-2 text-lg font-medium">
+        <Spinner aria-hidden="true" className="size-5" />
+        {message}
+      </p>
+    </div>
+  )
+}
+
 function PageLayout({
   batchName,
   children,
@@ -169,7 +255,10 @@ function PageLayout({
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <Link className="hover:text-foreground transition-colors" to="/admin/production/batches">
+            <Link
+              className="hover:text-foreground transition-colors"
+              to="/admin/production/batches"
+            >
               Партии
             </Link>
           </BreadcrumbItem>

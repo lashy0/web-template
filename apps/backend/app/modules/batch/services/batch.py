@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 from secrets import token_hex
 from uuid import UUID
 
+from loguru import logger
 from sqlalchemy import select, union
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -25,13 +26,21 @@ from ..exceptions import (
     BatchInvalidFiltersError,
     BatchKgVersionArchivedError,
 )
-from ..models import Batch, BatchReceipt, BatchShipment, BatchStatus
+from ..models import (
+    Batch,
+    BatchKeyGenerationJob,
+    BatchKeyGenerationStatus,
+    BatchReceipt,
+    BatchShipment,
+    BatchStatus,
+)
 from ..repositories import (
     BatchReceiptRepository,
     BatchRepository,
     BatchShipmentRepository,
 )
 from . import audit, lifecycle, queries
+from .key_generation import KEY_GENERATION_FAILED_ERROR_CODE, publish_preparation_status
 from .lifecycle import BATCH_EDIT_WINDOW
 from .transactions import transaction
 
@@ -51,6 +60,16 @@ class BatchService:
     async def get(self, batch_id: UUID) -> Batch | None:
         async with self._session_factory() as session:
             return await BatchRepository(session).get_by_id(batch_id)
+
+    async def get_key_generation_job(self, batch_id: UUID) -> BatchKeyGenerationJob | None:
+        async with self._session_factory() as session:
+            return await BatchRepository(session).get_key_generation_job(batch_id)
+
+    async def get_key_generation_jobs(
+        self, batch_ids: Sequence[UUID]
+    ) -> dict[UUID, BatchKeyGenerationJob]:
+        async with self._session_factory() as session:
+            return await BatchRepository(session).get_key_generation_jobs(batch_ids)
 
     async def list(
         self,
@@ -165,6 +184,8 @@ class BatchService:
                 dev_eui_prefix, planned_qty
             )
 
+            assert dev_euis
+
             join_eui = token_hex(8)
 
             if kg_version_id is None:
@@ -228,7 +249,36 @@ class BatchService:
                 },
             )
 
-        celery_app.send_task(GENERATE_BATCH_KEYS_TASK, args=[str(batch.id)])
+        await self._schedule_preparation(batch.id)
+
+        return batch
+
+    async def retry_preparation(
+        self,
+        *,
+        actor: CurrentPrincipal,
+        batch_id: UUID,
+    ) -> Batch:
+        lifecycle.ensure_management_allowed(actor)
+
+        async with transaction(self._session_factory) as session:
+            batches = BatchRepository(session)
+            batch = await queries.required_batch(batches, batch_id, for_update=True)
+            lifecycle.ensure_not_archived(batch)
+
+            job = await batches.get_key_generation_job(batch.id, for_update=True)
+
+            if job is None or job.status is not BatchKeyGenerationStatus.FAILED:
+                return batch
+
+            await batches.update_key_generation_job(
+                job,
+                status=BatchKeyGenerationStatus.CREATING,
+                progress=0,
+                error_code=None,
+            )
+
+        await self._schedule_preparation(batch.id)
 
         return batch
 
@@ -331,7 +381,8 @@ class BatchService:
             repository = BatchRepository(session)
             batch = await queries.required_batch(repository, batch_id, for_update=True)
 
-            lifecycle.ensure_in_production(batch)
+            job = await repository.get_key_generation_job(batch.id, for_update=True)
+            lifecycle.ensure_in_production(batch, job=job)
 
             old_status = batch.status
             completed_at = datetime.now(UTC)
@@ -428,6 +479,9 @@ class BatchService:
     ) -> None:
         lifecycle.ensure_management_allowed(actor)
 
+        preparation_cancelled = False
+        preparation_progress = 0
+
         async with transaction(self._session_factory) as session:
             batch_repository = BatchRepository(session)
             receipt_repository = BatchReceiptRepository(session)
@@ -463,21 +517,105 @@ class BatchService:
             if await VerificationManagementService.has_batch_history(session, batch.id):
                 raise BatchCannotBeDeletedError
 
+            job = await batch_repository.get_key_generation_job(batch.id, for_update=True)
+
+            if job is not None and job.status is not BatchKeyGenerationStatus.READY:
+                await batch_repository.update_key_generation_job(
+                    job,
+                    status=BatchKeyGenerationStatus.CANCELLING,
+                    progress=job.progress,
+                )
+                preparation_progress = job.progress
+                preparation_cancelled = True
+
+            else:
+                await AuditService.from_session(session).record(
+                    actor=audit.audit_actor(actor),
+                    action="batch.deleted",
+                    entity=audit.batch_entity(batch),
+                    old_data={
+                        "production_order_id": str(batch.production_order_id)
+                        if batch.production_order_id
+                        else None,
+                        "name": batch.name,
+                        "description": batch.description,
+                        "planned_qty": batch.planned_qty,
+                        "day_plan_qty": batch.day_plan_qty,
+                        "status": batch.status.value,
+                    },
+                )
+
+                await kg_operations.delete_registered_for_batch(batch.id)
+                await batch_repository.delete(batch)
+
+        if not preparation_cancelled:
+            return
+
+        publish_preparation_status(
+            batch_id,
+            BatchKeyGenerationStatus.CANCELLING,
+            preparation_progress,
+        )
+
+        # The worker observes CANCELLING under the same row lock before every chunk.
+        # This waits out a chunk, then removes all partially-created KG data safely.
+        async with transaction(self._session_factory) as session:
+            batch_repository = BatchRepository(session)
+            batch_for_cleanup = await batch_repository.get_by_id(batch_id, for_update=True)
+            if batch_for_cleanup is None:
+                return
+
+            await KgService(session).delete_registered_for_batch(batch_for_cleanup.id)
+
             await AuditService.from_session(session).record(
                 actor=audit.audit_actor(actor),
                 action="batch.deleted",
-                entity=audit.batch_entity(batch),
+                entity=audit.batch_entity(batch_for_cleanup),
                 old_data={
-                    "production_order_id": str(batch.production_order_id)
-                    if batch.production_order_id
+                    "production_order_id": str(batch_for_cleanup.production_order_id)
+                    if batch_for_cleanup.production_order_id
                     else None,
-                    "name": batch.name,
-                    "description": batch.description,
-                    "planned_qty": batch.planned_qty,
-                    "day_plan_qty": batch.day_plan_qty,
-                    "status": batch.status.value,
+                    "name": batch_for_cleanup.name,
+                    "description": batch_for_cleanup.description,
+                    "planned_qty": batch_for_cleanup.planned_qty,
+                    "day_plan_qty": batch_for_cleanup.day_plan_qty,
+                    "status": batch_for_cleanup.status.value,
                 },
             )
 
-            await kg_operations.delete_registered_for_batch(batch.id)
-            await batch_repository.delete(batch)
+            await batch_repository.delete(batch_for_cleanup)
+
+    async def _schedule_preparation(self, batch_id: UUID) -> None:
+        try:
+            celery_app.send_task(GENERATE_BATCH_KEYS_TASK, args=[str(batch_id)])
+
+        except Exception:
+            logger.bind(
+                event="batch.preparation_dispatch_failed", batch_id=str(batch_id)
+            ).exception("Could not start batch KG preparation")
+
+            async with transaction(self._session_factory) as session:
+                repository = BatchRepository(session)
+                batch = await repository.get_by_id(batch_id, for_update=True)
+
+                if batch is not None:
+                    job = await repository.get_key_generation_job(batch.id, for_update=True)
+
+                    if job is None:
+                        return
+
+                    await repository.update_key_generation_job(
+                        job,
+                        status=BatchKeyGenerationStatus.FAILED,
+                        progress=job.progress,
+                        error_code=KEY_GENERATION_FAILED_ERROR_CODE,
+                    )
+                    publish_preparation_status(
+                        batch.id,
+                        BatchKeyGenerationStatus.FAILED,
+                        job.progress,
+                    )
+
+            return
+
+        publish_preparation_status(batch_id, BatchKeyGenerationStatus.CREATING, 0)

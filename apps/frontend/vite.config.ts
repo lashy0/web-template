@@ -16,6 +16,8 @@ export default defineConfig(({ mode }) => {
     (baseDomain === 'localhost' ? 'http://127.0.0.1' : `http://${apiHost}`)
   const kratosPublicTarget =
     env.DEV_KRATOS_PUBLIC_PROXY_TARGET || `http://127.0.0.1:${kratosPublicPort}`
+  const realtimeHost = `realtime.${baseDomain}`
+  const realtimeTarget = env.DEV_REALTIME_PROXY_TARGET || `http://${realtimeHost}`
 
   return {
     envDir: repositoryRoot,
@@ -54,6 +56,19 @@ export default defineConfig(({ mode }) => {
         '/sessions': {
           target: kratosPublicTarget,
           changeOrigin: true,
+        },
+        '/realtime': {
+          target: realtimeTarget,
+          changeOrigin: true,
+          configure:
+            baseDomain === 'localhost'
+              ? (proxy) => {
+                  proxy.on('proxyReq', (request) => {
+                    request.setHeader('host', realtimeHost)
+                  })
+                }
+              : undefined,
+          rewrite: (path) => path.replace(/^\/realtime/, ''),
         },
       },
     },

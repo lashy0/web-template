@@ -10,6 +10,8 @@ from app.modules.users.schemas import UserSummaryResponse
 
 from ..models import (
     Batch,
+    BatchKeyGenerationJob,
+    BatchKeyGenerationStatus,
     BatchReceipt,
     BatchShipment,
     BatchShipmentItem,
@@ -32,19 +34,33 @@ def _user_response(user: User | None) -> UserSummaryResponse | None:
     return UserSummaryResponse(id=user.id, name=user.name) if user is not None else None
 
 
+_JOB_NOT_PROVIDED = object()
+
+
 async def _batch_response(
     request: Request,
     batch: Batch,
     *,
     can_delete: bool | None = None,
+    job: BatchKeyGenerationJob | None | object = _JOB_NOT_PROVIDED,
 ) -> BatchResponse:
     if can_delete is None:
-        can_delete = (
-            await _service(request).deletion_availability([batch])
-        )[batch.id]
+        can_delete = (await _service(request).deletion_availability([batch]))[batch.id]
 
     prefix = batch.kg_dev_eui_prefix
     version = batch.kg_version
+
+    if job is _JOB_NOT_PROVIDED:
+        job = await _service(request).get_key_generation_job(batch.id)
+
+    preparation_status = BatchKeyGenerationStatus.READY
+    preparation_progress = 100
+    preparation_error_code = None
+
+    if isinstance(job, BatchKeyGenerationJob):
+        preparation_status = job.status
+        preparation_progress = job.progress
+        preparation_error_code = job.error_code
 
     return BatchResponse(
         id=batch.id,
@@ -73,7 +89,9 @@ async def _batch_response(
         planned_qty=batch.planned_qty,
         day_plan_qty=batch.day_plan_qty,
         status=batch.status,
-        key_generation_status=batch.key_generation_status,
+        preparation_status=preparation_status,
+        preparation_progress=preparation_progress,
+        preparation_error_code=preparation_error_code,
         lorawan_config=(
             BatchLoRaWanConfigResponse(
                 activation_type=batch.lorawan_config.activation_type,

@@ -11,6 +11,7 @@ from app.modules.lorawan.domain import ActivationType, LoRaWanVersion
 
 from ..models import (
     Batch,
+    BatchKeyGenerationJob,
     BatchReceipt,
     BatchShipment,
     BatchShipmentItem,
@@ -37,6 +38,14 @@ class BatchManagementService:
 
     async def get(self, batch_id: UUID) -> Batch | None:
         return await self.batch.get(batch_id)
+
+    async def get_key_generation_job(self, batch_id: UUID) -> BatchKeyGenerationJob | None:
+        return await self.batch.get_key_generation_job(batch_id)
+
+    async def get_key_generation_jobs(
+        self, batch_ids: Sequence[UUID]
+    ) -> dict[UUID, BatchKeyGenerationJob]:
+        return await self.batch.get_key_generation_jobs(batch_ids)
 
     async def list(
         self,
@@ -103,6 +112,14 @@ class BatchManagementService:
             dev_eui_prefix=dev_eui_prefix,
             planned_qty=planned_qty,
         )
+
+    async def retry_preparation(
+        self,
+        *,
+        actor: CurrentPrincipal,
+        batch_id: UUID,
+    ) -> Batch:
+        return await self.batch.retry_preparation(actor=actor, batch_id=batch_id)
 
     async def update(
         self,

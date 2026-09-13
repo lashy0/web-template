@@ -59,10 +59,11 @@ export const zAuthState = z.enum(['active', 'inactive']);
  * BatchKeyGenerationStatus
  */
 export const zBatchKeyGenerationStatus = z.enum([
-    'PENDING',
-    'RUNNING',
-    'COMPLETED',
-    'FAILED'
+    'CREATING',
+    'GENERATING',
+    'READY',
+    'FAILED',
+    'CANCELLING'
 ]);
 
 /**
@@ -236,8 +237,6 @@ export const zKgBatchSummaryResponse = z.object({
 
 /**
  * KgCurrentState
- *
- * Presentation state derived from independently owned process states.
  */
 export const zKgCurrentState = z.enum([
     'REGISTERED',
@@ -762,11 +761,13 @@ export const zBatchResponse = z.object({
     description: z.string().nullable(),
     dev_eui_prefix: zKgDevEuiPrefixSummaryResponse,
     id: z.uuid(),
-    key_generation_status: zBatchKeyGenerationStatus,
     kg_version: zKgVersionSummaryResponse.nullable(),
     lorawan_config: zBatchLoRaWanConfigResponse.nullable(),
     name: z.string(),
     planned_qty: z.int(),
+    preparation_error_code: z.string().nullable(),
+    preparation_progress: z.int(),
+    preparation_status: zBatchKeyGenerationStatus,
     production_order: zProductionOrderSummaryResponse.nullish(),
     production_order_id: z.uuid().nullish(),
     status: zBatchStatus,
@@ -1044,6 +1045,15 @@ export const zBatchCompleteBatchPath = z.object({
  * Successful Response
  */
 export const zBatchCompleteBatchResponse = zBatchResponse;
+
+export const zBatchRetryBatchPreparationPath = z.object({
+    batch_id: z.uuid()
+});
+
+/**
+ * Successful Response
+ */
+export const zBatchRetryBatchPreparationResponse = zBatchResponse;
 
 export const zBatchAssignProductionOrderBody = zAssignProductionOrderRequest;
 

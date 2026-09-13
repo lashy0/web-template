@@ -121,7 +121,7 @@ export type AuthState = 'active' | 'inactive';
 /**
  * BatchKeyGenerationStatus
  */
-export type BatchKeyGenerationStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+export type BatchKeyGenerationStatus = 'CREATING' | 'GENERATING' | 'READY' | 'FAILED' | 'CANCELLING';
 
 /**
  * BatchListResponse
@@ -252,7 +252,6 @@ export type BatchResponse = {
      * Id
      */
     id: string;
-    key_generation_status: BatchKeyGenerationStatus;
     kg_version: KgVersionSummaryResponse | null;
     lorawan_config: BatchLoRaWanConfigResponse | null;
     /**
@@ -263,6 +262,15 @@ export type BatchResponse = {
      * Planned Qty
      */
     planned_qty: number;
+    /**
+     * Preparation Error Code
+     */
+    preparation_error_code: string | null;
+    /**
+     * Preparation Progress
+     */
+    preparation_progress: number;
+    preparation_status: BatchKeyGenerationStatus;
     production_order?: ProductionOrderSummaryResponse | null;
     /**
      * Production Order Id
@@ -851,8 +859,6 @@ export type KgBatchSummaryResponse = {
 
 /**
  * KgCurrentState
- *
- * Presentation state derived from independently owned process states.
  */
 export type KgCurrentState = 'REGISTERED' | 'ON_OTK' | 'OTK_PASSED' | 'OTK_FAILED' | 'OTK_ABORTED' | 'OTK_INCOMPLETE' | 'IN_REPAIR' | 'PACKED' | 'SHIPPED' | 'SCRAPPED';
 
@@ -2193,6 +2199,36 @@ export type BatchCompleteBatchResponses = {
 };
 
 export type BatchCompleteBatchResponse = BatchCompleteBatchResponses[keyof BatchCompleteBatchResponses];
+
+export type BatchRetryBatchPreparationData = {
+    body?: never;
+    path: {
+        /**
+         * Batch Id
+         */
+        batch_id: string;
+    };
+    query?: never;
+    url: '/batches/{batch_id}/preparation/retry';
+};
+
+export type BatchRetryBatchPreparationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type BatchRetryBatchPreparationError = BatchRetryBatchPreparationErrors[keyof BatchRetryBatchPreparationErrors];
+
+export type BatchRetryBatchPreparationResponses = {
+    /**
+     * Successful Response
+     */
+    200: BatchResponse;
+};
+
+export type BatchRetryBatchPreparationResponse = BatchRetryBatchPreparationResponses[keyof BatchRetryBatchPreparationResponses];
 
 export type BatchAssignProductionOrderData = {
     body: AssignProductionOrderRequest;

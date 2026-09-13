@@ -54,13 +54,13 @@ async def _create_batch(
         return batch.id
 
 
-async def _batch_status(
+async def _preparation_status(
     session_factory: async_sessionmaker[AsyncSession], batch_id: UUID
 ) -> BatchKeyGenerationStatus:
     async with session_factory() as session:
-        batch = await BatchRepository(session).get_by_id(batch_id)
-        assert batch is not None
-        return batch.key_generation_status
+        job = await BatchRepository(session).get_key_generation_job(batch_id)
+        assert job is not None
+        return job.status
 
 
 @pytest.mark.integration
@@ -68,10 +68,12 @@ async def test_task_generates_keys_transitions_status_and_is_idempotent(
     database_session_factory: async_sessionmaker[AsyncSession],
 ) -> None:
     batch_id = await _create_batch(database_session_factory, quantity=2)
-    events: list[tuple[UUID, BatchKeyGenerationStatus]] = []
+    events: list[tuple[UUID, BatchKeyGenerationStatus, int]] = []
 
-    def publisher(event_batch_id: UUID, event_status: BatchKeyGenerationStatus) -> None:
-        events.append((event_batch_id, event_status))
+    def publisher(
+        event_batch_id: UUID, event_status: BatchKeyGenerationStatus, progress: int
+    ) -> None:
+        events.append((event_batch_id, event_status, progress))
 
     await BatchKeyGenerationService(
         database_session_factory,
@@ -80,12 +82,13 @@ async def test_task_generates_keys_transitions_status_and_is_idempotent(
     ).generate(batch_id)
 
     assert (
-        await _batch_status(database_session_factory, batch_id)
-        is BatchKeyGenerationStatus.COMPLETED
+        await _preparation_status(database_session_factory, batch_id)
+        is BatchKeyGenerationStatus.READY
     )
     assert events == [
-        (batch_id, BatchKeyGenerationStatus.RUNNING),
-        (batch_id, BatchKeyGenerationStatus.COMPLETED),
+        (batch_id, BatchKeyGenerationStatus.GENERATING, 0),
+        (batch_id, BatchKeyGenerationStatus.GENERATING, 100),
+        (batch_id, BatchKeyGenerationStatus.READY, 100),
     ]
 
     async with database_session_factory() as session:
@@ -102,8 +105,9 @@ async def test_task_generates_keys_transitions_status_and_is_idempotent(
 
     assert after == before
     assert events == [
-        (batch_id, BatchKeyGenerationStatus.RUNNING),
-        (batch_id, BatchKeyGenerationStatus.COMPLETED),
+        (batch_id, BatchKeyGenerationStatus.GENERATING, 0),
+        (batch_id, BatchKeyGenerationStatus.GENERATING, 100),
+        (batch_id, BatchKeyGenerationStatus.READY, 100),
     ]
 
 
@@ -123,13 +127,14 @@ async def test_task_marks_batch_failed_and_publishes_event(
         await BatchKeyGenerationService(
             database_session_factory,
             encryption_key=_encryption_key(),
-            publish_status=lambda _, event_status: events.append(event_status),
+            publish_status=lambda _, event_status, __: events.append(event_status),
         ).generate(batch_id)
 
     assert (
-        await _batch_status(database_session_factory, batch_id) is BatchKeyGenerationStatus.FAILED
+        await _preparation_status(database_session_factory, batch_id)
+        is BatchKeyGenerationStatus.FAILED
     )
-    assert events == [BatchKeyGenerationStatus.RUNNING, BatchKeyGenerationStatus.FAILED]
+    assert events == [BatchKeyGenerationStatus.GENERATING, BatchKeyGenerationStatus.FAILED]
 
 
 @pytest.mark.integration
@@ -143,12 +148,12 @@ async def test_task_processes_more_than_one_thousand_units_in_chunks(
     await BatchKeyGenerationService(
         database_session_factory,
         encryption_key=_encryption_key(),
-        publish_status=lambda _, __: None,
+        publish_status=lambda _, __, ___: None,
     ).generate(batch_id)
 
     assert (
-        await _batch_status(database_session_factory, batch_id)
-        is BatchKeyGenerationStatus.COMPLETED
+        await _preparation_status(database_session_factory, batch_id)
+        is BatchKeyGenerationStatus.READY
     )
     assert list_missing.call_count == 4
     assert all(

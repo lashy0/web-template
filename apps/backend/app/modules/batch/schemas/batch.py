@@ -36,7 +36,9 @@ class BatchResponse(BaseModel):
     planned_qty: int
     day_plan_qty: int
     status: BatchStatus
-    key_generation_status: BatchKeyGenerationStatus
+    preparation_status: BatchKeyGenerationStatus
+    preparation_progress: int
+    preparation_error_code: str | None
     lorawan_config: BatchLoRaWanConfigResponse | None
     dev_eui_prefix: KgDevEuiPrefixSummaryResponse
     kg_version: KgVersionSummaryResponse | None

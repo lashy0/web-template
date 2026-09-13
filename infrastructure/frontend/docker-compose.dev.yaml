@@ -6,6 +6,7 @@ services:
       - "127.0.0.1:5173:5173"
     environment:
       DEV_API_PROXY_TARGET: http://host.docker.internal
+      DEV_REALTIME_PROXY_TARGET: http://host.docker.internal
       DEV_KRATOS_PUBLIC_PROXY_TARGET: http://host.docker.internal:${KRATOS_PUBLIC_PORT:-4433}
     extra_hosts:
       - "host.docker.internal:host-gateway"

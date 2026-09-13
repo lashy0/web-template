@@ -83,6 +83,7 @@ async def list_batches(
     )
 
     deletion_availability = await _service(request).deletion_availability(batches)
+    jobs = await _service(request).get_key_generation_jobs([batch.id for batch in batches])
 
     return BatchListResponse(
         items=[
@@ -90,6 +91,7 @@ async def list_batches(
                 request,
                 batch,
                 can_delete=deletion_availability[batch.id],
+                job=jobs.get(batch.id),
             )
             for batch in batches
         ],
@@ -203,6 +205,23 @@ async def complete_batch(
     request: Request,
 ) -> BatchResponse:
     batch = await _service(request).complete(
+        actor=principal,
+        batch_id=batch_id,
+    )
+
+    return await _batch_response(request, batch)
+
+
+@router.post("/{batch_id}/preparation/retry", response_model=BatchResponse)
+async def retry_batch_preparation(
+    batch_id: UUID,
+    principal: Annotated[
+        CurrentPrincipalDep,
+        Depends(require_permission(BatchPermission.UPDATE)),
+    ],
+    request: Request,
+) -> BatchResponse:
+    batch = await _service(request).retry_preparation(
         actor=principal,
         batch_id=batch_id,
     )

@@ -11,6 +11,7 @@ from ..exceptions import (
     BatchArchivedError,
     BatchEditNotAllowedError,
     BatchEditWindowExpiredError,
+    BatchPreparationNotReadyError,
     BatchReceiptAlreadyVoidedError,
     BatchReceiptEditNotAllowedError,
     BatchReceiptEditWindowExpiredError,
@@ -19,7 +20,14 @@ from ..exceptions import (
     BatchShipmentEditNotAllowedError,
     BatchShipmentEditWindowExpiredError,
 )
-from ..models import Batch, BatchReceipt, BatchShipment, BatchStatus
+from ..models import (
+    Batch,
+    BatchKeyGenerationJob,
+    BatchKeyGenerationStatus,
+    BatchReceipt,
+    BatchShipment,
+    BatchStatus,
+)
 
 BATCH_EDIT_WINDOW = timedelta(minutes=60)
 
@@ -34,8 +42,15 @@ def ensure_not_archived(batch: Batch) -> None:
         raise BatchArchivedError
 
 
-def ensure_in_production(batch: Batch) -> None:
+def ensure_in_production(
+    batch: Batch,
+    *,
+    job: BatchKeyGenerationJob | None = None,
+) -> None:
     ensure_not_archived(batch)
+
+    if job is not None and job.status is not BatchKeyGenerationStatus.READY:
+        raise BatchPreparationNotReadyError
 
     if batch.status == BatchStatus.COMPLETED:
         raise BatchAlreadyCompletedError

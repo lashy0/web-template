@@ -63,13 +63,17 @@ class ReceiptService:
         lifecycle.ensure_management_allowed(actor)
 
         async with transaction(self._session_factory) as session:
+            batches = BatchRepository(session)
             batch = await queries.required_batch(
-                BatchRepository(session),
+                batches,
                 batch_id,
                 for_update=True,
             )
 
-            lifecycle.ensure_in_production(batch)
+            lifecycle.ensure_in_production(
+                batch,
+                job=await batches.get_key_generation_job(batch.id, for_update=True),
+            )
 
             receipt = await BatchReceiptRepository(session).create(
                 batch_id=batch.id,

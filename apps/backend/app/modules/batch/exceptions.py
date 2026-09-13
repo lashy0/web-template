@@ -43,6 +43,12 @@ class BatchArchivedError(BatchError, ConflictError):
     code = "batch_archived"
 
 
+class BatchPreparationNotReadyError(BatchError, ConflictError):
+    """The batch cannot enter production before KG preparation completes."""
+
+    code = "batch_preparation_not_ready"
+
+
 class BatchReceiptNotFoundError(BatchError, NotFoundError):
     """The requested batch receipt does not exist."""
 

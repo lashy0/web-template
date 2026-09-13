@@ -5,7 +5,7 @@ from uuid import UUID
 
 from app.core.config import get_settings
 from app.infrastructure.database.session import create_database
-from app.modules.batch.services.key_generation import BatchKeyGenerationService
+from app.modules.batch.services.key_generation import BatchKeyGenerationJobService
 from app.worker.celery_app import celery_app
 
 
@@ -22,10 +22,10 @@ def generate_batch_keys(batch_id: str) -> None:
         database = create_database(settings)
 
         try:
-            await BatchKeyGenerationService(
+            await BatchKeyGenerationJobService(
                 database.session_factory,
                 encryption_key=settings.LORAWAN_CREDENTIALS_ENCRYPTION_KEY,
-            ).generate(UUID(batch_id))
+            ).prepare(UUID(batch_id))
 
         finally:
             await database.close()

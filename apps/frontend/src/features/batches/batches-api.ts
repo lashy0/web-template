@@ -5,8 +5,10 @@ import {
   batchGetBatch,
   batchListBatches,
   batchPreviewDevEuiRange,
+  batchRetryBatchPreparation,
   batchUpdateBatch,
   batchUpdateBatchArchived,
+  zBatchKeyGenerationStatus,
   zBatchStatus,
   type BatchResponse,
   type BatchStatus as ApiBatchStatus,
@@ -16,6 +18,7 @@ import {
 } from '@web-app/api-client'
 
 export type BatchStatus = ApiBatchStatus
+export type BatchKeyGenerationStatus = (typeof zBatchKeyGenerationStatus.options)[number]
 export type CreateBatchInput = CreateBatchRequest
 export type UpdateBatchInput = UpdateBatchRequest
 export type DevEuiRangePreview = Readonly<{
@@ -63,6 +66,9 @@ export type Batch = Readonly<{
   id: string
   name: string
   plannedQty: number
+  preparationErrorCode: string | null
+  preparationProgress: number
+  preparationStatus: BatchKeyGenerationStatus
   productionOrder: ProductionOrderSummary | null
   status: BatchStatus
   updatedAt: string
@@ -163,9 +169,22 @@ export function batchErrorMessage(error: unknown): string | undefined {
       return 'Выбранная версия КГ не найдена.'
     case 'batch_not_found':
       return 'Партия не найдена. Возможно, она уже была удалена.'
+    case 'batch_preparation_not_ready':
+      return 'Подготовка КГ для партии ещё не завершена.'
     default:
       return undefined
   }
+}
+
+const batchPreparationErrorMessages: Readonly<Record<string, string>> = {
+  batch_key_generation_failed: 'Не удалось подготовить КГ. Повторите попытку.',
+}
+
+export function batchPreparationErrorMessage(errorCode: string | null): string {
+  return (
+    (errorCode === null ? undefined : batchPreparationErrorMessages[errorCode]) ??
+    'Не удалось подготовить КГ. Повторите попытку.'
+  )
 }
 
 export async function createBatch(input: CreateBatchInput): Promise<Batch> {
@@ -211,6 +230,11 @@ export async function deleteBatch(batchId: string): Promise<void> {
   }
 }
 
+export async function retryBatchPreparation(batchId: string): Promise<Batch> {
+  const result = await batchRetryBatchPreparation({ path: { batch_id: batchId } })
+  return toBatch(requireData(result.data, result.response?.status, result.error))
+}
+
 function requireData<T>(data: T | undefined, status: number | undefined, error: unknown): T {
   if (data === undefined) {
     throw new BatchRequestError(status ?? 0, errorCode(error))
@@ -234,6 +258,9 @@ function toBatch(batch: BatchResponse): Batch {
     id: batch.id,
     name: batch.name,
     plannedQty: batch.planned_qty,
+    preparationErrorCode: batch.preparation_error_code,
+    preparationProgress: batch.preparation_progress,
+    preparationStatus: batch.preparation_status,
     productionOrder: batch.production_order
       ? { id: batch.production_order.id, name: batch.production_order.name }
       : null,
