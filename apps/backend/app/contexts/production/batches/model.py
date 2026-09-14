@@ -1,0 +1,126 @@
+# mypy: disable-error-code=misc
+
+from datetime import datetime
+from enum import StrEnum
+from uuid import UUID, uuid4
+
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    Uuid,
+    func,
+)
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.components.keygen.types import ActivationType, LoRaWanVersion
+from app.infrastructure.database.base import Base
+
+# Temporary production-internal ORM bridges until KG versions and production orders move.
+from app.modules.kg.models import KgDevEuiPrefix, KgVersion
+from app.modules.production_order.models import ProductionOrder
+from app.modules.users.models import User
+
+
+class BatchStatus(StrEnum):
+    IN_PRODUCTION = "IN_PRODUCTION"
+    COMPLETED = "COMPLETED"
+
+
+BATCH_STATUS_DB_TYPE = Enum(
+    BatchStatus,
+    name="batch_status",
+    native_enum=False,
+    create_constraint=True,
+    validate_strings=True,
+    values_callable=lambda enum_type: [status.value for status in enum_type],
+)
+
+ACTIVATION_TYPE_DB_TYPE = Enum(
+    ActivationType,
+    name="activation_type",
+    native_enum=False,
+    create_constraint=True,
+    validate_strings=True,
+    values_callable=lambda enum_type: [activation_type.value for activation_type in enum_type],
+)
+
+LORAWAN_VERSION_DB_TYPE = Enum(
+    LoRaWanVersion,
+    name="lorawan_version",
+    native_enum=False,
+    create_constraint=True,
+    validate_strings=True,
+    values_callable=lambda enum_type: [version.value for version in enum_type],
+)
+
+
+class Batch(Base):
+    __tablename__ = "batches"
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    name: Mapped[str] = mapped_column(String(128), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    planned_qty: Mapped[int] = mapped_column(Integer, nullable=False)
+    day_plan_qty: Mapped[int] = mapped_column(Integer, nullable=False)
+    status: Mapped[BatchStatus] = mapped_column(
+        BATCH_STATUS_DB_TYPE, nullable=False, default=BatchStatus.IN_PRODUCTION
+    )
+    dev_eui_prefix: Mapped[str] = mapped_column(
+        String(10), ForeignKey("kg_dev_eui_prefixes.prefix"), nullable=False
+    )
+    kg_version_id: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("kg_versions.id"), nullable=True
+    )
+    created_by_user: Mapped[User | None] = relationship(lazy="selectin")
+    created_by_user_id: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    production_order_id: Mapped[UUID | None] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("production_orders.id", ondelete="RESTRICT"), nullable=True
+    )
+    production_order: Mapped[ProductionOrder | None] = relationship(lazy="selectin")
+    kg_version: Mapped[KgVersion | None] = relationship()
+    kg_dev_eui_prefix: Mapped[KgDevEuiPrefix] = relationship()
+    lorawan_config: Mapped["BatchLoRaWanConfig | None"] = relationship(
+        lazy="selectin", cascade="all, delete-orphan"
+    )
+
+    __table_args__ = (
+        CheckConstraint("planned_qty  > 0", name="batch_planned_qty_positive"),
+        CheckConstraint("day_plan_qty  > 0", name="batch_day_plan_qty_positive"),
+        Index("ix_batches_production_order_id", production_order_id),
+        Index("ix_batches_status", status),
+        Index("ix_batches_created_at", created_at),
+        Index("ix_batches_archived_at", archived_at),
+        Index("ix_batches_dev_eui_prefix", dev_eui_prefix),
+        Index("ix_batches_kg_version_id", kg_version_id),
+    )
+
+
+class BatchLoRaWanConfig(Base):
+    __tablename__ = "batch_lorawan_configs"
+
+    batch_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("batches.id", ondelete="CASCADE"), primary_key=True
+    )
+    activation_type: Mapped[ActivationType] = mapped_column(ACTIVATION_TYPE_DB_TYPE, nullable=False)
+    lorawan_version: Mapped[LoRaWanVersion] = mapped_column(LORAWAN_VERSION_DB_TYPE, nullable=False)
+    join_eui: Mapped[str] = mapped_column(String(16), nullable=False, unique=True)
+
+    __table_args__ = (
+        CheckConstraint("join_eui ~ '^[0-9a-f]{16}$'", name="batch_lorawan_config_join_eui_format"),
+    )

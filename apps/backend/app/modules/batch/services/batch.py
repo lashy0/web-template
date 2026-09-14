@@ -2,31 +2,39 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime, timedelta
-from secrets import token_hex
 from uuid import UUID
 
-from loguru import logger
 from sqlalchemy import select, union
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.auth.principal import CurrentPrincipal
+from app.audit.writer import TransactionalAuditWriter
 from app.components.keygen.types import ActivationType, LoRaWanVersion
-from app.contexts.production.kg.commands import AllocateForBatch
+from app.contexts.production.batches.commands import (
+    AssignProductionOrder,
+    CompleteBatch,
+    CreateBatch,
+    SetBatchArchived,
+    UpdateBatch,
+)
+from app.contexts.production.batches.compat import (
+    LegacyKgUnitBridge,
+    LegacyPreparationBridge,
+    LegacyProductionOrderBridge,
+    PreparationDispatcher,
+)
+from app.contexts.production.batches.queries import BatchQueries
+from app.contexts.production.batches.repository import BatchRepository as NewBatchRepository
 from app.contexts.production.kg.queries import KgQueries
 from app.contexts.production.kg.repository import KgRepository
 from app.modules.audit.service import AuditService
-from app.modules.kg.exceptions import KgVersionNotFoundError
 from app.modules.kg.models import KgState, KgUnit
 from app.modules.kg.services import KgService
-from app.modules.production_order.service import ProductionOrderService
 from app.modules.verification.models import VerificationSession
 from app.modules.verification.services import VerificationManagementService
-from app.worker.celery_app import celery_app
+from app.shared.security import CurrentPrincipal
 
 from ..exceptions import (
     BatchCannotBeDeletedError,
-    BatchInvalidFiltersError,
-    BatchKgVersionArchivedError,
 )
 from ..models import (
     Batch,
@@ -42,7 +50,7 @@ from ..repositories import (
     BatchShipmentRepository,
 )
 from . import audit, lifecycle, queries
-from .key_generation import KEY_GENERATION_FAILED_ERROR_CODE, publish_preparation_status
+from .key_generation import publish_preparation_status
 from .lifecycle import BATCH_EDIT_WINDOW
 from .transactions import transaction
 
@@ -61,17 +69,23 @@ class BatchService:
 
     async def get(self, batch_id: UUID) -> Batch | None:
         async with self._session_factory() as session:
-            return await BatchRepository(session).get_by_id(batch_id)
+            return await BatchQueries(
+                NewBatchRepository(session), LegacyPreparationBridge(session)
+            ).get(batch_id)
 
     async def get_key_generation_job(self, batch_id: UUID) -> BatchKeyGenerationJob | None:
         async with self._session_factory() as session:
-            return await BatchRepository(session).get_key_generation_job(batch_id)
+            return await BatchQueries(
+                NewBatchRepository(session), LegacyPreparationBridge(session)
+            ).get_preparation_job(batch_id)
 
     async def get_key_generation_jobs(
         self, batch_ids: Sequence[UUID]
     ) -> dict[UUID, BatchKeyGenerationJob]:
         async with self._session_factory() as session:
-            return await BatchRepository(session).get_key_generation_jobs(batch_ids)
+            return await BatchQueries(
+                NewBatchRepository(session), LegacyPreparationBridge(session)
+            ).get_preparation_jobs(batch_ids)
 
     async def list(
         self,
@@ -86,11 +100,10 @@ class BatchService:
         production_order_id: UUID | None = None,
         without_production_order: bool = False,
     ) -> tuple[list[Batch], int]:
-        if production_order_id is not None and without_production_order:
-            raise BatchInvalidFiltersError
-
         async with self._session_factory() as session:
-            return await BatchRepository(session).search(
+            return await BatchQueries(
+                NewBatchRepository(session), LegacyPreparationBridge(session)
+            ).list(
                 q=q,
                 status=status,
                 archived=archived,
@@ -164,97 +177,28 @@ class BatchService:
         kg_version_id: UUID | None = None,
         production_order_id: UUID | None = None,
     ) -> Batch:
-        lifecycle.ensure_management_allowed(actor)
-
-        batch: Batch
-
         async with transaction(self._session_factory) as session:
-            batch_repository = BatchRepository(session)
-            kg_operations = KgService(session)
-
-            if production_order_id is not None:
-                await ProductionOrderService(session).assign(production_order_id)
-
-            if kg_version_id is not None:
-                version = await KgRepository(session).get_version(kg_version_id)
-
-                if version is None:
-                    raise KgVersionNotFoundError
-
-                if version.archived_at is not None:
-                    raise BatchKgVersionArchivedError
-
-            allocation = await AllocateForBatch(KgRepository(session)).execute(
-                prefix=dev_eui_prefix, quantity=planned_qty
-            )
-            prefix, dev_euis = allocation.prefix, allocation.dev_euis
-
-            assert dev_euis
-
-            join_eui = token_hex(8)
-
-            if kg_version_id is None:
-                batch = await batch_repository.create(
-                    name=name,
-                    description=description,
-                    dev_eui_prefix=prefix.prefix,
-                    planned_qty=planned_qty,
-                    day_plan_qty=day_plan_qty,
-                    created_by_user_id=actor.user_id,
-                    activation_type=activation_type,
-                    lorawan_version=lorawan_version,
-                    join_eui=join_eui,
-                    production_order_id=production_order_id,
-                )
-
-            else:
-                batch = await batch_repository.create(
-                    name=name,
-                    description=description,
-                    dev_eui_prefix=prefix.prefix,
-                    kg_version_id=kg_version_id,
-                    planned_qty=planned_qty,
-                    day_plan_qty=day_plan_qty,
-                    created_by_user_id=actor.user_id,
-                    activation_type=activation_type,
-                    lorawan_version=lorawan_version,
-                    join_eui=join_eui,
-                    production_order_id=production_order_id,
-                )
-
-            kg_units = await kg_operations.allocate_for_batch(
-                dev_euis=dev_euis,
-                short_code=prefix.short_code,
-                batch_id=batch.id,
+            batch = await CreateBatch(
+                NewBatchRepository(session),
+                KgRepository(session),
+                LegacyKgUnitBridge(session),
+                LegacyPreparationBridge(session),
+                LegacyProductionOrderBridge(session),
+                TransactionalAuditWriter.from_session(session),
+            ).execute(
+                actor=actor,
+                name=name,
+                description=description,
+                dev_eui_prefix=dev_eui_prefix,
+                planned_qty=planned_qty,
+                day_plan_qty=day_plan_qty,
+                activation_type=activation_type,
+                lorawan_version=lorawan_version,
+                kg_version_id=kg_version_id,
+                production_order_id=production_order_id,
             )
 
-            await AuditService.from_session(session).record(
-                actor=audit.audit_actor(actor),
-                action="batch.created",
-                entity=audit.batch_entity(batch),
-                new_data={
-                    "production_order_id": str(batch.production_order_id)
-                    if batch.production_order_id
-                    else None,
-                    "name": batch.name,
-                    "description": batch.description,
-                    "dev_eui_prefix": prefix.prefix,
-                    "kg_version_id": str(kg_version_id) if kg_version_id else None,
-                    "dev_eui_start": dev_euis[0],
-                    "dev_eui_end": dev_euis[-1],
-                    "planned_qty": batch.planned_qty,
-                    "day_plan_qty": batch.day_plan_qty,
-                    "status": batch.status.value,
-                    "lorawan_config": {
-                        "activation_type": activation_type.value,
-                        "lorawan_version": lorawan_version.value,
-                        "join_eui": join_eui,
-                    },
-                    "kg_quantity": len(kg_units),
-                },
-            )
-
-        await self._schedule_preparation(batch.id)
+        await PreparationDispatcher(self._session_factory).dispatch_after_commit(batch.id)
 
         return batch
 
@@ -283,7 +227,7 @@ class BatchService:
                 error_code=None,
             )
 
-        await self._schedule_preparation(batch.id)
+        await PreparationDispatcher(self._session_factory).dispatch_after_commit(batch.id)
 
         return batch
 
@@ -294,46 +238,12 @@ class BatchService:
         batch_id: UUID,
         updates: Mapping[str, object],
     ) -> Batch:
-        lifecycle.ensure_management_allowed(actor)
-
         async with transaction(self._session_factory) as session:
-            repository = BatchRepository(session)
-            batch = await queries.required_batch(repository, batch_id, for_update=True)
-
-            lifecycle.ensure_not_archived(batch)
-            lifecycle.ensure_batch_edit_allowed(
-                batch,
-                actor=actor,
-                now=datetime.now(UTC),
+            return await UpdateBatch(
+                NewBatchRepository(session),
+                TransactionalAuditWriter.from_session(session),
                 edit_window=self._edit_window,
-            )
-
-            if not updates:
-                return batch
-
-            old_values = {field: getattr(batch, field) for field in updates}
-
-            batch = await repository.update_details(
-                batch,
-                updates=updates,
-            )
-
-            new_values = {field: getattr(batch, field) for field in updates}
-
-            changed = {
-                field: value for field, value in new_values.items() if value != old_values[field]
-            }
-
-            if changed:
-                await AuditService.from_session(session).record(
-                    actor=audit.audit_actor(actor),
-                    action="batch.updated",
-                    entity=audit.batch_entity(batch),
-                    old_data={field: old_values[field] for field in changed},
-                    new_data=changed,
-                )
-
-            return batch
+            ).execute(actor=actor, batch_id=batch_id, updates=updates)
 
     async def assign_production_order(
         self,
@@ -342,37 +252,12 @@ class BatchService:
         batch_id: UUID,
         production_order_id: UUID | None,
     ) -> Batch:
-        lifecycle.ensure_management_allowed(actor)
-
         async with transaction(self._session_factory) as session:
-            repository = BatchRepository(session)
-            batch = await queries.required_batch(repository, batch_id, for_update=True)
-
-            lifecycle.ensure_not_archived(batch)
-
-            old_id = batch.production_order_id
-
-            if old_id == production_order_id:
-                return batch
-
-            if production_order_id is not None:
-                await ProductionOrderService(session).assign(production_order_id)
-
-            batch = await repository.update_details(
-                batch, updates={"production_order_id": production_order_id}
-            )
-
-            await AuditService.from_session(session).record(
-                actor=audit.audit_actor(actor),
-                action="batch.production_order_changed",
-                entity=audit.batch_entity(batch),
-                old_data={"production_order_id": str(old_id) if old_id else None},
-                new_data={
-                    "production_order_id": str(production_order_id) if production_order_id else None
-                },
-            )
-
-            return batch
+            return await AssignProductionOrder(
+                NewBatchRepository(session),
+                LegacyProductionOrderBridge(session),
+                TransactionalAuditWriter.from_session(session),
+            ).execute(actor=actor, batch_id=batch_id, production_order_id=production_order_id)
 
     async def complete(
         self,
@@ -380,38 +265,12 @@ class BatchService:
         actor: CurrentPrincipal,
         batch_id: UUID,
     ) -> Batch:
-        lifecycle.ensure_management_allowed(actor)
-
         async with transaction(self._session_factory) as session:
-            repository = BatchRepository(session)
-            batch = await queries.required_batch(repository, batch_id, for_update=True)
-
-            job = await repository.get_key_generation_job(batch.id, for_update=True)
-            lifecycle.ensure_in_production(batch, job=job)
-
-            old_status = batch.status
-            completed_at = datetime.now(UTC)
-
-            batch = await repository.update_completed(
-                batch,
-                completed_at=completed_at,
-            )
-
-            await AuditService.from_session(session).record(
-                actor=audit.audit_actor(actor),
-                action="batch.completed",
-                entity=audit.batch_entity(batch),
-                old_data={
-                    "status": old_status.value,
-                    "completed_at": None,
-                },
-                new_data={
-                    "status": batch.status.value,
-                    "completed_at": completed_at.isoformat(),
-                },
-            )
-
-            return batch
+            return await CompleteBatch(
+                NewBatchRepository(session),
+                LegacyPreparationBridge(session),
+                TransactionalAuditWriter.from_session(session),
+            ).execute(actor=actor, batch_id=batch_id)
 
     async def set_archived(
         self,
@@ -420,61 +279,10 @@ class BatchService:
         batch_id: UUID,
         archived: bool,
     ) -> Batch:
-        lifecycle.ensure_management_allowed(actor)
-
         async with transaction(self._session_factory) as session:
-            repository = BatchRepository(session)
-            batch = await queries.required_batch(repository, batch_id, for_update=True)
-
-            if archived:
-                if batch.archived_at is not None:
-                    return batch
-
-                archived_at = datetime.now(UTC)
-
-                batch = await repository.update_archived(
-                    batch,
-                    archived_at=archived_at,
-                )
-
-                action = "batch.archived"
-                old_data: dict[str, str | None] = {
-                    "archived_at": None,
-                }
-
-                new_data: dict[str, str | None] = {
-                    "archived_at": archived_at.isoformat(),
-                }
-
-            else:
-                if batch.archived_at is None:
-                    return batch
-
-                old_archived_at = batch.archived_at
-
-                batch = await repository.update_archived(
-                    batch,
-                    archived_at=None,
-                )
-
-                action = "batch.restored"
-                old_data = {
-                    "archived_at": old_archived_at.isoformat(),
-                }
-
-                new_data = {
-                    "archived_at": None,
-                }
-
-            await AuditService.from_session(session).record(
-                actor=audit.audit_actor(actor),
-                action=action,
-                entity=audit.batch_entity(batch),
-                old_data=old_data,
-                new_data=new_data,
-            )
-
-            return batch
+            return await SetBatchArchived(
+                NewBatchRepository(session), TransactionalAuditWriter.from_session(session)
+            ).execute(actor=actor, batch_id=batch_id, archived=archived)
 
     async def delete(
         self,
@@ -589,38 +397,3 @@ class BatchService:
             )
 
             await batch_repository.delete(batch_for_cleanup)
-
-    async def _schedule_preparation(self, batch_id: UUID) -> None:
-        try:
-            celery_app.send_task(GENERATE_BATCH_KEYS_TASK, args=[str(batch_id)])
-
-        except Exception:
-            logger.bind(
-                event="batch.preparation_dispatch_failed", batch_id=str(batch_id)
-            ).exception("Could not start batch KG preparation")
-
-            async with transaction(self._session_factory) as session:
-                repository = BatchRepository(session)
-                batch = await repository.get_by_id(batch_id, for_update=True)
-
-                if batch is not None:
-                    job = await repository.get_key_generation_job(batch.id, for_update=True)
-
-                    if job is None:
-                        return
-
-                    await repository.update_key_generation_job(
-                        job,
-                        status=BatchKeyGenerationStatus.FAILED,
-                        progress=job.progress,
-                        error_code=KEY_GENERATION_FAILED_ERROR_CODE,
-                    )
-                    publish_preparation_status(
-                        batch.id,
-                        BatchKeyGenerationStatus.FAILED,
-                        job.progress,
-                    )
-
-            return
-
-        publish_preparation_status(batch_id, BatchKeyGenerationStatus.CREATING, 0)
