@@ -1,29 +1,35 @@
-from __future__ import annotations
+"""Legacy API facade delegating shipment work to production.shipments."""
 
 from collections.abc import Mapping
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.auth.principal import CurrentPrincipal
-from app.modules.audit.service import AuditService
-from app.modules.kg.repositories import KgRepository
-
-from ..exceptions import (
-    BatchShipmentEmptyError,
-    BatchShipmentItemNotFoundError,
-    BatchShipmentKgAlreadyAssignedError,
-    BatchShipmentKgStateConflictError,
+from app.audit.writer import TransactionalAuditWriter
+from app.contexts.production.batches.compat import LegacyPreparationBridge
+from app.contexts.production.batches.repository import BatchRepository
+from app.contexts.production.compat import LegacyKgUnitBridge
+from app.contexts.production.shipments.commands import (
+    AddShipmentItem,
+    CompleteShipment,
+    CreateShipment,
+    RemoveShipmentItem,
+    UpdateShipment,
+    VoidShipment,
 )
-from ..models import BatchShipment, BatchShipmentItem
-from ..repositories import BatchRepository, BatchShipmentRepository
-from . import audit, lifecycle, queries
+from app.contexts.production.shipments.model import BatchShipment, BatchShipmentItem
+from app.contexts.production.shipments.queries import ShipmentQueries
+from app.contexts.production.shipments.repository import ShipmentRepository
+from app.shared.security import CurrentPrincipal
+from app.shared.uow import transaction
+
 from .lifecycle import BATCH_EDIT_WINDOW
-from .transactions import transaction
 
 
 class ShipmentService:
+    """Compatibility session runner; shipment policy is exclusively in new commands."""
+
     def __init__(
         self,
         session_factory: async_sessionmaker[AsyncSession],
@@ -34,70 +40,49 @@ class ShipmentService:
         self._edit_window = edit_window
 
     async def list_shipments(
-        self,
-        batch_id: UUID,
-        *,
-        include_voided: bool = False,
+        self, batch_id: UUID, *, include_voided: bool = False
     ) -> list[BatchShipment]:
         async with self._session_factory() as session:
-            await queries.required_batch(
-                BatchRepository(session),
-                batch_id,
-            )
-
-            return await BatchShipmentRepository(session).list_by_batch(
-                batch_id=batch_id,
-                include_voided=include_voided,
-            )
+            return await ShipmentQueries(
+                BatchRepository(session), ShipmentRepository(session)
+            ).list_by_batch(batch_id, include_voided=include_voided)
 
     async def get_shipped_total(self, batch_id: UUID) -> int:
         async with self._session_factory() as session:
-            await queries.required_batch(
-                BatchRepository(session),
-                batch_id,
-            )
+            return await ShipmentQueries(
+                BatchRepository(session), ShipmentRepository(session)
+            ).shipped_total(batch_id)
 
-            return await BatchShipmentRepository(session).get_shipped_total(batch_id)
+    async def list_shipment_items(
+        self, *, batch_id: UUID, shipment_id: UUID
+    ) -> list[BatchShipmentItem]:
+        async with self._session_factory() as session:
+            return await ShipmentQueries(
+                BatchRepository(session), ShipmentRepository(session)
+            ).list_items(batch_id=batch_id, shipment_id=shipment_id)
+
+    async def count_shipment_quantities(self, batch_id: UUID) -> dict[UUID, int]:
+        async with self._session_factory() as session:
+            return await ShipmentQueries(
+                BatchRepository(session), ShipmentRepository(session)
+            ).item_counts(batch_id)
+
+    async def count_shipment_items(self, *, batch_id: UUID, shipment_id: UUID) -> int:
+        async with self._session_factory() as session:
+            return await ShipmentQueries(
+                BatchRepository(session), ShipmentRepository(session)
+            ).item_count(batch_id=batch_id, shipment_id=shipment_id)
 
     async def create_shipment(
-        self,
-        *,
-        actor: CurrentPrincipal,
-        batch_id: UUID,
-        comment: str | None,
+        self, *, actor: CurrentPrincipal, batch_id: UUID, comment: str | None
     ) -> BatchShipment:
-        lifecycle.ensure_management_allowed(actor)
-
         async with transaction(self._session_factory) as session:
-            batches = BatchRepository(session)
-            batch = await queries.required_batch(
-                batches,
-                batch_id,
-                for_update=True,
-            )
-
-            lifecycle.ensure_in_production(
-                batch,
-                job=await batches.get_key_generation_job(batch.id, for_update=True),
-            )
-
-            shipment = await BatchShipmentRepository(session).create(
-                batch_id=batch.id,
-                comment=comment,
-                created_by_user_id=actor.user_id,
-            )
-
-            await AuditService.from_session(session).record(
-                actor=audit.audit_actor(actor),
-                action="batch_shipment.created",
-                entity=audit.shipment_entity(shipment),
-                new_data={
-                    "batch_id": str(batch.id),
-                    "comment": shipment.comment,
-                },
-            )
-
-            return shipment
+            return await CreateShipment(
+                BatchRepository(session),
+                ShipmentRepository(session),
+                LegacyPreparationBridge(session),
+                TransactionalAuditWriter.from_session(session),
+            ).execute(actor=actor, batch_id=batch_id, comment=comment)
 
     async def update_shipment(
         self,
@@ -107,108 +92,13 @@ class ShipmentService:
         shipment_id: UUID,
         updates: Mapping[str, object],
     ) -> BatchShipment:
-        lifecycle.ensure_management_allowed(actor)
-
         async with transaction(self._session_factory) as session:
-            batch = await queries.required_batch(
+            return await UpdateShipment(
                 BatchRepository(session),
-                batch_id,
-                for_update=True,
-            )
-
-            lifecycle.ensure_not_archived(batch)
-
-            repository = BatchShipmentRepository(session)
-            shipment = await queries.required_shipment(
-                repository,
-                shipment_id,
-                batch_id=batch.id,
-            )
-
-            lifecycle.ensure_shipment_open(shipment)
-            lifecycle.ensure_shipment_edit_allowed(
-                shipment,
-                actor=actor,
-                now=datetime.now(UTC),
+                ShipmentRepository(session),
+                TransactionalAuditWriter.from_session(session),
                 edit_window=self._edit_window,
-            )
-
-            if not updates:
-                return shipment
-
-            old_values = {field: getattr(shipment, field) for field in updates}
-
-            shipment = await repository.update_details(
-                shipment,
-                updates=updates,
-            )
-
-            new_values = {field: getattr(shipment, field) for field in updates}
-
-            changed = {
-                field: value for field, value in new_values.items() if value != old_values[field]
-            }
-
-            if changed:
-                await AuditService.from_session(session).record(
-                    actor=audit.audit_actor(actor),
-                    action="batch_shipment.updated",
-                    entity=audit.shipment_entity(shipment),
-                    old_data={field: old_values[field] for field in changed},
-                    new_data=changed,
-                )
-
-            return shipment
-
-    async def list_shipment_items(
-        self,
-        *,
-        batch_id: UUID,
-        shipment_id: UUID,
-    ) -> list[BatchShipmentItem]:
-        async with self._session_factory() as session:
-            batch = await queries.required_batch(
-                BatchRepository(session),
-                batch_id,
-            )
-
-            repository = BatchShipmentRepository(session)
-
-            shipment = await queries.required_shipment(
-                repository,
-                shipment_id,
-                batch_id=batch.id,
-            )
-
-            return await repository.list_items(shipment.id)
-
-    async def count_shipment_quantities(self, batch_id: UUID) -> dict[UUID, int]:
-        async with self._session_factory() as session:
-            await queries.required_batch(BatchRepository(session), batch_id)
-
-            return await BatchShipmentRepository(session).count_items_by_batch(batch_id)
-
-    async def count_shipment_items(
-        self,
-        *,
-        batch_id: UUID,
-        shipment_id: UUID,
-    ) -> int:
-        async with self._session_factory() as session:
-            batch = await queries.required_batch(
-                BatchRepository(session),
-                batch_id,
-            )
-
-            repository = BatchShipmentRepository(session)
-
-            shipment = await queries.required_shipment(
-                repository,
-                shipment_id,
-                batch_id=batch.id,
-            )
-
-            return await repository.count_items(shipment.id)
+            ).execute(actor=actor, batch_id=batch_id, shipment_id=shipment_id, updates=updates)
 
     async def add_shipment_item(
         self,
@@ -218,62 +108,15 @@ class ShipmentService:
         shipment_id: UUID,
         dev_eui: str,
     ) -> BatchShipmentItem:
-        lifecycle.ensure_management_allowed(actor)
-
         async with transaction(self._session_factory) as session:
-            batches = BatchRepository(session)
-            batch = await queries.required_batch(
-                batches,
-                batch_id,
-                for_update=True,
-            )
-
-            lifecycle.ensure_in_production(
-                batch,
-                job=await batches.get_key_generation_job(batch.id, for_update=True),
-            )
-
-            shipment_repository = BatchShipmentRepository(session)
-
-            shipment = await queries.required_shipment(
-                shipment_repository,
-                shipment_id,
-                batch_id=batch.id,
-            )
-
-            lifecycle.ensure_shipment_open(shipment)
-            lifecycle.ensure_shipment_edit_allowed(
-                shipment,
-                actor=actor,
-                now=datetime.now(UTC),
+            return await AddShipmentItem(
+                BatchRepository(session),
+                ShipmentRepository(session),
+                LegacyKgUnitBridge(session),
+                LegacyPreparationBridge(session),
+                TransactionalAuditWriter.from_session(session),
                 edit_window=self._edit_window,
-            )
-
-            kg = await KgRepository(session).get_by_dev_eui(dev_eui, for_update=True)
-
-            if kg is None or kg.batch_id != batch.id:
-                raise BatchShipmentKgStateConflictError
-
-            existing_shipment = await shipment_repository.find_non_voided_by_kg(kg.dev_eui)
-
-            if existing_shipment is not None:
-                raise BatchShipmentKgAlreadyAssignedError
-
-            item = await shipment_repository.add_item(
-                shipment_id=shipment.id,
-                kg_dev_eui=kg.dev_eui,
-            )
-
-            await AuditService.from_session(session).record(
-                actor=audit.audit_actor(actor),
-                action="batch_shipment.item_added",
-                entity=audit.shipment_entity(shipment),
-                new_data={
-                    "dev_eui": kg.dev_eui,
-                },
-            )
-
-            return item
+            ).execute(actor=actor, batch_id=batch_id, shipment_id=shipment_id, dev_eui=dev_eui)
 
     async def remove_shipment_item(
         self,
@@ -283,175 +126,33 @@ class ShipmentService:
         shipment_id: UUID,
         dev_eui: str,
     ) -> None:
-        lifecycle.ensure_management_allowed(actor)
-
         async with transaction(self._session_factory) as session:
-            batch = await queries.required_batch(
+            await RemoveShipmentItem(
                 BatchRepository(session),
-                batch_id,
-                for_update=True,
-            )
-
-            lifecycle.ensure_not_archived(batch)
-
-            repository = BatchShipmentRepository(session)
-
-            shipment = await queries.required_shipment(
-                repository,
-                shipment_id,
-                batch_id=batch.id,
-            )
-
-            lifecycle.ensure_shipment_open(shipment)
-            lifecycle.ensure_shipment_edit_allowed(
-                shipment,
-                actor=actor,
-                now=datetime.now(UTC),
+                ShipmentRepository(session),
+                TransactionalAuditWriter.from_session(session),
                 edit_window=self._edit_window,
-            )
-
-            item = await repository.get_item(
-                shipment_id=shipment.id,
-                kg_dev_eui=dev_eui,
-            )
-
-            if item is None:
-                raise BatchShipmentItemNotFoundError
-
-            await repository.delete_item(item)
-
-            await AuditService.from_session(session).record(
-                actor=audit.audit_actor(actor),
-                action="batch_shipment.item_removed",
-                entity=audit.shipment_entity(shipment),
-                old_data={
-                    "dev_eui": dev_eui,
-                },
-            )
+            ).execute(actor=actor, batch_id=batch_id, shipment_id=shipment_id, dev_eui=dev_eui)
 
     async def complete_shipment(
-        self,
-        *,
-        actor: CurrentPrincipal,
-        batch_id: UUID,
-        shipment_id: UUID,
+        self, *, actor: CurrentPrincipal, batch_id: UUID, shipment_id: UUID
     ) -> BatchShipment:
-        lifecycle.ensure_management_allowed(actor)
-
         async with transaction(self._session_factory) as session:
-            batches = BatchRepository(session)
-            batch = await queries.required_batch(
-                batches,
-                batch_id,
-                for_update=True,
-            )
-
-            lifecycle.ensure_in_production(
-                batch,
-                job=await batches.get_key_generation_job(batch.id, for_update=True),
-            )
-
-            shipment_repository = BatchShipmentRepository(session)
-
-            shipment = await queries.required_shipment(
-                shipment_repository,
-                shipment_id,
-                batch_id=batch.id,
-            )
-
-            lifecycle.ensure_shipment_open(shipment)
-            lifecycle.ensure_shipment_edit_allowed(
-                shipment,
-                actor=actor,
-                now=datetime.now(UTC),
+            return await CompleteShipment(
+                BatchRepository(session),
+                ShipmentRepository(session),
+                LegacyPreparationBridge(session),
+                TransactionalAuditWriter.from_session(session),
                 edit_window=self._edit_window,
-            )
-
-            items = await shipment_repository.list_items(shipment.id)
-
-            if not items:
-                raise BatchShipmentEmptyError
-
-            completed_at = datetime.now(UTC)
-
-            shipment = await shipment_repository.complete(
-                shipment,
-                completed_at=completed_at,
-            )
-
-            await AuditService.from_session(session).record(
-                actor=audit.audit_actor(actor),
-                action="batch_shipment.completed",
-                entity=audit.shipment_entity(shipment),
-                old_data={
-                    "completed_at": None,
-                },
-                new_data={
-                    "completed_at": completed_at.isoformat(),
-                    "quantity": len(items),
-                },
-            )
-
-            return shipment
+            ).execute(actor=actor, batch_id=batch_id, shipment_id=shipment_id)
 
     async def void_shipment(
-        self,
-        *,
-        actor: CurrentPrincipal,
-        batch_id: UUID,
-        shipment_id: UUID,
-        reason: str,
+        self, *, actor: CurrentPrincipal, batch_id: UUID, shipment_id: UUID, reason: str
     ) -> BatchShipment:
-        lifecycle.ensure_management_allowed(actor)
-
         async with transaction(self._session_factory) as session:
-            batch = await queries.required_batch(
+            return await VoidShipment(
                 BatchRepository(session),
-                batch_id,
-                for_update=True,
-            )
-
-            lifecycle.ensure_not_archived(batch)
-
-            shipment_repository = BatchShipmentRepository(session)
-
-            shipment = await queries.required_shipment(
-                shipment_repository,
-                shipment_id,
-                batch_id=batch.id,
-            )
-
-            lifecycle.ensure_shipment_not_voided(shipment)
-            lifecycle.ensure_shipment_edit_allowed(
-                shipment,
-                actor=actor,
-                now=datetime.now(UTC),
+                ShipmentRepository(session),
+                TransactionalAuditWriter.from_session(session),
                 edit_window=self._edit_window,
-            )
-
-            items = await shipment_repository.list_items(shipment.id)
-
-            voided_at = datetime.now(UTC)
-
-            shipment = await shipment_repository.void(
-                shipment,
-                voided_at=voided_at,
-                reason=reason,
-            )
-
-            await AuditService.from_session(session).record(
-                actor=audit.audit_actor(actor),
-                action="batch_shipment.voided",
-                entity=audit.shipment_entity(shipment),
-                old_data={
-                    "voided_at": None,
-                    "void_reason": None,
-                },
-                new_data={
-                    "voided_at": voided_at.isoformat(),
-                    "void_reason": reason,
-                    "quantity": len(items),
-                },
-            )
-
-            return shipment
+            ).execute(actor=actor, batch_id=batch_id, shipment_id=shipment_id, reason=reason)

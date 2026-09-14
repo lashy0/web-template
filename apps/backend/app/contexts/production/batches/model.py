@@ -19,10 +19,10 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.components.keygen.types import ActivationType, LoRaWanVersion
-from app.infrastructure.database.base import Base
 
 # Temporary production-internal ORM bridges until KG versions and production orders move.
-from app.modules.kg.models import KgDevEuiPrefix, KgVersion
+from app.contexts.production.kg.model import KgDevEuiPrefix, KgVersion
+from app.infrastructure.database.base import Base
 from app.modules.production_order.models import ProductionOrder
 from app.modules.users.models import User
 

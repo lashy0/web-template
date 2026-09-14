@@ -7,12 +7,12 @@ from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.contexts.production.compat.kg_units import LegacyKgUnitBridge as LegacyKgUnitBridge
 from app.modules.batch.models import BatchKeyGenerationJob, BatchKeyGenerationStatus
 from app.modules.batch.services.key_generation import (
     KEY_GENERATION_FAILED_ERROR_CODE,
     publish_preparation_status,
 )
-from app.modules.kg.repositories.unit import KgRepository as LegacyKgUnitRepository
 from app.modules.production_order.service import ProductionOrderService
 from app.shared.uow import transaction
 from app.worker.celery_app import celery_app
@@ -21,21 +21,12 @@ from .repository import BatchRepository
 
 GENERATE_BATCH_KEYS_TASK = "app.worker.generate_batch_keys"
 
-
-class LegacyKgUnitBridge:
-    """Temporary API for allocated KG rows while KgUnit remains legacy."""
-
-    def __init__(self, session: AsyncSession) -> None:
-        self._repository = LegacyKgUnitRepository(session)
-
-    async def create_allocated_rows(
-        self, *, dev_euis: Sequence[str], short_code: str, batch_id: UUID
-    ) -> int:
-        return len(
-            await self._repository.create_many(
-                dev_euis=dev_euis, short_code=short_code, batch_id=batch_id
-            )
-        )
+__all__ = [
+    "LegacyKgUnitBridge",
+    "LegacyPreparationBridge",
+    "LegacyProductionOrderBridge",
+    "PreparationDispatcher",
+]
 
 
 class LegacyProductionOrderBridge:
