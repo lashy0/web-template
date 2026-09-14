@@ -1,3 +1,4 @@
+from contextlib import AbstractAsyncContextManager
 from dataclasses import dataclass
 
 from sqlalchemy.ext.asyncio import (
@@ -8,6 +9,7 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from app.core.config import Settings
+from app.shared.uow import transaction
 
 
 @dataclass(slots=True)
@@ -17,6 +19,10 @@ class Database:
 
     async def close(self) -> None:
         await self.engine.dispose()
+
+    def transaction(self) -> AbstractAsyncContextManager[AsyncSession]:
+        """Return the single mutable-operation boundary for new commands."""
+        return transaction(self.session_factory)
 
 
 def create_database(settings: Settings) -> Database:

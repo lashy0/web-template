@@ -9,29 +9,12 @@ from loguru import logger
 
 from app.api.errors import install_error_handlers
 from app.api.main import api_router
+from app.bootstrap.application import create_application_components
 from app.core.config import Settings, get_settings
 from app.core.logging import setup_logging
 from app.core.version import APP_VERSION
-from app.infrastructure.database.session import create_database
-from app.infrastructure.hydra.client import (
-    HydraOAuthClientManager,
-    HydraTokenIntrospector,
-)
-from app.infrastructure.kratos.client import KratosIdentityManager, KratosSessionVerifier
-from app.infrastructure.redis.client import create_redis_client
 from app.middleware.csrf import JsonOriginMiddleware
 from app.middleware.request_context import RequestContextMiddleware
-from app.modules.batch.services import BatchManagementService
-from app.modules.defects.services import DefectManagementService
-from app.modules.kg.services import (
-    KgDevEuiPrefixManagementService,
-    KgManagementService,
-    KgVersionManagementService,
-)
-from app.modules.pak.services import PakManagementService, PakTestCatalogService
-from app.modules.production_order.services import ProductionOrderManagementService
-from app.modules.users.services import UserManagementService
-from app.modules.verification.services import VerificationManagementService
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
@@ -45,60 +28,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
     setup_logging(settings)
 
-    database = create_database(settings)
-    app.state.database = database
-
-    app.state.session_verifier = KratosSessionVerifier(settings)
-    app.state.identity_manager = KratosIdentityManager(settings)
-
-    app.state.user_management = UserManagementService(
-        database.session_factory, app.state.identity_manager
-    )
-
-    app.state.hydra_client_manager = HydraOAuthClientManager(settings)
-
-    app.state.pak_management = PakManagementService(
-        database.session_factory,
-        app.state.hydra_client_manager,
-        HydraTokenIntrospector(settings),
-        settings.PAK_ACCESS_KEY_ENCRYPTION_KEY,
-    )
-    app.state.pak_test_catalog = PakTestCatalogService(
-        database.session_factory,
-    )
-
-    app.state.kg_management = KgManagementService(
-        database.session_factory,
-    )
-
-    app.state.kg_dev_eui_prefix_management = KgDevEuiPrefixManagementService(
-        database.session_factory,
-    )
-
-    app.state.kg_version_management = KgVersionManagementService(
-        database.session_factory,
-    )
-
-    app.state.production_order_management = ProductionOrderManagementService(
-        database.session_factory
-    )
-
-    app.state.batch_management = BatchManagementService(
-        database.session_factory,
-    )
-
-    app.state.verification_management = VerificationManagementService(
-        database.session_factory,
-        reopen_inactivity_minutes=(settings.VERIFICATION_SESSION_REOPEN_INACTIVITY_MINUTES),
-        session_ttl_minutes=(settings.VERIFICATION_SESSION_TTL_MINUTES),
-    )
-
-    app.state.defect_management = DefectManagementService(
-        database.session_factory,
-    )
-
-    redis = create_redis_client(settings)
-    app.state.redis = redis
+    components = create_application_components(settings)
+    components.install(app)
 
     logger.bind(event="application_startup").info("Application startup")
 
@@ -162,8 +93,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
             except asyncio.CancelledError:
                 pass
 
-        await redis.aclose()
-        await database.close()
+        await components.close()
         await logger.complete()
 
 
