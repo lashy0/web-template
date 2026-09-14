@@ -13,7 +13,6 @@ from app.modules.batch.services.key_generation import (
     KEY_GENERATION_FAILED_ERROR_CODE,
     publish_preparation_status,
 )
-from app.modules.production_order.service import ProductionOrderService
 from app.shared.uow import transaction
 from app.worker.celery_app import celery_app
 
@@ -24,19 +23,8 @@ GENERATE_BATCH_KEYS_TASK = "app.worker.generate_batch_keys"
 __all__ = [
     "LegacyKgUnitBridge",
     "LegacyPreparationBridge",
-    "LegacyProductionOrderBridge",
     "PreparationDispatcher",
 ]
-
-
-class LegacyProductionOrderBridge:
-    """Temporary order eligibility lookup inside the production context."""
-
-    def __init__(self, session: AsyncSession) -> None:
-        self._orders = ProductionOrderService(session)
-
-    async def ensure_assignable(self, order_id: UUID) -> None:
-        await self._orders.assign(order_id)
 
 
 class LegacyPreparationBridge:

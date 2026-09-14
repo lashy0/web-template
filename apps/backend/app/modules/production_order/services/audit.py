@@ -1,21 +1,8 @@
-from app.auth.principal import CurrentPrincipal
-from app.modules.audit.types import AuditActor, AuditEntity
+"""Compatibility exports for migrated audit snapshot helpers."""
 
-from ..models import ProductionOrder
+from app.contexts.production.production_orders.commands._common import (
+    audit_actor as actor_identity,
+)
+from app.contexts.production.production_orders.commands._common import order_entity
 
-
-def actor_identity(actor: CurrentPrincipal) -> AuditActor:
-    return AuditActor.user(
-        actor.user_id,
-        name=actor.name,
-        login=actor.login,
-    )
-
-
-def order_entity(item: ProductionOrder) -> AuditEntity:
-    return AuditEntity(
-        type="production_order",
-        id=str(item.id),
-        display_name=item.name,
-        identifier=str(item.id),
-    )
+__all__ = ["actor_identity", "order_entity"]

@@ -439,7 +439,7 @@ internal API and common UoW instead of inventing a port.
 | production/preparation | `ProgressNotifier`, `WorkDispatcher` | Redis/Celery adapters | publish after commit; enqueue job after job commit |
 
 Production's normal internal repository/use-case APIs share the same UoW for
-atomic Batch/KG allocation, shipment KG-state update and order assignment.
+atomic Batch/KG allocation, shipment document mutation and order assignment.
 This is not a port exception: `production` is one context. It does not permit
 `quality` or `equipment` to import production private repositories.
 
@@ -514,7 +514,7 @@ must distinguish persistence/concurrency mechanics from business policy.
 | receipt totals excluding voided rows | `production/receipts` read query/repository | This is a documented reporting semantic expressed efficiently in SQL, not a hidden generic repository convention. |
 | shipped totals and item counts excluding voided shipments | `production/shipments` read query/repository | Same: SQL is appropriate; command rules decide when documents can change. |
 | production-order totals/current membership | `production/production_orders` read model | Aggregate current `Batch.production_order_id` at read time. Do not cache it or treat audit history as membership. |
-| KG display state from latest verification + shipment data | `production/kg` named `KgCurrentStateReadModel` | Keep SQL window/query expression near the KG read API, with an explicit documented dependency on verification/shipment facts. It is a projection, not persistent KG state. |
+| KG display state from latest verification data | `production/kg` named `KgCurrentStateReadModel` | Keep SQL window/query expression near the KG read API. It is a projection, not persistent KG state. The current expression does not use shipment data. |
 | verification `FOR UPDATE`, deterministic candidate order, advisory locks | `quality/verification/repository.py` (a `locking.py` helper only if it grows independently) | Concurrency mechanism stays SQL-specific; use case states why it is called (exclusive KG/PAK slot). |
 | stale-session `SKIP LOCKED` | verification repository batch-claim method | Infrastructure work-claim mechanism; `ExpireStaleSessions` owns cutoff/transition policy. |
 | user `version` compare-and-update and `SKIP LOCKED` reconciliation selection | identity/users repository concurrency methods | Optimistic concurrency and nonblocking work claim remain technical mechanisms; reconcile use case owns conflict/audit semantics. |
@@ -570,8 +570,8 @@ No rule may be weakened, removed or silently changed.
 | Batch deletion is forbidden with receipts, shipments, scrapped KG or verification history. | `DeleteBatch` use case orchestrates local production queries + `VerificationHistoryPort`; FK/DB constraints remain backstop. |
 | Completion requires preparation READY. | `CompleteBatch` use case + preparation job state domain rule. |
 | Completing shipment requires at least one item. | `CompleteShipment` use case; item-count repository query is the persistence fact. |
-| Only packed KG from the same batch may be added to a shipment; an item cannot be assigned to another non-voided shipment. | `AddShipmentItem` command + KG/shipment domain rules; row locks/unique PK and query provide concurrency backstop. |
-| Voiding a completed shipment restores packed KG only, without overwriting an unexpected later state. | `VoidShipment` command/domain transition rule; lock KG and conditional update in production repository. |
+| Shipment items belong to the same batch and an item cannot be assigned to another non-voided shipment. | `AddShipmentItem` command + shipment rules; row locks/unique PK and query provide concurrency backstop. Persistent `KgState` remains only `REGISTERED`/`SCRAPPED`; shipment operations do not require `PACKED`. |
+| Completing or voiding a shipment changes shipment-document state only. | Shipment commands preserve the current persistent KG state; they do not transition KG to `SHIPPED` or restore `SHIPPED -> PACKED`. |
 | Verification is exclusive by KG and PAK slot. | `OpenVerificationSession` use case plus verification advisory locks, deterministic row locking and existing DB uniqueness constraints. |
 | Same-location open retry and same-result completion retry are idempotent. | `OpenVerificationSession`/`CompleteVerificationSession` domain idempotency rules, with locked repository reads. |
 | Stale running verification closes as `INCOMPLETE`. | `ExpireStaleSessions` use case; `SKIP LOCKED` claim repository method; clock/cutoff is application input. |

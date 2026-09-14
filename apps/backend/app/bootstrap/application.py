@@ -8,6 +8,7 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.audit.writer import TransactionalAuditWriter
+from app.contexts.production.production_orders.service import ProductionOrderManagementService
 from app.core.config import Settings, get_settings
 from app.core.logging import setup_logging
 from app.infrastructure.database.session import Database, create_database
@@ -25,7 +26,6 @@ from app.modules.kg.services import (
     KgVersionManagementService,
 )
 from app.modules.pak.services import PakManagementService, PakTestCatalogService
-from app.modules.production_order.services import ProductionOrderManagementService
 from app.modules.users.services import UserManagementService
 from app.modules.verification.services import VerificationManagementService
 

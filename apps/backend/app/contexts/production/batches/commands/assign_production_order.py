@@ -1,10 +1,10 @@
 from uuid import UUID
 
 from app.audit.writer import TransactionalAuditWriter
+from app.contexts.production.production_orders.queries import ProductionOrderQueries
 from app.shared.security import CurrentPrincipal
 
 from ..audit import audit_actor, batch_entity
-from ..compat import LegacyProductionOrderBridge
 from ..model import Batch
 from ..queries import required_batch
 from ..repository import BatchRepository
@@ -15,7 +15,7 @@ class AssignProductionOrder:
     def __init__(
         self,
         repository: BatchRepository,
-        orders: LegacyProductionOrderBridge,
+        orders: ProductionOrderQueries,
         audit: TransactionalAuditWriter,
     ) -> None:
         self._repository = repository

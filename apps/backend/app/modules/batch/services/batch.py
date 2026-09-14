@@ -19,13 +19,14 @@ from app.contexts.production.batches.commands import (
 from app.contexts.production.batches.compat import (
     LegacyKgUnitBridge,
     LegacyPreparationBridge,
-    LegacyProductionOrderBridge,
     PreparationDispatcher,
 )
 from app.contexts.production.batches.queries import BatchQueries
 from app.contexts.production.batches.repository import BatchRepository as NewBatchRepository
 from app.contexts.production.kg.queries import KgQueries
 from app.contexts.production.kg.repository import KgRepository
+from app.contexts.production.production_orders.queries import ProductionOrderQueries
+from app.contexts.production.production_orders.repository import ProductionOrderRepository
 from app.modules.audit.service import AuditService
 from app.modules.kg.models import KgState, KgUnit
 from app.modules.kg.services import KgService
@@ -35,6 +36,7 @@ from app.shared.security import CurrentPrincipal
 
 from ..exceptions import (
     BatchCannotBeDeletedError,
+    BatchInvalidFiltersError,
 )
 from ..models import (
     Batch,
@@ -100,6 +102,8 @@ class BatchService:
         production_order_id: UUID | None = None,
         without_production_order: bool = False,
     ) -> tuple[list[Batch], int]:
+        if production_order_id is not None and without_production_order:
+            raise BatchInvalidFiltersError
         async with self._session_factory() as session:
             return await BatchQueries(
                 NewBatchRepository(session), LegacyPreparationBridge(session)
@@ -183,7 +187,7 @@ class BatchService:
                 KgRepository(session),
                 LegacyKgUnitBridge(session),
                 LegacyPreparationBridge(session),
-                LegacyProductionOrderBridge(session),
+                ProductionOrderQueries(ProductionOrderRepository(session)),
                 TransactionalAuditWriter.from_session(session),
             ).execute(
                 actor=actor,
@@ -255,7 +259,7 @@ class BatchService:
         async with transaction(self._session_factory) as session:
             return await AssignProductionOrder(
                 NewBatchRepository(session),
-                LegacyProductionOrderBridge(session),
+                ProductionOrderQueries(ProductionOrderRepository(session)),
                 TransactionalAuditWriter.from_session(session),
             ).execute(actor=actor, batch_id=batch_id, production_order_id=production_order_id)
 

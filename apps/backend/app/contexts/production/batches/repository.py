@@ -64,7 +64,7 @@ class BatchRepository:
         return await self.refresh_response(batch)
 
     async def get(self, batch_id: UUID, *, for_update: bool = False) -> Batch | None:
-        return await self._session.get(  # type: ignore[no-any-return]
+        return await self._session.get(
             Batch,
             batch_id,
             with_for_update=for_update,

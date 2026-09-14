@@ -6,25 +6,27 @@ import pytest
 from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 
+from app.audit.writer import TransactionalAuditWriter
 from app.auth.principal import CurrentPrincipal
 from app.auth.roles import Role
-from app.modules.audit.models import AuditEvent
-from app.modules.audit.service import AuditService
-from app.modules.batch.exceptions import BatchArchivedError, BatchEditNotAllowedError
-from app.modules.batch.models import Batch, BatchStatus
-from app.modules.batch.repositories import BatchRepository
-from app.modules.batch.routers.common import _batch_response
-from app.modules.batch.services import BatchManagementService
-from app.modules.kg.models import KgDevEuiPrefix
-from app.modules.production_order.exceptions import (
+from app.components.keygen.types import ActivationType, LoRaWanVersion
+from app.contexts.production.production_orders.exceptions import (
     ProductionOrderArchivedError,
     ProductionOrderCannotBeDeletedError,
     ProductionOrderNotFoundError,
 )
-from app.modules.production_order.models import ProductionOrder
-from app.modules.production_order.repository import ProductionOrderRepository
-from app.modules.production_order.service import ProductionOrderService
-from app.modules.production_order.services import ProductionOrderManagementService
+from app.contexts.production.production_orders.model import ProductionOrder
+from app.contexts.production.production_orders.repository import ProductionOrderRepository
+from app.contexts.production.production_orders.service import (
+    ProductionOrderManagementService,
+    ProductionOrderService,
+)
+from app.modules.audit.models import AuditEvent
+from app.modules.batch.exceptions import BatchArchivedError, BatchEditNotAllowedError
+from app.modules.batch.models import Batch, BatchStatus
+from app.modules.batch.repositories import BatchRepository
+from app.modules.batch.services import BatchManagementService
+from app.modules.kg.models import KgDevEuiPrefix
 from app.modules.users.models import User
 
 pytestmark = pytest.mark.integration
@@ -81,7 +83,7 @@ async def test_management_rolls_back_on_audit_failure(scenario, monkeypatch, ope
     async def fail(*_args, **_kwargs):
         raise RuntimeError("audit unavailable")
 
-    monkeypatch.setattr(AuditService, "record", fail)
+    monkeypatch.setattr(TransactionalAuditWriter, "record", fail)
     with pytest.raises(RuntimeError, match="audit unavailable"):
         if operation == "create":
             await service.create(actor=actor, name=name, description=None)
@@ -125,6 +127,8 @@ async def scenario(database_session_factory):
         dev_eui_prefix=prefix,
         planned_qty=2,
         day_plan_qty=1,
+        activation_type=ActivationType.OTAA,
+        lorawan_version=LoRaWanVersion.V1_1,
     )
     return factory, actor, batches, batch, first.id, second.id, prefix
 
@@ -166,7 +170,8 @@ async def test_membership_history_aggregates_and_detached_response(scenario):
     assigned = await batches.assign_production_order(
         actor=actor, batch_id=batch.id, production_order_id=first
     )
-    assert _batch_response(assigned).production_order.id == first
+    assert assigned.production_order is not None
+    assert assigned.production_order.id == first
     async with factory() as session:
         response = await ProductionOrderRepository(session).get_totals(first)
         assert response == (1, 2)
@@ -253,7 +258,7 @@ async def test_audit_failure_rolls_back_membership(scenario, monkeypatch, creati
     async def fail(*_args, **_kwargs):
         raise RuntimeError("audit unavailable")
 
-    monkeypatch.setattr(AuditService, "record", fail)
+    monkeypatch.setattr(TransactionalAuditWriter, "record", fail)
     with pytest.raises(RuntimeError, match="audit unavailable"):
         if creating:
             await batches.create(
@@ -263,6 +268,8 @@ async def test_audit_failure_rolls_back_membership(scenario, monkeypatch, creati
                 dev_eui_prefix=prefix,
                 planned_qty=1,
                 day_plan_qty=1,
+                activation_type=ActivationType.OTAA,
+                lorawan_version=LoRaWanVersion.V1_1,
                 production_order_id=first,
             )
         else:
@@ -285,6 +292,8 @@ async def test_create_with_order_and_missing_order(scenario):
             dev_eui_prefix=prefix,
             planned_qty=1,
             day_plan_qty=1,
+            activation_type=ActivationType.OTAA,
+            lorawan_version=LoRaWanVersion.V1_1,
             production_order_id=uuid4(),
         )
     batch = await batches.create(
@@ -294,9 +303,12 @@ async def test_create_with_order_and_missing_order(scenario):
         dev_eui_prefix=prefix,
         planned_qty=3,
         day_plan_qty=1,
+        activation_type=ActivationType.OTAA,
+        lorawan_version=LoRaWanVersion.V1_1,
         production_order_id=first,
     )
-    assert _batch_response(batch).production_order.id == first
+    assert batch.production_order is not None
+    assert batch.production_order.id == first
     async with factory() as session:
         response = await ProductionOrderRepository(session).get_totals(first)
         assert response[1] == 3

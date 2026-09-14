@@ -1,21 +1,17 @@
-from app.core.exceptions import AppError, ConflictError, NotFoundError
+"""Compatibility exports for migrated production-order errors."""
 
+from app.contexts.production.production_orders.exceptions import (
+    ProductionOrderArchivedError,
+    ProductionOrderCannotBeDeletedError,
+    ProductionOrderConflictError,
+    ProductionOrderError,
+    ProductionOrderNotFoundError,
+)
 
-class ProductionOrderError(AppError):
-    default_message = ""
-
-
-class ProductionOrderNotFoundError(ProductionOrderError, NotFoundError):
-    code = "production_order_not_found"
-
-
-class ProductionOrderArchivedError(ProductionOrderError, ConflictError):
-    code = "production_order_archived"
-
-
-class ProductionOrderCannotBeDeletedError(ProductionOrderError, ConflictError):
-    code = "production_order_cannot_be_deleted"
-
-
-class ProductionOrderConflictError(ProductionOrderError, ConflictError):
-    code = "production_order_conflict"
+__all__ = [
+    "ProductionOrderArchivedError",
+    "ProductionOrderCannotBeDeletedError",
+    "ProductionOrderConflictError",
+    "ProductionOrderError",
+    "ProductionOrderNotFoundError",
+]

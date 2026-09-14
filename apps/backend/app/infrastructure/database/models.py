@@ -1,5 +1,6 @@
 """Central registry of SQLAlchemy models used by Alembic."""
 
+from app.contexts.production.production_orders.model import ProductionOrder
 from app.contexts.production.receipts.model import BatchReceipt
 from app.contexts.production.shipments.model import BatchShipment, BatchShipmentItem
 from app.modules.audit.models import AuditEvent
@@ -10,7 +11,6 @@ from app.modules.batch.models import (
 from app.modules.defects.models import DefectGroup, DefectType
 from app.modules.kg.models import KgDevEuiPrefix, KgUnit, KgVersion, LoRaWanCredentials
 from app.modules.pak.models import PakDevice, PakTest
-from app.modules.production_order.models import ProductionOrder
 from app.modules.users.models import User
 from app.modules.verification.models import VerificationSession, VerificationStep
 

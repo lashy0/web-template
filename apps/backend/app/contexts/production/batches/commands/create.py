@@ -5,12 +5,13 @@ from app.audit.writer import TransactionalAuditWriter
 from app.components.keygen.types import ActivationType, LoRaWanVersion
 from app.contexts.production.kg.commands import AllocateForBatch
 from app.contexts.production.kg.repository import KgRepository
+from app.contexts.production.production_orders.queries import ProductionOrderQueries
 from app.modules.batch.exceptions import BatchKgVersionArchivedError
 from app.modules.kg.exceptions import KgVersionNotFoundError
 from app.shared.security import CurrentPrincipal
 
 from ..audit import audit_actor, batch_entity
-from ..compat import LegacyKgUnitBridge, LegacyPreparationBridge, LegacyProductionOrderBridge
+from ..compat import LegacyKgUnitBridge, LegacyPreparationBridge
 from ..model import Batch
 from ..repository import BatchRepository
 from ..rules import ensure_management_allowed
@@ -25,7 +26,7 @@ class CreateBatch:
         kg_repository: KgRepository,
         kg_units: LegacyKgUnitBridge,
         preparation: LegacyPreparationBridge,
-        orders: LegacyProductionOrderBridge,
+        orders: ProductionOrderQueries,
         audit: TransactionalAuditWriter,
     ) -> None:
         self._repository = repository
