@@ -11,11 +11,13 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.auth.principal import CurrentPrincipal
 from app.components.keygen.types import ActivationType, LoRaWanVersion
+from app.contexts.production.kg.commands import AllocateForBatch
+from app.contexts.production.kg.queries import KgQueries
+from app.contexts.production.kg.repository import KgRepository
 from app.modules.audit.service import AuditService
 from app.modules.kg.exceptions import KgVersionNotFoundError
 from app.modules.kg.models import KgState, KgUnit
-from app.modules.kg.repositories import KgVersionRepository
-from app.modules.kg.services import KgPrefixService, KgService
+from app.modules.kg.services import KgService
 from app.modules.production_order.service import ProductionOrderService
 from app.modules.verification.models import VerificationSession
 from app.modules.verification.services import VerificationManagementService
@@ -144,7 +146,9 @@ class BatchService:
         planned_qty: int,
     ) -> tuple[str, str]:
         async with self._session_factory() as session:
-            return await KgPrefixService(session).preview_allocation(dev_eui_prefix, planned_qty)
+            return await KgQueries(KgRepository(session)).preview_allocation(
+                dev_eui_prefix, planned_qty
+            )
 
     async def create(
         self,
@@ -172,7 +176,7 @@ class BatchService:
                 await ProductionOrderService(session).assign(production_order_id)
 
             if kg_version_id is not None:
-                version = await KgVersionRepository(session).get(kg_version_id)
+                version = await KgRepository(session).get_version(kg_version_id)
 
                 if version is None:
                     raise KgVersionNotFoundError
@@ -180,9 +184,10 @@ class BatchService:
                 if version.archived_at is not None:
                     raise BatchKgVersionArchivedError
 
-            prefix, dev_euis = await KgPrefixService(session).prepare_allocation(
-                dev_eui_prefix, planned_qty
+            allocation = await AllocateForBatch(KgRepository(session)).execute(
+                prefix=dev_eui_prefix, quantity=planned_qty
             )
+            prefix, dev_euis = allocation.prefix, allocation.dev_euis
 
             assert dev_euis
 

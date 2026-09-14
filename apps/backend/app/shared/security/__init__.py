@@ -1,5 +1,6 @@
 """Compatibility public security vocabulary for new contexts."""
 
+from app.auth.exceptions import ForbiddenError
 from app.shared.security.contracts import AuthSession, Identity, IdentityProvider, SessionProvider
 from app.shared.security.permissions import (
     ALL_PERMISSIONS,
@@ -15,6 +16,7 @@ __all__ = [
     "ALL_PERMISSIONS",
     "AuthSession",
     "CurrentPrincipal",
+    "ForbiddenError",
     "Identity",
     "IdentityProvider",
     "Permission",

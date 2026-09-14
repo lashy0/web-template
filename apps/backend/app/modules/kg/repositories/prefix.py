@@ -1,156 +1,42 @@
+"""Compatibility repository name delegating to production KG persistence."""
+
 from collections.abc import Mapping
 from datetime import datetime
 
-from sqlalchemy import func, or_, select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql.elements import ColumnElement
-
-from app.modules.batch.models import Batch
-
-from ..models import KgDevEuiPrefix
+from app.contexts.production.kg.model import KgDevEuiPrefix
+from app.contexts.production.kg.repository import KgRepository
 
 
-class KgDevEuiPrefixRepository:
-    def __init__(self, session: AsyncSession) -> None:
-        self._session = session
-
-    async def get(
-        self,
-        prefix: str,
-        *,
-        for_update: bool = False,
-    ) -> KgDevEuiPrefix | None:
-        return await self._session.get(
-            KgDevEuiPrefix,
-            prefix,
-            with_for_update=for_update,
-            populate_existing=for_update,
-        )
+class KgDevEuiPrefixRepository(KgRepository):
+    async def get(self, prefix: str, *, for_update: bool = False) -> KgDevEuiPrefix | None:
+        return await self.get_prefix(prefix, for_update=for_update)
 
     async def get_by_short_code(self, short_code: str) -> KgDevEuiPrefix | None:
-        result = await self._session.scalars(
-            select(KgDevEuiPrefix).where(KgDevEuiPrefix.short_code == short_code).limit(1)
-        )
-
-        return result.first()
+        return await self.get_prefix_by_short_code(short_code)
 
     async def count_batches(self, prefix: str) -> int:
-        count = await self._session.scalar(
-            select(func.count(Batch.id)).where(Batch.dev_eui_prefix == prefix)
+        return await self.count_batches_for_prefix(prefix)
+
+    async def search(self, **kwargs: object) -> tuple[list[tuple[KgDevEuiPrefix, int]], int]:
+        return await self.list_prefixes(**kwargs)  # type: ignore[arg-type]
+
+    async def create(self, *, prefix: str, short_code: str, name: str | None) -> KgDevEuiPrefix:
+        return await self.save_prefix(
+            KgDevEuiPrefix(prefix=prefix, short_code=short_code, name=name)
         )
-
-        return int(count or 0)
-
-    async def search(
-        self,
-        *,
-        q: str | None,
-        archived: bool,
-        page: int,
-        page_size: int,
-        sort: str,
-        order: str,
-    ) -> tuple[list[tuple[KgDevEuiPrefix, int]], int]:
-        filters: list[ColumnElement[bool]] = [
-            KgDevEuiPrefix.archived_at.is_not(None)
-            if archived
-            else KgDevEuiPrefix.archived_at.is_(None)
-        ]
-
-        if q:
-            pattern = f"%{q}%"
-            filters.append(
-                or_(
-                    KgDevEuiPrefix.prefix.ilike(pattern),
-                    KgDevEuiPrefix.short_code.ilike(pattern),
-                    KgDevEuiPrefix.name.ilike(pattern),
-                )
-            )
-
-        column = {
-            "prefix": KgDevEuiPrefix.prefix,
-            "name": KgDevEuiPrefix.name,
-            "short_code": KgDevEuiPrefix.short_code,
-            "created_at": KgDevEuiPrefix.created_at,
-            "archived_at": KgDevEuiPrefix.archived_at,
-        }[sort]
-
-        sorted_column = column.desc().nulls_last() if order == "desc" else column.asc().nulls_last()
-
-        batch_counts = (
-            select(
-                Batch.dev_eui_prefix.label("prefix"),
-                func.count(Batch.id).label("batch_count"),
-            )
-            .group_by(Batch.dev_eui_prefix)
-            .subquery()
-        )
-
-        result = await self._session.execute(
-            select(
-                KgDevEuiPrefix,
-                func.coalesce(batch_counts.c.batch_count, 0).label("batch_count"),
-            )
-            .outerjoin(batch_counts, batch_counts.c.prefix == KgDevEuiPrefix.prefix)
-            .where(*filters)
-            .order_by(sorted_column, KgDevEuiPrefix.prefix.asc())
-            .offset((page - 1) * page_size)
-            .limit(page_size)
-        )
-
-        count = await self._session.scalar(
-            select(func.count()).select_from(KgDevEuiPrefix).where(*filters)
-        )
-
-        return [(item, int(batch_count)) for item, batch_count in result.tuples()], int(count or 0)
-
-    async def create(
-        self,
-        *,
-        prefix: str,
-        short_code: str,
-        name: str | None,
-    ) -> KgDevEuiPrefix:
-        item = KgDevEuiPrefix(
-            prefix=prefix,
-            short_code=short_code,
-            name=name,
-        )
-
-        self._session.add(item)
-
-        await self._session.flush()
-        await self._session.refresh(item)
-
-        return item
 
     async def update_details(
-        self,
-        item: KgDevEuiPrefix,
-        *,
-        updates: Mapping[str, object],
+        self, item: KgDevEuiPrefix, *, updates: Mapping[str, object]
     ) -> KgDevEuiPrefix:
         for field, value in updates.items():
             setattr(item, field, value)
-
-        await self._session.flush()
-        await self._session.refresh(item)
-
-        return item
+        return await self.save_prefix(item)
 
     async def update_archived(
-        self,
-        item: KgDevEuiPrefix,
-        *,
-        archived_at: datetime | None,
+        self, item: KgDevEuiPrefix, *, archived_at: datetime | None
     ) -> KgDevEuiPrefix:
         item.archived_at = archived_at
-
-        await self._session.flush()
-        await self._session.refresh(item)
-
-        return item
+        return await self.save_prefix(item)
 
     async def delete(self, item: KgDevEuiPrefix) -> None:
-        await self._session.delete(item)
-        await self._session.flush()
+        await self.delete_prefix(item)
