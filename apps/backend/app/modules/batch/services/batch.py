@@ -10,12 +10,12 @@ from sqlalchemy import select, union
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.auth.principal import CurrentPrincipal
+from app.components.keygen.types import ActivationType, LoRaWanVersion
 from app.modules.audit.service import AuditService
 from app.modules.kg.exceptions import KgVersionNotFoundError
 from app.modules.kg.models import KgState, KgUnit
 from app.modules.kg.repositories import KgVersionRepository
 from app.modules.kg.services import KgPrefixService, KgService
-from app.modules.lorawan.domain import ActivationType, LoRaWanVersion
 from app.modules.production_order.service import ProductionOrderService
 from app.modules.verification.models import VerificationSession
 from app.modules.verification.services import VerificationManagementService

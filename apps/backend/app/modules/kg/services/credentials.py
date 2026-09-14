@@ -5,14 +5,14 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.modules.batch.models import Batch
-from app.modules.lorawan.crypto import (
+from app.components.keygen.crypto import (
     SCHEMA_VERSION_V1,
     CredentialsEncryptionContext,
     LoRaWanCredentialsCipher,
     resolve_encryption_key,
 )
-from app.modules.lorawan.schemas import Credentials
+from app.components.keygen.types import Credentials
+from app.modules.batch.models import Batch
 
 from ..exceptions import (
     KgLoRaWanConfigurationMissingError,
@@ -29,9 +29,7 @@ class LoRaWanCredentialsService:
     def __init__(self, session: AsyncSession, encryption_key: SecretStr | None) -> None:
         self._session = session
         self._repository = LoRaWanCredentialsRepository(session)
-        self._cipher = LoRaWanCredentialsCipher(
-            resolve_encryption_key(encryption_key)
-        )
+        self._cipher = LoRaWanCredentialsCipher(resolve_encryption_key(encryption_key))
 
     async def save_credentials(
         self,

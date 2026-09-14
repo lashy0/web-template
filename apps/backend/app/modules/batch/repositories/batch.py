@@ -6,7 +6,7 @@ from sqlalchemy import ColumnElement, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.modules.lorawan.domain import ActivationType, LoRaWanVersion
+from app.components.keygen.types import ActivationType, LoRaWanVersion
 
 from ..models import (
     Batch,
@@ -266,9 +266,7 @@ class BatchRepository:
             .limit(page_size)
         )
 
-        count = await self._session.scalar(
-            select(func.count()).select_from(Batch).where(*filters)
-        )
+        count = await self._session.scalar(select(func.count()).select_from(Batch).where(*filters))
 
         result = await self._session.execute(statement)
 
@@ -276,14 +274,10 @@ class BatchRepository:
 
     async def exists_by_dev_eui_prefix(self, prefix: str) -> bool:
         return bool(
-            await self._session.scalar(
-                select(exists().where(Batch.dev_eui_prefix == prefix))
-            )
+            await self._session.scalar(select(exists().where(Batch.dev_eui_prefix == prefix)))
         )
 
     async def exists_by_kg_version_id(self, version_id: UUID) -> bool:
         return bool(
-            await self._session.scalar(
-                select(exists().where(Batch.kg_version_id == version_id))
-            )
+            await self._session.scalar(select(exists().where(Batch.kg_version_id == version_id)))
         )

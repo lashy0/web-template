@@ -2,8 +2,7 @@ from typing import cast
 
 import pytest
 
-from app.core.exceptions import AppError, InvalidInputError
-from app.modules.lorawan import (
+from app.components.keygen import (
     Abp10Credentials,
     Abp11Credentials,
     ActivationType,
@@ -13,6 +12,7 @@ from app.modules.lorawan import (
     Otaa11Credentials,
     generate_credentials,
 )
+from app.core.exceptions import AppError, InvalidInputError
 
 # These literal fixtures were captured from the legacy key-gen response builder
 # and its aes128-abp/aes128-ota binaries before this Python port existed. They

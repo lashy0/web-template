@@ -8,11 +8,11 @@ from loguru import logger
 from pydantic import SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.components.keygen.generator import generate_credentials
 from app.infrastructure.redis.publisher import publish_event
 from app.modules.kg.exceptions import KgLoRaWanCredentialsAlreadyExistError
 from app.modules.kg.repositories import KgRepository
 from app.modules.kg.services import LoRaWanCredentialsService
-from app.modules.lorawan.generator import generate_credentials
 
 from ..models import BatchKeyGenerationStatus
 from ..repositories import BatchRepository
@@ -57,9 +57,7 @@ class BatchKeyGenerationJobService:
             logger.bind(
                 event="batch.preparation_failed",
                 batch_id=str(batch_id),
-            ).exception(
-                "Batch LoRaWAN key generation failed"
-            )
+            ).exception("Batch LoRaWAN key generation failed")
 
             raise
 
@@ -145,7 +143,9 @@ class BatchKeyGenerationJobService:
             if job is None or job.status is not BatchKeyGenerationStatus.GENERATING:
                 return None
 
-            credentials_count = await KgRepository(session).count_with_credentials_by_batch(batch.id)
+            credentials_count = await KgRepository(session).count_with_credentials_by_batch(
+                batch.id
+            )
 
             if credentials_count != batch.planned_qty:
                 return None

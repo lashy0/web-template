@@ -3,9 +3,9 @@ import base64
 import pytest
 from pydantic import SecretStr
 
+from app.components.keygen.crypto import resolve_encryption_key
+from app.components.keygen.exceptions import CredentialsEncryptionConfigurationError
 from app.core.config import Settings
-from app.modules.lorawan.crypto import resolve_encryption_key
-from app.modules.lorawan.exceptions import CredentialsEncryptionConfigurationError
 
 _VALID_KEY = bytes(range(32))
 
@@ -50,7 +50,7 @@ def test_lorawan_credentials_key_returns_valid_aes_256_key() -> None:
 
 @pytest.mark.unit
 def test_cipher_rejects_missing_key_for_direct_callers() -> None:
-    from app.modules.lorawan.crypto import LoRaWanCredentialsCipher
+    from app.components.keygen.crypto import LoRaWanCredentialsCipher
 
     with pytest.raises(CredentialsEncryptionConfigurationError):
         LoRaWanCredentialsCipher(None)

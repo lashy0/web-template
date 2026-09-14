@@ -1,13 +1,5 @@
-import re
+"""Deprecated compatibility bridge; use :mod:`app.components.keygen.dev_eui`."""
 
-from .exceptions import InvalidDevEuiError
+from app.components.keygen.dev_eui import normalize_dev_eui
 
-_DEV_EUI_PATTERN = re.compile(r"[0-9a-fA-F]{16}")
-
-
-def normalize_dev_eui(dev_eui: str) -> str:
-    """Return the canonical lowercase representation of an eight-byte DevEUI."""
-    if not isinstance(dev_eui, str) or _DEV_EUI_PATTERN.fullmatch(dev_eui) is None:
-        raise InvalidDevEuiError("DevEUI must contain exactly 16 hexadecimal characters")
-
-    return dev_eui.lower()
+__all__ = ["normalize_dev_eui"]

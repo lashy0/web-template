@@ -3,12 +3,12 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.components.keygen.types import ActivationType, LoRaWanVersion
 from app.modules.kg.schemas import (
     DevEuiPrefix,
     KgDevEuiPrefixSummaryResponse,
     KgVersionSummaryResponse,
 )
-from app.modules.lorawan.domain import ActivationType, LoRaWanVersion
 from app.modules.production_order.schemas import ProductionOrderSummaryResponse
 from app.modules.users.schemas import UserSummaryResponse
 

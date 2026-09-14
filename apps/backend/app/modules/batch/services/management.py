@@ -7,7 +7,7 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.auth.principal import CurrentPrincipal
-from app.modules.lorawan.domain import ActivationType, LoRaWanVersion
+from app.components.keygen.types import ActivationType, LoRaWanVersion
 
 from ..models import (
     Batch,

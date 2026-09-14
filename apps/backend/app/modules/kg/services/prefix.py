@@ -7,6 +7,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.principal import CurrentPrincipal
+from app.components.keygen.dev_eui import derive_dev_eui_range
+from app.components.keygen.exceptions import DevEuiRangeOverflowError
 from app.modules.audit.service import AuditService
 from app.modules.batch.repositories import BatchRepository
 
@@ -199,7 +201,9 @@ class KgPrefixService:
         quantity: int,
     ) -> tuple[KgDevEuiPrefix, list[str]]:
         await self._repository.lock_dev_eui_allocation(prefix)
-        item, start, end = await self._allocation_bounds(prefix, quantity)
+        item, first, last = await self._allocation_bounds(prefix, quantity)
+        start = int(first[-6:], 16)
+        end = int(last[-6:], 16)
 
         return item, [f"{item.prefix}{value:06x}" for value in range(start, end + 1)]
 
@@ -208,15 +212,15 @@ class KgPrefixService:
         prefix: str,
         quantity: int,
     ) -> tuple[str, str]:
-        item, start, end = await self._allocation_bounds(prefix, quantity)
+        _, first, last = await self._allocation_bounds(prefix, quantity)
 
-        return f"{item.prefix}{start:06x}", f"{item.prefix}{end:06x}"
+        return first, last
 
     async def _allocation_bounds(
         self,
         prefix: str,
         quantity: int,
-    ) -> tuple[KgDevEuiPrefix, int, int]:
+    ) -> tuple[KgDevEuiPrefix, str, str]:
         item = await self._prefixes.get(prefix)
 
         if item is None:
@@ -226,10 +230,13 @@ class KgPrefixService:
             raise KgDevEuiPrefixArchivedError
 
         maximum = await self._repository.get_max_dev_eui_by_prefix(item.prefix)
-        start = int(maximum[-6:], 16) + 1 if maximum else 1
-        end = start + quantity - 1
+        try:
+            first, last = derive_dev_eui_range(
+                item.prefix,
+                quantity,
+                maximum_dev_eui=maximum,
+            )
+        except DevEuiRangeOverflowError:
+            raise KgDevEuiRangeOverflowError from None
 
-        if end > 0xFFFFFF:
-            raise KgDevEuiRangeOverflowError
-
-        return item, start, end
+        return item, first, last

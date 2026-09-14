@@ -16,9 +16,9 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.components.keygen.types import ActivationType, LoRaWanVersion
 from app.infrastructure.database.base import Base
 from app.modules.kg.models import KgDevEuiPrefix, KgVersion
-from app.modules.lorawan.domain import ActivationType, LoRaWanVersion
 from app.modules.production_order.models import ProductionOrder
 from app.modules.users.models import User
 

@@ -3,8 +3,8 @@ import base64
 import pytest
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-from app.modules.lorawan import ActivationType, LoRaWanVersion, generate_credentials
-from app.modules.lorawan.crypto import (
+from app.components.keygen import ActivationType, LoRaWanVersion, generate_credentials
+from app.components.keygen.crypto import (
     NONCE_SIZE,
     SCHEMA_VERSION_V1,
     CredentialsEncryptionContext,
@@ -12,7 +12,7 @@ from app.modules.lorawan.crypto import (
     _aad,
     serialize_credentials_v1,
 )
-from app.modules.lorawan.exceptions import (
+from app.components.keygen.exceptions import (
     CredentialsDecryptionError,
     UnsupportedCredentialsSchemaVersionError,
 )
@@ -153,6 +153,6 @@ def test_validly_encrypted_payload_with_wrong_schema_is_rejected_safely() -> Non
 def test_configured_key_encoding_is_urlsafe_base64() -> None:
     encoded = base64.urlsafe_b64encode(_KEY).decode("ascii")
 
-    from app.modules.lorawan.crypto import decode_encryption_key
+    from app.components.keygen.crypto import decode_encryption_key
 
     assert decode_encryption_key(encoded) == _KEY

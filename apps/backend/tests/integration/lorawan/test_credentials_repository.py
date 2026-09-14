@@ -7,15 +7,15 @@ from sqlalchemy import insert, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.batch.models import Batch, BatchLoRaWanConfig, BatchStatus
-from app.modules.kg.exceptions import KgLoRaWanCredentialsAlreadyExistError
-from app.modules.kg.models import KgDevEuiPrefix, KgStatus, KgUnit, LoRaWanCredentials
-from app.modules.kg.services.credentials import LoRaWanCredentialsService
-from app.modules.lorawan import (
+from app.components.keygen import (
     ActivationType,
     LoRaWanVersion,
     generate_credentials,
 )
+from app.modules.batch.models import Batch, BatchLoRaWanConfig, BatchStatus
+from app.modules.kg.exceptions import KgLoRaWanCredentialsAlreadyExistError
+from app.modules.kg.models import KgDevEuiPrefix, KgStatus, KgUnit, LoRaWanCredentials
+from app.modules.kg.services.credentials import LoRaWanCredentialsService
 
 
 async def _kg_with_lorawan_config(session: AsyncSession) -> KgUnit:
