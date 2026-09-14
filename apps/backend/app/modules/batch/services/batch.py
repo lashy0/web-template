@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from uuid import UUID
 
 from sqlalchemy import select, union
@@ -13,6 +13,7 @@ from app.contexts.production.batches.commands import (
     AssignProductionOrder,
     CompleteBatch,
     CreateBatch,
+    DeleteBatch,
     SetBatchArchived,
     UpdateBatch,
 )
@@ -23,19 +24,16 @@ from app.contexts.production.batches.compat import (
 )
 from app.contexts.production.batches.queries import BatchQueries
 from app.contexts.production.batches.repository import BatchRepository as NewBatchRepository
+from app.contexts.production.compat.verification import LegacyVerificationHistoryAdapter
 from app.contexts.production.kg.queries import KgQueries
 from app.contexts.production.kg.repository import KgRepository
 from app.contexts.production.production_orders.queries import ProductionOrderQueries
 from app.contexts.production.production_orders.repository import ProductionOrderRepository
-from app.modules.audit.service import AuditService
 from app.modules.kg.models import KgState, KgUnit
-from app.modules.kg.services import KgService
 from app.modules.verification.models import VerificationSession
-from app.modules.verification.services import VerificationManagementService
 from app.shared.security import CurrentPrincipal
 
 from ..exceptions import (
-    BatchCannotBeDeletedError,
     BatchInvalidFiltersError,
 )
 from ..models import (
@@ -46,12 +44,8 @@ from ..models import (
     BatchShipment,
     BatchStatus,
 )
-from ..repositories import (
-    BatchReceiptRepository,
-    BatchRepository,
-    BatchShipmentRepository,
-)
-from . import audit, lifecycle, queries
+from ..repositories import BatchRepository
+from . import lifecycle, queries
 from .key_generation import publish_preparation_status
 from .lifecycle import BATCH_EDIT_WINDOW
 from .transactions import transaction
@@ -68,6 +62,12 @@ class BatchService:
     ) -> None:
         self._session_factory = session_factory
         self._edit_window = edit_window
+        self._delete_batch = DeleteBatch(
+            session_factory,
+            verification_history=LegacyVerificationHistoryAdapter,
+            publish_preparation_status=publish_preparation_status,
+            edit_window=edit_window,
+        )
 
     async def get(self, batch_id: UUID) -> Batch | None:
         async with self._session_factory() as session:
@@ -294,110 +294,4 @@ class BatchService:
         actor: CurrentPrincipal,
         batch_id: UUID,
     ) -> None:
-        lifecycle.ensure_management_allowed(actor)
-
-        preparation_cancelled = False
-        preparation_progress = 0
-
-        async with transaction(self._session_factory) as session:
-            batch_repository = BatchRepository(session)
-            receipt_repository = BatchReceiptRepository(session)
-            shipment_repository = BatchShipmentRepository(session)
-            kg_operations = KgService(session)
-
-            batch = await queries.required_batch(
-                batch_repository,
-                batch_id,
-                for_update=True,
-            )
-
-            lifecycle.ensure_not_archived(batch)
-            lifecycle.ensure_batch_edit_allowed(
-                batch,
-                actor=actor,
-                now=datetime.now(UTC),
-                edit_window=self._edit_window,
-            )
-
-            if batch.status != BatchStatus.IN_PRODUCTION:
-                raise BatchCannotBeDeletedError
-
-            if await receipt_repository.exists_by_batch(batch.id):
-                raise BatchCannotBeDeletedError
-
-            if await shipment_repository.exists_by_batch(batch.id):
-                raise BatchCannotBeDeletedError
-
-            if await kg_operations.has_scrapped_units(batch.id):
-                raise BatchCannotBeDeletedError
-
-            if await VerificationManagementService.has_batch_history(session, batch.id):
-                raise BatchCannotBeDeletedError
-
-            job = await batch_repository.get_key_generation_job(batch.id, for_update=True)
-
-            if job is not None and job.status is not BatchKeyGenerationStatus.READY:
-                await batch_repository.update_key_generation_job(
-                    job,
-                    status=BatchKeyGenerationStatus.CANCELLING,
-                    progress=job.progress,
-                )
-                preparation_progress = job.progress
-                preparation_cancelled = True
-
-            else:
-                await AuditService.from_session(session).record(
-                    actor=audit.audit_actor(actor),
-                    action="batch.deleted",
-                    entity=audit.batch_entity(batch),
-                    old_data={
-                        "production_order_id": str(batch.production_order_id)
-                        if batch.production_order_id
-                        else None,
-                        "name": batch.name,
-                        "description": batch.description,
-                        "planned_qty": batch.planned_qty,
-                        "day_plan_qty": batch.day_plan_qty,
-                        "status": batch.status.value,
-                    },
-                )
-
-                await kg_operations.delete_registered_for_batch(batch.id)
-                await batch_repository.delete(batch)
-
-        if not preparation_cancelled:
-            return
-
-        publish_preparation_status(
-            batch_id,
-            BatchKeyGenerationStatus.CANCELLING,
-            preparation_progress,
-        )
-
-        # The worker observes CANCELLING under the same row lock before every chunk.
-        # This waits out a chunk, then removes all partially-created KG data safely.
-        async with transaction(self._session_factory) as session:
-            batch_repository = BatchRepository(session)
-            batch_for_cleanup = await batch_repository.get_by_id(batch_id, for_update=True)
-            if batch_for_cleanup is None:
-                return
-
-            await KgService(session).delete_registered_for_batch(batch_for_cleanup.id)
-
-            await AuditService.from_session(session).record(
-                actor=audit.audit_actor(actor),
-                action="batch.deleted",
-                entity=audit.batch_entity(batch_for_cleanup),
-                old_data={
-                    "production_order_id": str(batch_for_cleanup.production_order_id)
-                    if batch_for_cleanup.production_order_id
-                    else None,
-                    "name": batch_for_cleanup.name,
-                    "description": batch_for_cleanup.description,
-                    "planned_qty": batch_for_cleanup.planned_qty,
-                    "day_plan_qty": batch_for_cleanup.day_plan_qty,
-                    "status": batch_for_cleanup.status.value,
-                },
-            )
-
-            await batch_repository.delete(batch_for_cleanup)
+        await self._delete_batch.execute(actor=actor, batch_id=batch_id)

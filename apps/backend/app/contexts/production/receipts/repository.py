@@ -90,7 +90,12 @@ class ReceiptRepository:
     async def get_total(self, batch_id: UUID) -> int:
         return await self.received_total(batch_id)
 
-    async def exists_by_batch(self, batch_id: UUID) -> bool:
+    async def has_receipts(self, batch_id: UUID) -> bool:
+        """Return the persisted receipt fact; callers own the deletion rule."""
         return bool(
             await self._session.scalar(select(exists().where(BatchReceipt.batch_id == batch_id)))
         )
+
+    async def exists_by_batch(self, batch_id: UUID) -> bool:
+        """Compatibility spelling for older receipt consumers."""
+        return await self.has_receipts(batch_id)

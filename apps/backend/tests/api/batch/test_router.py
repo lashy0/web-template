@@ -311,6 +311,25 @@ def test_retry_batch_preparation_forwards_actor(
 
 
 @pytest.mark.api
+def test_delete_batch_preserves_no_content_contract_and_uses_workflow(
+    batch_client: tuple[FastAPI, TestClient],
+    mocker: MockerFixture,
+) -> None:
+    app, client = batch_client
+    batch = _batch()
+    workflow = SimpleNamespace(execute=AsyncMock())
+    actor_id = _configure_principal(app, mocker, SimpleNamespace(), Role.MANAGER)
+    mocker.patch.object(app.state, "delete_batch", workflow)
+
+    response = client.delete(f"/batches/{batch.id}", headers=_headers())
+
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    assert response.content == b""
+    workflow.execute.assert_awaited_once_with(actor=ANY, batch_id=batch.id)
+    assert workflow.execute.await_args.kwargs["actor"].user_id == actor_id
+
+
+@pytest.mark.api
 def test_batch_response_includes_lorawan_config(batch_client, mocker) -> None:
     app, client = batch_client
     batch = _batch()

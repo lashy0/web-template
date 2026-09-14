@@ -57,6 +57,13 @@ class LegacyPreparationBridge:
         )
         return {job.batch_id: job for job in jobs}
 
+    async def request_cancellation(self, job: BatchKeyGenerationJob) -> BatchKeyGenerationJob:
+        """Persist the legacy cancellation transition while preserving its semantics."""
+        job.status = BatchKeyGenerationStatus.CANCELLING
+        job.error_code = None
+        await self._session.flush()
+        return job
+
 
 class PreparationDispatcher:
     """Post-commit worker dispatch retaining the legacy failure recovery semantics."""

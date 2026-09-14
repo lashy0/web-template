@@ -1,6 +1,6 @@
 # mypy: disable-error-code=untyped-decorator
 
-from typing import Annotated, Literal
+from typing import Annotated, Literal, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Request, status
@@ -12,6 +12,7 @@ from app.modules.batch.permissions import BatchPermission
 from app.modules.batch.routers.common import _batch_response, _service
 from app.modules.kg.schemas import DevEuiPrefix
 
+from .commands import DeleteBatch
 from .model import BatchStatus
 from .schemas import (
     BatchListResponse,
@@ -23,6 +24,10 @@ from .schemas import (
 )
 
 router = APIRouter(prefix="/batches", tags=["batch"])
+
+
+def _delete_workflow(request: Request) -> DeleteBatch:
+    return cast(DeleteBatch, request.app.state.delete_batch)
 
 
 @router.get("/dev-eui-range-preview", response_model=DevEuiRangePreviewResponse)
@@ -176,7 +181,7 @@ async def delete_batch(
     principal: Annotated[CurrentPrincipalDep, Depends(require_permission(BatchPermission.DELETE))],
     request: Request,
 ) -> None:
-    await _service(request).delete(actor=principal, batch_id=batch_id)
+    await _delete_workflow(request).execute(actor=principal, batch_id=batch_id)
 
 
 @router.put("/{batch_id}/production-order", response_model=BatchResponse)

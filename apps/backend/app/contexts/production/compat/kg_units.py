@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.kg.models import KgUnit
 from app.modules.kg.repositories.unit import KgRepository as LegacyKgUnitRepository
+from app.modules.kg.services import lifecycle
 
 
 class LegacyKgUnitBridge:
@@ -32,3 +33,14 @@ class LegacyKgUnitBridge:
     async def get_for_shipment(self, dev_eui: str) -> KgUnit | None:
         """Lock one KG, serialising membership checks for concurrent additions."""
         return await self._repository.get_by_dev_eui(dev_eui, for_update=True)
+
+    async def has_scrapped_for_batch(self, batch_id: UUID) -> bool:
+        """Return the legacy KG fact used by batch deletion."""
+        return bool(await self._repository.has_scrapped_by_batch(batch_id))
+
+    async def delete_registered_for_batch(self, batch_id: UUID) -> None:
+        """Retain legacy row locking and state validation before bulk removal."""
+        units = await self._repository.list_by_batch(batch_id, for_update=True)
+        for unit in units:
+            lifecycle.ensure_can_delete(unit)
+        await self._repository.delete_by_batch(batch_id)

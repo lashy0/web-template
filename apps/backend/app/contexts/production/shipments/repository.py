@@ -153,7 +153,12 @@ class ShipmentRepository:
     async def get_shipped_total(self, batch_id: UUID) -> int:
         return await self.shipped_total(batch_id)
 
-    async def exists_by_batch(self, batch_id: UUID) -> bool:
+    async def has_shipments(self, batch_id: UUID) -> bool:
+        """Return the persisted shipment fact; callers own the deletion rule."""
         return bool(
             await self._session.scalar(select(exists().where(BatchShipment.batch_id == batch_id)))
         )
+
+    async def exists_by_batch(self, batch_id: UUID) -> bool:
+        """Compatibility spelling for older shipment consumers."""
+        return await self.has_shipments(batch_id)

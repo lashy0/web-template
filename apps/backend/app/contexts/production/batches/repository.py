@@ -103,6 +103,10 @@ class BatchRepository:
         await self._session.flush()
         return await self.refresh_response(batch)
 
+    async def delete(self, batch: Batch) -> None:
+        await self._session.delete(batch)
+        await self._session.flush()
+
     async def search(
         self,
         *,

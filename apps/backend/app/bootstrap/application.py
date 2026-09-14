@@ -8,6 +8,8 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.audit.writer import TransactionalAuditWriter
+from app.contexts.production.batches.commands import DeleteBatch
+from app.contexts.production.compat.verification import LegacyVerificationHistoryAdapter
 from app.contexts.production.production_orders.service import ProductionOrderManagementService
 from app.core.config import Settings, get_settings
 from app.core.logging import setup_logging
@@ -19,6 +21,7 @@ from app.infrastructure.hydra.client import (
 from app.infrastructure.kratos.client import KratosIdentityManager, KratosSessionVerifier
 from app.infrastructure.redis.client import create_redis_client
 from app.modules.batch.services import BatchManagementService
+from app.modules.batch.services.key_generation import publish_preparation_status
 from app.modules.defects.services import DefectManagementService
 from app.modules.kg.services import (
     KgDevEuiPrefixManagementService,
@@ -47,6 +50,7 @@ class ApplicationComponents:
     kg_version_management: KgVersionManagementService
     production_order_management: ProductionOrderManagementService
     batch_management: BatchManagementService
+    delete_batch: DeleteBatch
     verification_management: VerificationManagementService
     defect_management: DefectManagementService
 
@@ -65,6 +69,7 @@ class ApplicationComponents:
         app.state.kg_version_management = self.kg_version_management
         app.state.production_order_management = self.production_order_management
         app.state.batch_management = self.batch_management
+        app.state.delete_batch = self.delete_batch
         app.state.verification_management = self.verification_management
         app.state.defect_management = self.defect_management
 
@@ -104,6 +109,11 @@ def create_application_components(settings: Settings) -> ApplicationComponents:
         kg_version_management=KgVersionManagementService(database.session_factory),
         production_order_management=ProductionOrderManagementService(database.session_factory),
         batch_management=BatchManagementService(database.session_factory),
+        delete_batch=DeleteBatch(
+            database.session_factory,
+            verification_history=LegacyVerificationHistoryAdapter,
+            publish_preparation_status=publish_preparation_status,
+        ),
         verification_management=VerificationManagementService(
             database.session_factory,
             reopen_inactivity_minutes=settings.VERIFICATION_SESSION_REOPEN_INACTIVITY_MINUTES,
