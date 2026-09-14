@@ -2,8 +2,8 @@ from collections.abc import Sequence
 from typing import Protocol
 from uuid import UUID
 
+from app.contexts.production.preparation.model import BatchKeyGenerationJob
 from app.modules.batch.exceptions import BatchInvalidFiltersError, BatchNotFoundError
-from app.modules.batch.models import BatchKeyGenerationJob
 
 from .model import Batch, BatchStatus
 from .repository import BatchRepository

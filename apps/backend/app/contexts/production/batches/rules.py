@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 
+from app.contexts.production.preparation.model import BatchKeyGenerationStatus
 from app.modules.batch.exceptions import (
     BatchAlreadyCompletedError,
     BatchArchivedError,
@@ -7,7 +8,6 @@ from app.modules.batch.exceptions import (
     BatchEditWindowExpiredError,
     BatchPreparationNotReadyError,
 )
-from app.modules.batch.models import BatchKeyGenerationStatus
 from app.shared.security import CurrentPrincipal, ForbiddenError, Role
 
 from .model import Batch, BatchStatus

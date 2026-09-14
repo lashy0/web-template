@@ -3,10 +3,10 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from app.audit.writer import TransactionalAuditWriter
+from app.contexts.production.preparation.repository import PreparationRepository
 from app.shared.security import CurrentPrincipal
 
 from ..audit import audit_actor, batch_entity
-from ..compat import LegacyPreparationBridge
 from ..model import Batch
 from ..queries import required_batch
 from ..repository import BatchRepository
@@ -17,7 +17,7 @@ class CompleteBatch:
     def __init__(
         self,
         repository: BatchRepository,
-        preparation: LegacyPreparationBridge,
+        preparation: PreparationRepository,
         audit: TransactionalAuditWriter,
         *,
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),

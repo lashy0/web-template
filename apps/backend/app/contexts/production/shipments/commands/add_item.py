@@ -4,7 +4,7 @@ from uuid import UUID
 from app.audit.writer import TransactionalAuditWriter
 from app.contexts.production.batches import rules as batch_rules
 from app.contexts.production.batches.audit import audit_actor, shipment_entity
-from app.contexts.production.batches.compat import LegacyPreparationBridge
+from app.contexts.production.preparation.repository import PreparationRepository
 from app.contexts.production.batches.repository import BatchRepository
 from app.contexts.production.compat import LegacyKgUnitBridge
 from app.modules.batch.exceptions import (
@@ -25,7 +25,7 @@ class AddShipmentItem:
         batches: BatchRepository,
         shipments: ShipmentRepository,
         kg_units: LegacyKgUnitBridge,
-        preparation: LegacyPreparationBridge,
+        preparation: PreparationRepository,
         audit: TransactionalAuditWriter,
         *,
         edit_window: timedelta,

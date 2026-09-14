@@ -17,21 +17,22 @@ from app.contexts.production.batches.commands import (
     SetBatchArchived,
     UpdateBatch,
 )
-from app.contexts.production.batches.compat import (
-    LegacyKgUnitBridge,
-    LegacyPreparationBridge,
-    PreparationDispatcher,
-)
-from app.contexts.production.batches.queries import BatchQueries
+from app.contexts.production.batches.compat import LegacyKgUnitBridge
+from app.contexts.production.batches.queries import BatchQueries, required_batch
 from app.contexts.production.batches.repository import BatchRepository as NewBatchRepository
 from app.contexts.production.compat.verification import LegacyVerificationHistoryAdapter
 from app.contexts.production.kg.queries import KgQueries
 from app.contexts.production.kg.repository import KgRepository
+from app.contexts.production.preparation.commands.retry import RetryPreparation
+from app.contexts.production.preparation.queries import PreparationQueries
+from app.contexts.production.preparation.repository import PreparationRepository
 from app.contexts.production.production_orders.queries import ProductionOrderQueries
 from app.contexts.production.production_orders.repository import ProductionOrderRepository
+from app.infrastructure.redis.preparation_notifier import RedisProgressNotifier
 from app.modules.kg.models import KgState, KgUnit
 from app.modules.verification.models import VerificationSession
 from app.shared.security import CurrentPrincipal
+from app.worker.preparation_dispatcher import CeleryWorkDispatcher
 
 from ..exceptions import (
     BatchInvalidFiltersError,
@@ -39,18 +40,12 @@ from ..exceptions import (
 from ..models import (
     Batch,
     BatchKeyGenerationJob,
-    BatchKeyGenerationStatus,
     BatchReceipt,
     BatchShipment,
     BatchStatus,
 )
-from ..repositories import BatchRepository
-from . import lifecycle, queries
-from .key_generation import publish_preparation_status
 from .lifecycle import BATCH_EDIT_WINDOW
 from .transactions import transaction
-
-GENERATE_BATCH_KEYS_TASK = "app.worker.generate_batch_keys"
 
 
 class BatchService:
@@ -65,20 +60,20 @@ class BatchService:
         self._delete_batch = DeleteBatch(
             session_factory,
             verification_history=LegacyVerificationHistoryAdapter,
-            publish_preparation_status=publish_preparation_status,
+            notifier=RedisProgressNotifier(),
             edit_window=edit_window,
         )
 
     async def get(self, batch_id: UUID) -> Batch | None:
         async with self._session_factory() as session:
             return await BatchQueries(
-                NewBatchRepository(session), LegacyPreparationBridge(session)
+                NewBatchRepository(session), PreparationQueries(PreparationRepository(session))
             ).get(batch_id)
 
     async def get_key_generation_job(self, batch_id: UUID) -> BatchKeyGenerationJob | None:
         async with self._session_factory() as session:
             return await BatchQueries(
-                NewBatchRepository(session), LegacyPreparationBridge(session)
+                NewBatchRepository(session), PreparationQueries(PreparationRepository(session))
             ).get_preparation_job(batch_id)
 
     async def get_key_generation_jobs(
@@ -86,7 +81,7 @@ class BatchService:
     ) -> dict[UUID, BatchKeyGenerationJob]:
         async with self._session_factory() as session:
             return await BatchQueries(
-                NewBatchRepository(session), LegacyPreparationBridge(session)
+                NewBatchRepository(session), PreparationQueries(PreparationRepository(session))
             ).get_preparation_jobs(batch_ids)
 
     async def list(
@@ -106,7 +101,7 @@ class BatchService:
             raise BatchInvalidFiltersError
         async with self._session_factory() as session:
             return await BatchQueries(
-                NewBatchRepository(session), LegacyPreparationBridge(session)
+                NewBatchRepository(session), PreparationQueries(PreparationRepository(session))
             ).list(
                 q=q,
                 status=status,
@@ -186,7 +181,7 @@ class BatchService:
                 NewBatchRepository(session),
                 KgRepository(session),
                 LegacyKgUnitBridge(session),
-                LegacyPreparationBridge(session),
+                PreparationRepository(session),
                 ProductionOrderQueries(ProductionOrderRepository(session)),
                 TransactionalAuditWriter.from_session(session),
             ).execute(
@@ -202,7 +197,9 @@ class BatchService:
                 production_order_id=production_order_id,
             )
 
-        await PreparationDispatcher(self._session_factory).dispatch_after_commit(batch.id)
+        await CeleryWorkDispatcher(self._session_factory, RedisProgressNotifier()).dispatch_after_commit(
+            batch.id
+        )
 
         return batch
 
@@ -212,26 +209,17 @@ class BatchService:
         actor: CurrentPrincipal,
         batch_id: UUID,
     ) -> Batch:
-        lifecycle.ensure_management_allowed(actor)
-
         async with transaction(self._session_factory) as session:
-            batches = BatchRepository(session)
-            batch = await queries.required_batch(batches, batch_id, for_update=True)
-            lifecycle.ensure_not_archived(batch)
-
-            job = await batches.get_key_generation_job(batch.id, for_update=True)
-
-            if job is None or job.status is not BatchKeyGenerationStatus.FAILED:
-                return batch
-
-            await batches.update_key_generation_job(
-                job,
-                status=BatchKeyGenerationStatus.CREATING,
-                progress=0,
-                error_code=None,
+            batches = NewBatchRepository(session)
+            batch = await required_batch(batches, batch_id, for_update=True)
+            _, dispatched = await RetryPreparation(PreparationRepository(session)).execute(
+                actor=actor, batch=batch
             )
 
-        await PreparationDispatcher(self._session_factory).dispatch_after_commit(batch.id)
+        if dispatched:
+            await CeleryWorkDispatcher(
+                self._session_factory, RedisProgressNotifier()
+            ).dispatch_after_commit(batch.id)
 
         return batch
 
@@ -272,7 +260,7 @@ class BatchService:
         async with transaction(self._session_factory) as session:
             return await CompleteBatch(
                 NewBatchRepository(session),
-                LegacyPreparationBridge(session),
+                PreparationRepository(session),
                 TransactionalAuditWriter.from_session(session),
             ).execute(actor=actor, batch_id=batch_id)
 

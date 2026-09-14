@@ -3,9 +3,10 @@ from __future__ import annotations
 import asyncio
 from uuid import UUID
 
+from app.contexts.production.preparation.worker_entry import process_preparation_job
 from app.core.config import get_settings
 from app.infrastructure.database.session import create_database
-from app.modules.batch.services.key_generation import BatchKeyGenerationJobService
+from app.infrastructure.redis.preparation_notifier import RedisProgressNotifier
 from app.worker.celery_app import celery_app
 
 
@@ -22,10 +23,12 @@ def generate_batch_keys(batch_id: str) -> None:
         database = create_database(settings)
 
         try:
-            await BatchKeyGenerationJobService(
+            await process_preparation_job(
                 database.session_factory,
                 encryption_key=settings.LORAWAN_CREDENTIALS_ENCRYPTION_KEY,
-            ).prepare(UUID(batch_id))
+                batch_id=UUID(batch_id),
+                notifier=RedisProgressNotifier(),
+            )
 
         finally:
             await database.close()

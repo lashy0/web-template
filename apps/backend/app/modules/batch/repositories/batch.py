@@ -1,4 +1,4 @@
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from datetime import datetime
 from uuid import UUID
 
@@ -10,8 +10,6 @@ from app.components.keygen.types import ActivationType, LoRaWanVersion
 
 from ..models import (
     Batch,
-    BatchKeyGenerationJob,
-    BatchKeyGenerationStatus,
     BatchLoRaWanConfig,
     BatchStatus,
 )
@@ -66,9 +64,6 @@ class BatchRepository:
 
         await self._session.flush()
 
-        self._session.add(BatchKeyGenerationJob(batch_id=batch.id))
-
-        await self._session.flush()
         await self._session.refresh(batch)
         await self._session.refresh(
             batch,
@@ -81,48 +76,6 @@ class BatchRepository:
         )
 
         return batch
-
-    async def get_key_generation_job(
-        self,
-        batch_id: UUID,
-        *,
-        for_update: bool = False,
-    ) -> BatchKeyGenerationJob | None:
-        return await self._session.get(
-            BatchKeyGenerationJob,
-            batch_id,
-            with_for_update=for_update,
-            populate_existing=for_update,
-        )
-
-    async def get_key_generation_jobs(
-        self,
-        batch_ids: Sequence[UUID],
-    ) -> dict[UUID, BatchKeyGenerationJob]:
-        if not batch_ids:
-            return {}
-
-        jobs = await self._session.scalars(
-            select(BatchKeyGenerationJob).where(BatchKeyGenerationJob.batch_id.in_(batch_ids))
-        )
-
-        return {job.batch_id: job for job in jobs}
-
-    async def update_key_generation_job(
-        self,
-        job: BatchKeyGenerationJob,
-        *,
-        status: BatchKeyGenerationStatus,
-        progress: int,
-        error_code: str | None = None,
-    ) -> BatchKeyGenerationJob:
-        job.status = status
-        job.progress = progress
-        job.error_code = error_code
-
-        await self._session.flush()
-
-        return job
 
     async def get_by_id(
         self,

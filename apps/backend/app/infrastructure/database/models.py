@@ -1,5 +1,6 @@
 """Central registry of SQLAlchemy models used by Alembic."""
 
+from app.contexts.production.preparation.model import BatchKeyGenerationJob
 from app.contexts.production.production_orders.model import ProductionOrder
 from app.contexts.production.receipts.model import BatchReceipt
 from app.contexts.production.shipments.model import BatchShipment, BatchShipmentItem
@@ -22,6 +23,7 @@ __all__: list[str] = [
     "ProductionOrder",
     "Batch",
     "BatchLoRaWanConfig",
+    "BatchKeyGenerationJob",
     "BatchReceipt",
     "BatchShipment",
     "BatchShipmentItem",

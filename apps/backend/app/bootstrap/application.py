@@ -20,8 +20,8 @@ from app.infrastructure.hydra.client import (
 )
 from app.infrastructure.kratos.client import KratosIdentityManager, KratosSessionVerifier
 from app.infrastructure.redis.client import create_redis_client
+from app.infrastructure.redis.preparation_notifier import RedisProgressNotifier
 from app.modules.batch.services import BatchManagementService
-from app.modules.batch.services.key_generation import publish_preparation_status
 from app.modules.defects.services import DefectManagementService
 from app.modules.kg.services import (
     KgDevEuiPrefixManagementService,
@@ -112,7 +112,7 @@ def create_application_components(settings: Settings) -> ApplicationComponents:
         delete_batch=DeleteBatch(
             database.session_factory,
             verification_history=LegacyVerificationHistoryAdapter,
-            publish_preparation_status=publish_preparation_status,
+            notifier=RedisProgressNotifier(),
         ),
         verification_management=VerificationManagementService(
             database.session_factory,

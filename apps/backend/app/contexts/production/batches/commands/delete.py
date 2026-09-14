@@ -1,9 +1,4 @@
-"""Multi-transaction batch deletion workflow.
-
-Preparation is still legacy-owned.  Its worker locks the batch before every
-credential chunk, so a non-ready deletion first commits ``CANCELLING`` and
-then obtains that same lock in a separate cleanup transaction.
-"""
+"""Multi-transaction batch deletion synchronized with preparation chunks."""
 
 from __future__ import annotations
 
@@ -17,15 +12,17 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.audit.writer import TransactionalAuditWriter
 from app.contexts.production.compat.kg_units import LegacyKgUnitBridge
+from app.contexts.production.preparation.commands.request_cancellation import request_cancellation
+from app.contexts.production.preparation.model import BatchKeyGenerationStatus
+from app.contexts.production.preparation.notifier import ProgressNotifier
+from app.contexts.production.preparation.repository import PreparationRepository
 from app.contexts.production.receipts.repository import ReceiptRepository
 from app.contexts.production.shipments.repository import ShipmentRepository
 from app.modules.batch.exceptions import BatchCannotBeDeletedError
-from app.modules.batch.models import BatchKeyGenerationStatus
 from app.shared.security import CurrentPrincipal
 from app.shared.uow import transaction
 
 from ..audit import audit_actor, batch_entity
-from ..compat import LegacyPreparationBridge
 from ..contracts import VerificationHistoryPort
 from ..model import Batch, BatchStatus
 from ..queries import required_batch
@@ -38,9 +35,6 @@ from ..rules import (
 )
 
 VerificationHistoryFactory = Callable[[AsyncSession], VerificationHistoryPort]
-PreparationStatusPublisher = Callable[[UUID, BatchKeyGenerationStatus, int], None]
-
-
 @dataclass(frozen=True, slots=True)
 class _CancellationRequested:
     progress: int
@@ -54,13 +48,13 @@ class DeleteBatch:
         session_factory: async_sessionmaker[AsyncSession],
         *,
         verification_history: VerificationHistoryFactory,
-        publish_preparation_status: PreparationStatusPublisher,
+        notifier: ProgressNotifier,
         edit_window: timedelta = BATCH_EDIT_WINDOW,
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
         self._session_factory = session_factory
         self._verification_history = verification_history
-        self._publish_preparation_status = publish_preparation_status
+        self._notifier = notifier
         self._edit_window = edit_window
         self._clock = clock
 
@@ -73,7 +67,7 @@ class DeleteBatch:
         # This happens only after phase 1 committed. Redis is best-effort and
         # cannot undo the authoritative database transition.
         try:
-            self._publish_preparation_status(
+            self._notifier.publish(
                 batch_id, BatchKeyGenerationStatus.CANCELLING, cancellation.progress
             )
         except Exception:
@@ -102,10 +96,10 @@ class DeleteBatch:
             if await self._verification_history(session).has_history_for_batch(batch.id):
                 raise BatchCannotBeDeletedError
 
-            preparation = LegacyPreparationBridge(session)
+            preparation = PreparationRepository(session)
             job = await preparation.get(batch.id, for_update=True)
             if job is not None and job.status is not BatchKeyGenerationStatus.READY:
-                await preparation.request_cancellation(job)
+                await request_cancellation(preparation, job)
                 return _CancellationRequested(progress=job.progress)
 
             await self._delete_in_current_transaction(
@@ -122,9 +116,8 @@ class DeleteBatch:
     ) -> None:
         async with transaction(self._session_factory) as session:
             batches = BatchRepository(session)
-            # The legacy worker takes this row lock before each chunk. Waiting
-            # here therefore lets an in-flight chunk commit, and CANCELLING
-            # prevents every subsequent chunk from being generated.
+            # The preparation worker takes this row lock before each chunk.
+            # Waiting lets an in-flight chunk commit; CANCELLING stops the next one.
             batch = await batches.get(batch_id, for_update=True)
             if batch is None:
                 return

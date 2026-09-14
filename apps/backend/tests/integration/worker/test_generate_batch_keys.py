@@ -7,6 +7,7 @@ from pytest_mock import MockerFixture
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.contexts.production.preparation.repository import PreparationRepository
 from app.modules.batch.models import (
     ActivationType,
     BatchKeyGenerationStatus,
@@ -50,6 +51,7 @@ async def _create_batch(
             dev_euis=[f"{prefix}{index:06x}" for index in range(quantity)],
             short_code="kg",
         )
+        await PreparationRepository(session).create_initial_job(batch.id)
 
         return batch.id
 
@@ -58,7 +60,7 @@ async def _preparation_status(
     session_factory: async_sessionmaker[AsyncSession], batch_id: UUID
 ) -> BatchKeyGenerationStatus:
     async with session_factory() as session:
-        job = await BatchRepository(session).get_key_generation_job(batch_id)
+        job = await PreparationRepository(session).get(batch_id)
         assert job is not None
         return job.status
 
@@ -119,7 +121,7 @@ async def test_task_marks_batch_failed_and_publishes_event(
     batch_id = await _create_batch(database_session_factory, quantity=1)
     events: list[BatchKeyGenerationStatus] = []
     mocker.patch(
-        "app.modules.batch.services.key_generation.generate_credentials",
+        "app.contexts.production.preparation.commands.process_chunk.generate_credentials",
         side_effect=RuntimeError("generator failed"),
     )
 
@@ -143,7 +145,7 @@ async def test_task_processes_more_than_one_thousand_units_in_chunks(
     mocker: MockerFixture,
 ) -> None:
     batch_id = await _create_batch(database_session_factory, quantity=1001)
-    list_missing = mocker.spy(KgRepository, "list_without_credentials_by_batch")
+    list_missing = mocker.spy(PreparationRepository, "claim_without_credentials")
 
     await BatchKeyGenerationService(
         database_session_factory,

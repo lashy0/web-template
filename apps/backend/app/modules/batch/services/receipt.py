@@ -7,8 +7,8 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.audit.writer import TransactionalAuditWriter
-from app.contexts.production.batches.compat import LegacyPreparationBridge
 from app.contexts.production.batches.repository import BatchRepository
+from app.contexts.production.preparation.repository import PreparationRepository
 from app.contexts.production.receipts.commands import CreateReceipt, UpdateReceipt, VoidReceipt
 from app.contexts.production.receipts.model import BatchReceipt
 from app.contexts.production.receipts.queries import ReceiptQueries
@@ -52,7 +52,7 @@ class ReceiptService:
             return await CreateReceipt(
                 BatchRepository(session),
                 ReceiptRepository(session),
-                LegacyPreparationBridge(session),
+                PreparationRepository(session),
                 TransactionalAuditWriter.from_session(session),
             ).execute(actor=actor, batch_id=batch_id, quantity=quantity, comment=comment)
 

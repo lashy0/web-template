@@ -97,7 +97,7 @@ def workflow_parts(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
     monkeypatch.setattr(command, "ReceiptRepository", lambda session: parts.receipts)
     monkeypatch.setattr(command, "ShipmentRepository", lambda session: parts.shipments)
     monkeypatch.setattr(command, "LegacyKgUnitBridge", lambda session: parts.kg)
-    monkeypatch.setattr(command, "LegacyPreparationBridge", lambda session: parts.preparation)
+    monkeypatch.setattr(command, "PreparationRepository", lambda session: parts.preparation)
     monkeypatch.setattr(
         command.TransactionalAuditWriter,
         "from_session",
@@ -107,10 +107,11 @@ def workflow_parts(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
 
 
 def _workflow(parts: SimpleNamespace, publisher: MagicMock | None = None) -> DeleteBatch:
+    notifier = SimpleNamespace(publish=publisher or MagicMock())
     return DeleteBatch(
         _SessionFactory(parts.events),  # type: ignore[arg-type]
         verification_history=lambda session: parts.verification,
-        publish_preparation_status=publisher or MagicMock(),
+        notifier=notifier,
     )
 
 

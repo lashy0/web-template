@@ -7,9 +7,9 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.audit.writer import TransactionalAuditWriter
-from app.contexts.production.batches.compat import LegacyPreparationBridge
 from app.contexts.production.batches.repository import BatchRepository
 from app.contexts.production.compat import LegacyKgUnitBridge
+from app.contexts.production.preparation.repository import PreparationRepository
 from app.contexts.production.shipments.commands import (
     AddShipmentItem,
     CompleteShipment,
@@ -80,7 +80,7 @@ class ShipmentService:
             return await CreateShipment(
                 BatchRepository(session),
                 ShipmentRepository(session),
-                LegacyPreparationBridge(session),
+                PreparationRepository(session),
                 TransactionalAuditWriter.from_session(session),
             ).execute(actor=actor, batch_id=batch_id, comment=comment)
 
@@ -113,7 +113,7 @@ class ShipmentService:
                 BatchRepository(session),
                 ShipmentRepository(session),
                 LegacyKgUnitBridge(session),
-                LegacyPreparationBridge(session),
+                PreparationRepository(session),
                 TransactionalAuditWriter.from_session(session),
                 edit_window=self._edit_window,
             ).execute(actor=actor, batch_id=batch_id, shipment_id=shipment_id, dev_eui=dev_eui)
@@ -141,7 +141,7 @@ class ShipmentService:
             return await CompleteShipment(
                 BatchRepository(session),
                 ShipmentRepository(session),
-                LegacyPreparationBridge(session),
+                PreparationRepository(session),
                 TransactionalAuditWriter.from_session(session),
                 edit_window=self._edit_window,
             ).execute(actor=actor, batch_id=batch_id, shipment_id=shipment_id)

@@ -15,7 +15,6 @@ from app.contexts.production.batches.commands import (
     SetBatchArchived,
     UpdateBatch,
 )
-from app.contexts.production.batches.compat import PreparationDispatcher
 from app.contexts.production.batches.model import Batch, BatchLoRaWanConfig, BatchStatus
 from app.contexts.production.kg.commands.allocate_for_batch import BatchAllocation
 from app.modules.batch.exceptions import (
@@ -26,6 +25,7 @@ from app.modules.batch.exceptions import (
 from app.modules.batch.models import BatchKeyGenerationJob, BatchKeyGenerationStatus
 from app.modules.batch.services.batch import BatchService
 from app.shared.security import CurrentPrincipal, Role
+from app.worker.preparation_dispatcher import CeleryWorkDispatcher
 
 
 def _actor(role: Role = Role.ADMINISTRATOR) -> CurrentPrincipal:
@@ -230,7 +230,7 @@ async def test_create_dispatches_only_after_transaction_exit(monkeypatch) -> Non
     )
     monkeypatch.setattr("app.modules.batch.services.batch.CreateBatch", lambda *args: create)
     monkeypatch.setattr(
-        "app.modules.batch.services.batch.PreparationDispatcher", lambda *args: dispatcher
+        "app.modules.batch.services.batch.CeleryWorkDispatcher", lambda *args: dispatcher
     )
 
     created = await BatchService(_TransactionSessionFactory(events)).create(
@@ -251,30 +251,17 @@ async def test_create_dispatches_only_after_transaction_exit(monkeypatch) -> Non
 
 @pytest.mark.unit
 async def test_dispatch_failure_marks_initial_preparation_job_failed(monkeypatch) -> None:
-    actor = _actor()
-    batch = _batch(actor=actor)
-    job = BatchKeyGenerationJob(
-        batch_id=batch.id, status=BatchKeyGenerationStatus.CREATING, progress=0
-    )
+    batch_id = uuid4()
     monkeypatch.setattr(
-        "app.contexts.production.batches.compat.celery_app.send_task",
+        "app.worker.preparation_dispatcher.celery_app.send_task",
         lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("broker unavailable")),
     )
-    monkeypatch.setattr(
-        "app.contexts.production.batches.compat.BatchRepository",
-        lambda *args: SimpleNamespace(get=AsyncMock(return_value=batch)),
-    )
-    monkeypatch.setattr(
-        "app.contexts.production.batches.compat.LegacyPreparationBridge",
-        lambda *args: SimpleNamespace(get=AsyncMock(return_value=job)),
-    )
+    mark_failed = AsyncMock(return_value=(BatchKeyGenerationStatus.FAILED, 0))
+    monkeypatch.setattr("app.worker.preparation_dispatcher.mark_failed", mark_failed)
     publish = MagicMock()
-    monkeypatch.setattr(
-        "app.contexts.production.batches.compat.publish_preparation_status", publish
-    )
+    notifier = SimpleNamespace(publish=publish)
 
-    await PreparationDispatcher(_TransactionSessionFactory([])).dispatch_after_commit(batch.id)
+    await CeleryWorkDispatcher(_TransactionSessionFactory([]), notifier).dispatch_after_commit(batch_id)
 
-    assert job.status is BatchKeyGenerationStatus.FAILED
-    assert job.error_code == "batch_key_generation_failed"
-    publish.assert_called_once_with(batch.id, BatchKeyGenerationStatus.FAILED, 0)
+    mark_failed.assert_awaited_once()
+    publish.assert_called_once_with(batch_id, BatchKeyGenerationStatus.FAILED, 0)
