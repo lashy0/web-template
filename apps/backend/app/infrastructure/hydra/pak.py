@@ -1,6 +1,7 @@
 """Hydra implementations of the narrow PAK outbound contracts."""
 
 from app.auth.contracts import OAuthClientManager, TokenIntrospector
+from app.auth.exceptions import OAuthClientNotFoundError
 from app.contexts.equipment.pak.contracts import (
     PakOAuthClient,
     PakOAuthClientCredentials,
@@ -8,6 +9,7 @@ from app.contexts.equipment.pak.contracts import (
     PakTokenIntrospection,
     PakTokenIntrospectorPort,
 )
+from app.contexts.equipment.pak.exceptions import PakOAuthClientNotFoundError
 
 
 class HydraPakOAuthClientAdapter(PakOAuthClientPort):
@@ -24,7 +26,10 @@ class HydraPakOAuthClientAdapter(PakOAuthClientPort):
         )
 
     async def delete_client(self, client_id: str) -> None:
-        await self._clients.delete_client(client_id)
+        try:
+            await self._clients.delete_client(client_id)
+        except OAuthClientNotFoundError as exc:
+            raise PakOAuthClientNotFoundError from exc
 
     async def rotate_client_credentials(self, client_id: str) -> PakOAuthClientCredentials:
         result = await self._clients.rotate_client_credentials(client_id)
