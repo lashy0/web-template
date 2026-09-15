@@ -1,10 +1,14 @@
-"""Production-side implementation of the narrow verification KG contract."""
+"""Inbound adapters: production implementing ports owned by other modules.
+
+The composition root installs these, so no other module constructs production
+persistence itself.
+"""
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.quality.verification.contracts import VerificationKg, VerificationKgPort
 
-from ..kg.repository import KgRepository
+from .kg.repository import KgRepository
 
 
 class ProductionVerificationKgAdapter(VerificationKgPort):
@@ -14,7 +18,8 @@ class ProductionVerificationKgAdapter(VerificationKgPort):
     async def resolve_and_lock(
         self, *, dev_eui: str, related_dev_euis: list[str]
     ) -> VerificationKg | None:
-        # KgRepository preserves the legacy deterministic DevEUI row order.
+        # KgRepository preserves the deterministic DevEUI row order that makes
+        # this multi-row lock deadlock-free.
         units = await self._repository.get_many_by_dev_euis(
             [dev_eui, *related_dev_euis], for_update=True
         )

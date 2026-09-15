@@ -10,7 +10,6 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.api.auth_deps import CurrentPrincipalDep, require_permission
 from app.audit.writer import TransactionalAuditWriter
-from app.domains.production.compat.verification import QualityVerificationHistoryAdapter
 from app.domains.production.kg.queries import KgQueries
 from app.domains.production.kg.repository import KgRepository
 from app.domains.production.preparation.commands.retry import RetryPreparation
@@ -19,6 +18,7 @@ from app.domains.production.preparation.repository import PreparationRepository
 from app.domains.production.production_orders.queries import ProductionOrderQueries
 from app.domains.production.production_orders.repository import ProductionOrderRepository
 from app.domains.production.production_orders.schemas import AssignProductionOrderRequest
+from app.domains.quality.verification.adapters import VerificationHistoryProvider
 from app.infrastructure.redis.preparation_notifier import RedisProgressNotifier
 from app.shared.uow import transaction
 from app.worker.preparation_dispatcher import CeleryWorkDispatcher
@@ -64,7 +64,7 @@ async def _response(session: AsyncSession, batch: Batch) -> BatchResponse:
         BatchRepository(session), PreparationQueries(PreparationRepository(session))
     )
     can_delete = (
-        await queries.deletion_availability([batch], QualityVerificationHistoryAdapter(session))
+        await queries.deletion_availability([batch], VerificationHistoryProvider(session))
     )[batch.id]
     return batch_response(
         batch, can_delete=can_delete, job=await queries.get_preparation_job(batch.id)
@@ -124,7 +124,7 @@ async def list_batches(
             without_production_order=without_production_order,
         )
         availability = await queries.deletion_availability(
-            batches, QualityVerificationHistoryAdapter(session)
+            batches, VerificationHistoryProvider(session)
         )
         jobs = await queries.get_preparation_jobs([batch.id for batch in batches])
         items = [
@@ -255,7 +255,7 @@ async def delete_batch(
 ) -> None:
     await DeleteBatch(
         _session_factory(request),
-        verification_history=QualityVerificationHistoryAdapter,
+        verification_history=VerificationHistoryProvider,
         notifier=RedisProgressNotifier(),
     ).execute(actor=principal, batch_id=batch_id)
 

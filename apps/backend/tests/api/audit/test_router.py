@@ -10,9 +10,9 @@ from fastapi import FastAPI, status
 from fastapi.testclient import TestClient
 from pytest_mock import MockerFixture
 
+from app.audit.model import AuditEvent
 from app.auth.contracts import AuthSession, Identity
 from app.auth.roles import Role
-from app.audit.model import AuditEvent
 
 
 class _SessionFactory:

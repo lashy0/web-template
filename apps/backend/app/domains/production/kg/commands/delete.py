@@ -1,6 +1,6 @@
 from app.audit.types import AuditEntity
 from app.audit.writer import TransactionalAuditWriter
-from app.domains.production.batches.contracts import VerificationHistoryPort
+from app.domains.production.contracts import VerificationHistoryPort
 from app.shared.security import CurrentPrincipal
 
 from ..exceptions import KgCannotBeDeletedError, KgNotFoundError

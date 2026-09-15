@@ -11,6 +11,7 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.audit.writer import TransactionalAuditWriter
+from app.domains.production.contracts import VerificationHistoryPort
 from app.domains.production.exceptions import BatchCannotBeDeletedError
 from app.domains.production.kg.repository import KgRepository
 from app.domains.production.preparation.commands.request_cancellation import request_cancellation
@@ -23,7 +24,6 @@ from app.shared.security import CurrentPrincipal
 from app.shared.uow import transaction
 
 from ..audit import audit_actor, batch_entity
-from ..contracts import VerificationHistoryPort
 from ..model import Batch, BatchStatus
 from ..queries import required_batch
 from ..repository import BatchRepository

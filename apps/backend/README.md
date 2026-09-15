@@ -19,6 +19,8 @@ uv sync
 Development documentation lives in [`docs/`](docs/). Read the relevant guide
 before changing the corresponding part of the backend:
 
+* [Architecture](docs/architecture.md) - modules, boundaries, ports,
+  transactions and the residual debt list. Read this first.
 * [Configuration](docs/configuration.md)
 * [Database models and migrations](docs/database.md)
 * [Redis](docs/redis.md)

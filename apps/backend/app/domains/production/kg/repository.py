@@ -8,12 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import ColumnElement
 
 from app.domains.production.batches.model import Batch
-from app.domains.production.compat.verification import (
-    current_kg_state_expression,
-    latest_verification_projection,
-)
+
+# Residual debt: KG embeds a quality-owned subquery in its own SELECTs. A read
+# port should replace this SQL-level coupling (see docs/architecture.md).
+from app.domains.quality.verification.adapters import latest_verification_projection
 
 from .model import KgDevEuiPrefix, KgState, KgUnit, KgVersion, LoRaWanCredentials
+from .projections import current_kg_state_expression
 from .schemas.state import KgCurrentState
 from .schemas.unit import KgBatchListItem
 

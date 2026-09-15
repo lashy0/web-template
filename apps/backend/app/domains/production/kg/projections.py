@@ -1,9 +1,4 @@
-"""Production consumer adapter for quality-owned verification facts.
-
-This module deliberately contains no verification ORM or SQL.  The quality
-provider owns that persistence; production retains only its current-state
-mapping and consumes its bulk projection.
-"""
+"""KG read-model expressions owned by production."""
 
 from typing import Any
 
@@ -11,23 +6,11 @@ from sqlalchemy import case, literal
 from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.selectable import Subquery
 
-from app.domains.production.kg.schemas.state import KgCurrentState
-from app.domains.quality.verification.adapters import (
-    VerificationHistoryProvider,
-    latest_verification_projection,
-)
-
-QualityVerificationHistoryAdapter = VerificationHistoryProvider
-
-__all__ = [
-    "QualityVerificationHistoryAdapter",
-    "current_kg_state_expression",
-    "latest_verification_projection",
-]
+from .schemas.state import KgCurrentState
 
 
 def current_kg_state_expression(persistent_state: Any, latest: Subquery) -> ColumnElement[str]:
-    """Preserve legacy precedence: SCRAPPED > latest verification > REGISTERED."""
+    """Precedence of the KG current state: SCRAPPED > latest verification > REGISTERED."""
     return case(
         (persistent_state == "SCRAPPED", literal(KgCurrentState.SCRAPPED.value)),
         (

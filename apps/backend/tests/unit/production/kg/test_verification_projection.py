@@ -3,7 +3,7 @@ from types import SimpleNamespace
 import pytest
 from sqlalchemy import literal
 
-from app.domains.production.compat.verification import current_kg_state_expression
+from app.domains.production.kg.projections import current_kg_state_expression
 from app.domains.production.kg.schemas.state import KgCurrentState
 
 

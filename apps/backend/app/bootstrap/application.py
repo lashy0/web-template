@@ -13,7 +13,7 @@ from app.core.logging import setup_logging
 from app.domains.equipment.pak.adapters import adapt_pak
 from app.domains.equipment.pak.authentication import PakMachineAuthenticator
 from app.domains.identity.users.commands import BootstrapFirstAdministrator
-from app.domains.production.compat.verification_kg import ProductionVerificationKgAdapter
+from app.domains.production.adapters import ProductionVerificationKgAdapter
 from app.infrastructure.database.session import Database, create_database
 from app.infrastructure.hydra.client import (
     HydraOAuthClientManager,

@@ -11,8 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.domains.equipment.pak.adapters import adapt_pak
 from app.domains.equipment.pak.model import PakDevice, PakDeviceKind
+from app.domains.production.adapters import ProductionVerificationKgAdapter
 from app.domains.production.batches.model import Batch, BatchStatus
-from app.domains.production.compat.verification_kg import ProductionVerificationKgAdapter
 from app.domains.production.kg.model import KgDevEuiPrefix, KgState, KgUnit
 from app.domains.quality.defects.model import DefectGroup
 from app.domains.quality.tests.model import PakTest
