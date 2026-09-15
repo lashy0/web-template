@@ -50,21 +50,17 @@ remain unchanged.
 Production orders expose commands, queries, repository and rules directly;
 there is no production-order service facade.
 
-## Legacy audit boundary
+## Audit ownership
 
-Business `app.modules` packages have been removed. Canonical contexts are the
-sole owner of mapped models, schemas, permissions, exceptions and business
-logic. `app.modules.audit` is the only remaining legacy module because its
-mapped audit model and typed actor/entity vocabulary are still in use.
-
-The one intentional context-to-legacy dependency is
-`app.modules.audit.types`. Audit migration is deliberately out of scope: its
-typed actor/entity vocabulary remains the shared transactional audit boundary.
-Feature-specific business logic does not remain in that dependency.
+`app/modules` has been removed completely. Canonical contexts are the sole
+owner of mapped models, schemas, permissions, exceptions and business logic.
+Audit is canonically owned by `app.audit`: its `AuditEvent` mapped model,
+typed actor/entity vocabulary, repository, HTTP schemas/router, permission and
+`TransactionalAuditWriter` live there. The writer appends within the caller's
+transaction and does not own commit or rollback.
 
 ## Out of scope
 
 This state does not change API payloads/paths, authentication protocol,
 Kratos/Hydra behavior, Alembic or database schema, verification locking,
-worker/preparation semantics, Redis/SSE, key generation, or audit ownership.
-Audit relocation remains an optional, separate small migration.
+worker/preparation semantics, Redis/SSE, or key generation.

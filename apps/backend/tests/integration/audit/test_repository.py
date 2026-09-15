@@ -6,8 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.roles import Role
 from app.contexts.identity.users.repository import UserRepository
-from app.modules.audit.models import AuditEvent
-from app.modules.audit.repository import AuditRepository
+from app.audit.model import AuditEvent
+from app.audit.repository import AuditRepository
 
 
 @pytest.mark.integration

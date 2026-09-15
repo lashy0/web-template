@@ -12,7 +12,7 @@ from pytest_mock import MockerFixture
 
 from app.auth.contracts import AuthSession, Identity
 from app.auth.roles import Role
-from app.modules.audit.models import AuditEvent
+from app.audit.model import AuditEvent
 
 
 class _SessionFactory:
@@ -62,7 +62,7 @@ def test_administrator_can_list_audit_events(
         entity_display_name="Bob",
         entity_identifier="bob",
     )
-    repository = mocker.patch("app.modules.audit.router.AuditRepository")
+    repository = mocker.patch("app.audit.router.AuditRepository")
     repository.return_value.search = AsyncMock(return_value=([event], 1))
 
     response = client.get(
@@ -93,7 +93,7 @@ def test_audit_list_forwards_the_selected_sort(
     app: FastAPI, client: TestClient, api_prefix: str, mocker: MockerFixture
 ) -> None:
     _configure_authenticated_request(app, mocker, role=Role.ADMINISTRATOR)
-    repository = mocker.patch("app.modules.audit.router.AuditRepository")
+    repository = mocker.patch("app.audit.router.AuditRepository")
     repository.return_value.search = AsyncMock(return_value=([], 0))
 
     response = client.get(
@@ -118,7 +118,7 @@ def test_audit_list_forwards_the_selected_period(
     app: FastAPI, client: TestClient, api_prefix: str, mocker: MockerFixture
 ) -> None:
     _configure_authenticated_request(app, mocker, role=Role.ADMINISTRATOR)
-    repository = mocker.patch("app.modules.audit.router.AuditRepository")
+    repository = mocker.patch("app.audit.router.AuditRepository")
     repository.return_value.search = AsyncMock(return_value=([], 0))
 
     response = client.get(
@@ -143,7 +143,7 @@ def test_non_administrator_cannot_list_audit_events(
     app: FastAPI, client: TestClient, api_prefix: str, mocker: MockerFixture
 ) -> None:
     _configure_authenticated_request(app, mocker, role=Role.MANAGER)
-    repository = mocker.patch("app.modules.audit.router.AuditRepository")
+    repository = mocker.patch("app.audit.router.AuditRepository")
 
     response = client.get(f"{api_prefix}/audit", headers={"cookie": "ory_kratos_session=opaque"})
 
@@ -156,7 +156,7 @@ def test_audit_list_accepts_multiple_entity_types(
     app: FastAPI, client: TestClient, api_prefix: str, mocker: MockerFixture
 ) -> None:
     _configure_authenticated_request(app, mocker, role=Role.ADMINISTRATOR)
-    repository = mocker.patch("app.modules.audit.router.AuditRepository")
+    repository = mocker.patch("app.audit.router.AuditRepository")
     repository.return_value.search = AsyncMock(return_value=([], 0))
 
     response = client.get(

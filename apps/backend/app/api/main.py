@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from app.audit.router import router as audit_router
 from app.auth.router import router as auth_router
 from app.contexts.equipment.pak.router import router as pak_router
 from app.contexts.identity.users.router import router as users_router
@@ -15,7 +16,6 @@ from app.contexts.quality.verification.router import (
 from app.contexts.quality.verification.router import (
     router as verification_router,
 )
-from app.modules.audit.router import router as audit_router
 from app.platform.health import router as health_router
 
 api_router = APIRouter()

@@ -4,10 +4,10 @@ from uuid import UUID
 
 from loguru import logger
 
+from app.audit.types import AuditActor, AuditEntity
 from app.audit.writer import TransactionalAuditWriter
 from app.contexts.quality.defects.exceptions import DefectGroupArchivedError
 from app.contexts.quality.defects.repository import DefectGroupRepository
-from app.modules.audit.types import AuditActor, AuditEntity
 
 from ..exceptions import PakTestConfigurationError
 from ..model import PakTest

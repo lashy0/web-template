@@ -4,7 +4,7 @@ from typing import Any
 from sqlalchemy import ColumnElement, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.audit.models import AuditEvent
+from app.audit.model import AuditEvent
 
 
 class AuditRepository:
@@ -39,12 +39,9 @@ class AuditRepository:
             old_data=old_data,
             new_data=new_data,
         )
-
         self._session.add(event)
-
         await self._session.flush()
         await self._session.refresh(event)
-
         return event
 
     async def search(
@@ -62,20 +59,15 @@ class AuditRepository:
         filters: list[ColumnElement[bool]] = (
             [AuditEvent.entity_type.in_(entity_types)] if entity_types else []
         )
-
         if created_from is not None:
             filters.append(AuditEvent.created_at >= created_from)
-
         if created_to is not None:
             filters.append(AuditEvent.created_at < created_to)
-
         column = {
             "created_at": AuditEvent.created_at,
             "actor_display_name": AuditEvent.actor_display_name,
         }[sort]
-
         sorted_column = column.desc().nulls_last() if order == "desc" else column.asc().nulls_last()
-
         statement = (
             select(AuditEvent)
             .where(*filters)
@@ -83,11 +75,8 @@ class AuditRepository:
             .offset((page - 1) * page_size)
             .limit(page_size)
         )
-
         count = await self._session.scalar(
             select(func.count()).select_from(AuditEvent).where(*filters)
         )
-
         result = await self._session.execute(statement)
-
         return list(result.scalars().all()), int(count or 0)

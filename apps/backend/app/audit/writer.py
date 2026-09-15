@@ -5,9 +5,9 @@ from typing import Any, Self
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.audit.models import AuditEvent
-from app.modules.audit.repository import AuditRepository
-from app.modules.audit.types import AuditActor, AuditEntity
+from app.audit.model import AuditEvent
+from app.audit.repository import AuditRepository
+from app.audit.types import AuditActor, AuditEntity
 
 ACTION_PATTERN = re.compile(r"^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$")
 

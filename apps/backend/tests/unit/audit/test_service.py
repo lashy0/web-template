@@ -3,10 +3,10 @@ from uuid import uuid4
 
 import pytest
 
-from app.modules.audit.models import AuditEvent
-from app.modules.audit.repository import AuditRepository
+from app.audit.model import AuditEvent
+from app.audit.repository import AuditRepository
 from app.modules.audit.service import AuditService
-from app.modules.audit.types import AuditActor, AuditEntity
+from app.audit.types import AuditActor, AuditEntity
 
 
 @pytest.mark.unit

@@ -1,7 +1,7 @@
 from collections.abc import Mapping
 from uuid import UUID
 
-from app.modules.audit.types import AuditActor, AuditEntity
+from app.audit.types import AuditActor, AuditEntity
 from app.shared.security import CurrentPrincipal, ForbiddenError
 
 from ..exceptions import KgDevEuiPrefixNotFoundError, KgVersionNotFoundError

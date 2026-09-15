@@ -1,4 +1,4 @@
-from app.modules.audit.types import AuditActor, AuditEntity
+from app.audit.types import AuditActor, AuditEntity
 from app.shared.security import CurrentPrincipal
 
 from .model import Batch

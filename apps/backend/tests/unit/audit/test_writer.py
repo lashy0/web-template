@@ -3,8 +3,8 @@ from unittest.mock import AsyncMock
 import pytest
 
 from app.audit.writer import TransactionalAuditWriter
-from app.modules.audit.repository import AuditRepository
-from app.modules.audit.types import AuditActor, AuditEntity
+from app.audit.repository import AuditRepository
+from app.audit.types import AuditActor, AuditEntity
 
 
 @pytest.mark.unit

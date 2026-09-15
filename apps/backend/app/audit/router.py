@@ -5,9 +5,9 @@ from fastapi import APIRouter, Depends, Query
 
 from app.api.auth_deps import CurrentPrincipalDep, require_permission
 from app.api.deps import DatabaseDep
-from app.modules.audit.permissions import AuditPermission
-from app.modules.audit.repository import AuditRepository
-from app.modules.audit.schemas import AuditEventResponse, AuditListResponse
+from app.audit.permissions import AuditPermission
+from app.audit.repository import AuditRepository
+from app.audit.schemas import AuditEventResponse, AuditListResponse
 
 router = APIRouter(prefix="/audit", tags=["audit"])
 
@@ -34,7 +34,6 @@ async def list_audit_events(
             page_size=page_size,
             sort=sort,
         )
-
     return AuditListResponse(
         items=[
             AuditEventResponse(

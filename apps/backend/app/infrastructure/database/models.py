@@ -1,5 +1,6 @@
 """Central registry of SQLAlchemy models used by Alembic."""
 
+from app.audit.model import AuditEvent
 from app.contexts.equipment.pak.model import PakDevice
 from app.contexts.identity.users.model import User
 from app.contexts.production.batches.model import Batch, BatchLoRaWanConfig
@@ -11,7 +12,6 @@ from app.contexts.production.shipments.model import BatchShipment, BatchShipment
 from app.contexts.quality.defects.model import DefectGroup, DefectType
 from app.contexts.quality.tests.model import PakTest
 from app.contexts.quality.verification.model import VerificationSession, VerificationStep
-from app.modules.audit.models import AuditEvent
 
 __all__: list[str] = [
     "User",

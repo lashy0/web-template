@@ -14,19 +14,11 @@ class AuditActor:
     def user(
         cls, user_id: UUID | str, *, name: str | None = None, login: str | None = None
     ) -> Self:
-        return cls(
-            type="user",
-            id=str(user_id),
-            display_name=name,
-            identifier=login,
-        )
+        return cls(type="user", id=str(user_id), display_name=name, identifier=login)
 
     @classmethod
     def system(cls) -> Self:
-        return cls(
-            type="system",
-            id=None,
-        )
+        return cls(type="system", id=None)
 
 
 @dataclass(frozen=True, slots=True)
@@ -38,15 +30,6 @@ class AuditEntity:
 
     @classmethod
     def user(
-        cls,
-        user_id: UUID | str,
-        *,
-        name: str | None = None,
-        login: str | None = None,
+        cls, user_id: UUID | str, *, name: str | None = None, login: str | None = None
     ) -> Self:
-        return cls(
-            type="user",
-            id=str(user_id),
-            display_name=name,
-            identifier=login,
-        )
+        return cls(type="user", id=str(user_id), display_name=name, identifier=login)
