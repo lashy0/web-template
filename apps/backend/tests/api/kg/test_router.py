@@ -15,11 +15,12 @@ from pytest_mock import MockerFixture
 
 from app.auth.contracts import AuthSession, Identity
 from app.auth.roles import Role
+from app.contexts.production.batches.model import Batch
+from app.contexts.production.kg.model import KgDevEuiPrefix, KgUnit, KgVersion
+from app.contexts.production.kg.schemas import KgCurrentState
+from app.contexts.production.kg.schemas.unit import KgBatchListItem
 from app.core.config import Settings
 from app.main import create_app
-from app.modules.batch.models import Batch
-from app.modules.kg.models import KgDevEuiPrefix, KgStatus, KgUnit, KgVersion
-from app.modules.kg.schemas.unit import KgBatchListItem
 
 _ALLOWED_ORIGIN = "https://admin.example"
 _SESSION_COOKIE = "ory_kratos_session=opaque"
@@ -54,7 +55,7 @@ def _kg(*, batch_id: UUID | None = None) -> KgUnit:
         short_id="kg-000001",
         batch_id=batch.id,
         batch=batch,
-        status=KgStatus.REGISTERED,
+        state="REGISTERED",
         created_at=now,
         updated_at=now,
     )
@@ -127,7 +128,7 @@ def test_list_kg_serializes_items_and_forwards_filters(
     _configure_principal(app, mocker, service, Role.MANAGER)
 
     response = client.get(
-        f"/kg?q=a1b2&batch_id={kg.batch_id}&status=REGISTERED&page=2&page_size=10"
+        f"/kg?q=a1b2&batch_id={kg.batch_id}&current_state=REGISTERED&page=2&page_size=10"
         "&sort=dev_eui&order=asc",
         headers=_headers(),
     )
@@ -139,7 +140,7 @@ def test_list_kg_serializes_items_and_forwards_filters(
     service.list.assert_awaited_once_with(
         q="a1b2",
         batch_id=kg.batch_id,
-        status=KgStatus.REGISTERED,
+        current_state=KgCurrentState.REGISTERED,
         page=2,
         page_size=10,
         sort="dev_eui",
@@ -159,20 +160,20 @@ def test_list_kg_by_batch_serializes_latest_verification_data(
         dev_eui="a1b2c3d4e5f60708",
         firmware_version="1.4.2",
         last_verification_at=verified_at,
-        status=KgStatus.READY_FOR_PACKING,
+        current_state=KgCurrentState.PACKED,
     )
     service = SimpleNamespace(list_batch_items=AsyncMock(return_value=([item], 1)))
     _configure_principal(app, mocker, service, Role.MANAGER)
 
     response = client.get(
-        f"/kg/batch/{batch_id}?page=2&page_size=10&q=a1b2&status=READY_FOR_PACKING",
+        f"/kg/batch/{batch_id}?page=2&page_size=10&q=a1b2&current_state=PACKED",
         headers=_headers(),
     )
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["items"][0] == {
         "dev_eui": item.dev_eui,
-        "status": item.status.value,
+        "current_state": item.current_state.value,
         "firmware_version": "1.4.2",
         "last_verification_at": "2026-09-12T10:30:00Z",
     }
@@ -184,7 +185,7 @@ def test_list_kg_by_batch_serializes_latest_verification_data(
         page=2,
         page_size=10,
         q="a1b2",
-        status=KgStatus.READY_FOR_PACKING,
+        current_state=KgCurrentState.PACKED,
     )
 
 
@@ -199,7 +200,7 @@ def test_list_kg_by_batch_serializes_missing_verification_data_as_null(
         dev_eui="a1b2c3d4e5f60708",
         firmware_version=None,
         last_verification_at=None,
-        status=KgStatus.REGISTERED,
+        current_state=KgCurrentState.REGISTERED,
     )
     service = SimpleNamespace(list_batch_items=AsyncMock(return_value=([item], 1)))
     _configure_principal(app, mocker, service, Role.MANAGER)

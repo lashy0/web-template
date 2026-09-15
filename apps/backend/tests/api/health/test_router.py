@@ -55,11 +55,11 @@ def test_readiness(
     expected_status: str,
 ) -> None:
     postgres_ready_mock = mocker.patch(
-        "app.modules.health.router.is_postgres_ready",
+        "app.platform.health.is_postgres_ready",
         return_value=postgres_ready,
     )
     redis_ready_mock = mocker.patch(
-        "app.modules.health.router.is_redis_ready",
+        "app.platform.health.is_redis_ready",
         return_value=redis_ready,
     )
     kratos_ready_mock = mocker.patch.object(

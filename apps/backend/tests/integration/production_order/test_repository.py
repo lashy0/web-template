@@ -3,11 +3,11 @@ from uuid import uuid4
 
 import pytest
 
+from app.contexts.production.batches.model import Batch, BatchStatus
+from app.contexts.production.batches.repository import BatchRepository
+from app.contexts.production.kg.model import KgDevEuiPrefix
 from app.contexts.production.production_orders.model import ProductionOrder
 from app.contexts.production.production_orders.repository import ProductionOrderRepository
-from app.modules.batch.models import Batch, BatchStatus
-from app.modules.batch.repositories import BatchRepository
-from app.modules.kg.models import KgDevEuiPrefix
 
 pytestmark = pytest.mark.integration
 

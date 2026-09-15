@@ -9,8 +9,11 @@ import pytest
 
 from app.contexts.production.batches.commands.delete import DeleteBatch
 from app.contexts.production.batches.model import Batch, BatchStatus
-from app.modules.batch.exceptions import BatchCannotBeDeletedError
-from app.modules.batch.models import BatchKeyGenerationJob, BatchKeyGenerationStatus
+from app.contexts.production.exceptions import BatchCannotBeDeletedError
+from app.contexts.production.preparation.model import (
+    BatchKeyGenerationJob,
+    BatchKeyGenerationStatus,
+)
 from app.shared.security import CurrentPrincipal, Role
 
 

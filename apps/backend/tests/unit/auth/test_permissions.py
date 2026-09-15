@@ -8,14 +8,14 @@ from app.bootstrap.permissions import (
     ROLE_PERMISSIONS,
     compose_permission_registry,
 )
+from app.contexts.equipment.pak.permissions import PakPermission
+from app.contexts.identity.users.permissions import UserPermission
+from app.contexts.production.batches.permissions import BatchPermission
+from app.contexts.production.kg.permissions import KgPermission
+from app.contexts.production.production_orders.permissions import ProductionOrderPermission
+from app.contexts.quality.defects.permissions import DefectPermission
+from app.contexts.quality.verification.permissions import VerificationPermission
 from app.modules.audit.permissions import AuditPermission
-from app.modules.batch.permissions import BatchPermission
-from app.modules.defects.permissions import DefectPermission
-from app.modules.kg.permissions import KgPermission
-from app.modules.pak.permissions import PakPermission
-from app.modules.production_order.permissions import ProductionOrderPermission
-from app.modules.users.permissions import UserPermission
-from app.modules.verification.permissions import VerificationPermission
 from app.shared.security import (
     EMPTY_PERMISSION_REGISTRY,
     install_permission_registry,

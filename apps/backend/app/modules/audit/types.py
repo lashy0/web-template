@@ -12,11 +12,7 @@ class AuditActor:
 
     @classmethod
     def user(
-        cls,
-        user_id: UUID | str,
-        *,
-        name: str | None = None,
-        login: str | None = None
+        cls, user_id: UUID | str, *, name: str | None = None, login: str | None = None
     ) -> Self:
         return cls(
             type="user",

@@ -47,22 +47,15 @@ shipment commands and their queries directly. The API paths, schemas, status
 codes, permission checks, database schema and documented document/KG semantics
 remain unchanged.
 
-`ProductionOrderManagementService` has no definition in the production context.
-The retained legacy package adapter is import compatibility for in-process
-callers only and is not application runtime wiring.
+Production orders expose commands, queries, repository and rules directly;
+there is no production-order service facade.
 
-## Compatibility boundary
+## Legacy audit boundary
 
-`app.modules` is a compatibility namespace where a public import path still
-exists. Mapped models, schemas, exceptions and routers re-export canonical
-context definitions where migration has completed. A legacy service facade may
-remain only for a real external/in-process compatibility import; production
-runtime must never traverse one.
-
-The remaining facade names (`BatchManagementService`, user/PAK/defect facades
-and the legacy production-order adapter) are outside application runtime and
-are retained solely as deprecated compatibility/test import paths. New context
-packages define no `*ManagementService` class.
+Business `app.modules` packages have been removed. Canonical contexts are the
+sole owner of mapped models, schemas, permissions, exceptions and business
+logic. `app.modules.audit` is the only remaining legacy module because its
+mapped audit model and typed actor/entity vocabulary are still in use.
 
 The one intentional context-to-legacy dependency is
 `app.modules.audit.types`. Audit migration is deliberately out of scope: its
@@ -74,4 +67,4 @@ Feature-specific business logic does not remain in that dependency.
 This state does not change API payloads/paths, authentication protocol,
 Kratos/Hydra behavior, Alembic or database schema, verification locking,
 worker/preparation semantics, Redis/SSE, key generation, or audit ownership.
-Audit relocation is a separate migration.
+Audit relocation remains an optional, separate small migration.

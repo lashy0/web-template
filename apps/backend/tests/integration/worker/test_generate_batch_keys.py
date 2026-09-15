@@ -7,19 +7,14 @@ from pytest_mock import MockerFixture
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.components.keygen.types import ActivationType, LoRaWanVersion
+from app.contexts.production.batches.repository import BatchRepository
+from app.contexts.production.kg.model import KgDevEuiPrefix, LoRaWanCredentials
+from app.contexts.production.kg.repository import KgRepository
+from app.contexts.production.preparation.commands.process_chunk import KEY_GENERATION_CHUNK_SIZE
+from app.contexts.production.preparation.commands.process_job import ProcessJob
+from app.contexts.production.preparation.model import BatchKeyGenerationStatus
 from app.contexts.production.preparation.repository import PreparationRepository
-from app.modules.batch.models import (
-    ActivationType,
-    BatchKeyGenerationStatus,
-    LoRaWanVersion,
-)
-from app.modules.batch.repositories import BatchRepository
-from app.modules.batch.services.key_generation import (
-    KEY_GENERATION_CHUNK_SIZE,
-    BatchKeyGenerationService,
-)
-from app.modules.kg.models import KgDevEuiPrefix, LoRaWanCredentials
-from app.modules.kg.repositories import KgRepository
 
 
 def _encryption_key() -> SecretStr:
@@ -77,11 +72,11 @@ async def test_task_generates_keys_transitions_status_and_is_idempotent(
     ) -> None:
         events.append((event_batch_id, event_status, progress))
 
-    await BatchKeyGenerationService(
+    await ProcessJob(
         database_session_factory,
         encryption_key=_encryption_key(),
-        publish_status=publisher,
-    ).generate(batch_id)
+        notifier=type("Notifier", (), {"publish": staticmethod(publisher)})(),
+    ).execute(batch_id)
 
     assert (
         await _preparation_status(database_session_factory, batch_id)
@@ -96,11 +91,11 @@ async def test_task_generates_keys_transitions_status_and_is_idempotent(
     async with database_session_factory() as session:
         before = list(await session.scalars(select(LoRaWanCredentials.encrypted_data)))
 
-    await BatchKeyGenerationService(
+    await ProcessJob(
         database_session_factory,
         encryption_key=_encryption_key(),
-        publish_status=publisher,
-    ).generate(batch_id)
+        notifier=type("Notifier", (), {"publish": staticmethod(publisher)})(),
+    ).execute(batch_id)
 
     async with database_session_factory() as session:
         after = list(await session.scalars(select(LoRaWanCredentials.encrypted_data)))
@@ -126,11 +121,15 @@ async def test_task_marks_batch_failed_and_publishes_event(
     )
 
     with pytest.raises(RuntimeError, match="generator failed"):
-        await BatchKeyGenerationService(
+        await ProcessJob(
             database_session_factory,
             encryption_key=_encryption_key(),
-            publish_status=lambda _, event_status, __: events.append(event_status),
-        ).generate(batch_id)
+            notifier=type(
+                "Notifier",
+                (),
+                {"publish": staticmethod(lambda _, event_status, __: events.append(event_status))},
+            )(),
+        ).execute(batch_id)
 
     assert (
         await _preparation_status(database_session_factory, batch_id)
@@ -145,13 +144,13 @@ async def test_task_processes_more_than_one_thousand_units_in_chunks(
     mocker: MockerFixture,
 ) -> None:
     batch_id = await _create_batch(database_session_factory, quantity=1001)
-    list_missing = mocker.spy(PreparationRepository, "claim_without_credentials")
+    list_missing = mocker.spy(KgRepository, "select_without_credentials_for_batch")
 
-    await BatchKeyGenerationService(
+    await ProcessJob(
         database_session_factory,
         encryption_key=_encryption_key(),
-        publish_status=lambda _, __, ___: None,
-    ).generate(batch_id)
+        notifier=type("Notifier", (), {"publish": staticmethod(lambda *_: None)})(),
+    ).execute(batch_id)
 
     assert (
         await _preparation_status(database_session_factory, batch_id)

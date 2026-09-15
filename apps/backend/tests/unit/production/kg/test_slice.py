@@ -16,9 +16,12 @@ from app.contexts.production.kg.commands import (
     UpdatePrefix,
     UpdateVersion,
 )
+from app.contexts.production.kg.exceptions import (
+    KgDevEuiPrefixArchivedError,
+    KgDevEuiRangeOverflowError,
+)
 from app.contexts.production.kg.model import KgDevEuiPrefix, KgVersion
 from app.contexts.production.kg.queries import KgQueries
-from app.modules.kg.exceptions import KgDevEuiPrefixArchivedError, KgDevEuiRangeOverflowError
 from app.shared.security import CurrentPrincipal
 
 

@@ -1,13 +1,12 @@
 import pytest
 from pydantic import ValidationError
 
-from app.modules.batch.schemas import (
+from app.contexts.production.batches.schemas import CreateBatchRequest, UpdateBatchRequest
+from app.contexts.production.receipts.schemas import (
     CreateBatchReceiptRequest,
-    CreateBatchRequest,
-    UpdateBatchRequest,
     VoidBatchReceiptRequest,
-    VoidBatchShipmentRequest,
 )
+from app.contexts.production.shipments.schemas import VoidBatchShipmentRequest
 
 
 @pytest.mark.unit

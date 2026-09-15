@@ -2,7 +2,7 @@ import pytest
 from redis.exceptions import RedisError
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.modules.health.service import is_postgres_ready, is_redis_ready
+from app.platform.health import is_postgres_ready, is_redis_ready
 from tests.unit.health.mocks import PostgresEngineMock, RedisClientMock
 
 READINESS_TIMEOUT = 2.0

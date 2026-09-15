@@ -3,7 +3,7 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from app.modules.defects.schemas import (
+from app.contexts.quality.defects.schemas import (
     CreateDefectGroupRequest,
     CreateDefectTypeRequest,
     UpdateDefectTypeRequest,

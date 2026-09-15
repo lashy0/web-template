@@ -12,10 +12,10 @@ from app.components.keygen import (
     LoRaWanVersion,
     generate_credentials,
 )
-from app.modules.batch.models import Batch, BatchLoRaWanConfig, BatchStatus
-from app.modules.kg.exceptions import KgLoRaWanCredentialsAlreadyExistError
-from app.modules.kg.models import KgDevEuiPrefix, KgStatus, KgUnit, LoRaWanCredentials
-from app.modules.kg.services.credentials import LoRaWanCredentialsService
+from app.contexts.production.batches.model import Batch, BatchLoRaWanConfig, BatchStatus
+from app.contexts.production.kg.credentials import KgCredentials
+from app.contexts.production.kg.exceptions import KgLoRaWanCredentialsAlreadyExistError
+from app.contexts.production.kg.model import KgDevEuiPrefix, KgUnit, LoRaWanCredentials
 
 
 async def _kg_with_lorawan_config(session: AsyncSession) -> KgUnit:
@@ -39,7 +39,7 @@ async def _kg_with_lorawan_config(session: AsyncSession) -> KgUnit:
         dev_eui="0123456789abcdef",
         short_id="kg-89abcdef",
         batch=batch,
-        status=KgStatus.REGISTERED,
+        state="REGISTERED",
     )
     session.add_all([prefix, batch, kg])
     await session.flush()
@@ -60,7 +60,7 @@ async def test_credentials_are_encrypted_in_db_and_cannot_be_saved_twice(
         ActivationType.ABP,
         LoRaWanVersion.V1_1,
     )
-    service = LoRaWanCredentialsService(db_session, _encryption_key())
+    service = KgCredentials(db_session, _encryption_key())
 
     assert not await service.credentials_exist(kg_dev_eui=kg.dev_eui)
     await service.save_credentials(kg_dev_eui=kg.dev_eui, credentials=credentials)

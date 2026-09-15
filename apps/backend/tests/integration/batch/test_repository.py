@@ -3,18 +3,15 @@ from datetime import UTC, datetime
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.batch.models import (
-    ActivationType,
-    BatchStatus,
-    LoRaWanVersion,
+from app.components.keygen.types import ActivationType, LoRaWanVersion
+from app.contexts.production.batches.model import BatchStatus
+from app.contexts.production.batches.repository import BatchRepository
+from app.contexts.production.kg.model import KgDevEuiPrefix
+from app.contexts.production.kg.repository import KgRepository
+from app.contexts.production.receipts.repository import ReceiptRepository as BatchReceiptRepository
+from app.contexts.production.shipments.repository import (
+    ShipmentRepository as BatchShipmentRepository,
 )
-from app.modules.batch.repositories import (
-    BatchReceiptRepository,
-    BatchRepository,
-    BatchShipmentRepository,
-)
-from app.modules.kg.models import KgDevEuiPrefix, KgStatus
-from app.modules.kg.repositories import KgRepository
 
 
 async def _batch(session: AsyncSession, *, name: str = "August production"):
@@ -58,8 +55,7 @@ async def test_batch_details_state_and_search_can_be_updated(db_session: AsyncSe
 
 @pytest.mark.integration
 async def test_new_batch_has_pending_key_generation(db_session: AsyncSession) -> None:
-    batch = await _batch(db_session)
-
+    await _batch(db_session)
 
 
 @pytest.mark.integration
@@ -101,7 +97,6 @@ async def test_shipment_repository_tracks_items_completion_and_voiding(
     [kg] = await kg_repository.create_many(
         dev_euis=["a1b2c3d4e5f60708"], short_code="kg", batch_id=batch.id
     )
-    await kg_repository.update_status(kg, status=KgStatus.PACKED)
     shipment = await shipment_repository.create(
         batch_id=batch.id,
         comment="outbound",

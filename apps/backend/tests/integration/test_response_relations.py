@@ -6,24 +6,36 @@ from sqlalchemy import delete, event
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.roles import Role
-from app.modules.batch.models import ActivationType, Batch, BatchShipmentItem, LoRaWanVersion
-from app.modules.batch.repositories import BatchRepository
-from app.modules.batch.repositories.receipt import BatchReceiptRepository
-from app.modules.batch.repositories.shipment import BatchShipmentRepository
-from app.modules.batch.routers.common import _batch_response, _receipt_response
-from app.modules.defects.models import DefectGroup, DefectType
-from app.modules.defects.repositories.group import DefectGroupRepository
-from app.modules.defects.routers.common import _group_response
-from app.modules.kg.models import KgDevEuiPrefix, KgStatus, KgUnit, KgVersion
-from app.modules.kg.routers.common import _response as kg_response
-from app.modules.pak.enums import PakDeviceKind
-from app.modules.pak.models import PakDevice, PakTest
-from app.modules.pak.router import _test_response
-from app.modules.users.models import User
-from app.modules.verification.models import VerificationSession
-from app.modules.verification.router import _session_response
+from app.components.keygen.types import ActivationType, LoRaWanVersion
+from app.contexts.equipment.pak.model import PakDevice, PakDeviceKind
+from app.contexts.identity.users.model import User
+from app.contexts.production.batches.model import Batch
+from app.contexts.production.batches.presentation import batch_response, receipt_response
+from app.contexts.production.batches.repository import BatchRepository
+from app.contexts.production.kg.model import KgDevEuiPrefix, KgUnit, KgVersion
+from app.contexts.production.kg.router import _kg_response
+from app.contexts.production.kg.schemas import KgCurrentState
+from app.contexts.production.receipts.repository import ReceiptRepository as BatchReceiptRepository
+from app.contexts.production.shipments.model import BatchShipmentItem
+from app.contexts.production.shipments.repository import (
+    ShipmentRepository as BatchShipmentRepository,
+)
+from app.contexts.quality.defects.model import DefectGroup, DefectType
+from app.contexts.quality.defects.repository import DefectGroupRepository
+from app.contexts.quality.defects.router import _group_response
+from app.contexts.quality.tests.model import PakTest
+from app.contexts.quality.tests.router import _response as test_response
+from app.contexts.quality.verification.model import VerificationSession
+from app.contexts.quality.verification.router import _session_response
 
 pytestmark = pytest.mark.integration
+
+
+def _batch_response(batch: Batch):
+    return batch_response(batch, can_delete=True, job=None)
+
+
+_receipt_response = receipt_response
 
 
 async def make_batch(session: AsyncSession) -> Batch:
@@ -84,7 +96,7 @@ async def test_summaries_survive_detach_and_archived_relations(db_session: Async
         dev_eui=uuid4().hex[:16],
         short_id=uuid4().hex[:20],
         batch_id=batch.id,
-        status=KgStatus.REGISTERED,
+        state="REGISTERED",
     )
     group = DefectGroup(code=uuid4().hex, name="Archived group", archived_at=datetime.now(UTC))
     pak = PakDevice(
@@ -108,8 +120,8 @@ async def test_summaries_survive_detach_and_archived_relations(db_session: Async
     test = await db_session.get(PakTest, keys[1])
     verification = await db_session.get(VerificationSession, keys[2])
     db_session.expunge_all()
-    assert kg_response(kg).batch.name == "Production"
-    assert _test_response(test).defect_group.name == "Archived group"
+    assert _kg_response(kg, current_state=KgCurrentState.REGISTERED).batch.name == "Production"
+    assert test_response(test).defect_group.name == "Archived group"
     assert _session_response(verification).pak.code == pak.code
     assert "encrypted_access_key" not in _session_response(verification).model_dump()["pak"]
 
@@ -166,7 +178,7 @@ async def test_shipment_counts_are_scoped_and_use_one_query(db_session: AsyncSes
             dev_eui=uuid4().hex[:16],
             short_id=uuid4().hex[:20],
             batch_id=shipment.batch_id,
-            status=KgStatus.REGISTERED,
+            state="REGISTERED",
         )
         db_session.add(kg)
         await db_session.flush()

@@ -3,9 +3,9 @@ from uuid import uuid4
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.batch.models import Batch, BatchStatus
-from app.modules.kg.models import KgDevEuiPrefix, KgState
-from app.modules.kg.repositories import KgRepository
+from app.contexts.production.batches.model import Batch, BatchStatus
+from app.contexts.production.kg.model import KgDevEuiPrefix, KgState
+from app.contexts.production.kg.repository import KgRepository
 
 
 async def _batch(session: AsyncSession) -> Batch:

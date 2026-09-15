@@ -2,7 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.auth.roles import Role
-from app.modules.users.schemas import CreateUserRequest, UpdateUserRequest
+from app.contexts.identity.users.schemas import CreateUserRequest, UpdateUserRequest
 
 
 @pytest.mark.unit

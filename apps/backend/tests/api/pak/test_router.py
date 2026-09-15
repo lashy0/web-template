@@ -15,10 +15,7 @@ from pytest_mock import MockerFixture
 
 from app.auth.contracts import AuthSession, Identity
 from app.auth.roles import Role
-from app.core.config import Settings
-from app.main import create_app
-from app.modules.defects.models import DefectGroup
-from app.modules.pak.exceptions import (
+from app.contexts.equipment.pak.exceptions import (
     PakAlreadyExistsError,
     PakCannotBeDeletedError,
     PakCredentialSynchronizationError,
@@ -26,7 +23,11 @@ from app.modules.pak.exceptions import (
     PakNotFoundError,
     PakProvisioningError,
 )
-from app.modules.pak.models import PakDevice, PakDeviceKind, PakTest
+from app.contexts.equipment.pak.model import PakDevice, PakDeviceKind
+from app.contexts.quality.defects.model import DefectGroup
+from app.contexts.quality.tests.model import PakTest
+from app.core.config import Settings
+from app.main import create_app
 
 _ALLOWED_ORIGIN = "https://admin.example"
 _SESSION_COOKIE = "ory_kratos_session=opaque"

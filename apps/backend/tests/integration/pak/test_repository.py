@@ -4,9 +4,10 @@ from uuid import uuid4
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.defects.repositories import DefectGroupRepository
-from app.modules.pak.models import PakDeviceKind
-from app.modules.pak.repository import PakRepository, PakTestRepository
+from app.contexts.equipment.pak.model import PakDeviceKind
+from app.contexts.equipment.pak.repository import PakRepository
+from app.contexts.quality.defects.repository import DefectGroupRepository
+from app.contexts.quality.tests.repository import PakTestRepository
 
 
 @pytest.mark.integration

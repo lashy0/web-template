@@ -15,14 +15,14 @@ from pytest_mock import MockerFixture
 
 from app.auth.contracts import AuthSession, Identity
 from app.auth.roles import Role
-from app.core.config import Settings
-from app.main import create_app
-from app.modules.defects.exceptions import (
+from app.contexts.quality.defects.exceptions import (
     DefectGroupCannotBeDeletedError,
     DefectGroupHasUnarchivedTypesError,
     DefectTypeCannotBeDeletedError,
 )
-from app.modules.defects.models import DefectGroup, DefectType
+from app.contexts.quality.defects.model import DefectGroup, DefectType
+from app.core.config import Settings
+from app.main import create_app
 
 _ALLOWED_ORIGIN = "https://admin.example"
 _SESSION_COOKIE = "ory_kratos_session=opaque"

@@ -5,9 +5,9 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.roles import Role
+from app.contexts.identity.users.repository import UserRepository
 from app.modules.audit.models import AuditEvent
 from app.modules.audit.repository import AuditRepository
-from app.modules.users.repository import UserRepository
 
 
 @pytest.mark.integration

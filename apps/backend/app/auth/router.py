@@ -18,8 +18,6 @@ async def me(principal: CurrentPrincipalDep, request: Request) -> UserResponse:
     user = await UserQueries(cast(async_sessionmaker[AsyncSession], session_factory)).get(
         principal.user_id
     )
-
     if user is None:
         raise UserNotFoundError
-
     return user_response(user)

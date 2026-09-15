@@ -7,7 +7,7 @@ from pytest_mock import MockerFixture
 
 from app.contexts.production.preparation.model import BatchKeyGenerationStatus
 from app.contexts.production.preparation.rules import can_process_chunk
-from app.modules.batch.services.key_generation import publish_preparation_status
+from app.infrastructure.redis.preparation_notifier import RedisProgressNotifier
 
 
 @pytest.mark.unit
@@ -15,7 +15,7 @@ def test_preparation_status_event_has_expected_payload(mocker: MockerFixture) ->
     publish_event = mocker.patch("app.infrastructure.redis.preparation_notifier.publish_event")
     batch_id = uuid4()
 
-    publish_preparation_status(batch_id, BatchKeyGenerationStatus.GENERATING, 37)
+    RedisProgressNotifier().publish(batch_id, BatchKeyGenerationStatus.GENERATING, 37)
 
     publish_event.assert_called_once_with(
         type="batch.preparation_updated",

@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from app.modules.verification.schemas.machine import (
+from app.contexts.quality.verification.schemas import (
     CompleteVerificationSessionRequest,
     CompleteVerificationStepRequest,
     OpenVerificationSessionRequest,

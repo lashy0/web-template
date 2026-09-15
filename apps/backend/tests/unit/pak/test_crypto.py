@@ -1,8 +1,8 @@
 import pytest
 from cryptography.fernet import Fernet
 
-from app.modules.pak.crypto import PakAccessKeyCipher
-from app.modules.pak.exceptions import PakAccessKeyConfigurationError
+from app.contexts.equipment.pak.crypto import PakAccessKeyCipher
+from app.contexts.equipment.pak.exceptions import PakAccessKeyConfigurationError
 
 
 @pytest.mark.unit

@@ -25,9 +25,9 @@ class CeleryWorkDispatcher(WorkDispatcher):
         try:
             celery_app.send_task(GENERATE_BATCH_KEYS_TASK, args=[str(batch_id)])
         except Exception:
-            logger.bind(event="batch.preparation_dispatch_failed", batch_id=str(batch_id)).exception(
-                "Could not start batch KG preparation"
-            )
+            logger.bind(
+                event="batch.preparation_dispatch_failed", batch_id=str(batch_id)
+            ).exception("Could not start batch KG preparation")
             update = await mark_failed(self._session_factory, batch_id)
             if update is not None:
                 try:
@@ -40,6 +40,6 @@ class CeleryWorkDispatcher(WorkDispatcher):
         try:
             self._notifier.publish(batch_id, BatchKeyGenerationStatus.CREATING, 0)
         except Exception:
-            logger.bind(event="batch.preparation_notification_failed", batch_id=str(batch_id)).exception(
-                "Could not publish committed batch preparation creation"
-            )
+            logger.bind(
+                event="batch.preparation_notification_failed", batch_id=str(batch_id)
+            ).exception("Could not publish committed batch preparation creation")

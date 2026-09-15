@@ -16,14 +16,16 @@ from app.contexts.production.batches.commands import (
     UpdateBatch,
 )
 from app.contexts.production.batches.model import Batch, BatchLoRaWanConfig, BatchStatus
-from app.contexts.production.kg.commands.allocate_for_batch import BatchAllocation
-from app.modules.batch.exceptions import (
+from app.contexts.production.exceptions import (
     BatchArchivedError,
     BatchEditNotAllowedError,
     BatchPreparationNotReadyError,
 )
-from app.modules.batch.models import BatchKeyGenerationJob, BatchKeyGenerationStatus
-from app.modules.batch.services.batch import BatchService
+from app.contexts.production.kg.commands.allocate_for_batch import BatchAllocation
+from app.contexts.production.preparation.model import (
+    BatchKeyGenerationJob,
+    BatchKeyGenerationStatus,
+)
 from app.shared.security import CurrentPrincipal, Role
 from app.worker.preparation_dispatcher import CeleryWorkDispatcher
 
@@ -218,36 +220,6 @@ async def test_create_uses_allocation_and_creates_initial_preparation_job(monkey
     assert created is batch
     preparation.create_initial_job.assert_awaited_once_with(batch.id)
     assert audit.record.await_args.kwargs["action"] == "batch.created"
-
-
-@pytest.mark.unit
-async def test_create_dispatches_only_after_transaction_exit(monkeypatch) -> None:
-    actor = _actor()
-    batch = _batch(actor=actor)
-    events: list[str] = []
-    create = SimpleNamespace(execute=AsyncMock(return_value=batch))
-    dispatcher = SimpleNamespace(
-        dispatch_after_commit=AsyncMock(side_effect=lambda _: events.append("dispatched"))
-    )
-    monkeypatch.setattr("app.modules.batch.services.batch.CreateBatch", lambda *args: create)
-    monkeypatch.setattr(
-        "app.modules.batch.services.batch.CeleryWorkDispatcher", lambda *args: dispatcher
-    )
-
-    created = await BatchService(_TransactionSessionFactory(events)).create(
-        actor=actor,
-        name=batch.name,
-        description=batch.description,
-        dev_eui_prefix=batch.dev_eui_prefix,
-        planned_qty=batch.planned_qty,
-        day_plan_qty=batch.day_plan_qty,
-        activation_type=ActivationType.OTAA,
-        lorawan_version=LoRaWanVersion.V1_1,
-    )
-
-    assert created is batch
-    assert events[-1] == "dispatched"
-    assert events[:-1] == ["committed", "committed"]
 
 
 @pytest.mark.unit
