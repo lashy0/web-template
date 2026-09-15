@@ -3,12 +3,12 @@ from uuid import uuid4
 
 import pytest
 
-from app.contexts.quality.verification.exceptions import (
+from app.domains.quality.verification.exceptions import (
     VerificationSessionNotFoundError,
     VerificationStepOutOfRangeError,
 )
-from app.contexts.quality.verification.model import VerificationSession
-from app.contexts.quality.verification.rules import (
+from app.domains.quality.verification.model import VerificationSession
+from app.domains.quality.verification.rules import (
     ensure_session_owned_by_pak,
     ensure_step_in_range,
     is_reopen_stale,

@@ -15,11 +15,11 @@ from pytest_mock import MockerFixture
 
 from app.auth.contracts import AuthSession, Identity
 from app.auth.roles import Role
-from app.contexts.production.batches.model import Batch
-from app.contexts.production.kg.model import KgDevEuiPrefix, KgUnit, KgVersion
-from app.contexts.production.kg.schemas import KgCurrentState
-from app.contexts.production.kg.schemas.unit import KgBatchListItem
 from app.core.config import Settings
+from app.domains.production.batches.model import Batch
+from app.domains.production.kg.model import KgDevEuiPrefix, KgUnit, KgVersion
+from app.domains.production.kg.schemas import KgCurrentState
+from app.domains.production.kg.schemas.unit import KgBatchListItem
 from app.main import create_app
 
 _ALLOWED_ORIGIN = "https://admin.example"

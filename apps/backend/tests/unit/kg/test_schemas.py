@@ -1,7 +1,7 @@
 import pytest
 from pydantic import BaseModel, ValidationError
 
-from app.contexts.production.kg.schemas import DevEui
+from app.domains.production.kg.schemas import DevEui
 
 
 class DevEuiPayload(BaseModel):

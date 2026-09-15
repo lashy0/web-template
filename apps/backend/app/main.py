@@ -12,11 +12,11 @@ from app.api.errors import install_error_handlers
 from app.api.main import api_router
 from app.bootstrap.application import create_application_components
 from app.bootstrap.permissions import compose_permission_registry
-from app.contexts.identity.users.reconciliation import ReconcileUsers
-from app.contexts.quality.verification.commands.reconcile import reconcile_stale_sessions
 from app.core.config import Settings, get_settings
 from app.core.logging import setup_logging
 from app.core.version import APP_VERSION
+from app.domains.identity.users.reconciliation import ReconcileUsers
+from app.domains.quality.verification.commands.reconcile import reconcile_stale_sessions
 from app.infrastructure.kratos.users import KratosUserIdentityProvider
 from app.middleware.csrf import JsonOriginMiddleware
 from app.middleware.request_context import RequestContextMiddleware

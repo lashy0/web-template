@@ -7,11 +7,11 @@ from uuid import uuid4
 import pytest
 
 from app.auth.exceptions import IdentityProviderUnavailableError
-from app.contexts.identity.users.commands.create import CreateUser
-from app.contexts.identity.users.commands.set_archived import SetUserArchived
-from app.contexts.identity.users.commands.update import UpdateUser
-from app.contexts.identity.users.exceptions import UserProvisioningError
-from app.contexts.identity.users.model import User
+from app.domains.identity.users.commands.create import CreateUser
+from app.domains.identity.users.commands.set_archived import SetUserArchived
+from app.domains.identity.users.commands.update import UpdateUser
+from app.domains.identity.users.exceptions import UserProvisioningError
+from app.domains.identity.users.model import User
 from app.shared.security import CurrentPrincipal, Identity, Role
 
 
@@ -81,7 +81,7 @@ async def test_create_compensates_kratos_when_local_transaction_fails(mocker) ->
     identities = SimpleNamespace(
         create_identity=AsyncMock(return_value=identity), delete_identity=AsyncMock()
     )
-    repository = mocker.patch("app.contexts.identity.users.commands.create.UserRepository")
+    repository = mocker.patch("app.domains.identity.users.commands.create.UserRepository")
     repository.return_value.create = AsyncMock(side_effect=RuntimeError("db failed"))
     repository.return_value.delete_if_exists = AsyncMock()
 
@@ -103,7 +103,7 @@ async def test_create_compensates_kratos_when_local_transaction_fails(mocker) ->
 async def test_update_leaves_local_values_unchanged_when_kratos_update_fails(mocker) -> None:
     sessions = _SessionFactory()
     user = _user()
-    repository = mocker.patch("app.contexts.identity.users.commands.update.UserRepository")
+    repository = mocker.patch("app.domains.identity.users.commands.update.UserRepository")
     repository.return_value.get_by_id = AsyncMock(return_value=user)
     identities = SimpleNamespace(
         update_login=AsyncMock(side_effect=IdentityProviderUnavailableError)
@@ -123,7 +123,7 @@ async def test_update_keeps_baseline_no_compensation_after_local_failure(mocker)
     sessions = _SessionFactory()
     user = _user()
     identity = Identity(id=user.identity_id, login="alice.updated", active=True)
-    repository = mocker.patch("app.contexts.identity.users.commands.update.UserRepository")
+    repository = mocker.patch("app.domains.identity.users.commands.update.UserRepository")
     repository.return_value.get_by_id = AsyncMock(return_value=user)
     repository.return_value.update_identity_projection = AsyncMock(
         side_effect=RuntimeError("db failed")
@@ -143,7 +143,7 @@ async def test_update_keeps_baseline_no_compensation_after_local_failure(mocker)
 async def test_archive_kratos_failure_preserves_local_lifecycle_state(mocker) -> None:
     sessions = _SessionFactory()
     user = _user()
-    repository = mocker.patch("app.contexts.identity.users.commands.set_archived.UserRepository")
+    repository = mocker.patch("app.domains.identity.users.commands.set_archived.UserRepository")
     repository.return_value.get_by_id = AsyncMock(return_value=user)
     identities = SimpleNamespace(set_active=AsyncMock(side_effect=IdentityProviderUnavailableError))
 

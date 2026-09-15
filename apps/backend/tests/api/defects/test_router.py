@@ -15,13 +15,13 @@ from pytest_mock import MockerFixture
 
 from app.auth.contracts import AuthSession, Identity
 from app.auth.roles import Role
-from app.contexts.quality.defects.exceptions import (
+from app.core.config import Settings
+from app.domains.quality.defects.exceptions import (
     DefectGroupCannotBeDeletedError,
     DefectGroupHasUnarchivedTypesError,
     DefectTypeCannotBeDeletedError,
 )
-from app.contexts.quality.defects.model import DefectGroup, DefectType
-from app.core.config import Settings
+from app.domains.quality.defects.model import DefectGroup, DefectType
 from app.main import create_app
 
 _ALLOWED_ORIGIN = "https://admin.example"

@@ -1,7 +1,7 @@
 from typing import Literal
 from uuid import UUID
 
-from app.contexts.identity.users.contracts import UserIdentityProviderPort
+from app.domains.identity.users.contracts import UserIdentityProviderPort
 from app.infrastructure.kratos.client import KratosIdentityManager
 from app.shared.security import Identity
 

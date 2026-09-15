@@ -2,14 +2,14 @@
 
 from app.auth.contracts import OAuthClientManager, TokenIntrospector
 from app.auth.exceptions import OAuthClientNotFoundError
-from app.contexts.equipment.pak.contracts import (
+from app.domains.equipment.pak.contracts import (
     PakOAuthClient,
     PakOAuthClientCredentials,
     PakOAuthClientPort,
     PakTokenIntrospection,
     PakTokenIntrospectorPort,
 )
-from app.contexts.equipment.pak.exceptions import PakOAuthClientNotFoundError
+from app.domains.equipment.pak.exceptions import PakOAuthClientNotFoundError
 
 
 class HydraPakOAuthClientAdapter(PakOAuthClientPort):

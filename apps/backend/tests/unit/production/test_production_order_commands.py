@@ -5,16 +5,16 @@ from uuid import uuid4
 
 import pytest
 
-from app.contexts.production.production_orders.commands import (
+from app.domains.production.production_orders.commands import (
     CreateProductionOrder,
     DeleteProductionOrder,
     SetProductionOrderArchived,
     UpdateProductionOrder,
 )
-from app.contexts.production.production_orders.exceptions import (
+from app.domains.production.production_orders.exceptions import (
     ProductionOrderCannotBeDeletedError,
 )
-from app.contexts.production.production_orders.model import ProductionOrder
+from app.domains.production.production_orders.model import ProductionOrder
 from app.shared.security import CurrentPrincipal, Role
 
 pytestmark = pytest.mark.unit

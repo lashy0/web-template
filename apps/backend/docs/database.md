@@ -25,7 +25,7 @@ class User(Base):
 Place feature-specific models in their feature module, for example:
 
 ```text
-app/contexts/identity/users/model.py
+app/domains/identity/users/model.py
 ```
 
 ## Registering models
@@ -33,7 +33,7 @@ app/contexts/identity/users/model.py
 Every model module must be imported by `app/infrastructure/database/models.py`:
 
 ```python
-from app.contexts.identity.users.model import User
+from app.domains.identity.users.model import User
 
 __all__ = ["User"]
 ```

@@ -8,21 +8,21 @@ from uuid import uuid4
 import pytest
 
 from app.components.keygen.types import ActivationType, LoRaWanVersion
-from app.contexts.production.batches.commands import (
+from app.domains.production.batches.commands import (
     AssignProductionOrder,
     CompleteBatch,
     CreateBatch,
     SetBatchArchived,
     UpdateBatch,
 )
-from app.contexts.production.batches.model import Batch, BatchLoRaWanConfig, BatchStatus
-from app.contexts.production.exceptions import (
+from app.domains.production.batches.model import Batch, BatchLoRaWanConfig, BatchStatus
+from app.domains.production.exceptions import (
     BatchArchivedError,
     BatchEditNotAllowedError,
     BatchPreparationNotReadyError,
 )
-from app.contexts.production.kg.commands.allocate_for_batch import BatchAllocation
-from app.contexts.production.preparation.model import (
+from app.domains.production.kg.commands.allocate_for_batch import BatchAllocation
+from app.domains.production.preparation.model import (
     BatchKeyGenerationJob,
     BatchKeyGenerationStatus,
 )
@@ -191,7 +191,7 @@ async def test_create_uses_allocation_and_creates_initial_preparation_job(monkey
     prefix = SimpleNamespace(prefix=batch.dev_eui_prefix, short_code="kg")
     allocation = BatchAllocation(prefix=prefix, dev_euis=["a1b2c3d4e5000001"])
     monkeypatch.setattr(
-        "app.contexts.production.batches.commands.create.AllocateForBatch.execute",
+        "app.domains.production.batches.commands.create.AllocateForBatch.execute",
         AsyncMock(return_value=allocation),
     )
     kg_repository = SimpleNamespace(

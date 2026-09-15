@@ -1,17 +1,17 @@
 """Central registry of SQLAlchemy models used by Alembic."""
 
 from app.audit.model import AuditEvent
-from app.contexts.equipment.pak.model import PakDevice
-from app.contexts.identity.users.model import User
-from app.contexts.production.batches.model import Batch, BatchLoRaWanConfig
-from app.contexts.production.kg.model import KgDevEuiPrefix, KgUnit, KgVersion, LoRaWanCredentials
-from app.contexts.production.preparation.model import BatchKeyGenerationJob
-from app.contexts.production.production_orders.model import ProductionOrder
-from app.contexts.production.receipts.model import BatchReceipt
-from app.contexts.production.shipments.model import BatchShipment, BatchShipmentItem
-from app.contexts.quality.defects.model import DefectGroup, DefectType
-from app.contexts.quality.tests.model import PakTest
-from app.contexts.quality.verification.model import VerificationSession, VerificationStep
+from app.domains.equipment.pak.model import PakDevice
+from app.domains.identity.users.model import User
+from app.domains.production.batches.model import Batch, BatchLoRaWanConfig
+from app.domains.production.kg.model import KgDevEuiPrefix, KgUnit, KgVersion, LoRaWanCredentials
+from app.domains.production.preparation.model import BatchKeyGenerationJob
+from app.domains.production.production_orders.model import ProductionOrder
+from app.domains.production.receipts.model import BatchReceipt
+from app.domains.production.shipments.model import BatchShipment, BatchShipmentItem
+from app.domains.quality.defects.model import DefectGroup, DefectType
+from app.domains.quality.tests.model import PakTest
+from app.domains.quality.verification.model import VerificationSession, VerificationStep
 
 __all__: list[str] = [
     "User",

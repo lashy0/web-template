@@ -19,9 +19,9 @@ from app.auth.exceptions import (
     IdentityNotFoundError,
 )
 from app.auth.roles import Role
-from app.contexts.identity.users.exceptions import UserProvisioningError
-from app.contexts.identity.users.model import User
 from app.core.config import Settings
+from app.domains.identity.users.exceptions import UserProvisioningError
+from app.domains.identity.users.model import User
 from app.main import create_app
 
 _ALLOWED_ORIGIN = "https://admin.example"
@@ -293,7 +293,7 @@ def test_delete_user_forwards_requested_user(
 @pytest.mark.api
 @pytest.mark.parametrize("system", [False, True])
 def test_user_responses_identify_system_account(mutation_client, mocker, system):
-    from app.contexts.identity.users.commands import BOOTSTRAP_ADMIN_USER_ID
+    from app.domains.identity.users.commands import BOOTSTRAP_ADMIN_USER_ID
 
     app, client = mutation_client
     user = _user(user_id=BOOTSTRAP_ADMIN_USER_ID if system else uuid4())

@@ -3,8 +3,8 @@ from __future__ import annotations
 import asyncio
 from uuid import UUID
 
-from app.contexts.production.preparation.worker_entry import process_preparation_job
 from app.core.config import get_settings
+from app.domains.production.preparation.worker_entry import process_preparation_job
 from app.infrastructure.database.session import create_database
 from app.infrastructure.redis.preparation_notifier import RedisProgressNotifier
 from app.worker.celery_app import celery_app

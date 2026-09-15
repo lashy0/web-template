@@ -6,7 +6,7 @@ from fastapi import Depends, Request
 from app.api.deps import DatabaseDep
 from app.auth.contracts import SessionVerifier
 from app.auth.exceptions import AccountDisabledError, InvalidSessionError, UserNotProvisionedError
-from app.contexts.identity.users.repository import UserRepository
+from app.domains.identity.users.repository import UserRepository
 from app.shared.security import CurrentPrincipal, Permission
 
 

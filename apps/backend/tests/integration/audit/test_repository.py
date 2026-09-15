@@ -4,10 +4,10 @@ from uuid import uuid4
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.roles import Role
-from app.contexts.identity.users.repository import UserRepository
 from app.audit.model import AuditEvent
 from app.audit.repository import AuditRepository
+from app.auth.roles import Role
+from app.domains.identity.users.repository import UserRepository
 
 
 @pytest.mark.integration

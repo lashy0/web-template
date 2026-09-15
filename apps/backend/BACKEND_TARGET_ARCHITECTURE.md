@@ -1,6 +1,6 @@
 # Backend architecture
 
-The backend is a modular monolith. Business ownership is in `app.contexts`:
+The backend is a modular monolith. Business ownership is in `app.domains`:
 
 ```text
 production: batches, receipts, shipments, preparation, KG, production orders

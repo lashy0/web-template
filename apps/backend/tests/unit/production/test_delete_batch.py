@@ -7,10 +7,10 @@ from uuid import uuid4
 
 import pytest
 
-from app.contexts.production.batches.commands.delete import DeleteBatch
-from app.contexts.production.batches.model import Batch, BatchStatus
-from app.contexts.production.exceptions import BatchCannotBeDeletedError
-from app.contexts.production.preparation.model import (
+from app.domains.production.batches.commands.delete import DeleteBatch
+from app.domains.production.batches.model import Batch, BatchStatus
+from app.domains.production.exceptions import BatchCannotBeDeletedError
+from app.domains.production.preparation.model import (
     BatchKeyGenerationJob,
     BatchKeyGenerationStatus,
 )
@@ -94,7 +94,7 @@ def workflow_parts(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
         ),
         audit=SimpleNamespace(record=AsyncMock()),
     )
-    from app.contexts.production.batches.commands import delete as command
+    from app.domains.production.batches.commands import delete as command
 
     monkeypatch.setattr(command, "BatchRepository", lambda session: parts.repository)
     monkeypatch.setattr(command, "ReceiptRepository", lambda session: parts.receipts)

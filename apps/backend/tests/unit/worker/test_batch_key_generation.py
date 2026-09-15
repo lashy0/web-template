@@ -5,8 +5,8 @@ from uuid import uuid4
 import pytest
 from pytest_mock import MockerFixture
 
-from app.contexts.production.preparation.model import BatchKeyGenerationStatus
-from app.contexts.production.preparation.rules import can_process_chunk
+from app.domains.production.preparation.model import BatchKeyGenerationStatus
+from app.domains.production.preparation.rules import can_process_chunk
 from app.infrastructure.redis.preparation_notifier import RedisProgressNotifier
 
 

@@ -15,7 +15,8 @@ from pytest_mock import MockerFixture
 
 from app.auth.contracts import AuthSession, Identity
 from app.auth.roles import Role
-from app.contexts.equipment.pak.exceptions import (
+from app.core.config import Settings
+from app.domains.equipment.pak.exceptions import (
     PakAlreadyExistsError,
     PakCannotBeDeletedError,
     PakCredentialSynchronizationError,
@@ -23,10 +24,9 @@ from app.contexts.equipment.pak.exceptions import (
     PakNotFoundError,
     PakProvisioningError,
 )
-from app.contexts.equipment.pak.model import PakDevice, PakDeviceKind
-from app.contexts.quality.defects.model import DefectGroup
-from app.contexts.quality.tests.model import PakTest
-from app.core.config import Settings
+from app.domains.equipment.pak.model import PakDevice, PakDeviceKind
+from app.domains.quality.defects.model import DefectGroup
+from app.domains.quality.tests.model import PakTest
 from app.main import create_app
 
 _ALLOWED_ORIGIN = "https://admin.example"

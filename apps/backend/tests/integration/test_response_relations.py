@@ -7,26 +7,26 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.roles import Role
 from app.components.keygen.types import ActivationType, LoRaWanVersion
-from app.contexts.equipment.pak.model import PakDevice, PakDeviceKind
-from app.contexts.identity.users.model import User
-from app.contexts.production.batches.model import Batch
-from app.contexts.production.batches.presentation import batch_response, receipt_response
-from app.contexts.production.batches.repository import BatchRepository
-from app.contexts.production.kg.model import KgDevEuiPrefix, KgUnit, KgVersion
-from app.contexts.production.kg.router import _kg_response
-from app.contexts.production.kg.schemas import KgCurrentState
-from app.contexts.production.receipts.repository import ReceiptRepository as BatchReceiptRepository
-from app.contexts.production.shipments.model import BatchShipmentItem
-from app.contexts.production.shipments.repository import (
+from app.domains.equipment.pak.model import PakDevice, PakDeviceKind
+from app.domains.identity.users.model import User
+from app.domains.production.batches.model import Batch
+from app.domains.production.batches.presentation import batch_response, receipt_response
+from app.domains.production.batches.repository import BatchRepository
+from app.domains.production.kg.model import KgDevEuiPrefix, KgUnit, KgVersion
+from app.domains.production.kg.router import _kg_response
+from app.domains.production.kg.schemas import KgCurrentState
+from app.domains.production.receipts.repository import ReceiptRepository as BatchReceiptRepository
+from app.domains.production.shipments.model import BatchShipmentItem
+from app.domains.production.shipments.repository import (
     ShipmentRepository as BatchShipmentRepository,
 )
-from app.contexts.quality.defects.model import DefectGroup, DefectType
-from app.contexts.quality.defects.repository import DefectGroupRepository
-from app.contexts.quality.defects.router import _group_response
-from app.contexts.quality.tests.model import PakTest
-from app.contexts.quality.tests.router import _response as test_response
-from app.contexts.quality.verification.model import VerificationSession
-from app.contexts.quality.verification.router import _session_response
+from app.domains.quality.defects.model import DefectGroup, DefectType
+from app.domains.quality.defects.repository import DefectGroupRepository
+from app.domains.quality.defects.router import _group_response
+from app.domains.quality.tests.model import PakTest
+from app.domains.quality.tests.router import _response as test_response
+from app.domains.quality.verification.model import VerificationSession
+from app.domains.quality.verification.router import _session_response
 
 pytestmark = pytest.mark.integration
 

@@ -65,7 +65,7 @@ def _configure_authenticated_request(
     )
     mocker.patch.object(app.state, "session_verifier", verifier)
     mocker.patch.object(app.state, "database", SimpleNamespace(session_factory=_SessionFactory()))
-    mocker.patch("app.contexts.identity.users.router.UserQueries").return_value.list = list_users
+    mocker.patch("app.domains.identity.users.router.UserQueries").return_value.list = list_users
     return session, list_users
 
 

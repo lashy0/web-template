@@ -27,8 +27,8 @@ def _database_url(settings: Settings, *, username: str, password: str) -> URL:
 async def database_session_factory(
     test_settings: Settings,
 ) -> AsyncIterator[async_sessionmaker[AsyncSession]]:
-    from app.contexts.identity.users.model import User  # noqa: F401
     from app.audit.model import AuditEvent  # noqa: F401
+    from app.domains.identity.users.model import User  # noqa: F401
 
     schema = f"test_{uuid4().hex}"
     admin_url = _database_url(

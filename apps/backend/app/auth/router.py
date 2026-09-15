@@ -4,10 +4,10 @@ from fastapi import APIRouter, Request
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.api.auth_deps import CurrentPrincipalDep
-from app.contexts.identity.users.exceptions import UserNotFoundError
-from app.contexts.identity.users.presentation import user_response
-from app.contexts.identity.users.queries import UserQueries
-from app.contexts.identity.users.schemas import UserResponse
+from app.domains.identity.users.exceptions import UserNotFoundError
+from app.domains.identity.users.presentation import user_response
+from app.domains.identity.users.queries import UserQueries
+from app.domains.identity.users.schemas import UserResponse
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 

@@ -9,14 +9,14 @@ from pydantic import SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.auth.roles import Role
-from app.contexts.equipment.pak.commands.create import CreatePak
-from app.contexts.equipment.pak.commands.delete import DeletePak
-from app.contexts.equipment.pak.contracts import PakOAuthClient, PakOAuthClientCredentials
-from app.contexts.equipment.pak.exceptions import (
+from app.domains.equipment.pak.commands.create import CreatePak
+from app.domains.equipment.pak.commands.delete import DeletePak
+from app.domains.equipment.pak.contracts import PakOAuthClient, PakOAuthClientCredentials
+from app.domains.equipment.pak.exceptions import (
     PakCannotBeDeletedError,
     PakProvisioningError,
 )
-from app.contexts.equipment.pak.model import PakDevice, PakDeviceKind
+from app.domains.equipment.pak.model import PakDevice, PakDeviceKind
 from app.shared.security import CurrentPrincipal
 
 
@@ -51,7 +51,7 @@ def _cipher_key() -> SecretStr:
 
 @pytest.mark.unit
 async def test_create_compensates_oauth_when_local_persistence_fails(mocker: MagicMock) -> None:
-    repository = mocker.patch("app.contexts.equipment.pak.commands.create.PakRepository")
+    repository = mocker.patch("app.domains.equipment.pak.commands.create.PakRepository")
     repository.return_value.get_by_code = AsyncMock(return_value=None)
     repository.return_value.create = AsyncMock(side_effect=RuntimeError("database unavailable"))
     oauth = SimpleNamespace(
@@ -74,7 +74,7 @@ async def test_create_compensates_oauth_when_local_persistence_fails(mocker: Mag
 
 @pytest.mark.unit
 async def test_create_oauth_failure_never_persists_local_pak(mocker: MagicMock) -> None:
-    repository = mocker.patch("app.contexts.equipment.pak.commands.create.PakRepository")
+    repository = mocker.patch("app.domains.equipment.pak.commands.create.PakRepository")
     repository.return_value.get_by_code = AsyncMock(return_value=None)
     repository.return_value.create = AsyncMock()
     oauth = SimpleNamespace(create_client=AsyncMock(side_effect=RuntimeError("hydra unavailable")))
@@ -92,7 +92,7 @@ async def test_create_oauth_failure_never_persists_local_pak(mocker: MagicMock) 
 
 @pytest.mark.unit
 async def test_delete_rejects_pak_with_quality_verification_history(mocker: MagicMock) -> None:
-    repository = mocker.patch("app.contexts.equipment.pak.commands.delete.PakRepository")
+    repository = mocker.patch("app.domains.equipment.pak.commands.delete.PakRepository")
     pak = PakDevice(
         id=uuid4(),
         code="PAK-01",

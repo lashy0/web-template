@@ -1,8 +1,8 @@
 from types import SimpleNamespace
 
-from app.contexts.production.preparation.commands.process_chunk import KEY_GENERATION_CHUNK_SIZE
-from app.contexts.production.preparation.model import BatchKeyGenerationStatus
-from app.contexts.production.preparation.rules import (
+from app.domains.production.preparation.commands.process_chunk import KEY_GENERATION_CHUNK_SIZE
+from app.domains.production.preparation.model import BatchKeyGenerationStatus
+from app.domains.production.preparation.rules import (
     can_mark_failed,
     can_mark_ready,
     can_process_chunk,

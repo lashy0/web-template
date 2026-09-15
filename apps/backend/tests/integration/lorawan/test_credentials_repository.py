@@ -12,10 +12,10 @@ from app.components.keygen import (
     LoRaWanVersion,
     generate_credentials,
 )
-from app.contexts.production.batches.model import Batch, BatchLoRaWanConfig, BatchStatus
-from app.contexts.production.kg.credentials import KgCredentials
-from app.contexts.production.kg.exceptions import KgLoRaWanCredentialsAlreadyExistError
-from app.contexts.production.kg.model import KgDevEuiPrefix, KgUnit, LoRaWanCredentials
+from app.domains.production.batches.model import Batch, BatchLoRaWanConfig, BatchStatus
+from app.domains.production.kg.credentials import KgCredentials
+from app.domains.production.kg.exceptions import KgLoRaWanCredentialsAlreadyExistError
+from app.domains.production.kg.model import KgDevEuiPrefix, KgUnit, LoRaWanCredentials
 
 
 async def _kg_with_lorawan_config(session: AsyncSession) -> KgUnit:

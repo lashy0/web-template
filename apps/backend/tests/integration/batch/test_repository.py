@@ -4,12 +4,12 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.components.keygen.types import ActivationType, LoRaWanVersion
-from app.contexts.production.batches.model import BatchStatus
-from app.contexts.production.batches.repository import BatchRepository
-from app.contexts.production.kg.model import KgDevEuiPrefix
-from app.contexts.production.kg.repository import KgRepository
-from app.contexts.production.receipts.repository import ReceiptRepository as BatchReceiptRepository
-from app.contexts.production.shipments.repository import (
+from app.domains.production.batches.model import BatchStatus
+from app.domains.production.batches.repository import BatchRepository
+from app.domains.production.kg.model import KgDevEuiPrefix
+from app.domains.production.kg.repository import KgRepository
+from app.domains.production.receipts.repository import ReceiptRepository as BatchReceiptRepository
+from app.domains.production.shipments.repository import (
     ShipmentRepository as BatchShipmentRepository,
 )
 

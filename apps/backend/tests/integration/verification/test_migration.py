@@ -9,20 +9,20 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.contexts.equipment.pak.adapters import adapt_pak
-from app.contexts.equipment.pak.model import PakDevice, PakDeviceKind
-from app.contexts.production.batches.model import Batch, BatchStatus
-from app.contexts.production.compat.verification_kg import ProductionVerificationKgAdapter
-from app.contexts.production.kg.model import KgDevEuiPrefix, KgState, KgUnit
-from app.contexts.quality.defects.model import DefectGroup
-from app.contexts.quality.tests.model import PakTest
-from app.contexts.quality.verification.commands.reconcile import (
+from app.domains.equipment.pak.adapters import adapt_pak
+from app.domains.equipment.pak.model import PakDevice, PakDeviceKind
+from app.domains.production.batches.model import Batch, BatchStatus
+from app.domains.production.compat.verification_kg import ProductionVerificationKgAdapter
+from app.domains.production.kg.model import KgDevEuiPrefix, KgState, KgUnit
+from app.domains.quality.defects.model import DefectGroup
+from app.domains.quality.tests.model import PakTest
+from app.domains.quality.verification.commands.reconcile import (
     ReconcileStaleVerificationSessions,
 )
-from app.contexts.quality.verification.commands.start import StartVerificationSession
-from app.contexts.quality.verification.exceptions import VerificationSessionAlreadyRunningError
-from app.contexts.quality.verification.model import VerificationSession, VerificationSessionStatus
-from app.contexts.quality.verification.repository import VerificationRepository
+from app.domains.quality.verification.commands.start import StartVerificationSession
+from app.domains.quality.verification.exceptions import VerificationSessionAlreadyRunningError
+from app.domains.quality.verification.model import VerificationSession, VerificationSessionStatus
+from app.domains.quality.verification.repository import VerificationRepository
 from app.shared.uow import transaction
 
 pytestmark = pytest.mark.integration

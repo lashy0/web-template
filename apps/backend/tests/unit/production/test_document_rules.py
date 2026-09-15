@@ -3,19 +3,19 @@ from uuid import uuid4
 
 import pytest
 
-from app.contexts.production.exceptions import (
+from app.domains.production.exceptions import (
     BatchReceiptAlreadyVoidedError,
     BatchReceiptEditNotAllowedError,
     BatchShipmentAlreadyCompletedError,
     BatchShipmentAlreadyVoidedError,
     BatchShipmentEditNotAllowedError,
 )
-from app.contexts.production.receipts.model import BatchReceipt
-from app.contexts.production.receipts.rules import ensure_active
-from app.contexts.production.receipts.rules import ensure_edit_allowed as receipt_edit_allowed
-from app.contexts.production.shipments.model import BatchShipment
-from app.contexts.production.shipments.rules import ensure_edit_allowed as shipment_edit_allowed
-from app.contexts.production.shipments.rules import ensure_not_voided, ensure_open
+from app.domains.production.receipts.model import BatchReceipt
+from app.domains.production.receipts.rules import ensure_active
+from app.domains.production.receipts.rules import ensure_edit_allowed as receipt_edit_allowed
+from app.domains.production.shipments.model import BatchShipment
+from app.domains.production.shipments.rules import ensure_edit_allowed as shipment_edit_allowed
+from app.domains.production.shipments.rules import ensure_not_voided, ensure_open
 from app.shared.security import CurrentPrincipal, Role
 
 

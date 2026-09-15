@@ -8,13 +8,13 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.components.keygen.types import ActivationType, LoRaWanVersion
-from app.contexts.production.batches.repository import BatchRepository
-from app.contexts.production.kg.model import KgDevEuiPrefix, LoRaWanCredentials
-from app.contexts.production.kg.repository import KgRepository
-from app.contexts.production.preparation.commands.process_chunk import KEY_GENERATION_CHUNK_SIZE
-from app.contexts.production.preparation.commands.process_job import ProcessJob
-from app.contexts.production.preparation.model import BatchKeyGenerationStatus
-from app.contexts.production.preparation.repository import PreparationRepository
+from app.domains.production.batches.repository import BatchRepository
+from app.domains.production.kg.model import KgDevEuiPrefix, LoRaWanCredentials
+from app.domains.production.kg.repository import KgRepository
+from app.domains.production.preparation.commands.process_chunk import KEY_GENERATION_CHUNK_SIZE
+from app.domains.production.preparation.commands.process_job import ProcessJob
+from app.domains.production.preparation.model import BatchKeyGenerationStatus
+from app.domains.production.preparation.repository import PreparationRepository
 
 
 def _encryption_key() -> SecretStr:
@@ -116,7 +116,7 @@ async def test_task_marks_batch_failed_and_publishes_event(
     batch_id = await _create_batch(database_session_factory, quantity=1)
     events: list[BatchKeyGenerationStatus] = []
     mocker.patch(
-        "app.contexts.production.preparation.commands.process_chunk.generate_credentials",
+        "app.domains.production.preparation.commands.process_chunk.generate_credentials",
         side_effect=RuntimeError("generator failed"),
     )
 

@@ -1,7 +1,7 @@
 from uuid import UUID
 
-from app.contexts.production.preparation.model import BatchKeyGenerationStatus
-from app.contexts.production.preparation.notifier import ProgressNotifier
+from app.domains.production.preparation.model import BatchKeyGenerationStatus
+from app.domains.production.preparation.notifier import ProgressNotifier
 
 from .publisher import publish_event
 

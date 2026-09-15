@@ -5,7 +5,7 @@ from uuid import uuid4
 import pytest
 
 from app.auth.roles import Role
-from app.contexts.production.kg.commands import (
+from app.domains.production.kg.commands import (
     AllocateForBatch,
     CreatePrefix,
     CreateVersion,
@@ -16,12 +16,12 @@ from app.contexts.production.kg.commands import (
     UpdatePrefix,
     UpdateVersion,
 )
-from app.contexts.production.kg.exceptions import (
+from app.domains.production.kg.exceptions import (
     KgDevEuiPrefixArchivedError,
     KgDevEuiRangeOverflowError,
 )
-from app.contexts.production.kg.model import KgDevEuiPrefix, KgVersion
-from app.contexts.production.kg.queries import KgQueries
+from app.domains.production.kg.model import KgDevEuiPrefix, KgVersion
+from app.domains.production.kg.queries import KgQueries
 from app.shared.security import CurrentPrincipal
 
 

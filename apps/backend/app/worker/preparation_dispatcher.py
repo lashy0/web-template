@@ -3,10 +3,10 @@ from uuid import UUID
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.contexts.production.preparation.commands.mark_failed import mark_failed
-from app.contexts.production.preparation.dispatcher import WorkDispatcher
-from app.contexts.production.preparation.model import BatchKeyGenerationStatus
-from app.contexts.production.preparation.notifier import ProgressNotifier
+from app.domains.production.preparation.commands.mark_failed import mark_failed
+from app.domains.production.preparation.dispatcher import WorkDispatcher
+from app.domains.production.preparation.model import BatchKeyGenerationStatus
+from app.domains.production.preparation.notifier import ProgressNotifier
 from app.worker.celery_app import celery_app
 
 GENERATE_BATCH_KEYS_TASK = "app.worker.generate_batch_keys"

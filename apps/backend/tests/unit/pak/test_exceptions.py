@@ -1,6 +1,7 @@
 import pytest
 
-from app.contexts.equipment.pak.exceptions import (
+from app.core.exceptions import AppError
+from app.domains.equipment.pak.exceptions import (
     InvalidMachineAccessTokenError,
     PakAccessKeyConfigurationError,
     PakAlreadyExistsError,
@@ -9,7 +10,6 @@ from app.contexts.equipment.pak.exceptions import (
     PakNotFoundError,
     PakProvisioningError,
 )
-from app.core.exceptions import AppError
 
 
 @pytest.mark.unit

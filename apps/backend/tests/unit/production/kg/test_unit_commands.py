@@ -5,9 +5,9 @@ from uuid import uuid4
 import pytest
 
 from app.auth.roles import Role
-from app.contexts.production.kg.commands import DeleteKg, SetKgState
-from app.contexts.production.kg.exceptions import KgCannotBeDeletedError
-from app.contexts.production.kg.model import KgState
+from app.domains.production.kg.commands import DeleteKg, SetKgState
+from app.domains.production.kg.exceptions import KgCannotBeDeletedError
+from app.domains.production.kg.model import KgState
 from app.shared.security import CurrentPrincipal
 
 

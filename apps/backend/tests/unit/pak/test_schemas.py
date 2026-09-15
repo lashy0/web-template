@@ -4,7 +4,7 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from app.contexts.quality.tests.schemas import PakTestListResponse, PakTestResponse
+from app.domains.quality.tests.schemas import PakTestListResponse, PakTestResponse
 
 
 @pytest.mark.unit
