@@ -4,16 +4,19 @@ from typing import Annotated, Literal, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Request, status
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.api.auth_deps import CurrentPrincipalDep, require_permission
+from app.contexts.production.compat.verification import QualityVerificationHistoryAdapter
 from app.contexts.production.kg.schemas import DevEuiPrefix
 from app.contexts.production.production_orders.schemas import AssignProductionOrderRequest
+from app.infrastructure.redis.preparation_notifier import RedisProgressNotifier
 from app.modules.batch.exceptions import BatchNotFoundError
-from app.modules.batch.permissions import BatchPermission
 from app.modules.batch.routers.common import _batch_response, _service
 
 from .commands import DeleteBatch
 from .model import BatchStatus
+from .permissions import BatchPermission
 from .schemas import (
     BatchListResponse,
     BatchResponse,
@@ -27,7 +30,11 @@ router = APIRouter(prefix="/batches", tags=["batch"])
 
 
 def _delete_workflow(request: Request) -> DeleteBatch:
-    return cast(DeleteBatch, request.app.state.delete_batch)
+    return DeleteBatch(
+        cast(async_sessionmaker[AsyncSession], request.app.state.database.session_factory),
+        verification_history=QualityVerificationHistoryAdapter,
+        notifier=RedisProgressNotifier(),
+    )
 
 
 @router.get("/dev-eui-range-preview", response_model=DevEuiRangePreviewResponse)
@@ -110,20 +117,18 @@ async def create_batch(
     principal: Annotated[CurrentPrincipalDep, Depends(require_permission(BatchPermission.CREATE))],
     request: Request,
 ) -> BatchResponse:
-    create_args = {
-        "actor": principal,
-        "name": payload.name,
-        "description": payload.description,
-        "dev_eui_prefix": payload.dev_eui_prefix,
-        "planned_qty": payload.planned_qty,
-        "day_plan_qty": payload.day_plan_qty,
-        "activation_type": payload.lorawan_config.activation_type,
-        "lorawan_version": payload.lorawan_config.lorawan_version,
-        "production_order_id": payload.production_order_id,
-    }
-    if payload.kg_version_id is not None:
-        create_args["kg_version_id"] = payload.kg_version_id
-    batch = await _service(request).create(**create_args)
+    batch = await _service(request).create(
+        actor=principal,
+        name=payload.name,
+        description=payload.description,
+        dev_eui_prefix=payload.dev_eui_prefix,
+        planned_qty=payload.planned_qty,
+        day_plan_qty=payload.day_plan_qty,
+        activation_type=payload.lorawan_config.activation_type,
+        lorawan_version=payload.lorawan_config.lorawan_version,
+        kg_version_id=payload.kg_version_id,
+        production_order_id=payload.production_order_id,
+    )
     return await _batch_response(request, batch)
 
 

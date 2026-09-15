@@ -1,13 +1,25 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import Annotated, Literal, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Request, status
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.api.auth_deps import CurrentPrincipalDep, require_permission
+from app.audit.writer import TransactionalAuditWriter
 
+from .commands import (
+    CreateProductionOrder,
+    DeleteProductionOrder,
+    SetProductionOrderArchived,
+    UpdateProductionOrder,
+)
 from .exceptions import ProductionOrderNotFoundError
 from .model import ProductionOrder
 from .permissions import ProductionOrderPermission
+from .queries import ProductionOrderQueries
+from .repository import ProductionOrderRepository
 from .schemas import (
     CreateProductionOrderRequest,
     ProductionOrderListResponse,
@@ -15,13 +27,18 @@ from .schemas import (
     UpdateProductionOrderArchivedRequest,
     UpdateProductionOrderRequest,
 )
-from .service import ProductionOrderManagementService
 
 router = APIRouter(prefix="/production-orders", tags=["production_order"])
 
 
-def _service(request: Request) -> ProductionOrderManagementService:
-    return cast(ProductionOrderManagementService, request.app.state.production_order_management)
+def _session_factory(request: Request) -> async_sessionmaker[AsyncSession]:
+    return cast(async_sessionmaker[AsyncSession], request.app.state.database.session_factory)
+
+
+@asynccontextmanager
+async def _transaction(request: Request) -> AsyncIterator[AsyncSession]:
+    async with _session_factory(request)() as session, session.begin():
+        yield session
 
 
 def _response(
@@ -52,9 +69,10 @@ async def list_orders(
     ] = "created_at",
     order: Literal["asc", "desc"] = "desc",
 ) -> ProductionOrderListResponse:
-    items, total = await _service(request).list(
-        q=q, archived=archived, page=page, page_size=page_size, sort=sort, order=order
-    )
+    async with _session_factory(request)() as session:
+        items, total = await ProductionOrderQueries(ProductionOrderRepository(session)).list(
+            q=q, archived=archived, page=page, page_size=page_size, sort=sort, order=order
+        )
     return ProductionOrderListResponse(
         items=[
             _response(item, batches_count=count, total_planned_qty=quantity)
@@ -72,11 +90,14 @@ async def get_order(
     _: Annotated[CurrentPrincipalDep, Depends(require_permission(ProductionOrderPermission.READ))],
     request: Request,
 ) -> ProductionOrderResponse:
-    service = _service(request)
-    item = await service.get(order_id)
+    async with _session_factory(request)() as session:
+        queries = ProductionOrderQueries(ProductionOrderRepository(session))
+        item = await queries.get(order_id)
+        batches_count, total_planned_qty = (
+            await queries.totals(order_id) if item is not None else (0, 0)
+        )
     if item is None:
         raise ProductionOrderNotFoundError
-    batches_count, total_planned_qty = await service.get_totals(item.id)
     return _response(item, batches_count=batches_count, total_planned_qty=total_planned_qty)
 
 
@@ -88,9 +109,12 @@ async def create_order(
     ],
     request: Request,
 ) -> ProductionOrderResponse:
-    service = _service(request)
-    item = await service.create(actor=actor, name=payload.name, description=payload.description)
-    batches_count, total_planned_qty = await service.get_totals(item.id)
+    async with _transaction(request) as session:
+        repository = ProductionOrderRepository(session)
+        item = await CreateProductionOrder(
+            repository, TransactionalAuditWriter.from_session(session)
+        ).execute(actor=actor, name=payload.name, description=payload.description)
+        batches_count, total_planned_qty = await ProductionOrderQueries(repository).totals(item.id)
     return _response(item, batches_count=batches_count, total_planned_qty=total_planned_qty)
 
 
@@ -103,11 +127,12 @@ async def update_order(
     ],
     request: Request,
 ) -> ProductionOrderResponse:
-    service = _service(request)
-    item = await service.update(
-        order_id=order_id, actor=actor, updates=payload.model_dump(exclude_unset=True)
-    )
-    batches_count, total_planned_qty = await service.get_totals(item.id)
+    async with _transaction(request) as session:
+        repository = ProductionOrderRepository(session)
+        item = await UpdateProductionOrder(
+            repository, TransactionalAuditWriter.from_session(session)
+        ).execute(order_id=order_id, actor=actor, updates=payload.model_dump(exclude_unset=True))
+        batches_count, total_planned_qty = await ProductionOrderQueries(repository).totals(item.id)
     return _response(item, batches_count=batches_count, total_planned_qty=total_planned_qty)
 
 
@@ -120,9 +145,12 @@ async def archive_order(
     ],
     request: Request,
 ) -> ProductionOrderResponse:
-    service = _service(request)
-    item = await service.set_archived(order_id=order_id, actor=actor, archived=payload.archived)
-    batches_count, total_planned_qty = await service.get_totals(item.id)
+    async with _transaction(request) as session:
+        repository = ProductionOrderRepository(session)
+        item = await SetProductionOrderArchived(
+            repository, TransactionalAuditWriter.from_session(session)
+        ).execute(order_id=order_id, actor=actor, archived=payload.archived)
+        batches_count, total_planned_qty = await ProductionOrderQueries(repository).totals(item.id)
     return _response(item, batches_count=batches_count, total_planned_qty=total_planned_qty)
 
 
@@ -134,4 +162,7 @@ async def delete_order(
     ],
     request: Request,
 ) -> None:
-    await _service(request).delete(order_id=order_id, actor=actor)
+    async with _transaction(request) as session:
+        await DeleteProductionOrder(
+            ProductionOrderRepository(session), TransactionalAuditWriter.from_session(session)
+        ).execute(order_id=order_id, actor=actor)

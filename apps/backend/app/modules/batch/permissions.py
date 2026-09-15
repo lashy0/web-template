@@ -1,20 +1,5 @@
-from enum import StrEnum
+"""Legacy import path for batch permissions."""
 
+from app.contexts.production.batches.permissions import BatchPermission
 
-class BatchPermission(StrEnum):
-    CREATE = "batch:create"
-    READ = "batch:read"
-    UPDATE = "batch:update"
-    ASSIGN_PRODUCTION_ORDER = "batch:assign_production_order"
-    ARCHIVE = "batch:archive"
-    COMPLETE = "batch:complete"
-    DELETE = "batch:delete"
-
-    RECEIPT_CREATE = "batch:receipt:create"
-    RECEIPT_UPDATE = "batch:receipt:update"
-    RECEIPT_VOID = "batch:receipt:void"
-
-    SHIPMENT_CREATE = "batch:shipment:create"
-    SHIPMENT_UPDATE = "batch:shipment:update"
-    SHIPMENT_COMPLETE = "batch:shipment:complete"
-    SHIPMENT_VOID = "batch:shipment:void"
+__all__ = ["BatchPermission"]

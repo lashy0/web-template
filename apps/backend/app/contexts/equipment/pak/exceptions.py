@@ -43,3 +43,9 @@ class InvalidMachineAccessTokenError(PakError, UnauthenticatedError):
 
 class PakCannotBeDeletedError(PakError, ConflictError):
     code = "pak_cannot_be_deleted"
+
+
+class PakOAuthClientNotFoundError(PakError, NotFoundError):
+    """The outbound PAK OAuth client has already been removed."""
+
+    code = "oauth_client_not_found"

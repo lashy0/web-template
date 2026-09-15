@@ -4,8 +4,8 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Request, status
 
 from app.api.auth_deps import CurrentPrincipalDep, require_permission
+from app.contexts.production.batches.permissions import BatchPermission
 from app.contexts.production.kg.schemas import DevEui
-from app.modules.batch.permissions import BatchPermission
 from app.modules.batch.routers.common import _service, _shipment_item_response, _shipment_response
 
 from .schemas import (

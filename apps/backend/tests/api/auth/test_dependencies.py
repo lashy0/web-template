@@ -20,7 +20,9 @@ def test_me_returns_not_found_if_user_disappears_after_authentication(
     app, client, api_prefix, mocker
 ):
     _configure_authenticated_request(app, mocker, role=Role.ADMINISTRATOR)
-    app.state.user_queries.get = AsyncMock(return_value=None)
+    mocker.patch("app.modules.auth.router.UserQueries").return_value.get = AsyncMock(
+        return_value=None
+    )
     response = client.get(f"{api_prefix}/auth/me", headers={"cookie": "ory_kratos_session=opaque"})
     assert response.status_code == 404
     assert response.json()["code"] == "user_not_found"
@@ -53,7 +55,7 @@ def _configure_authenticated_request(
 ) -> tuple[AuthSession, AsyncMock]:
     session = _authenticated_session()
     verifier = SimpleNamespace(verify_session=AsyncMock(return_value=session))
-    service = SimpleNamespace(list=AsyncMock(return_value=([], 0)))
+    list_users = AsyncMock(return_value=([], 0))
     repository = mocker.patch("app.api.auth_deps.UserRepository")
     repository.return_value.get_by_identity_id = AsyncMock(
         return_value=SimpleNamespace(
@@ -65,8 +67,8 @@ def _configure_authenticated_request(
     )
     mocker.patch.object(app.state, "session_verifier", verifier)
     mocker.patch.object(app.state, "database", SimpleNamespace(session_factory=_SessionFactory()))
-    mocker.patch.object(app.state, "user_queries", service)
-    return session, service.list
+    mocker.patch("app.contexts.identity.users.router.UserQueries").return_value.list = list_users
+    return session, list_users
 
 
 @pytest.mark.api

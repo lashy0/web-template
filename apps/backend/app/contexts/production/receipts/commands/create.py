@@ -3,8 +3,8 @@ from uuid import UUID
 from app.audit.writer import TransactionalAuditWriter
 from app.contexts.production.batches import rules as batch_rules
 from app.contexts.production.batches.audit import audit_actor, receipt_entity
-from app.contexts.production.preparation.repository import PreparationRepository
 from app.contexts.production.batches.repository import BatchRepository
+from app.contexts.production.preparation.repository import PreparationRepository
 from app.shared.security import CurrentPrincipal
 
 from ..model import BatchReceipt

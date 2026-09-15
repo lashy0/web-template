@@ -1,9 +1,5 @@
-from enum import StrEnum
+"""Legacy import path for production-order permissions."""
 
+from app.contexts.production.production_orders.permissions import ProductionOrderPermission
 
-class ProductionOrderPermission(StrEnum):
-    CREATE = "production_order:create"
-    READ = "production_order:read"
-    UPDATE = "production_order:update"
-    ARCHIVE = "production_order:archive"
-    DELETE = "production_order:delete"
+__all__ = ["ProductionOrderPermission"]

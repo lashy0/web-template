@@ -1,6 +1,7 @@
 from typing import cast
 
 from fastapi import APIRouter, Request
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.api.auth_deps import CurrentPrincipalDep
 from app.contexts.identity.users.exceptions import UserNotFoundError
@@ -13,8 +14,10 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.get("/me", response_model=UserResponse)
 async def me(principal: CurrentPrincipalDep, request: Request) -> UserResponse:
-    queries = cast(UserQueries, request.app.state.user_queries)
-    user = await queries.get(principal.user_id)
+    session_factory = request.app.state.database.session_factory
+    user = await UserQueries(cast(async_sessionmaker[AsyncSession], session_factory)).get(
+        principal.user_id
+    )
 
     if user is None:
         raise UserNotFoundError

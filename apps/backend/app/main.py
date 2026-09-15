@@ -11,9 +11,11 @@ from loguru import logger
 from app.api.errors import install_error_handlers
 from app.api.main import api_router
 from app.bootstrap.application import create_application_components
+from app.contexts.identity.users.reconciliation import ReconcileUsers
 from app.core.config import Settings, get_settings
 from app.core.logging import setup_logging
 from app.core.version import APP_VERSION
+from app.infrastructure.kratos.users import KratosUserIdentityProvider
 from app.middleware.csrf import JsonOriginMiddleware
 from app.middleware.request_context import RequestContextMiddleware
 
@@ -40,7 +42,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     async def reconcile_forever() -> None:
         while True:
             try:
-                await app.state.reconcile_users.execute()
+                await ReconcileUsers(
+                    app.state.database.session_factory,
+                    KratosUserIdentityProvider(app.state.identity_manager),
+                ).execute()
 
             except Exception:
                 logger.bind(event="kratos.reconcile_failed").exception(

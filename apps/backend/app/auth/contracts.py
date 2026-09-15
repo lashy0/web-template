@@ -3,13 +3,21 @@ from datetime import datetime
 from typing import Literal, Protocol
 from uuid import UUID
 
+from app.shared.security.contracts import Identity
 
-@dataclass(frozen=True, slots=True)
-class Identity:
-    id: UUID
-    login: str
-    active: bool
-    metadata: dict[str, object] | None = None
+__all__ = [
+    "AccessTokenIntrospection",
+    "AuthSession",
+    "Identity",
+    "IdentityManager",
+    "IdentityProvider",
+    "OAuthClient",
+    "OAuthClientCredentials",
+    "OAuthClientManager",
+    "SessionProvider",
+    "SessionVerifier",
+    "TokenIntrospector",
+]
 
 
 @dataclass(frozen=True, slots=True)

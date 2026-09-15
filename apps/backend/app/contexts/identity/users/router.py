@@ -2,8 +2,10 @@ from typing import Annotated, Literal, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Request, status
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.api.auth_deps import CurrentPrincipalDep, require_permission
+from app.infrastructure.kratos.users import KratosUserIdentityProvider
 from app.shared.security import Role
 
 from .commands import (
@@ -32,8 +34,12 @@ from .schemas import (
 router = APIRouter(prefix="/users", tags=["users"])
 
 
-def _component(request: Request, name: str, _component_type: type[object]) -> object:
-    return cast(object, getattr(request.app.state, name))
+def _session_factory(request: Request) -> async_sessionmaker[AsyncSession]:
+    return cast(async_sessionmaker[AsyncSession], request.app.state.database.session_factory)
+
+
+def _identities(request: Request) -> KratosUserIdentityProvider:
+    return KratosUserIdentityProvider(request.app.state.identity_manager)
 
 
 @router.get("", response_model=UserListResponse)
@@ -49,7 +55,7 @@ async def list_users(
     sort: Literal["name", "login", "created_at", "archived_at"] = "name",
     order: Literal["asc", "desc"] = "asc",
 ) -> UserListResponse:
-    users, total = await cast(UserQueries, _component(request, "user_queries", UserQueries)).list(
+    users, total = await UserQueries(_session_factory(request)).list(
         q=q,
         role=role,
         auth_state=auth_state,
@@ -70,7 +76,7 @@ async def get_user(
     _: Annotated[CurrentPrincipalDep, Depends(require_permission(UserPermission.READ))],
     request: Request,
 ) -> UserResponse:
-    user = await cast(UserQueries, _component(request, "user_queries", UserQueries)).get(user_id)
+    user = await UserQueries(_session_factory(request)).get(user_id)
     if user is None:
         raise UserNotFoundError
     return user_response(user)
@@ -82,7 +88,7 @@ async def create_user(
     principal: Annotated[CurrentPrincipalDep, Depends(require_permission(UserPermission.CREATE))],
     request: Request,
 ) -> UserResponse:
-    user = await cast(CreateUser, _component(request, "create_user", CreateUser)).execute(
+    user = await CreateUser(_session_factory(request), _identities(request)).execute(
         actor=principal,
         name=payload.name,
         role=payload.role,
@@ -100,7 +106,7 @@ async def update_user(
     principal: Annotated[CurrentPrincipalDep, Depends(require_permission(UserPermission.UPDATE))],
     request: Request,
 ) -> UserResponse:
-    user = await cast(UpdateUser, _component(request, "update_user", UpdateUser)).execute(
+    user = await UpdateUser(_session_factory(request), _identities(request)).execute(
         actor=principal, user_id=user_id, login=payload.login, name=payload.name, role=payload.role
     )
     return user_response(user)
@@ -115,7 +121,7 @@ async def update_password(
     ],
     request: Request,
 ) -> None:
-    await cast(SetUserPassword, _component(request, "set_user_password", SetUserPassword)).execute(
+    await SetUserPassword(_session_factory(request), _identities(request)).execute(
         actor=principal, user_id=user_id, password=payload.password
     )
 
@@ -130,7 +136,7 @@ async def update_active(
     request: Request,
 ) -> UserResponse:
     return user_response(
-        await cast(SetUserActive, _component(request, "set_user_active", SetUserActive)).execute(
+        await SetUserActive(_session_factory(request), _identities(request)).execute(
             actor=principal, user_id=user_id, active=payload.active
         )
     )
@@ -144,9 +150,9 @@ async def update_archived(
     request: Request,
 ) -> UserResponse:
     return user_response(
-        await cast(
-            SetUserArchived, _component(request, "set_user_archived", SetUserArchived)
-        ).execute(actor=principal, user_id=user_id, archived=payload.archived)
+        await SetUserArchived(_session_factory(request), _identities(request)).execute(
+            actor=principal, user_id=user_id, archived=payload.archived
+        )
     )
 
 
@@ -156,6 +162,6 @@ async def delete_user(
     principal: Annotated[CurrentPrincipalDep, Depends(require_permission(UserPermission.DELETE))],
     request: Request,
 ) -> None:
-    await cast(DeleteUser, _component(request, "delete_user", DeleteUser)).execute(
+    await DeleteUser(_session_factory(request), _identities(request)).execute(
         actor=principal, user_id=user_id
     )

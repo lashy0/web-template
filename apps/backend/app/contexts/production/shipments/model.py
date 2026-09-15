@@ -4,8 +4,8 @@ from uuid import UUID, uuid4
 from sqlalchemy import DateTime, ForeignKey, Index, String, Text, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.contexts.identity.users.model import User
 from app.infrastructure.database.base import Base
-from app.modules.users.models import User
 
 
 class BatchShipment(Base):

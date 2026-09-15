@@ -1,9 +1,5 @@
-from enum import StrEnum
+"""Legacy import path for defect permissions."""
 
+from app.contexts.quality.defects.permissions import DefectPermission
 
-class DefectPermission(StrEnum):
-    CREATE = "defect:create"
-    READ = "defect:read"
-    UPDATE = "defect:update"
-    ARCHIVE = "defect:archive"
-    DELETE = "defect:delete"
+__all__ = ["DefectPermission"]

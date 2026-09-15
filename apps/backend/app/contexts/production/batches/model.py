@@ -19,12 +19,12 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.components.keygen.types import ActivationType, LoRaWanVersion
+from app.contexts.identity.users.model import User
 
 # Temporary production-internal ORM bridge until KG versions move.
 from app.contexts.production.kg.model import KgDevEuiPrefix, KgVersion
 from app.contexts.production.production_orders.model import ProductionOrder
 from app.infrastructure.database.base import Base
-from app.modules.users.models import User
 
 
 class BatchStatus(StrEnum):

@@ -5,8 +5,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.contexts.identity.users.schemas import UserSummaryResponse
 from app.modules.batch.schemas.common import normalize_trimmed
-from app.modules.users.schemas import UserSummaryResponse
 
 
 class CreateBatchReceiptRequest(BaseModel):

@@ -2,6 +2,7 @@ from typing import cast
 from uuid import UUID
 
 from fastapi import Request
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.modules.kg.schemas import KgDevEuiPrefixSummaryResponse, KgVersionSummaryResponse
 from app.modules.production_order.schemas import ProductionOrderSummaryResponse
@@ -27,7 +28,9 @@ from ..services import BatchManagementService
 
 
 def _service(request: Request) -> BatchManagementService:
-    return cast(BatchManagementService, request.app.state.batch_management)
+    return BatchManagementService(
+        cast(async_sessionmaker[AsyncSession], request.app.state.database.session_factory)
+    )
 
 
 def _user_response(user: User | None) -> UserSummaryResponse | None:

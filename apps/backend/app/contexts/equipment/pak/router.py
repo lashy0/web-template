@@ -2,9 +2,12 @@ from typing import Annotated, Literal, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Request, status
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.api.auth_deps import CurrentPrincipalDep, require_permission
 from app.contexts.quality.tests.router import router as tests_router
+from app.contexts.quality.verification.adapters import QualityPakVerificationHistoryAdapter
+from app.infrastructure.hydra.pak import HydraPakOAuthClientAdapter
 
 from .commands import (
     CreatePak,
@@ -47,12 +50,12 @@ def _response(pak: PakDevice) -> PakDeviceResponse:
     )
 
 
-def _queries(request: Request) -> PakQueries:
-    return cast(PakQueries, request.app.state.pak_queries)
+def _session_factory(request: Request) -> async_sessionmaker[AsyncSession]:
+    return cast(async_sessionmaker[AsyncSession], request.app.state.database.session_factory)
 
 
-def _commands(request: Request, name: str) -> object:
-    return getattr(request.app.state, name)
+def _oauth(request: Request) -> HydraPakOAuthClientAdapter:
+    return HydraPakOAuthClientAdapter(request.app.state.hydra_client_manager)
 
 
 @router.get("", response_model=PakDeviceListResponse)
@@ -68,7 +71,7 @@ async def list_pak(
     sort: Literal["code", "kind", "created_at", "last_seen_at", "archived_at"] = "code",
     order: Literal["asc", "desc"] = "asc",
 ) -> PakDeviceListResponse:
-    paks, total = await _queries(request).list(
+    paks, total = await PakQueries(_session_factory(request)).list(
         q=q,
         kind=kind,
         active=None if status is None else status is PakStatus.ACTIVE,
@@ -89,7 +92,7 @@ async def get_pak(
     _: Annotated[CurrentPrincipalDep, Depends(require_permission(PakPermission.READ))],
     request: Request,
 ) -> PakDeviceResponse:
-    pak = await _queries(request).get(pak_id)
+    pak = await PakQueries(_session_factory(request)).get(pak_id)
     if pak is None:
         raise PakNotFoundError
     return _response(pak)
@@ -101,7 +104,11 @@ async def create_pak(
     principal: Annotated[CurrentPrincipalDep, Depends(require_permission(PakPermission.CREATE))],
     request: Request,
 ) -> CreatePakDeviceResponse:
-    pak, access_key = await cast(CreatePak, _commands(request, "create_pak")).execute(
+    pak, access_key = await CreatePak(
+        _session_factory(request),
+        _oauth(request),
+        request.app.state.settings.PAK_ACCESS_KEY_ENCRYPTION_KEY,
+    ).execute(
         actor=principal,
         code=payload.code,
         kind=payload.kind,
@@ -118,9 +125,9 @@ async def get_access_key(
     ],
     request: Request,
 ) -> PakAccessKeyResponse:
-    access_key = await cast(GetPakAccessKey, _commands(request, "get_pak_access_key")).execute(
-        actor=principal, pak_id=pak_id
-    )
+    access_key = await GetPakAccessKey(
+        _session_factory(request), request.app.state.settings.PAK_ACCESS_KEY_ENCRYPTION_KEY
+    ).execute(actor=principal, pak_id=pak_id)
     return PakAccessKeyResponse(access_key=access_key)
 
 
@@ -132,8 +139,10 @@ async def rotate_access_key(
     ],
     request: Request,
 ) -> PakAccessKeyResponse:
-    access_key = await cast(
-        RotatePakAccessKey, _commands(request, "rotate_pak_access_key")
+    access_key = await RotatePakAccessKey(
+        _session_factory(request),
+        _oauth(request),
+        request.app.state.settings.PAK_ACCESS_KEY_ENCRYPTION_KEY,
     ).execute(actor=principal, pak_id=pak_id)
     return PakAccessKeyResponse(access_key=access_key)
 
@@ -145,7 +154,7 @@ async def update_pak(
     principal: Annotated[CurrentPrincipalDep, Depends(require_permission(PakPermission.UPDATE))],
     request: Request,
 ) -> PakDeviceResponse:
-    pak = await cast(UpdatePak, _commands(request, "update_pak")).execute(
+    pak = await UpdatePak(_session_factory(request)).execute(
         actor=principal, pak_id=pak_id, code=payload.code, kind=payload.kind
     )
     return _response(pak)
@@ -160,7 +169,7 @@ async def update_active(
     ],
     request: Request,
 ) -> PakDeviceResponse:
-    pak = await cast(SetPakActive, _commands(request, "set_pak_active")).execute(
+    pak = await SetPakActive(_session_factory(request)).execute(
         actor=principal, pak_id=pak_id, active=payload.active
     )
     return _response(pak)
@@ -173,7 +182,7 @@ async def update_archived(
     principal: Annotated[CurrentPrincipalDep, Depends(require_permission(PakPermission.ARCHIVE))],
     request: Request,
 ) -> PakDeviceResponse:
-    pak = await cast(SetPakArchived, _commands(request, "set_pak_archived")).execute(
+    pak = await SetPakArchived(_session_factory(request)).execute(
         actor=principal, pak_id=pak_id, archived=payload.archived
     )
     return _response(pak)
@@ -185,4 +194,9 @@ async def delete_pak(
     principal: Annotated[CurrentPrincipalDep, Depends(require_permission(PakPermission.DELETE))],
     request: Request,
 ) -> None:
-    await cast(DeletePak, _commands(request, "delete_pak")).execute(actor=principal, pak_id=pak_id)
+    await DeletePak(
+        _session_factory(request),
+        _oauth(request),
+        QualityPakVerificationHistoryAdapter,
+        request.app.state.settings.PAK_ACCESS_KEY_ENCRYPTION_KEY,
+    ).execute(actor=principal, pak_id=pak_id)

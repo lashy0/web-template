@@ -1,5 +1,14 @@
-"""Compatibility export for application roles."""
+"""Application roles shared by every bounded context."""
 
-from app.auth.roles import Role
+from enum import StrEnum
+
+
+class Role(StrEnum):
+    ADMINISTRATOR = "administrator"
+    MANAGER = "manager"
+    ENGINEER = "engineer"
+    PACKER = "packer"
+    OPERATOR = "operator"
+
 
 __all__ = ["Role"]

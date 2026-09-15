@@ -6,7 +6,6 @@ from pydantic import SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.audit.writer import TransactionalAuditWriter
-from app.auth.exceptions import OAuthClientNotFoundError
 from app.shared.security import CurrentPrincipal
 
 from ..audit import audit_actor, audit_entity
@@ -15,6 +14,7 @@ from ..crypto import PakAccessKeyCipher
 from ..exceptions import (
     PakCannotBeDeletedError,
     PakDeletionSynchronizationError,
+    PakOAuthClientNotFoundError,
 )
 from ..queries import PakQueries
 from ..repository import PakRepository
@@ -52,7 +52,7 @@ class DeletePak:
                         try:
                             await self._oauth.delete_client(oauth_client_id)
                             oauth_client_deleted = True
-                        except OAuthClientNotFoundError:
+                        except PakOAuthClientNotFoundError:
                             pass
                         await TransactionalAuditWriter.from_session(session).record(
                             actor=audit_actor(actor),

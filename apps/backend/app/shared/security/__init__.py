@@ -1,11 +1,15 @@
-"""Compatibility public security vocabulary for new contexts."""
+"""Security vocabulary shared by application contexts.
 
-from app.auth.exceptions import ForbiddenError, IdentityNotFoundError
-from app.shared.security.contracts import AuthSession, Identity, IdentityProvider, SessionProvider
+This package intentionally has no dependency on ``app.auth`` or FastAPI.
+"""
+
+from app.shared.security.contracts import Identity
+from app.shared.security.exceptions import ForbiddenError, IdentityNotFoundError
 from app.shared.security.permissions import (
-    ALL_PERMISSIONS,
-    ROLE_PERMISSIONS,
     Permission,
+    PermissionRegistry,
+    install_permission_registry,
+    permission_registry,
     permissions_for_role,
     role_has_permission,
 )
@@ -13,17 +17,15 @@ from app.shared.security.principal import CurrentPrincipal
 from app.shared.security.roles import Role
 
 __all__ = [
-    "ALL_PERMISSIONS",
-    "AuthSession",
     "CurrentPrincipal",
     "ForbiddenError",
     "Identity",
     "IdentityNotFoundError",
-    "IdentityProvider",
     "Permission",
-    "ROLE_PERMISSIONS",
+    "PermissionRegistry",
     "Role",
-    "SessionProvider",
+    "install_permission_registry",
+    "permission_registry",
     "permissions_for_role",
     "role_has_permission",
 ]

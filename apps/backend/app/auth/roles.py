@@ -1,9 +1,5 @@
-from enum import StrEnum
+"""Legacy import path for the canonical shared role."""
 
+from app.shared.security.roles import Role
 
-class Role(StrEnum):
-    ADMINISTRATOR = "administrator"
-    MANAGER = "manager"
-    ENGINEER = "engineer"
-    PACKER = "packer"
-    OPERATOR = "operator"
+__all__ = ["Role"]

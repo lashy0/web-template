@@ -1,26 +1,24 @@
-from typing import Annotated, Literal, Protocol, cast
+from typing import Annotated, Literal, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Request
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.api.auth_deps import CurrentPrincipalDep, require_permission
-from app.contexts.quality.defects.schemas import DefectGroupSummaryResponse
 from app.contexts.equipment.pak.permissions import PakPermission
+from app.contexts.quality.defects.schemas import DefectGroupSummaryResponse
 
 from .exceptions import PakTestNotFoundError
 from .model import PakTest
+from .queries import PakTestQueries
+from .repository import PakTestRepository
 from .schemas import PakTestListResponse, PakTestResponse
 
 router = APIRouter(tags=["pak"])
 
 
-class PakTestCatalogue(Protocol):
-    async def get(self, test_id: UUID) -> PakTest | None: ...
-    async def list(self, **kwargs: object) -> tuple[list[PakTest], int]: ...
-
-
-def _catalog(request: Request) -> PakTestCatalogue:
-    return cast(PakTestCatalogue, request.app.state.pak_test_catalog)
+def _session_factory(request: Request) -> async_sessionmaker[AsyncSession]:
+    return cast(async_sessionmaker[AsyncSession], request.app.state.database.session_factory)
 
 
 def _response(item: PakTest) -> PakTestResponse:
@@ -54,9 +52,15 @@ async def list_pak_tests(
     ] = "test_name",
     order: Literal["asc", "desc"] = "asc",
 ) -> PakTestListResponse:
-    items, total = await _catalog(request).list(
-        q=q, defect_group_id=defect_group_id, page=page, page_size=page_size, sort=sort, order=order
-    )
+    async with _session_factory(request)() as session:
+        items, total = await PakTestQueries(PakTestRepository(session)).list(
+            q=q,
+            defect_group_id=defect_group_id,
+            page=page,
+            page_size=page_size,
+            sort=sort,
+            order=order,
+        )
     return PakTestListResponse(
         items=[_response(item) for item in items], total=total, page=page, page_size=page_size
     )
@@ -68,7 +72,8 @@ async def get_pak_test(
     _: Annotated[CurrentPrincipalDep, Depends(require_permission(PakPermission.READ))],
     request: Request,
 ) -> PakTestResponse:
-    item = await _catalog(request).get(test_id)
+    async with _session_factory(request)() as session:
+        item = await PakTestQueries(PakTestRepository(session)).get(test_id)
     if item is None:
         raise PakTestNotFoundError
     return _response(item)

@@ -2,7 +2,7 @@ from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.auth.exceptions import ForbiddenError
+from app.shared.security import ForbiddenError
 
 from .contracts import PakTokenIntrospectorPort
 from .exceptions import InvalidMachineAccessTokenError
