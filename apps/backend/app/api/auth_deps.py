@@ -8,7 +8,7 @@ from app.auth.contracts import SessionVerifier
 from app.auth.exceptions import AccountDisabledError, InvalidSessionError, UserNotProvisionedError
 from app.auth.permissions import Permission
 from app.auth.principal import CurrentPrincipal
-from app.modules.users.repository import UserRepository
+from app.contexts.identity.users.repository import UserRepository
 
 
 async def get_session_verifier(request: Request) -> SessionVerifier:

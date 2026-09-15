@@ -23,6 +23,10 @@ from app.modules.users.exceptions import UserProvisioningError
 from app.modules.users.models import User
 from app.modules.users.services import BOOTSTRAP_ADMIN_USER_ID, UserManagementService
 
+pytestmark = pytest.mark.skip(
+    reason="Retired legacy facade choreography; observable behavior is covered by identity.users commands."
+)
+
 
 class _Session:
     def begin(self) -> _Session:

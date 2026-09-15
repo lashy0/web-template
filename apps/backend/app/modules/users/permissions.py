@@ -1,11 +1,3 @@
-from enum import StrEnum
+from app.contexts.identity.users.permissions import UserPermission
 
-
-class UserPermission(StrEnum):
-    READ = "user:read"
-    CREATE = "user:create"
-    UPDATE = "user:update"
-    SET_PASSWORD = "user:set_password"
-    SET_ACTIVE = "user:set_active"
-    ARCHIVE = "user:archive"
-    DELETE = "user:delete"
+__all__ = ["UserPermission"]

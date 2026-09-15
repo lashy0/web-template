@@ -40,7 +40,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     async def reconcile_forever() -> None:
         while True:
             try:
-                await app.state.user_management.reconcile()
+                await app.state.reconcile_users.execute()
 
             except Exception:
                 logger.bind(event="kratos.reconcile_failed").exception(

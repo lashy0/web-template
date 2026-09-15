@@ -1,11 +1,3 @@
-from app.modules.audit.types import AuditEntity
+from app.contexts.identity.users.audit import audit_entity as _audit_entity
 
-from ..models import User
-
-
-def _audit_entity(user: User) -> AuditEntity:
-    return AuditEntity.user(
-        user.id,
-        name=user.name,
-        login=user.identity_login,
-    )
+__all__ = ["_audit_entity"]

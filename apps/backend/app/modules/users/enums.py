@@ -1,6 +1,3 @@
-from enum import StrEnum
+from app.contexts.identity.users.enums import AuthState
 
-
-class AuthState(StrEnum):
-    ACTIVE = "active"
-    INACTIVE = "inactive"
+__all__ = ["AuthState"]

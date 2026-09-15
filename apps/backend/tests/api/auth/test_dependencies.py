@@ -20,7 +20,7 @@ def test_me_returns_not_found_if_user_disappears_after_authentication(
     app, client, api_prefix, mocker
 ):
     _configure_authenticated_request(app, mocker, role=Role.ADMINISTRATOR)
-    app.state.user_management.get = AsyncMock(return_value=None)
+    app.state.user_queries.get = AsyncMock(return_value=None)
     response = client.get(f"{api_prefix}/auth/me", headers={"cookie": "ory_kratos_session=opaque"})
     assert response.status_code == 404
     assert response.json()["code"] == "user_not_found"
@@ -65,7 +65,7 @@ def _configure_authenticated_request(
     )
     mocker.patch.object(app.state, "session_verifier", verifier)
     mocker.patch.object(app.state, "database", SimpleNamespace(session_factory=_SessionFactory()))
-    mocker.patch.object(app.state, "user_management", service)
+    mocker.patch.object(app.state, "user_queries", service)
     return session, service.list
 
 

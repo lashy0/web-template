@@ -1,157 +1,77 @@
-from __future__ import annotations
+# mypy: disable-error-code=no-untyped-def
+"""Legacy thin delegate. New code must use identity.users commands and queries directly."""
 
 from collections.abc import Callable
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.auth.contracts import IdentityManager
-from app.auth.principal import CurrentPrincipal
-from app.auth.roles import Role
-
-from ..models import User
-from .account import UserAccountService
-from .bootstrap import BOOTSTRAP_ADMIN_USER_ID as BOOTSTRAP_ADMIN_USER_ID
-from .bootstrap import UserBootstrapService
-from .provisioning import UserProvisioningService
-from .reconciliation import ReconciliationResult, UserReconciliationService
+from app.contexts.identity.users.commands import (
+    BOOTSTRAP_ADMIN_USER_ID,
+    BootstrapFirstAdministrator,
+    CreateUser,
+    DeleteUser,
+    SetUserActive,
+    SetUserArchived,
+    SetUserPassword,
+    UpdateUser,
+)
+from app.contexts.identity.users.contracts import UserIdentityProviderPort
+from app.contexts.identity.users.queries import UserQueries
+from app.contexts.identity.users.reconciliation import ReconcileUsers, ReconciliationResult
 
 
 class UserManagementService:
-    """Public compatibility gateway for the domain services."""
+    """Compatibility facade retained for callers outside the migrated composition root."""
 
     def __init__(
         self,
         session_factory: async_sessionmaker[AsyncSession],
-        identities: IdentityManager,
+        identities: UserIdentityProviderPort,
     ) -> None:
-        self._account = UserAccountService(session_factory, identities)
-        self._provisioning = UserProvisioningService(session_factory, identities)
-        self._bootstrap = UserBootstrapService(session_factory, identities)
-        self._reconciliation = UserReconciliationService(session_factory, identities)
+        self._queries = UserQueries(session_factory)
+        self._create = CreateUser(session_factory, identities)
+        self._update = UpdateUser(session_factory, identities)
+        self._password = SetUserPassword(session_factory, identities)
+        self._active = SetUserActive(session_factory, identities)
+        self._archived = SetUserArchived(session_factory, identities)
+        self._delete = DeleteUser(session_factory, identities)
+        self._bootstrap = BootstrapFirstAdministrator(session_factory, identities)
+        self._reconcile = ReconcileUsers(session_factory, identities)
 
-    async def get(self, user_id: UUID) -> User | None:
-        return await self._account.get(user_id)
+    async def get(self, user_id: UUID):
+        return await self._queries.get(user_id)
 
-    async def list(
-        self,
-        *,
-        q: str | None,
-        role: Role | None,
-        auth_state: str | None,
-        archived: bool,
-        page: int,
-        page_size: int,
-        sort: str,
-        order: str,
-    ) -> tuple[list[User], int]:
-        return await self._account.list(
-            q=q,
-            role=role,
-            auth_state=auth_state,
-            archived=archived,
-            page=page,
-            page_size=page_size,
-            sort=sort,
-            order=order,
-        )
+    async def list(self, **kwargs: object):
+        return await self._queries.list(**kwargs)  # type: ignore[arg-type]
 
-    async def update(
-        self,
-        *,
-        actor: CurrentPrincipal,
-        user_id: UUID,
-        login: str | None,
-        name: str | None,
-        role: Role | None,
-    ) -> User:
-        return await self._account.update(
-            actor=actor,
-            user_id=user_id,
-            login=login,
-            name=name,
-            role=role,
-        )
+    async def create(self, **kwargs: object):
+        return await self._create.execute(**kwargs)  # type: ignore[arg-type]
 
-    async def set_password(
-        self,
-        *,
-        actor: CurrentPrincipal,
-        user_id: UUID,
-        password: str,
-    ) -> None:
-        return await self._account.set_password(
-            actor=actor,
-            user_id=user_id,
-            password=password,
-        )
+    async def update(self, **kwargs: object):
+        return await self._update.execute(**kwargs)  # type: ignore[arg-type]
 
-    async def set_active(
-        self,
-        *,
-        actor: CurrentPrincipal,
-        user_id: UUID,
-        active: bool,
-    ) -> User:
-        return await self._account.set_active(
-            actor=actor,
-            user_id=user_id,
-            active=active,
-        )
+    async def set_password(self, **kwargs: object):
+        return await self._password.execute(**kwargs)  # type: ignore[arg-type]
 
-    async def set_archived(
-        self,
-        *,
-        actor: CurrentPrincipal,
-        user_id: UUID,
-        archived: bool,
-    ) -> User:
-        return await self._account.set_archived(
-            actor=actor,
-            user_id=user_id,
-            archived=archived,
-        )
+    async def set_active(self, **kwargs: object):
+        return await self._active.execute(**kwargs)  # type: ignore[arg-type]
 
-    async def delete(
-        self,
-        *,
-        actor: CurrentPrincipal,
-        user_id: UUID,
-    ) -> None:
-        return await self._account.delete(
-            actor=actor,
-            user_id=user_id,
-        )
+    async def set_archived(self, **kwargs: object):
+        return await self._archived.execute(**kwargs)  # type: ignore[arg-type]
 
-    async def create(
-        self,
-        *,
-        actor: CurrentPrincipal | None,
-        name: str,
-        role: Role,
-        login: str,
-        password: str,
-        active: bool,
-    ) -> User:
-        return await self._provisioning.create(
-            actor=actor,
-            name=name,
-            role=role,
-            login=login,
-            password=password,
-            active=active,
-        )
+    async def delete(self, **kwargs: object):
+        return await self._delete.execute(**kwargs)  # type: ignore[arg-type]
 
     async def bootstrap_first_administrator(
-        self,
-        *,
-        name: str,
-        login: str,
-        password_loader: Callable[[], str | None],
-    ) -> User | None:
-        return await self._bootstrap.bootstrap_first_administrator(
+        self, *, name: str, login: str, password_loader: Callable[[], str | None]
+    ):
+        return await self._bootstrap.execute(
             name=name, login=login, password_loader=password_loader
         )
 
     async def reconcile(self) -> ReconciliationResult:
-        return await self._reconciliation.reconcile()
+        return await self._reconcile.execute()
+
+
+__all__ = ["BOOTSTRAP_ADMIN_USER_ID", "UserManagementService"]

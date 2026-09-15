@@ -20,6 +20,17 @@ from app.contexts.equipment.pak.commands import (
     UpdatePak,
 )
 from app.contexts.equipment.pak.queries import PakQueries
+from app.contexts.identity.users.commands import (
+    BootstrapFirstAdministrator,
+    CreateUser,
+    DeleteUser,
+    SetUserActive,
+    SetUserArchived,
+    SetUserPassword,
+    UpdateUser,
+)
+from app.contexts.identity.users.queries import UserQueries
+from app.contexts.identity.users.reconciliation import ReconcileUsers
 from app.contexts.production.batches.commands import DeleteBatch
 from app.contexts.production.compat.verification import QualityVerificationHistoryAdapter
 from app.contexts.production.compat.verification_kg import ProductionVerificationKgAdapter
@@ -39,11 +50,11 @@ from app.infrastructure.hydra.pak import (
     HydraPakTokenIntrospectorAdapter,
 )
 from app.infrastructure.kratos.client import KratosIdentityManager, KratosSessionVerifier
+from app.infrastructure.kratos.users import KratosUserIdentityProvider
 from app.infrastructure.redis.client import create_redis_client
 from app.infrastructure.redis.preparation_notifier import RedisProgressNotifier
 from app.modules.batch.services import BatchManagementService
 from app.modules.defects.services import DefectManagementService
-from app.modules.users.services import UserManagementService
 
 
 @dataclass(slots=True)
@@ -55,7 +66,14 @@ class ApplicationComponents:
     session_verifier: KratosSessionVerifier
     identity_manager: KratosIdentityManager
     hydra_client_manager: HydraOAuthClientManager
-    user_management: UserManagementService
+    user_queries: UserQueries
+    create_user: CreateUser
+    update_user: UpdateUser
+    set_user_password: SetUserPassword
+    set_user_active: SetUserActive
+    set_user_archived: SetUserArchived
+    delete_user: DeleteUser
+    reconcile_users: ReconcileUsers
     pak_queries: PakQueries
     create_pak: CreatePak
     update_pak: UpdatePak
@@ -78,7 +96,14 @@ class ApplicationComponents:
         app.state.session_verifier = self.session_verifier
         app.state.identity_manager = self.identity_manager
         app.state.hydra_client_manager = self.hydra_client_manager
-        app.state.user_management = self.user_management
+        app.state.user_queries = self.user_queries
+        app.state.create_user = self.create_user
+        app.state.update_user = self.update_user
+        app.state.set_user_password = self.set_user_password
+        app.state.set_user_active = self.set_user_active
+        app.state.set_user_archived = self.set_user_archived
+        app.state.delete_user = self.delete_user
+        app.state.reconcile_users = self.reconcile_users
         app.state.pak_queries = self.pak_queries
         app.state.create_pak = self.create_pak
         app.state.update_pak = self.update_pak
@@ -112,6 +137,7 @@ def create_application_components(settings: Settings) -> ApplicationComponents:
     """Create concrete adapters and legacy service facades in one place."""
     database = create_database(settings)
     identity_manager = KratosIdentityManager(settings)
+    user_identities = KratosUserIdentityProvider(identity_manager)
     hydra_client_manager = HydraOAuthClientManager(settings)
     pak_oauth = HydraPakOAuthClientAdapter(hydra_client_manager)
     pak_tokens = HydraPakTokenIntrospectorAdapter(HydraTokenIntrospector(settings))
@@ -122,7 +148,14 @@ def create_application_components(settings: Settings) -> ApplicationComponents:
         session_verifier=KratosSessionVerifier(settings),
         identity_manager=identity_manager,
         hydra_client_manager=hydra_client_manager,
-        user_management=UserManagementService(database.session_factory, identity_manager),
+        user_queries=UserQueries(database.session_factory),
+        create_user=CreateUser(database.session_factory, user_identities),
+        update_user=UpdateUser(database.session_factory, user_identities),
+        set_user_password=SetUserPassword(database.session_factory, user_identities),
+        set_user_active=SetUserActive(database.session_factory, user_identities),
+        set_user_archived=SetUserArchived(database.session_factory, user_identities),
+        delete_user=DeleteUser(database.session_factory, user_identities),
+        reconcile_users=ReconcileUsers(database.session_factory, user_identities),
         pak_queries=PakQueries(database.session_factory),
         create_pak=CreatePak(
             database.session_factory, pak_oauth, settings.PAK_ACCESS_KEY_ENCRYPTION_KEY
@@ -162,8 +195,10 @@ async def bootstrap_first_administrator() -> None:
     database = create_database(settings)
 
     try:
-        service = UserManagementService(database.session_factory, KratosIdentityManager(settings))
-        user = await service.bootstrap_first_administrator(
+        user = await BootstrapFirstAdministrator(
+            database.session_factory,
+            KratosUserIdentityProvider(KratosIdentityManager(settings)),
+        ).execute(
             name=settings.BOOTSTRAP_ADMIN_NAME,
             login=settings.BOOTSTRAP_ADMIN_LOGIN,
             password_loader=settings.bootstrap_admin_password,

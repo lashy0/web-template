@@ -75,7 +75,17 @@ def _configure_administrator(
     )
     mocker.patch.object(app.state, "session_verifier", verifier)
     mocker.patch.object(app.state, "database", SimpleNamespace(session_factory=_SessionFactory()))
-    mocker.patch.object(app.state, "user_management", service)
+    mocker.patch.object(app.state, "user_queries", service)
+    for state_name, method_name in (
+        ("create_user", "create"),
+        ("update_user", "update"),
+        ("set_user_password", "set_password"),
+        ("set_user_active", "set_active"),
+        ("set_user_archived", "set_archived"),
+        ("delete_user", "delete"),
+    ):
+        method = getattr(service, method_name, AsyncMock())
+        mocker.patch.object(app.state, state_name, SimpleNamespace(execute=method))
     return actor_user_id
 
 
@@ -95,7 +105,7 @@ def _headers() -> dict[str, str]:
 
 
 @pytest.mark.api
-def test_create_user_forwards_valid_payload_to_user_management(
+def test_create_user_forwards_valid_payload_to_create_command(
     mutation_client: tuple[FastAPI, TestClient],
     mocker: MockerFixture,
 ) -> None:
