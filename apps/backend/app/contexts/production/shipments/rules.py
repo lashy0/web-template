@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from app.modules.batch.exceptions import (
+from app.contexts.production.exceptions import (
     BatchShipmentAlreadyCompletedError,
     BatchShipmentAlreadyVoidedError,
     BatchShipmentEditNotAllowedError,

@@ -5,6 +5,7 @@ from .prefix import (
     CreateKgDevEuiPrefixRequest,
     KgDevEuiPrefixListResponse,
     KgDevEuiPrefixResponse,
+    KgDevEuiPrefixSummaryResponse,
     UpdateKgDevEuiPrefixArchivedRequest,
     UpdateKgDevEuiPrefixRequest,
 )

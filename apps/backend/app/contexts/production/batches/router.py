@@ -1,5 +1,7 @@
 # mypy: disable-error-code=untyped-decorator
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import Annotated, Literal, cast
 from uuid import UUID
 
@@ -7,16 +9,34 @@ from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.api.auth_deps import CurrentPrincipalDep, require_permission
+from app.audit.writer import TransactionalAuditWriter
 from app.contexts.production.compat.verification import QualityVerificationHistoryAdapter
-from app.contexts.production.kg.schemas import DevEuiPrefix
+from app.contexts.production.kg.queries import KgQueries
+from app.contexts.production.kg.repository import KgRepository
+from app.contexts.production.preparation.commands.retry import RetryPreparation
+from app.contexts.production.preparation.queries import PreparationQueries
+from app.contexts.production.preparation.repository import PreparationRepository
+from app.contexts.production.production_orders.queries import ProductionOrderQueries
+from app.contexts.production.production_orders.repository import ProductionOrderRepository
 from app.contexts.production.production_orders.schemas import AssignProductionOrderRequest
 from app.infrastructure.redis.preparation_notifier import RedisProgressNotifier
-from app.modules.batch.exceptions import BatchNotFoundError
-from app.modules.batch.routers.common import _batch_response, _service
+from app.shared.uow import transaction
+from app.worker.preparation_dispatcher import CeleryWorkDispatcher
 
-from .commands import DeleteBatch
-from .model import BatchStatus
+from ..exceptions import BatchNotFoundError
+from .commands import (
+    AssignProductionOrder,
+    CompleteBatch,
+    CreateBatch,
+    DeleteBatch,
+    SetBatchArchived,
+    UpdateBatch,
+)
+from .model import Batch, BatchStatus
 from .permissions import BatchPermission
+from .presentation import batch_response
+from .queries import BatchQueries, required_batch
+from .repository import BatchRepository
 from .schemas import (
     BatchListResponse,
     BatchResponse,
@@ -29,11 +49,25 @@ from .schemas import (
 router = APIRouter(prefix="/batches", tags=["batch"])
 
 
-def _delete_workflow(request: Request) -> DeleteBatch:
-    return DeleteBatch(
-        cast(async_sessionmaker[AsyncSession], request.app.state.database.session_factory),
-        verification_history=QualityVerificationHistoryAdapter,
-        notifier=RedisProgressNotifier(),
+def _session_factory(request: Request) -> async_sessionmaker[AsyncSession]:
+    return cast(async_sessionmaker[AsyncSession], request.app.state.database.session_factory)
+
+
+@asynccontextmanager
+async def _transaction(request: Request) -> AsyncIterator[AsyncSession]:
+    async with transaction(_session_factory(request)) as session:
+        yield session
+
+
+async def _response(session: AsyncSession, batch: Batch) -> BatchResponse:
+    queries = BatchQueries(
+        BatchRepository(session), PreparationQueries(PreparationRepository(session))
+    )
+    can_delete = (
+        await queries.deletion_availability([batch], QualityVerificationHistoryAdapter(session))
+    )[batch.id]
+    return batch_response(
+        batch, can_delete=can_delete, job=await queries.get_preparation_job(batch.id)
     )
 
 
@@ -41,12 +75,13 @@ def _delete_workflow(request: Request) -> DeleteBatch:
 async def preview_dev_eui_range(
     _: Annotated[CurrentPrincipalDep, Depends(require_permission(BatchPermission.CREATE))],
     request: Request,
-    dev_eui_prefix: DevEuiPrefix,
+    dev_eui_prefix: str,
     planned_qty: int = Query(gt=0),
 ) -> DevEuiRangePreviewResponse:
-    first, last = await _service(request).preview_dev_eui_range(
-        dev_eui_prefix=dev_eui_prefix, planned_qty=planned_qty
-    )
+    async with _session_factory(request)() as session:
+        first, last = await KgQueries(KgRepository(session)).preview_allocation(
+            dev_eui_prefix, planned_qty
+        )
     return DevEuiRangePreviewResponse(first_dev_eui=first, last_dev_eui=last)
 
 
@@ -73,30 +108,30 @@ async def list_batches(
     production_order_id: UUID | None = None,
     without_production_order: bool = False,
 ) -> BatchListResponse:
-    batches, total = await _service(request).list(
-        q=q,
-        status=status_filter,
-        archived=archived,
-        page=page,
-        page_size=page_size,
-        sort=sort,
-        order=order,
-        production_order_id=production_order_id,
-        without_production_order=without_production_order,
-    )
-    deletion_availability = await _service(request).deletion_availability(batches)
-    jobs = await _service(request).get_key_generation_jobs([batch.id for batch in batches])
-    return BatchListResponse(
-        items=[
-            await _batch_response(
-                request, batch, can_delete=deletion_availability[batch.id], job=jobs.get(batch.id)
-            )
+    async with _session_factory(request)() as session:
+        queries = BatchQueries(
+            BatchRepository(session), PreparationQueries(PreparationRepository(session))
+        )
+        batches, total = await queries.list(
+            q=q,
+            status=status_filter,
+            archived=archived,
+            page=page,
+            page_size=page_size,
+            sort=sort,
+            order=order,
+            production_order_id=production_order_id,
+            without_production_order=without_production_order,
+        )
+        availability = await queries.deletion_availability(
+            batches, QualityVerificationHistoryAdapter(session)
+        )
+        jobs = await queries.get_preparation_jobs([batch.id for batch in batches])
+        items = [
+            batch_response(batch, can_delete=availability[batch.id], job=jobs.get(batch.id))
             for batch in batches
-        ],
-        total=total,
-        page=page,
-        page_size=page_size,
-    )
+        ]
+    return BatchListResponse(items=items, total=total, page=page, page_size=page_size)
 
 
 @router.get("/{batch_id}", response_model=BatchResponse)
@@ -105,10 +140,13 @@ async def get_batch(
     _: Annotated[CurrentPrincipalDep, Depends(require_permission(BatchPermission.READ))],
     request: Request,
 ) -> BatchResponse:
-    batch = await _service(request).get(batch_id)
-    if batch is None:
-        raise BatchNotFoundError
-    return await _batch_response(request, batch)
+    async with _session_factory(request)() as session:
+        batch = await BatchQueries(
+            BatchRepository(session), PreparationQueries(PreparationRepository(session))
+        ).get(batch_id)
+        if batch is None:
+            raise BatchNotFoundError
+        return await _response(session, batch)
 
 
 @router.post("", response_model=BatchResponse, status_code=status.HTTP_201_CREATED)
@@ -117,19 +155,30 @@ async def create_batch(
     principal: Annotated[CurrentPrincipalDep, Depends(require_permission(BatchPermission.CREATE))],
     request: Request,
 ) -> BatchResponse:
-    batch = await _service(request).create(
-        actor=principal,
-        name=payload.name,
-        description=payload.description,
-        dev_eui_prefix=payload.dev_eui_prefix,
-        planned_qty=payload.planned_qty,
-        day_plan_qty=payload.day_plan_qty,
-        activation_type=payload.lorawan_config.activation_type,
-        lorawan_version=payload.lorawan_config.lorawan_version,
-        kg_version_id=payload.kg_version_id,
-        production_order_id=payload.production_order_id,
-    )
-    return await _batch_response(request, batch)
+    async with _transaction(request) as session:
+        batch = await CreateBatch(
+            BatchRepository(session),
+            KgRepository(session),
+            PreparationRepository(session),
+            ProductionOrderQueries(ProductionOrderRepository(session)),
+            TransactionalAuditWriter.from_session(session),
+        ).execute(
+            actor=principal,
+            name=payload.name,
+            description=payload.description,
+            dev_eui_prefix=payload.dev_eui_prefix,
+            planned_qty=payload.planned_qty,
+            day_plan_qty=payload.day_plan_qty,
+            activation_type=payload.lorawan_config.activation_type,
+            lorawan_version=payload.lorawan_config.lorawan_version,
+            kg_version_id=payload.kg_version_id,
+            production_order_id=payload.production_order_id,
+        )
+        response = await _response(session, batch)
+    await CeleryWorkDispatcher(
+        _session_factory(request), RedisProgressNotifier()
+    ).dispatch_after_commit(batch.id)
+    return response
 
 
 @router.patch("/{batch_id}", response_model=BatchResponse)
@@ -139,10 +188,13 @@ async def update_batch(
     principal: Annotated[CurrentPrincipalDep, Depends(require_permission(BatchPermission.UPDATE))],
     request: Request,
 ) -> BatchResponse:
-    batch = await _service(request).update(
-        actor=principal, batch_id=batch_id, updates=payload.model_dump(exclude_unset=True)
-    )
-    return await _batch_response(request, batch)
+    async with _transaction(request) as session:
+        batch = await UpdateBatch(
+            BatchRepository(session), TransactionalAuditWriter.from_session(session)
+        ).execute(
+            actor=principal, batch_id=batch_id, updates=payload.model_dump(exclude_unset=True)
+        )
+        return await _response(session, batch)
 
 
 @router.put("/{batch_id}/archived", response_model=BatchResponse)
@@ -152,10 +204,11 @@ async def update_batch_archived(
     principal: Annotated[CurrentPrincipalDep, Depends(require_permission(BatchPermission.ARCHIVE))],
     request: Request,
 ) -> BatchResponse:
-    batch = await _service(request).set_archived(
-        actor=principal, batch_id=batch_id, archived=payload.archived
-    )
-    return await _batch_response(request, batch)
+    async with _transaction(request) as session:
+        batch = await SetBatchArchived(
+            BatchRepository(session), TransactionalAuditWriter.from_session(session)
+        ).execute(actor=principal, batch_id=batch_id, archived=payload.archived)
+        return await _response(session, batch)
 
 
 @router.post("/{batch_id}/complete", response_model=BatchResponse)
@@ -166,8 +219,13 @@ async def complete_batch(
     ],
     request: Request,
 ) -> BatchResponse:
-    batch = await _service(request).complete(actor=principal, batch_id=batch_id)
-    return await _batch_response(request, batch)
+    async with _transaction(request) as session:
+        batch = await CompleteBatch(
+            BatchRepository(session),
+            PreparationRepository(session),
+            TransactionalAuditWriter.from_session(session),
+        ).execute(actor=principal, batch_id=batch_id)
+        return await _response(session, batch)
 
 
 @router.post("/{batch_id}/preparation/retry", response_model=BatchResponse)
@@ -176,8 +234,17 @@ async def retry_batch_preparation(
     principal: Annotated[CurrentPrincipalDep, Depends(require_permission(BatchPermission.UPDATE))],
     request: Request,
 ) -> BatchResponse:
-    batch = await _service(request).retry_preparation(actor=principal, batch_id=batch_id)
-    return await _batch_response(request, batch)
+    async with _transaction(request) as session:
+        batch = await required_batch(BatchRepository(session), batch_id, for_update=True)
+        _, dispatched = await RetryPreparation(PreparationRepository(session)).execute(
+            actor=principal, batch=batch
+        )
+        response = await _response(session, batch)
+    if dispatched:
+        await CeleryWorkDispatcher(
+            _session_factory(request), RedisProgressNotifier()
+        ).dispatch_after_commit(batch.id)
+    return response
 
 
 @router.delete("/{batch_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -186,7 +253,11 @@ async def delete_batch(
     principal: Annotated[CurrentPrincipalDep, Depends(require_permission(BatchPermission.DELETE))],
     request: Request,
 ) -> None:
-    await _delete_workflow(request).execute(actor=principal, batch_id=batch_id)
+    await DeleteBatch(
+        _session_factory(request),
+        verification_history=QualityVerificationHistoryAdapter,
+        notifier=RedisProgressNotifier(),
+    ).execute(actor=principal, batch_id=batch_id)
 
 
 @router.put("/{batch_id}/production-order", response_model=BatchResponse)
@@ -198,7 +269,12 @@ async def assign_production_order(
     ],
     request: Request,
 ) -> BatchResponse:
-    batch = await _service(request).assign_production_order(
-        actor=principal, batch_id=batch_id, production_order_id=payload.production_order_id
-    )
-    return await _batch_response(request, batch)
+    async with _transaction(request) as session:
+        batch = await AssignProductionOrder(
+            BatchRepository(session),
+            ProductionOrderQueries(ProductionOrderRepository(session)),
+            TransactionalAuditWriter.from_session(session),
+        ).execute(
+            actor=principal, batch_id=batch_id, production_order_id=payload.production_order_id
+        )
+        return await _response(session, batch)

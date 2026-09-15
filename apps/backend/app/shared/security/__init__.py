@@ -6,6 +6,7 @@ This package intentionally has no dependency on ``app.auth`` or FastAPI.
 from app.shared.security.contracts import Identity
 from app.shared.security.exceptions import ForbiddenError, IdentityNotFoundError
 from app.shared.security.permissions import (
+    EMPTY_PERMISSION_REGISTRY,
     Permission,
     PermissionRegistry,
     install_permission_registry,
@@ -18,6 +19,7 @@ from app.shared.security.roles import Role
 
 __all__ = [
     "CurrentPrincipal",
+    "EMPTY_PERMISSION_REGISTRY",
     "ForbiddenError",
     "Identity",
     "IdentityNotFoundError",

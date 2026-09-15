@@ -1,19 +1,13 @@
-"""Legacy authentication imports for the bootstrap-composed registry."""
+"""Compatibility access to the canonical, explicitly installed registry.
 
-from app.bootstrap.permissions import (
-    ALL_PERMISSIONS,
-    ENGINEER_PERMISSIONS,
-    MANAGER_PERMISSIONS,
-    ROLE_PERMISSIONS,
-)
+This module must not compose or install feature permissions.  The composition
+root owns the application permission catalogue.
+"""
+
 from app.shared.security.permissions import Permission, permissions_for_role, role_has_permission
 
 __all__ = [
-    "ALL_PERMISSIONS",
-    "ENGINEER_PERMISSIONS",
-    "MANAGER_PERMISSIONS",
     "Permission",
-    "ROLE_PERMISSIONS",
     "permissions_for_role",
     "role_has_permission",
 ]

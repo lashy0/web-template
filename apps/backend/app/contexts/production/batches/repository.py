@@ -1,13 +1,16 @@
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import ColumnElement, exists, func, or_, select
+from sqlalchemy import ColumnElement, exists, func, or_, select, union
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.orm.interfaces import ORMOption
 
 from app.components.keygen.types import ActivationType, LoRaWanVersion
+from app.contexts.production.kg.model import KgState, KgUnit
+from app.contexts.production.receipts.model import BatchReceipt
+from app.contexts.production.shipments.model import BatchShipment
 
 from .model import Batch, BatchLoRaWanConfig, BatchStatus
 
@@ -164,3 +167,25 @@ class BatchRepository:
         return bool(
             await self._session.scalar(select(exists().where(Batch.kg_version_id == version_id)))
         )
+
+    async def deletion_availability(self, batches: Sequence[Batch]) -> dict[UUID, bool]:
+        batch_ids = [batch.id for batch in batches]
+        if not batch_ids:
+            return {}
+        activity_ids = set(
+            (
+                await self._session.scalars(
+                    union(
+                        select(BatchReceipt.batch_id).where(BatchReceipt.batch_id.in_(batch_ids)),
+                        select(BatchShipment.batch_id).where(BatchShipment.batch_id.in_(batch_ids)),
+                        select(KgUnit.batch_id).where(
+                            KgUnit.batch_id.in_(batch_ids), KgUnit.state == KgState.SCRAPPED
+                        ),
+                    )
+                )
+            ).all()
+        )
+        return {
+            batch.id: batch.status is BatchStatus.IN_PRODUCTION and batch.id not in activity_ids
+            for batch in batches
+        }

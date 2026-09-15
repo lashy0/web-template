@@ -11,7 +11,9 @@ from loguru import logger
 from app.api.errors import install_error_handlers
 from app.api.main import api_router
 from app.bootstrap.application import create_application_components
+from app.bootstrap.permissions import compose_permission_registry
 from app.contexts.identity.users.reconciliation import ReconcileUsers
+from app.contexts.quality.verification.commands.reconcile import reconcile_stale_sessions
 from app.core.config import Settings, get_settings
 from app.core.logging import setup_logging
 from app.core.version import APP_VERSION
@@ -57,7 +59,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     async def verification_sweeper_forever() -> None:
         while True:
             try:
-                expired = await app.state.reconcile_stale_verification_sessions(
+                expired = await reconcile_stale_sessions(
                     app.state.database.session_factory,
                     session_ttl=timedelta(minutes=settings.VERIFICATION_SESSION_TTL_MINUTES),
                 )
@@ -129,6 +131,11 @@ def create_app(
     )
 
     app.state.settings = app_settings
+    # Permission values are composed once by the application composition root,
+    # never as an import-time side effect of auth or shared security.
+    from app.shared.security import install_permission_registry
+
+    install_permission_registry(compose_permission_registry())
 
     app.add_middleware(
         CORSMiddleware,

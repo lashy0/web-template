@@ -1,13 +1,30 @@
-from typing import Annotated
+from typing import Annotated, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request, status
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.api.auth_deps import CurrentPrincipalDep, require_permission
+from app.audit.writer import TransactionalAuditWriter
 from app.contexts.production.batches.permissions import BatchPermission
+from app.contexts.production.batches.presentation import shipment_item_response, shipment_response
+from app.contexts.production.batches.repository import BatchRepository
+from app.contexts.production.batches.rules import BATCH_EDIT_WINDOW
+from app.contexts.production.kg.repository import KgRepository
 from app.contexts.production.kg.schemas import DevEui
-from app.modules.batch.routers.common import _service, _shipment_item_response, _shipment_response
+from app.contexts.production.preparation.repository import PreparationRepository
+from app.shared.uow import transaction
 
+from .commands import (
+    AddShipmentItem,
+    CompleteShipment,
+    CreateShipment,
+    RemoveShipmentItem,
+    UpdateShipment,
+    VoidShipment,
+)
+from .queries import ShipmentQueries
+from .repository import ShipmentRepository
 from .schemas import (
     AddBatchShipmentItemRequest,
     BatchShipmentItemResponse,
@@ -21,6 +38,10 @@ from .schemas import (
 router = APIRouter(prefix="/batches", tags=["batch"])
 
 
+def _session_factory(request: Request) -> async_sessionmaker[AsyncSession]:
+    return cast(async_sessionmaker[AsyncSession], request.app.state.database.session_factory)
+
+
 @router.get("/{batch_id}/shipments", response_model=BatchShipmentListResponse)
 async def list_batch_shipments(
     batch_id: UUID,
@@ -28,20 +49,15 @@ async def list_batch_shipments(
     request: Request,
     include_voided: bool = False,
 ) -> BatchShipmentListResponse:
-    shipments = await _service(request).list_shipments(batch_id, include_voided=include_voided)
-    quantities = await _service(request).count_shipment_quantities(batch_id) if shipments else {}
-    return BatchShipmentListResponse(
-        items=[
-            await _shipment_response(
-                request,
-                batch_id=batch_id,
-                shipment=shipment,
-                quantity=quantities.get(shipment.id, 0),
-            )
+    async with _session_factory(request)() as session:
+        queries = ShipmentQueries(BatchRepository(session), ShipmentRepository(session))
+        shipments = await queries.list_by_batch(batch_id, include_voided=include_voided)
+        quantities = await queries.item_counts(batch_id) if shipments else {}
+        items = [
+            shipment_response(shipment, quantity=quantities.get(shipment.id, 0))
             for shipment in shipments
-        ],
-        total=len(shipments),
-    )
+        ]
+    return BatchShipmentListResponse(items=items, total=len(items))
 
 
 @router.post(
@@ -57,10 +73,14 @@ async def create_batch_shipment(
     ],
     request: Request,
 ) -> BatchShipmentResponse:
-    shipment = await _service(request).create_shipment(
-        actor=principal, batch_id=batch_id, comment=payload.comment
-    )
-    return await _shipment_response(request, batch_id=batch_id, shipment=shipment)
+    async with transaction(_session_factory(request)) as session:
+        shipment = await CreateShipment(
+            BatchRepository(session),
+            ShipmentRepository(session),
+            PreparationRepository(session),
+            TransactionalAuditWriter.from_session(session),
+        ).execute(actor=principal, batch_id=batch_id, comment=payload.comment)
+        return shipment_response(shipment, quantity=0)
 
 
 @router.patch("/{batch_id}/shipments/{shipment_id}", response_model=BatchShipmentResponse)
@@ -73,13 +93,21 @@ async def update_batch_shipment(
     ],
     request: Request,
 ) -> BatchShipmentResponse:
-    shipment = await _service(request).update_shipment(
-        actor=principal,
-        batch_id=batch_id,
-        shipment_id=shipment_id,
-        updates=payload.model_dump(exclude_unset=True),
-    )
-    return await _shipment_response(request, batch_id=batch_id, shipment=shipment)
+    async with transaction(_session_factory(request)) as session:
+        shipments = ShipmentRepository(session)
+        shipment = await UpdateShipment(
+            BatchRepository(session),
+            shipments,
+            TransactionalAuditWriter.from_session(session),
+            edit_window=BATCH_EDIT_WINDOW,
+        ).execute(
+            actor=principal,
+            batch_id=batch_id,
+            shipment_id=shipment_id,
+            updates=payload.model_dump(exclude_unset=True),
+        )
+        quantity = await shipments.item_count(shipment.id)
+        return shipment_response(shipment, quantity=quantity)
 
 
 @router.get(
@@ -91,8 +119,11 @@ async def list_batch_shipment_items(
     _: Annotated[CurrentPrincipalDep, Depends(require_permission(BatchPermission.READ))],
     request: Request,
 ) -> list[BatchShipmentItemResponse]:
-    items = await _service(request).list_shipment_items(batch_id=batch_id, shipment_id=shipment_id)
-    return [_shipment_item_response(item) for item in items]
+    async with _session_factory(request)() as session:
+        items = await ShipmentQueries(
+            BatchRepository(session), ShipmentRepository(session)
+        ).list_items(batch_id=batch_id, shipment_id=shipment_id)
+        return [shipment_item_response(item) for item in items]
 
 
 @router.post(
@@ -109,10 +140,18 @@ async def add_batch_shipment_item(
     ],
     request: Request,
 ) -> BatchShipmentItemResponse:
-    item = await _service(request).add_shipment_item(
-        actor=principal, batch_id=batch_id, shipment_id=shipment_id, dev_eui=payload.dev_eui
-    )
-    return _shipment_item_response(item)
+    async with transaction(_session_factory(request)) as session:
+        item = await AddShipmentItem(
+            BatchRepository(session),
+            ShipmentRepository(session),
+            KgRepository(session),
+            PreparationRepository(session),
+            TransactionalAuditWriter.from_session(session),
+            edit_window=BATCH_EDIT_WINDOW,
+        ).execute(
+            actor=principal, batch_id=batch_id, shipment_id=shipment_id, dev_eui=payload.dev_eui
+        )
+        return shipment_item_response(item)
 
 
 @router.delete(
@@ -127,9 +166,13 @@ async def remove_batch_shipment_item(
     ],
     request: Request,
 ) -> None:
-    await _service(request).remove_shipment_item(
-        actor=principal, batch_id=batch_id, shipment_id=shipment_id, dev_eui=dev_eui
-    )
+    async with transaction(_session_factory(request)) as session:
+        await RemoveShipmentItem(
+            BatchRepository(session),
+            ShipmentRepository(session),
+            TransactionalAuditWriter.from_session(session),
+            edit_window=BATCH_EDIT_WINDOW,
+        ).execute(actor=principal, batch_id=batch_id, shipment_id=shipment_id, dev_eui=dev_eui)
 
 
 @router.post("/{batch_id}/shipments/{shipment_id}/complete", response_model=BatchShipmentResponse)
@@ -141,10 +184,16 @@ async def complete_batch_shipment(
     ],
     request: Request,
 ) -> BatchShipmentResponse:
-    shipment = await _service(request).complete_shipment(
-        actor=principal, batch_id=batch_id, shipment_id=shipment_id
-    )
-    return await _shipment_response(request, batch_id=batch_id, shipment=shipment)
+    async with transaction(_session_factory(request)) as session:
+        shipments = ShipmentRepository(session)
+        shipment = await CompleteShipment(
+            BatchRepository(session),
+            shipments,
+            PreparationRepository(session),
+            TransactionalAuditWriter.from_session(session),
+            edit_window=BATCH_EDIT_WINDOW,
+        ).execute(actor=principal, batch_id=batch_id, shipment_id=shipment_id)
+        return shipment_response(shipment, quantity=await shipments.item_count(shipment.id))
 
 
 @router.post("/{batch_id}/shipments/{shipment_id}/void", response_model=BatchShipmentResponse)
@@ -157,7 +206,14 @@ async def void_batch_shipment(
     ],
     request: Request,
 ) -> BatchShipmentResponse:
-    shipment = await _service(request).void_shipment(
-        actor=principal, batch_id=batch_id, shipment_id=shipment_id, reason=payload.reason
-    )
-    return await _shipment_response(request, batch_id=batch_id, shipment=shipment)
+    async with transaction(_session_factory(request)) as session:
+        shipments = ShipmentRepository(session)
+        shipment = await VoidShipment(
+            BatchRepository(session),
+            shipments,
+            TransactionalAuditWriter.from_session(session),
+            edit_window=BATCH_EDIT_WINDOW,
+        ).execute(
+            actor=principal, batch_id=batch_id, shipment_id=shipment_id, reason=payload.reason
+        )
+        return shipment_response(shipment, quantity=await shipments.item_count(shipment.id))

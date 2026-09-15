@@ -11,6 +11,7 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.audit.writer import TransactionalAuditWriter
+from app.contexts.production.exceptions import BatchCannotBeDeletedError
 from app.contexts.production.kg.repository import KgRepository
 from app.contexts.production.preparation.commands.request_cancellation import request_cancellation
 from app.contexts.production.preparation.model import BatchKeyGenerationStatus
@@ -18,7 +19,6 @@ from app.contexts.production.preparation.notifier import ProgressNotifier
 from app.contexts.production.preparation.repository import PreparationRepository
 from app.contexts.production.receipts.repository import ReceiptRepository
 from app.contexts.production.shipments.repository import ShipmentRepository
-from app.modules.batch.exceptions import BatchCannotBeDeletedError
 from app.shared.security import CurrentPrincipal
 from app.shared.uow import transaction
 

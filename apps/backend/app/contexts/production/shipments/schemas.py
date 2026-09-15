@@ -7,7 +7,10 @@ from pydantic import BaseModel, Field, field_validator
 
 from app.contexts.identity.users.schemas import UserSummaryResponse
 from app.contexts.production.kg.schemas import DevEui
-from app.modules.batch.schemas.common import normalize_trimmed
+
+
+def normalize_trimmed(value: object) -> object:
+    return value.strip() if isinstance(value, str) else value
 
 
 class CreateBatchShipmentRequest(BaseModel):

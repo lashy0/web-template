@@ -4,7 +4,7 @@ from uuid import UUID
 
 from app.contexts.production.batches.model import Batch
 from app.contexts.production.batches.repository import BatchRepository
-from app.modules.batch.exceptions import BatchNotFoundError, BatchReceiptNotFoundError
+from app.contexts.production.exceptions import BatchNotFoundError, BatchReceiptNotFoundError
 
 from .model import BatchReceipt
 from .repository import ReceiptRepository

@@ -5,12 +5,12 @@ from app.audit.writer import TransactionalAuditWriter
 from app.contexts.production.batches import rules as batch_rules
 from app.contexts.production.batches.audit import audit_actor, shipment_entity
 from app.contexts.production.batches.repository import BatchRepository
-from app.contexts.production.kg.repository import KgRepository
-from app.contexts.production.preparation.repository import PreparationRepository
-from app.modules.batch.exceptions import (
+from app.contexts.production.exceptions import (
     BatchShipmentKgAlreadyAssignedError,
     BatchShipmentKgStateConflictError,
 )
+from app.contexts.production.kg.repository import KgRepository
+from app.contexts.production.preparation.repository import PreparationRepository
 from app.shared.security import CurrentPrincipal
 
 from ..model import BatchShipmentItem

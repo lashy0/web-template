@@ -12,7 +12,6 @@ from app.contexts.equipment.pak.adapters import adapt_pak
 from app.contexts.equipment.pak.authentication import PakMachineAuthenticator
 from app.contexts.identity.users.commands import BootstrapFirstAdministrator
 from app.contexts.production.compat.verification_kg import ProductionVerificationKgAdapter
-from app.contexts.quality.verification.commands.reconcile import reconcile_stale_sessions
 from app.core.config import Settings, get_settings
 from app.core.logging import setup_logging
 from app.infrastructure.database.session import Database, create_database
@@ -47,7 +46,6 @@ class ApplicationComponents:
         app.state.pak_machine_authenticator = self.pak_machine_authenticator
         app.state.verification_kg_port_factory = ProductionVerificationKgAdapter
         app.state.verification_pak_adapter = adapt_pak
-        app.state.reconcile_stale_verification_sessions = reconcile_stale_sessions
 
     @staticmethod
     def audit_writer(session: AsyncSession) -> TransactionalAuditWriter:

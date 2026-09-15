@@ -2,8 +2,8 @@ from collections.abc import Sequence
 from typing import Protocol
 from uuid import UUID
 
+from app.contexts.production.exceptions import BatchInvalidFiltersError, BatchNotFoundError
 from app.contexts.production.preparation.model import BatchKeyGenerationJob
-from app.modules.batch.exceptions import BatchInvalidFiltersError, BatchNotFoundError
 
 from .model import Batch, BatchStatus
 from .repository import BatchRepository
@@ -13,6 +13,10 @@ class PreparationReadApi(Protocol):
     async def get(self, batch_id: UUID) -> BatchKeyGenerationJob | None: ...
 
     async def get_many(self, batch_ids: Sequence[UUID]) -> dict[UUID, BatchKeyGenerationJob]: ...
+
+
+class VerificationHistoryReadApi(Protocol):
+    async def has_history_for_batch(self, batch_id: UUID) -> bool: ...
 
 
 class BatchQueries:
@@ -57,6 +61,15 @@ class BatchQueries:
         self, batch_ids: Sequence[UUID]
     ) -> dict[UUID, BatchKeyGenerationJob]:
         return await self._preparation.get_many(batch_ids)
+
+    async def deletion_availability(
+        self, batches: Sequence[Batch], verification: VerificationHistoryReadApi
+    ) -> dict[UUID, bool]:
+        availability = await self._repository.deletion_availability(batches)
+        for batch in batches:
+            if availability[batch.id] and await verification.has_history_for_batch(batch.id):
+                availability[batch.id] = False
+        return availability
 
 
 async def required_batch(

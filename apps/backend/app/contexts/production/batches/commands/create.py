@@ -3,13 +3,13 @@ from uuid import UUID
 
 from app.audit.writer import TransactionalAuditWriter
 from app.components.keygen.types import ActivationType, LoRaWanVersion
+from app.contexts.production.exceptions import BatchKgVersionArchivedError
 from app.contexts.production.kg.commands import AllocateForBatch
 from app.contexts.production.kg.exceptions import KgVersionNotFoundError
 from app.contexts.production.kg.repository import KgRepository
 from app.contexts.production.preparation.commands.start import CreateInitialPreparation
 from app.contexts.production.preparation.repository import PreparationRepository
 from app.contexts.production.production_orders.queries import ProductionOrderQueries
-from app.modules.batch.exceptions import BatchKgVersionArchivedError
 from app.shared.security import CurrentPrincipal
 
 from ..audit import audit_actor, batch_entity

@@ -15,7 +15,7 @@ from app.contexts.production.production_orders.permissions import ProductionOrde
 from app.contexts.quality.defects.permissions import DefectPermission
 from app.contexts.quality.verification.permissions import VerificationPermission
 from app.modules.audit.permissions import AuditPermission
-from app.shared.security import Permission, PermissionRegistry, Role, install_permission_registry
+from app.shared.security import Permission, PermissionRegistry, Role
 
 ALL_PERMISSIONS: Final[frozenset[Permission]] = frozenset(
     (
@@ -63,11 +63,13 @@ ROLE_PERMISSIONS: Final[dict[Role, frozenset[Permission]]] = {
     Role.PACKER: frozenset(),
     Role.OPERATOR: frozenset(),
 }
-PERMISSION_REGISTRY: Final = PermissionRegistry(ALL_PERMISSIONS, ROLE_PERMISSIONS)
 
 
 def compose_permission_registry() -> PermissionRegistry:
-    return PERMISSION_REGISTRY
+    """Build the application permission registry at the composition root.
 
+    Building is deliberately side-effect free: process-wide installation is an
+    explicit startup responsibility (see ``app.main.create_app``).
+    """
 
-install_permission_registry(PERMISSION_REGISTRY)
+    return PermissionRegistry(ALL_PERMISSIONS, ROLE_PERMISSIONS)

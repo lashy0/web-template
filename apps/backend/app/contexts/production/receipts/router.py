@@ -1,12 +1,21 @@
-from typing import Annotated
+from typing import Annotated, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request, status
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.api.auth_deps import CurrentPrincipalDep, require_permission
+from app.audit.writer import TransactionalAuditWriter
 from app.contexts.production.batches.permissions import BatchPermission
-from app.modules.batch.routers.common import _receipt_response, _service
+from app.contexts.production.batches.presentation import receipt_response
+from app.contexts.production.batches.repository import BatchRepository
+from app.contexts.production.batches.rules import BATCH_EDIT_WINDOW
+from app.contexts.production.preparation.repository import PreparationRepository
+from app.shared.uow import transaction
 
+from .commands import CreateReceipt, UpdateReceipt, VoidReceipt
+from .queries import ReceiptQueries
+from .repository import ReceiptRepository
 from .schemas import (
     BatchReceiptListResponse,
     BatchReceiptResponse,
@@ -18,6 +27,10 @@ from .schemas import (
 router = APIRouter(prefix="/batches", tags=["batch"])
 
 
+def _session_factory(request: Request) -> async_sessionmaker[AsyncSession]:
+    return cast(async_sessionmaker[AsyncSession], request.app.state.database.session_factory)
+
+
 @router.get("/{batch_id}/receipts", response_model=BatchReceiptListResponse)
 async def list_batch_receipts(
     batch_id: UUID,
@@ -25,10 +38,12 @@ async def list_batch_receipts(
     request: Request,
     include_voided: bool = False,
 ) -> BatchReceiptListResponse:
-    receipts = await _service(request).list_receipts(batch_id, include_voided=include_voided)
-    return BatchReceiptListResponse(
-        items=[_receipt_response(receipt) for receipt in receipts], total=len(receipts)
-    )
+    async with _session_factory(request)() as session:
+        receipts = await ReceiptQueries(BatchRepository(session), ReceiptRepository(session)).list(
+            batch_id, include_voided=include_voided
+        )
+        items = [receipt_response(receipt) for receipt in receipts]
+    return BatchReceiptListResponse(items=items, total=len(items))
 
 
 @router.post(
@@ -42,11 +57,16 @@ async def create_batch_receipt(
     ],
     request: Request,
 ) -> BatchReceiptResponse:
-    return _receipt_response(
-        await _service(request).create_receipt(
+    async with transaction(_session_factory(request)) as session:
+        receipt = await CreateReceipt(
+            BatchRepository(session),
+            ReceiptRepository(session),
+            PreparationRepository(session),
+            TransactionalAuditWriter.from_session(session),
+        ).execute(
             actor=principal, batch_id=batch_id, quantity=payload.quantity, comment=payload.comment
         )
-    )
+        return receipt_response(receipt)
 
 
 @router.patch("/{batch_id}/receipts/{receipt_id}", response_model=BatchReceiptResponse)
@@ -59,14 +79,19 @@ async def update_batch_receipt(
     ],
     request: Request,
 ) -> BatchReceiptResponse:
-    return _receipt_response(
-        await _service(request).update_receipt(
+    async with transaction(_session_factory(request)) as session:
+        receipt = await UpdateReceipt(
+            BatchRepository(session),
+            ReceiptRepository(session),
+            TransactionalAuditWriter.from_session(session),
+            edit_window=BATCH_EDIT_WINDOW,
+        ).execute(
             actor=principal,
             batch_id=batch_id,
             receipt_id=receipt_id,
             updates=payload.model_dump(exclude_unset=True),
         )
-    )
+        return receipt_response(receipt)
 
 
 @router.post("/{batch_id}/receipts/{receipt_id}/void", response_model=BatchReceiptResponse)
@@ -79,8 +104,11 @@ async def void_batch_receipt(
     ],
     request: Request,
 ) -> BatchReceiptResponse:
-    return _receipt_response(
-        await _service(request).void_receipt(
-            actor=principal, batch_id=batch_id, receipt_id=receipt_id, reason=payload.reason
-        )
-    )
+    async with transaction(_session_factory(request)) as session:
+        receipt = await VoidReceipt(
+            BatchRepository(session),
+            ReceiptRepository(session),
+            TransactionalAuditWriter.from_session(session),
+            edit_window=BATCH_EDIT_WINDOW,
+        ).execute(actor=principal, batch_id=batch_id, receipt_id=receipt_id, reason=payload.reason)
+        return receipt_response(receipt)

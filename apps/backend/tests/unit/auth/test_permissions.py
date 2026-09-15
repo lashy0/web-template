@@ -1,14 +1,13 @@
 import pytest
 
-from app.auth.permissions import (
+from app.auth.roles import Role
+from app.bootstrap.permissions import (
     ALL_PERMISSIONS,
     ENGINEER_PERMISSIONS,
     MANAGER_PERMISSIONS,
     ROLE_PERMISSIONS,
-    permissions_for_role,
-    role_has_permission,
+    compose_permission_registry,
 )
-from app.auth.roles import Role
 from app.modules.audit.permissions import AuditPermission
 from app.modules.batch.permissions import BatchPermission
 from app.modules.defects.permissions import DefectPermission
@@ -17,11 +16,37 @@ from app.modules.pak.permissions import PakPermission
 from app.modules.production_order.permissions import ProductionOrderPermission
 from app.modules.users.permissions import UserPermission
 from app.modules.verification.permissions import VerificationPermission
+from app.shared.security import (
+    EMPTY_PERMISSION_REGISTRY,
+    install_permission_registry,
+    permission_registry,
+    permissions_for_role,
+    role_has_permission,
+)
+
+
+@pytest.fixture(autouse=True)
+def installed_registry() -> None:
+    install_permission_registry(compose_permission_registry())
 
 
 @pytest.mark.unit
 def test_every_role_has_a_permission_mapping() -> None:
     assert ROLE_PERMISSIONS.keys() == set(Role)
+
+
+@pytest.mark.unit
+def test_registry_is_empty_until_composition_explicitly_installs_it() -> None:
+    install_permission_registry(EMPTY_PERMISSION_REGISTRY)
+
+    assert permission_registry() is EMPTY_PERMISSION_REGISTRY
+
+    registry = compose_permission_registry()
+    install_permission_registry(registry)
+
+    assert permission_registry() is registry
+    assert registry.permissions_for_role(Role.ADMINISTRATOR) == ALL_PERMISSIONS
+    assert registry.permissions_for_role(Role.MANAGER) == MANAGER_PERMISSIONS
 
 
 @pytest.mark.unit

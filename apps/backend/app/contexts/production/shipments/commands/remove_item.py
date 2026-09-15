@@ -5,7 +5,7 @@ from app.audit.writer import TransactionalAuditWriter
 from app.contexts.production.batches import rules as batch_rules
 from app.contexts.production.batches.audit import audit_actor, shipment_entity
 from app.contexts.production.batches.repository import BatchRepository
-from app.modules.batch.exceptions import BatchShipmentItemNotFoundError
+from app.contexts.production.exceptions import BatchShipmentItemNotFoundError
 from app.shared.security import CurrentPrincipal
 
 from ..queries import ShipmentQueries

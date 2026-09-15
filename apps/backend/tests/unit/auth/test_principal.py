@@ -6,7 +6,14 @@ import pytest
 from app.auth.permissions import Permission, permissions_for_role
 from app.auth.principal import CurrentPrincipal
 from app.auth.roles import Role
+from app.bootstrap.permissions import compose_permission_registry
 from app.modules.users.permissions import UserPermission
+from app.shared.security import install_permission_registry
+
+
+@pytest.fixture(autouse=True)
+def installed_registry() -> None:
+    install_permission_registry(compose_permission_registry())
 
 
 @pytest.mark.unit
