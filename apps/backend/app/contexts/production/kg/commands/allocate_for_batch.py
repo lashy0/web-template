@@ -2,11 +2,11 @@ from dataclasses import dataclass
 
 from app.components.keygen.dev_eui import derive_dev_eui_range
 from app.components.keygen.exceptions import DevEuiRangeOverflowError
-from app.modules.kg.exceptions import (
+
+from ..exceptions import (
     KgDevEuiPrefixNotFoundError,
     KgDevEuiRangeOverflowError,
 )
-
 from ..model import KgDevEuiPrefix
 from ..repository import KgRepository
 from ..rules import ensure_prefix_available_for_allocation

@@ -1,11 +1,11 @@
 from sqlalchemy.exc import IntegrityError
 
 from app.audit.writer import TransactionalAuditWriter
-from app.modules.kg.exceptions import KgVersionConflictError
-from app.modules.kg.permissions import KgPermission
 from app.shared.security import CurrentPrincipal
 
+from ..exceptions import KgVersionConflictError
 from ..model import KgVersion
+from ..permissions import KgPermission
 from ..repository import KgRepository
 from ._common import audit_actor, authorize, version_entity
 

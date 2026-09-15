@@ -23,11 +23,6 @@ from app.infrastructure.redis.client import create_redis_client
 from app.infrastructure.redis.preparation_notifier import RedisProgressNotifier
 from app.modules.batch.services import BatchManagementService
 from app.modules.defects.services import DefectManagementService
-from app.modules.kg.services import (
-    KgDevEuiPrefixManagementService,
-    KgManagementService,
-    KgVersionManagementService,
-)
 from app.modules.pak.services import PakManagementService, PakTestCatalogService
 from app.modules.users.services import UserManagementService
 from app.modules.verification.services import VerificationManagementService
@@ -45,9 +40,6 @@ class ApplicationComponents:
     user_management: UserManagementService
     pak_management: PakManagementService
     pak_test_catalog: PakTestCatalogService
-    kg_management: KgManagementService
-    kg_dev_eui_prefix_management: KgDevEuiPrefixManagementService
-    kg_version_management: KgVersionManagementService
     production_order_management: ProductionOrderManagementService
     batch_management: BatchManagementService
     delete_batch: DeleteBatch
@@ -64,9 +56,6 @@ class ApplicationComponents:
         app.state.user_management = self.user_management
         app.state.pak_management = self.pak_management
         app.state.pak_test_catalog = self.pak_test_catalog
-        app.state.kg_management = self.kg_management
-        app.state.kg_dev_eui_prefix_management = self.kg_dev_eui_prefix_management
-        app.state.kg_version_management = self.kg_version_management
         app.state.production_order_management = self.production_order_management
         app.state.batch_management = self.batch_management
         app.state.delete_batch = self.delete_batch
@@ -104,9 +93,6 @@ def create_application_components(settings: Settings) -> ApplicationComponents:
             settings.PAK_ACCESS_KEY_ENCRYPTION_KEY,
         ),
         pak_test_catalog=PakTestCatalogService(database.session_factory),
-        kg_management=KgManagementService(database.session_factory),
-        kg_dev_eui_prefix_management=KgDevEuiPrefixManagementService(database.session_factory),
-        kg_version_management=KgVersionManagementService(database.session_factory),
         production_order_management=ProductionOrderManagementService(database.session_factory),
         batch_management=BatchManagementService(database.session_factory),
         delete_batch=DeleteBatch(

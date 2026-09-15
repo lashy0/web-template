@@ -1,12 +1,11 @@
 from collections.abc import Sequence
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.contexts.production.batches.model import Batch
-from app.modules.kg.models import KgUnit, LoRaWanCredentials
 
 from .model import BatchKeyGenerationJob, BatchKeyGenerationStatus
 
@@ -69,23 +68,3 @@ class PreparationRepository:
         job.error_code = None
         await self._session.flush()
         return job
-
-    async def claim_without_credentials(self, batch_id: UUID, *, limit: int) -> list[KgUnit]:
-        result = await self._session.execute(
-            select(KgUnit)
-            .outerjoin(LoRaWanCredentials, LoRaWanCredentials.kg_dev_eui == KgUnit.dev_eui)
-            .where(KgUnit.batch_id == batch_id, LoRaWanCredentials.kg_dev_eui.is_(None))
-            .order_by(KgUnit.dev_eui.asc())
-            .limit(limit)
-            .with_for_update(of=KgUnit)
-        )
-        return list(result.scalars())
-
-    async def count_credentials(self, batch_id: UUID) -> int:
-        count = await self._session.scalar(
-            select(func.count())
-            .select_from(KgUnit)
-            .join(LoRaWanCredentials, LoRaWanCredentials.kg_dev_eui == KgUnit.dev_eui)
-            .where(KgUnit.batch_id == batch_id)
-        )
-        return int(count or 0)

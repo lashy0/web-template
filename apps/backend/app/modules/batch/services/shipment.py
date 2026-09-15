@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.audit.writer import TransactionalAuditWriter
 from app.contexts.production.batches.repository import BatchRepository
-from app.contexts.production.compat import LegacyKgUnitBridge
+from app.contexts.production.kg.repository import KgRepository
 from app.contexts.production.preparation.repository import PreparationRepository
 from app.contexts.production.shipments.commands import (
     AddShipmentItem,
@@ -112,7 +112,7 @@ class ShipmentService:
             return await AddShipmentItem(
                 BatchRepository(session),
                 ShipmentRepository(session),
-                LegacyKgUnitBridge(session),
+                KgRepository(session),
                 PreparationRepository(session),
                 TransactionalAuditWriter.from_session(session),
                 edit_window=self._edit_window,

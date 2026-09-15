@@ -192,14 +192,15 @@ async def test_create_uses_allocation_and_creates_initial_preparation_job(monkey
         "app.contexts.production.batches.commands.create.AllocateForBatch.execute",
         AsyncMock(return_value=allocation),
     )
-    kg_units = SimpleNamespace(create_allocated_rows=AsyncMock(return_value=1))
+    kg_repository = SimpleNamespace(
+        get_version=AsyncMock(), create_many=AsyncMock(return_value=[SimpleNamespace()])
+    )
     preparation = SimpleNamespace(create_initial_job=AsyncMock())
     audit = SimpleNamespace(record=AsyncMock())
 
     created = await CreateBatch(
         repository,
-        SimpleNamespace(get_version=AsyncMock()),
-        kg_units,
+        kg_repository,
         preparation,
         SimpleNamespace(ensure_assignable=AsyncMock()),
         audit,
@@ -261,7 +262,9 @@ async def test_dispatch_failure_marks_initial_preparation_job_failed(monkeypatch
     publish = MagicMock()
     notifier = SimpleNamespace(publish=publish)
 
-    await CeleryWorkDispatcher(_TransactionSessionFactory([]), notifier).dispatch_after_commit(batch_id)
+    await CeleryWorkDispatcher(_TransactionSessionFactory([]), notifier).dispatch_after_commit(
+        batch_id
+    )
 
     mark_failed.assert_awaited_once()
     publish.assert_called_once_with(batch_id, BatchKeyGenerationStatus.FAILED, 0)

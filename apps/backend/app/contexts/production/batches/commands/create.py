@@ -4,16 +4,15 @@ from uuid import UUID
 from app.audit.writer import TransactionalAuditWriter
 from app.components.keygen.types import ActivationType, LoRaWanVersion
 from app.contexts.production.kg.commands import AllocateForBatch
+from app.contexts.production.kg.exceptions import KgVersionNotFoundError
 from app.contexts.production.kg.repository import KgRepository
 from app.contexts.production.preparation.commands.start import CreateInitialPreparation
 from app.contexts.production.preparation.repository import PreparationRepository
 from app.contexts.production.production_orders.queries import ProductionOrderQueries
 from app.modules.batch.exceptions import BatchKgVersionArchivedError
-from app.modules.kg.exceptions import KgVersionNotFoundError
 from app.shared.security import CurrentPrincipal
 
 from ..audit import audit_actor, batch_entity
-from ..compat import LegacyKgUnitBridge
 from ..model import Batch
 from ..repository import BatchRepository
 from ..rules import ensure_management_allowed
@@ -26,14 +25,12 @@ class CreateBatch:
         self,
         repository: BatchRepository,
         kg_repository: KgRepository,
-        kg_units: LegacyKgUnitBridge,
         preparation: PreparationRepository,
         orders: ProductionOrderQueries,
         audit: TransactionalAuditWriter,
     ) -> None:
         self._repository = repository
         self._kg_repository = kg_repository
-        self._kg_units = kg_units
         self._preparation = preparation
         self._orders = orders
         self._audit = audit
@@ -77,10 +74,12 @@ class CreateBatch:
             join_eui=token_hex(8),
             production_order_id=production_order_id,
         )
-        kg_quantity = await self._kg_units.create_allocated_rows(
-            dev_euis=allocation.dev_euis,
-            short_code=allocation.prefix.short_code,
-            batch_id=batch.id,
+        kg_quantity = len(
+            await self._kg_repository.create_many(
+                dev_euis=allocation.dev_euis,
+                short_code=allocation.prefix.short_code,
+                batch_id=batch.id,
+            )
         )
         await CreateInitialPreparation(self._preparation).execute(batch.id)
         await self._audit.record(

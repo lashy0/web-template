@@ -17,7 +17,6 @@ from app.contexts.production.batches.commands import (
     SetBatchArchived,
     UpdateBatch,
 )
-from app.contexts.production.batches.compat import LegacyKgUnitBridge
 from app.contexts.production.batches.queries import BatchQueries, required_batch
 from app.contexts.production.batches.repository import BatchRepository as NewBatchRepository
 from app.contexts.production.compat.verification import LegacyVerificationHistoryAdapter
@@ -29,7 +28,7 @@ from app.contexts.production.preparation.repository import PreparationRepository
 from app.contexts.production.production_orders.queries import ProductionOrderQueries
 from app.contexts.production.production_orders.repository import ProductionOrderRepository
 from app.infrastructure.redis.preparation_notifier import RedisProgressNotifier
-from app.modules.kg.models import KgState, KgUnit
+from app.contexts.production.kg.model import KgState, KgUnit
 from app.modules.verification.models import VerificationSession
 from app.shared.security import CurrentPrincipal
 from app.worker.preparation_dispatcher import CeleryWorkDispatcher
@@ -180,7 +179,6 @@ class BatchService:
             batch = await CreateBatch(
                 NewBatchRepository(session),
                 KgRepository(session),
-                LegacyKgUnitBridge(session),
                 PreparationRepository(session),
                 ProductionOrderQueries(ProductionOrderRepository(session)),
                 TransactionalAuditWriter.from_session(session),

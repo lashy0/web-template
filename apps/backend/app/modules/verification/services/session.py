@@ -5,7 +5,9 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.kg.services import KgService
+from app.contexts.production.kg.exceptions import KgInvalidStateError
+from app.contexts.production.kg.model import KgState
+from app.contexts.production.kg.repository import KgRepository
 from app.modules.pak.models import PakDevice
 
 from ..exceptions import (
@@ -108,7 +110,7 @@ class VerificationSessionService:
         session = self._session
         verification_repository = VerificationSessionRepository(session)
         step_repository = VerificationStepRepository(session)
-        kg_service = KgService(session)
+        kg_repository = KgRepository(session)
 
         await verification_repository.lock_session_open(
             kg_dev_eui=kg_dev_eui,
@@ -119,10 +121,12 @@ class VerificationSessionService:
         candidates = await verification_repository.lock_running_candidates(
             kg_dev_eui=kg_dev_eui, pak_id=pak.id, slot_no=slot_no
         )
-        await kg_service.lock_for_update([kg_dev_eui, *(item.kg_dev_eui for item in candidates)])
+        await kg_repository.get_many_by_dev_euis(
+            [kg_dev_eui, *(item.kg_dev_eui for item in candidates)], for_update=True
+        )
         now = datetime.now(UTC)
 
-        kg = await kg_service.get(kg_dev_eui)
+        kg = await kg_repository.get_by_dev_eui(kg_dev_eui)
 
         if kg is None:
             raise VerificationKgNotFoundError
@@ -171,7 +175,8 @@ class VerificationSessionService:
                 completed_at=now,
             )
 
-        kg = await kg_service.begin_verification(kg.dev_eui)
+        if kg.state is not KgState.REGISTERED:
+            raise KgInvalidStateError
 
         verification_session = await verification_repository.create(
             kg_dev_eui=kg.dev_eui,

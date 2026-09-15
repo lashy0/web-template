@@ -5,8 +5,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.contexts.production.kg.schemas import DevEui
 from app.modules.batch.schemas.common import normalize_trimmed
-from app.modules.kg.schemas import DevEui
 from app.modules.users.schemas import UserSummaryResponse
 
 

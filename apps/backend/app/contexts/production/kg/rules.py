@@ -1,7 +1,6 @@
 """Evidenced KG prefix/version policies; arithmetic stays in components.keygen."""
 
-from app.modules.kg.exceptions import KgDevEuiPrefixArchivedError
-
+from .exceptions import KgDevEuiPrefixArchivedError
 from .model import KgDevEuiPrefix
 
 

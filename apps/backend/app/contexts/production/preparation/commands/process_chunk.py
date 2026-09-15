@@ -5,10 +5,11 @@ from pydantic import SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.components.keygen import generate_credentials
-from app.modules.kg.exceptions import KgLoRaWanCredentialsAlreadyExistError
+from app.contexts.production.kg.credentials import KgCredentials
+from app.contexts.production.kg.exceptions import KgLoRaWanCredentialsAlreadyExistError
+from app.contexts.production.kg.repository import KgRepository
 from app.shared.uow import transaction
 
-from ..credentials import PreparationCredentials
 from ..model import BatchKeyGenerationStatus
 from ..repository import PreparationRepository
 from ..rules import can_process_chunk, progress_for
@@ -33,21 +34,22 @@ class ProcessChunk:
     async def execute(self, batch_id: UUID) -> ChunkResult | None:
         async with transaction(self._session_factory) as session:
             repository = PreparationRepository(session)
+            kg_repository = KgRepository(session)
             batch = await repository.lock_batch(batch_id)
             if batch is None:
                 return None
             job = await repository.get(batch.id, for_update=True)
             if job is None or not can_process_chunk(job.status):
                 return None
-            units = await repository.claim_without_credentials(
-                batch.id, limit=KEY_GENERATION_CHUNK_SIZE
+            units = await kg_repository.select_without_credentials_for_batch(
+                batch.id, limit=KEY_GENERATION_CHUNK_SIZE, for_update=True
             )
             if not units:
                 return ChunkResult(job.status, job.progress, processed=False)
             config = batch.lorawan_config
             if config is None:
                 raise RuntimeError("Batch does not have a LoRaWAN configuration")
-            credentials = PreparationCredentials(session, self._encryption_key)
+            credentials = KgCredentials(session, self._encryption_key)
             for unit in units:
                 try:
                     await credentials.save(
@@ -59,7 +61,7 @@ class ProcessChunk:
                     )
                 except KgLoRaWanCredentialsAlreadyExistError:
                     continue
-            count = await repository.count_credentials(batch.id)
+            count = await kg_repository.count_credentials_for_batch(batch.id)
             progress = progress_for(credential_count=count, planned_qty=batch.planned_qty)
             await repository.update(
                 job, status=BatchKeyGenerationStatus.GENERATING, progress=progress

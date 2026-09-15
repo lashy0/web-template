@@ -2,10 +2,10 @@ from collections.abc import Mapping
 from uuid import UUID
 
 from app.audit.writer import TransactionalAuditWriter
-from app.modules.kg.permissions import KgPermission
 from app.shared.security import CurrentPrincipal
 
 from ..model import KgVersion
+from ..permissions import KgPermission
 from ..repository import KgRepository
 from ._common import audit_actor, authorize, required_version, version_entity
 

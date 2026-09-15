@@ -1,10 +1,10 @@
 from collections.abc import Mapping
 
 from app.audit.writer import TransactionalAuditWriter
-from app.modules.kg.permissions import KgPermission
 from app.shared.security import CurrentPrincipal
 
 from ..model import KgDevEuiPrefix
+from ..permissions import KgPermission
 from ..repository import KgRepository
 from ._common import audit_actor, authorize, prefix_entity, required_prefix
 

@@ -6,11 +6,11 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, Request, status
 
 from app.api.auth_deps import CurrentPrincipalDep, require_permission
+from app.contexts.production.kg.schemas import DevEuiPrefix
 from app.contexts.production.production_orders.schemas import AssignProductionOrderRequest
 from app.modules.batch.exceptions import BatchNotFoundError
 from app.modules.batch.permissions import BatchPermission
 from app.modules.batch.routers.common import _batch_response, _service
-from app.modules.kg.schemas import DevEuiPrefix
 
 from .commands import DeleteBatch
 from .model import BatchStatus

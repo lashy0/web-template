@@ -4,10 +4,10 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, Request, status
 
 from app.api.auth_deps import CurrentPrincipalDep, require_permission
-from app.modules.production_order.permissions import ProductionOrderPermission
 
 from .exceptions import ProductionOrderNotFoundError
 from .model import ProductionOrder
+from .permissions import ProductionOrderPermission
 from .schemas import (
     CreateProductionOrderRequest,
     ProductionOrderListResponse,

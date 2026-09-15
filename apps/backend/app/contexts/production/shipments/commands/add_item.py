@@ -4,9 +4,9 @@ from uuid import UUID
 from app.audit.writer import TransactionalAuditWriter
 from app.contexts.production.batches import rules as batch_rules
 from app.contexts.production.batches.audit import audit_actor, shipment_entity
-from app.contexts.production.preparation.repository import PreparationRepository
 from app.contexts.production.batches.repository import BatchRepository
-from app.contexts.production.compat import LegacyKgUnitBridge
+from app.contexts.production.kg.repository import KgRepository
+from app.contexts.production.preparation.repository import PreparationRepository
 from app.modules.batch.exceptions import (
     BatchShipmentKgAlreadyAssignedError,
     BatchShipmentKgStateConflictError,
@@ -24,7 +24,7 @@ class AddShipmentItem:
         self,
         batches: BatchRepository,
         shipments: ShipmentRepository,
-        kg_units: LegacyKgUnitBridge,
+        kg_units: KgRepository,
         preparation: PreparationRepository,
         audit: TransactionalAuditWriter,
         *,
@@ -51,7 +51,7 @@ class AddShipmentItem:
         ensure_edit_allowed(
             shipment, actor=actor, now=datetime.now(UTC), edit_window=self._edit_window
         )
-        kg = await self._kg_units.get_for_shipment(dev_eui)
+        kg = await self._kg_units.get_by_dev_eui(dev_eui, for_update=True)
         if kg is None or kg.batch_id != batch.id:
             raise BatchShipmentKgStateConflictError
         if await self._shipments.find_non_voided_by_kg(kg.dev_eui):

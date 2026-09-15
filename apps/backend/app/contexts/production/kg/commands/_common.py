@@ -2,11 +2,11 @@ from collections.abc import Mapping
 from uuid import UUID
 
 from app.modules.audit.types import AuditActor, AuditEntity
-from app.modules.kg.exceptions import KgDevEuiPrefixNotFoundError, KgVersionNotFoundError
-from app.modules.kg.permissions import KgPermission
 from app.shared.security import CurrentPrincipal, ForbiddenError
 
+from ..exceptions import KgDevEuiPrefixNotFoundError, KgVersionNotFoundError
 from ..model import KgDevEuiPrefix, KgVersion
+from ..permissions import KgPermission
 from ..repository import KgRepository
 
 

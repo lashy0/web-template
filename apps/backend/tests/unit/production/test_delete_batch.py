@@ -82,7 +82,7 @@ def workflow_parts(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
         receipts=SimpleNamespace(has_receipts=AsyncMock(return_value=False)),
         shipments=SimpleNamespace(has_shipments=AsyncMock(return_value=False)),
         kg=SimpleNamespace(
-            has_scrapped_for_batch=AsyncMock(return_value=False),
+            has_scrapped_by_batch=AsyncMock(return_value=False),
             delete_registered_for_batch=AsyncMock(),
         ),
         verification=SimpleNamespace(has_history_for_batch=AsyncMock(return_value=False)),
@@ -96,7 +96,7 @@ def workflow_parts(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
     monkeypatch.setattr(command, "BatchRepository", lambda session: parts.repository)
     monkeypatch.setattr(command, "ReceiptRepository", lambda session: parts.receipts)
     monkeypatch.setattr(command, "ShipmentRepository", lambda session: parts.shipments)
-    monkeypatch.setattr(command, "LegacyKgUnitBridge", lambda session: parts.kg)
+    monkeypatch.setattr(command, "KgRepository", lambda session: parts.kg)
     monkeypatch.setattr(command, "PreparationRepository", lambda session: parts.preparation)
     monkeypatch.setattr(
         command.TransactionalAuditWriter,
@@ -146,7 +146,7 @@ async def test_delete_rejects_all_persisted_prohibiting_facts(
     elif fact == "shipments":
         workflow_parts.shipments.has_shipments.return_value = True
     elif fact == "kg":
-        workflow_parts.kg.has_scrapped_for_batch.return_value = True
+        workflow_parts.kg.has_scrapped_by_batch.return_value = True
     else:
         workflow_parts.verification.has_history_for_batch.return_value = True
 

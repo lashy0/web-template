@@ -11,7 +11,7 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.audit.writer import TransactionalAuditWriter
-from app.contexts.production.compat.kg_units import LegacyKgUnitBridge
+from app.contexts.production.kg.repository import KgRepository
 from app.contexts.production.preparation.commands.request_cancellation import request_cancellation
 from app.contexts.production.preparation.model import BatchKeyGenerationStatus
 from app.contexts.production.preparation.notifier import ProgressNotifier
@@ -35,6 +35,8 @@ from ..rules import (
 )
 
 VerificationHistoryFactory = Callable[[AsyncSession], VerificationHistoryPort]
+
+
 @dataclass(frozen=True, slots=True)
 class _CancellationRequested:
     progress: int
@@ -90,8 +92,8 @@ class DeleteBatch:
             if await ShipmentRepository(session).has_shipments(batch.id):
                 raise BatchCannotBeDeletedError
 
-            kg_units = LegacyKgUnitBridge(session)
-            if await kg_units.has_scrapped_for_batch(batch.id):
+            kg_units = KgRepository(session)
+            if await kg_units.has_scrapped_by_batch(batch.id):
                 raise BatchCannotBeDeletedError
             if await self._verification_history(session).has_history_for_batch(batch.id):
                 raise BatchCannotBeDeletedError
@@ -125,7 +127,7 @@ class DeleteBatch:
             await self._delete_in_current_transaction(
                 batch=batch,
                 actor=actor,
-                kg_units=LegacyKgUnitBridge(session),
+                kg_units=KgRepository(session),
                 batches=batches,
                 audit=TransactionalAuditWriter.from_session(session),
             )
@@ -146,7 +148,7 @@ class DeleteBatch:
         *,
         batch: Batch,
         actor: CurrentPrincipal,
-        kg_units: LegacyKgUnitBridge,
+        kg_units: KgRepository,
         batches: BatchRepository,
         audit: TransactionalAuditWriter,
     ) -> None:

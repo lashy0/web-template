@@ -1,15 +1,26 @@
-"""Compatibility schema exports while public API ownership moves with KG."""
+"""KG HTTP schemas owned by the production KG context."""
 
-from app.modules.kg.schemas import (
+from .common import DevEui, DevEuiPrefix
+from .prefix import (
     CreateKgDevEuiPrefixRequest,
-    CreateKgVersionRequest,
-    DevEuiPrefix,
     KgDevEuiPrefixListResponse,
     KgDevEuiPrefixResponse,
-    KgVersionListResponse,
-    KgVersionResponse,
     UpdateKgDevEuiPrefixArchivedRequest,
     UpdateKgDevEuiPrefixRequest,
+)
+from .state import KgCurrentState
+from .unit import (
+    KgBatchListItemResponse,
+    KgBatchListResponse,
+    KgBatchSummaryResponse,
+    KgListResponse,
+    KgResponse,
+)
+from .version import (
+    CreateKgVersionRequest,
+    KgVersionListResponse,
+    KgVersionResponse,
+    KgVersionSummaryResponse,
     UpdateKgVersionArchivedRequest,
     UpdateKgVersionRequest,
 )
@@ -18,10 +29,19 @@ __all__ = [
     "CreateKgDevEuiPrefixRequest",
     "CreateKgVersionRequest",
     "DevEuiPrefix",
+    "DevEui",
+    "KgCurrentState",
+    "KgBatchListItemResponse",
+    "KgBatchListResponse",
+    "KgBatchSummaryResponse",
+    "KgListResponse",
+    "KgResponse",
     "KgDevEuiPrefixListResponse",
     "KgDevEuiPrefixResponse",
+    "KgDevEuiPrefixSummaryResponse",
     "KgVersionListResponse",
     "KgVersionResponse",
+    "KgVersionSummaryResponse",
     "UpdateKgDevEuiPrefixArchivedRequest",
     "UpdateKgDevEuiPrefixRequest",
     "UpdateKgVersionArchivedRequest",

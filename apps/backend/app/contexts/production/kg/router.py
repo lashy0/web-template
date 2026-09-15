@@ -8,7 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.api.auth_deps import CurrentPrincipalDep, require_permission
 from app.audit.writer import TransactionalAuditWriter
-from app.modules.kg.permissions import KgPermission
 from app.shared.uow import transaction
 
 from .commands import (
@@ -21,15 +20,24 @@ from .commands import (
     UpdatePrefix,
     UpdateVersion,
 )
-from .model import KgDevEuiPrefix, KgVersion
+from .exceptions import KgNotFoundError
+from .model import KgDevEuiPrefix, KgUnit, KgVersion
+from .permissions import KgPermission
 from .queries import KgQueries
 from .repository import KgRepository
 from .schemas import (
     CreateKgDevEuiPrefixRequest,
     CreateKgVersionRequest,
+    DevEui,
     DevEuiPrefix,
+    KgBatchListItemResponse,
+    KgBatchListResponse,
+    KgBatchSummaryResponse,
+    KgCurrentState,
     KgDevEuiPrefixListResponse,
     KgDevEuiPrefixResponse,
+    KgListResponse,
+    KgResponse,
     KgVersionListResponse,
     KgVersionResponse,
     UpdateKgDevEuiPrefixArchivedRequest,
@@ -71,6 +79,94 @@ def _version_response(item: KgVersion, batch_count: int) -> KgVersionResponse:
         updated_at=item.updated_at,
         archived_at=item.archived_at,
     )
+
+
+def _kg_response(kg: KgUnit, *, current_state: KgCurrentState) -> KgResponse:
+    return KgResponse(
+        dev_eui=kg.dev_eui,
+        short_id=kg.short_id,
+        batch_id=kg.batch_id,
+        batch=KgBatchSummaryResponse(id=kg.batch.id, name=kg.batch.name),
+        state=kg.state,
+        current_state=current_state,
+        created_at=kg.created_at,
+        updated_at=kg.updated_at,
+    )
+
+
+@router.get("/kg/batch/{batch_id}", response_model=KgBatchListResponse)
+async def list_kg_by_batch(
+    batch_id: UUID,
+    _: Annotated[CurrentPrincipalDep, Depends(require_permission(KgPermission.READ))],
+    request: Request,
+    q: str | None = None,
+    current_state: KgCurrentState | None = None,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=25, ge=1, le=100),
+) -> KgBatchListResponse:
+    async with _factory(request)() as session:
+        items, total = await KgQueries(KgRepository(session)).list_batch_items(
+            batch_id, page=page, page_size=page_size, q=q, current_state=current_state
+        )
+    return KgBatchListResponse(
+        items=[
+            KgBatchListItemResponse(
+                dev_eui=item.dev_eui,
+                current_state=item.current_state,
+                firmware_version=item.firmware_version,
+                last_verification_at=item.last_verification_at,
+            )
+            for item in items
+        ],
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
+
+
+@router.get("/kg", response_model=KgListResponse)
+async def list_kg(
+    _: Annotated[CurrentPrincipalDep, Depends(require_permission(KgPermission.READ))],
+    request: Request,
+    q: str | None = None,
+    batch_id: UUID | None = None,
+    current_state: KgCurrentState | None = None,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=25, ge=1, le=100),
+    sort: Literal[
+        "dev_eui", "batch_id", "current_state", "created_at", "updated_at"
+    ] = "created_at",
+    order: Literal["asc", "desc"] = "desc",
+) -> KgListResponse:
+    async with _factory(request)() as session:
+        items, total = await KgQueries(KgRepository(session)).list(
+            q=q,
+            batch_id=batch_id,
+            current_state=current_state,
+            page=page,
+            page_size=page_size,
+            sort=sort,
+            order=order,
+        )
+    return KgListResponse(
+        items=[_kg_response(item.kg, current_state=item.current_state) for item in items],
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
+
+
+@router.get("/kg/{dev_eui}", response_model=KgResponse)
+async def get_kg(
+    dev_eui: DevEui,
+    _: Annotated[CurrentPrincipalDep, Depends(require_permission(KgPermission.READ))],
+    request: Request,
+) -> KgResponse:
+    async with _factory(request)() as session:
+        item = await KgQueries(KgRepository(session)).get_with_current_state(dev_eui)
+    if item is None:
+        raise KgNotFoundError
+    return _kg_response(item.kg, current_state=item.current_state)
 
 
 @prefix_router.get("/dev-eui-prefixes", response_model=KgDevEuiPrefixListResponse)
