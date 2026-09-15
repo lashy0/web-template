@@ -102,7 +102,27 @@ def _configure_principal(
         )
     )
     mocker.patch.object(app.state, "database", SimpleNamespace(session_factory=_SessionFactory()))
-    mocker.patch.object(app.state, "pak_management", service)
+    # The router talks to focused equipment commands/queries rather than the
+    # removed PAK management facade. Keep assertions on the original mocks so
+    # the HTTP contract stays explicit.
+    queries = SimpleNamespace(
+        get=getattr(service, "get", AsyncMock()), list=getattr(service, "list", AsyncMock())
+    )
+    mocker.patch.object(app.state, "pak_queries", queries)
+    for state_name, method_name in (
+        ("create_pak", "create"),
+        ("update_pak", "update"),
+        ("set_pak_active", "set_active"),
+        ("set_pak_archived", "set_archived"),
+        ("delete_pak", "delete"),
+        ("get_pak_access_key", "get_access_key"),
+        ("rotate_pak_access_key", "rotate_access_key"),
+    ):
+        mocker.patch.object(
+            app.state,
+            state_name,
+            SimpleNamespace(execute=getattr(service, method_name, AsyncMock())),
+        )
     return user_id
 
 

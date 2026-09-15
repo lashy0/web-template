@@ -8,10 +8,24 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.audit.writer import TransactionalAuditWriter
+from app.contexts.equipment.pak.adapters import adapt_pak
+from app.contexts.equipment.pak.authentication import PakMachineAuthenticator
+from app.contexts.equipment.pak.commands import (
+    CreatePak,
+    DeletePak,
+    GetPakAccessKey,
+    RotatePakAccessKey,
+    SetPakActive,
+    SetPakArchived,
+    UpdatePak,
+)
+from app.contexts.equipment.pak.queries import PakQueries
 from app.contexts.production.batches.commands import DeleteBatch
 from app.contexts.production.compat.verification import QualityVerificationHistoryAdapter
 from app.contexts.production.compat.verification_kg import ProductionVerificationKgAdapter
 from app.contexts.production.production_orders.service import ProductionOrderManagementService
+from app.contexts.quality.tests.catalog import PakTestCatalog
+from app.contexts.quality.verification.adapters import QualityPakVerificationHistoryAdapter
 from app.contexts.quality.verification.commands.reconcile import reconcile_stale_sessions
 from app.core.config import Settings, get_settings
 from app.core.logging import setup_logging
@@ -20,13 +34,15 @@ from app.infrastructure.hydra.client import (
     HydraOAuthClientManager,
     HydraTokenIntrospector,
 )
+from app.infrastructure.hydra.pak import (
+    HydraPakOAuthClientAdapter,
+    HydraPakTokenIntrospectorAdapter,
+)
 from app.infrastructure.kratos.client import KratosIdentityManager, KratosSessionVerifier
 from app.infrastructure.redis.client import create_redis_client
 from app.infrastructure.redis.preparation_notifier import RedisProgressNotifier
 from app.modules.batch.services import BatchManagementService
 from app.modules.defects.services import DefectManagementService
-from app.modules.pak.compat.verification import adapt_pak
-from app.modules.pak.services import PakManagementService, PakTestCatalogService
 from app.modules.users.services import UserManagementService
 
 
@@ -40,8 +56,16 @@ class ApplicationComponents:
     identity_manager: KratosIdentityManager
     hydra_client_manager: HydraOAuthClientManager
     user_management: UserManagementService
-    pak_management: PakManagementService
-    pak_test_catalog: PakTestCatalogService
+    pak_queries: PakQueries
+    create_pak: CreatePak
+    update_pak: UpdatePak
+    set_pak_active: SetPakActive
+    set_pak_archived: SetPakArchived
+    delete_pak: DeletePak
+    get_pak_access_key: GetPakAccessKey
+    rotate_pak_access_key: RotatePakAccessKey
+    pak_machine_authenticator: PakMachineAuthenticator
+    pak_test_catalog: PakTestCatalog
     production_order_management: ProductionOrderManagementService
     batch_management: BatchManagementService
     delete_batch: DeleteBatch
@@ -55,7 +79,15 @@ class ApplicationComponents:
         app.state.identity_manager = self.identity_manager
         app.state.hydra_client_manager = self.hydra_client_manager
         app.state.user_management = self.user_management
-        app.state.pak_management = self.pak_management
+        app.state.pak_queries = self.pak_queries
+        app.state.create_pak = self.create_pak
+        app.state.update_pak = self.update_pak
+        app.state.set_pak_active = self.set_pak_active
+        app.state.set_pak_archived = self.set_pak_archived
+        app.state.delete_pak = self.delete_pak
+        app.state.get_pak_access_key = self.get_pak_access_key
+        app.state.rotate_pak_access_key = self.rotate_pak_access_key
+        app.state.pak_machine_authenticator = self.pak_machine_authenticator
         app.state.pak_test_catalog = self.pak_test_catalog
         app.state.production_order_management = self.production_order_management
         app.state.batch_management = self.batch_management
@@ -81,6 +113,8 @@ def create_application_components(settings: Settings) -> ApplicationComponents:
     database = create_database(settings)
     identity_manager = KratosIdentityManager(settings)
     hydra_client_manager = HydraOAuthClientManager(settings)
+    pak_oauth = HydraPakOAuthClientAdapter(hydra_client_manager)
+    pak_tokens = HydraPakTokenIntrospectorAdapter(HydraTokenIntrospector(settings))
 
     return ApplicationComponents(
         database=database,
@@ -89,13 +123,27 @@ def create_application_components(settings: Settings) -> ApplicationComponents:
         identity_manager=identity_manager,
         hydra_client_manager=hydra_client_manager,
         user_management=UserManagementService(database.session_factory, identity_manager),
-        pak_management=PakManagementService(
+        pak_queries=PakQueries(database.session_factory),
+        create_pak=CreatePak(
+            database.session_factory, pak_oauth, settings.PAK_ACCESS_KEY_ENCRYPTION_KEY
+        ),
+        update_pak=UpdatePak(database.session_factory),
+        set_pak_active=SetPakActive(database.session_factory),
+        set_pak_archived=SetPakArchived(database.session_factory),
+        delete_pak=DeletePak(
             database.session_factory,
-            hydra_client_manager,
-            HydraTokenIntrospector(settings),
+            pak_oauth,
+            QualityPakVerificationHistoryAdapter,
             settings.PAK_ACCESS_KEY_ENCRYPTION_KEY,
         ),
-        pak_test_catalog=PakTestCatalogService(database.session_factory),
+        get_pak_access_key=GetPakAccessKey(
+            database.session_factory, settings.PAK_ACCESS_KEY_ENCRYPTION_KEY
+        ),
+        rotate_pak_access_key=RotatePakAccessKey(
+            database.session_factory, pak_oauth, settings.PAK_ACCESS_KEY_ENCRYPTION_KEY
+        ),
+        pak_machine_authenticator=PakMachineAuthenticator(database.session_factory, pak_tokens),
+        pak_test_catalog=PakTestCatalog(database.session_factory),
         production_order_management=ProductionOrderManagementService(database.session_factory),
         batch_management=BatchManagementService(database.session_factory),
         delete_batch=DeleteBatch(

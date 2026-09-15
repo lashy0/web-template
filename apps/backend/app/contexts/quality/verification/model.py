@@ -19,8 +19,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.contexts.equipment.pak.model import PakDevice
 from app.infrastructure.database.base import Base
-from app.modules.pak.models import PakDevice
 
 if TYPE_CHECKING:
     from app.contexts.production.kg.model import KgUnit

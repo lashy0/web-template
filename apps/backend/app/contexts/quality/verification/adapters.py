@@ -24,6 +24,10 @@ class VerificationHistoryProvider:
         return await self._repository.has_history_for_pak(pak_id)
 
 
+class QualityPakVerificationHistoryAdapter(VerificationHistoryProvider):
+    """Quality-owned provider for equipment's narrow deletion-history contract."""
+
+
 def latest_verification_projection() -> Subquery:
     """One bulk latest-verification relation, consumed by KG projections."""
     return select(

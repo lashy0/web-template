@@ -1,5 +1,6 @@
 """Central registry of SQLAlchemy models used by Alembic."""
 
+from app.contexts.equipment.pak.model import PakDevice
 from app.contexts.production.preparation.model import BatchKeyGenerationJob
 from app.contexts.production.production_orders.model import ProductionOrder
 from app.contexts.production.receipts.model import BatchReceipt
@@ -13,7 +14,6 @@ from app.modules.batch.models import (
     BatchLoRaWanConfig,
 )
 from app.modules.kg.models import KgDevEuiPrefix, KgUnit, KgVersion, LoRaWanCredentials
-from app.modules.pak.models import PakDevice
 from app.modules.users.models import User
 
 __all__: list[str] = [

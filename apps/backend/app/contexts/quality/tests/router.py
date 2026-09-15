@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Query, Request
 
 from app.api.auth_deps import CurrentPrincipalDep, require_permission
 from app.contexts.quality.defects.schemas import DefectGroupSummaryResponse
-from app.modules.pak.permissions import PakPermission
+from app.contexts.equipment.pak.permissions import PakPermission
 
 from .exceptions import PakTestNotFoundError
 from .model import PakTest

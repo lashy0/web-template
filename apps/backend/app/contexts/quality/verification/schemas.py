@@ -3,8 +3,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from app.contexts.equipment.pak.schemas import PakDeviceSummaryResponse
 from app.contexts.production.kg.schemas import DevEui
-from app.modules.pak.schemas import PakDeviceSummaryResponse
 
 from .model import VerificationSessionStatus, VerificationStepStatus
 

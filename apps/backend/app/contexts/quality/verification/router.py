@@ -8,8 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.api.auth_deps import CurrentPrincipalDep, require_permission
 from app.audit.writer import TransactionalAuditWriter
-from app.modules.pak.deps import CurrentPakDep
-from app.modules.pak.schemas import PakDeviceSummaryResponse
+from app.contexts.equipment.pak.deps import CurrentPakDep
+from app.contexts.equipment.pak.schemas import PakDeviceSummaryResponse
 
 from .commands import (
     CompleteVerificationSession,

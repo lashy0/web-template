@@ -1,11 +1,4 @@
-from enum import StrEnum
+from app.contexts.equipment.pak.model import PakDeviceKind
+from app.contexts.equipment.pak.schemas import PakStatus
 
-
-class PakDeviceKind(StrEnum):
-    ENGINEERING = "engineering"
-    OTK_LINE = "otk_line"
-
-
-class PakStatus(StrEnum):
-    ACTIVE = "active"
-    INACTIVE = "inactive"
+__all__ = ["PakDeviceKind", "PakStatus"]
