@@ -1,5 +1,3 @@
-from enum import StrEnum
+from app.contexts.quality.verification.permissions import VerificationPermission
 
-
-class VerificationPermission(StrEnum):
-    READ = "verification:read"
+__all__ = ["VerificationPermission"]

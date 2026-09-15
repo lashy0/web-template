@@ -1,6 +1,7 @@
 import asyncio
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from datetime import timedelta
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -51,7 +52,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     async def verification_sweeper_forever() -> None:
         while True:
             try:
-                expired = await app.state.verification_management.expire_stale_sessions()
+                expired = await app.state.reconcile_stale_verification_sessions(
+                    app.state.database.session_factory,
+                    session_ttl=timedelta(minutes=settings.VERIFICATION_SESSION_TTL_MINUTES),
+                )
 
                 if expired:
                     logger.bind(

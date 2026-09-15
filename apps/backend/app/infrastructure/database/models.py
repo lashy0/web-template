@@ -6,6 +6,7 @@ from app.contexts.production.receipts.model import BatchReceipt
 from app.contexts.production.shipments.model import BatchShipment, BatchShipmentItem
 from app.contexts.quality.defects.model import DefectGroup, DefectType
 from app.contexts.quality.tests.model import PakTest
+from app.contexts.quality.verification.model import VerificationSession, VerificationStep
 from app.modules.audit.models import AuditEvent
 from app.modules.batch.models import (
     Batch,
@@ -14,7 +15,6 @@ from app.modules.batch.models import (
 from app.modules.kg.models import KgDevEuiPrefix, KgUnit, KgVersion, LoRaWanCredentials
 from app.modules.pak.models import PakDevice
 from app.modules.users.models import User
-from app.modules.verification.models import VerificationSession, VerificationStep
 
 __all__: list[str] = [
     "User",

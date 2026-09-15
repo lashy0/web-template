@@ -19,7 +19,8 @@ from app.contexts.production.batches.commands import (
 )
 from app.contexts.production.batches.queries import BatchQueries, required_batch
 from app.contexts.production.batches.repository import BatchRepository as NewBatchRepository
-from app.contexts.production.compat.verification import LegacyVerificationHistoryAdapter
+from app.contexts.production.compat.verification import QualityVerificationHistoryAdapter
+from app.contexts.production.kg.model import KgState, KgUnit
 from app.contexts.production.kg.queries import KgQueries
 from app.contexts.production.kg.repository import KgRepository
 from app.contexts.production.preparation.commands.retry import RetryPreparation
@@ -27,9 +28,8 @@ from app.contexts.production.preparation.queries import PreparationQueries
 from app.contexts.production.preparation.repository import PreparationRepository
 from app.contexts.production.production_orders.queries import ProductionOrderQueries
 from app.contexts.production.production_orders.repository import ProductionOrderRepository
+from app.contexts.quality.verification.model import VerificationSession
 from app.infrastructure.redis.preparation_notifier import RedisProgressNotifier
-from app.contexts.production.kg.model import KgState, KgUnit
-from app.modules.verification.models import VerificationSession
 from app.shared.security import CurrentPrincipal
 from app.worker.preparation_dispatcher import CeleryWorkDispatcher
 
@@ -58,7 +58,7 @@ class BatchService:
         self._edit_window = edit_window
         self._delete_batch = DeleteBatch(
             session_factory,
-            verification_history=LegacyVerificationHistoryAdapter,
+            verification_history=QualityVerificationHistoryAdapter,
             notifier=RedisProgressNotifier(),
             edit_window=edit_window,
         )
@@ -195,9 +195,9 @@ class BatchService:
                 production_order_id=production_order_id,
             )
 
-        await CeleryWorkDispatcher(self._session_factory, RedisProgressNotifier()).dispatch_after_commit(
-            batch.id
-        )
+        await CeleryWorkDispatcher(
+            self._session_factory, RedisProgressNotifier()
+        ).dispatch_after_commit(batch.id)
 
         return batch
 

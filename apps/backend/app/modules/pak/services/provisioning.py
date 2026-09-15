@@ -106,7 +106,7 @@ class PakProvisioningService:
         actor: CurrentPrincipal,
         pak_id: UUID,
     ) -> None:
-        from app.modules.verification.services import VerificationSessionService
+        from app.contexts.quality.verification.adapters import VerificationHistoryProvider
 
         oauth_client_deleted = False
         oauth_client_id: str | None = None
@@ -117,7 +117,7 @@ class PakProvisioningService:
                 repository = PakRepository(session)
                 pak = await _required_pak(repository, pak_id)
 
-                if await VerificationSessionService.has_pak_history(session, pak.id):
+                if await VerificationHistoryProvider(session).has_history_for_pak(pak.id):
                     raise PakCannotBeDeletedError
 
                 oauth_client_id = pak.oauth_client_id

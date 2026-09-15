@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 from typing import Protocol
+from uuid import UUID
 
 from loguru import logger
 
@@ -15,9 +16,14 @@ from ..rules import ensure_observation_group_active
 
 
 class ObservingPak(Protocol):
-    id: object
-    code: str
-    oauth_client_id: str
+    @property
+    def id(self) -> UUID: ...
+
+    @property
+    def code(self) -> str: ...
+
+    @property
+    def oauth_client_id(self) -> str: ...
 
 
 class ObservePakTest:

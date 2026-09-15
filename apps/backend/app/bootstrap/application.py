@@ -9,8 +9,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.audit.writer import TransactionalAuditWriter
 from app.contexts.production.batches.commands import DeleteBatch
-from app.contexts.production.compat.verification import LegacyVerificationHistoryAdapter
+from app.contexts.production.compat.verification import QualityVerificationHistoryAdapter
+from app.contexts.production.compat.verification_kg import ProductionVerificationKgAdapter
 from app.contexts.production.production_orders.service import ProductionOrderManagementService
+from app.contexts.quality.verification.commands.reconcile import reconcile_stale_sessions
 from app.core.config import Settings, get_settings
 from app.core.logging import setup_logging
 from app.infrastructure.database.session import Database, create_database
@@ -23,9 +25,9 @@ from app.infrastructure.redis.client import create_redis_client
 from app.infrastructure.redis.preparation_notifier import RedisProgressNotifier
 from app.modules.batch.services import BatchManagementService
 from app.modules.defects.services import DefectManagementService
+from app.modules.pak.compat.verification import adapt_pak
 from app.modules.pak.services import PakManagementService, PakTestCatalogService
 from app.modules.users.services import UserManagementService
-from app.modules.verification.services import VerificationManagementService
 
 
 @dataclass(slots=True)
@@ -43,7 +45,6 @@ class ApplicationComponents:
     production_order_management: ProductionOrderManagementService
     batch_management: BatchManagementService
     delete_batch: DeleteBatch
-    verification_management: VerificationManagementService
     defect_management: DefectManagementService
 
     def install(self, app: FastAPI) -> None:
@@ -59,7 +60,9 @@ class ApplicationComponents:
         app.state.production_order_management = self.production_order_management
         app.state.batch_management = self.batch_management
         app.state.delete_batch = self.delete_batch
-        app.state.verification_management = self.verification_management
+        app.state.verification_kg_port_factory = ProductionVerificationKgAdapter
+        app.state.verification_pak_adapter = adapt_pak
+        app.state.reconcile_stale_verification_sessions = reconcile_stale_sessions
         app.state.defect_management = self.defect_management
 
     @staticmethod
@@ -97,13 +100,8 @@ def create_application_components(settings: Settings) -> ApplicationComponents:
         batch_management=BatchManagementService(database.session_factory),
         delete_batch=DeleteBatch(
             database.session_factory,
-            verification_history=LegacyVerificationHistoryAdapter,
+            verification_history=QualityVerificationHistoryAdapter,
             notifier=RedisProgressNotifier(),
-        ),
-        verification_management=VerificationManagementService(
-            database.session_factory,
-            reopen_inactivity_minutes=settings.VERIFICATION_SESSION_REOPEN_INACTIVITY_MINUTES,
-            session_ttl_minutes=settings.VERIFICATION_SESSION_TTL_MINUTES,
         ),
         defect_management=DefectManagementService(database.session_factory),
     )

@@ -556,6 +556,24 @@ it locks candidates in deterministic id order. Stale-session claiming uses
 `FOR UPDATE SKIP LOCKED`. Preserve all three layers—advisory locks, row locks,
 and partial unique indexes—rather than replacing one with another.
 
+### Confirmed verification migration boundary
+
+`VerificationSession` and `VerificationStep` have one mapped ownership point:
+`contexts/quality/verification/model.py`; old `app.modules.verification.models`
+is import compatibility only. The opening command acquires advisory keys in
+the stable order **KG, then PAK slot**, locks affected running rows by session
+id, and asks the consumer-owned `VerificationKgPort` to lock the involved KG
+rows in DevEUI order. The temporary PAK boundary is `VerificationPakPort`,
+implemented by a legacy-Pak identity adapter until `equipment/pak` moves.
+
+Production consumes quality through a `VerificationHistoryProvider` and its
+single bulk latest-verification SQL projection. It does not import quality
+repositories or mapped models; KG current-state remains a single bulk window
+query, with `SCRAPPED > latest verification > REGISTERED`. Verification's
+stale flow has no version column in the existing schema, so its concurrency
+guarantee is the confirmed transaction-scoped `FOR UPDATE SKIP LOCKED` claim,
+not an invented optimistic-version update.
+
 ## Business invariants and future owners
 
 The following is a migration specification derived from the existing tests.

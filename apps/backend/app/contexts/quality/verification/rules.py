@@ -1,15 +1,12 @@
-from __future__ import annotations
-
 from datetime import datetime, timedelta
 
-from app.modules.pak.models import PakDevice
-
-from ..exceptions import (
+from .contracts import VerificationPakPort
+from .exceptions import (
     VerificationSessionNotFoundError,
     VerificationSessionNotRunningError,
     VerificationStepOutOfRangeError,
 )
-from ..models import (
+from .model import (
     VerificationSession,
     VerificationSessionStatus,
     VerificationStep,
@@ -17,35 +14,25 @@ from ..models import (
 )
 
 
-def ensure_session_owned_by_pak(
-    verification_session: VerificationSession,
-    pak: PakDevice,
-) -> None:
-    if verification_session.pak_id != pak.id:
-        # Do not expose another PAK's session
+def ensure_session_owned_by_pak(item: VerificationSession, pak: VerificationPakPort) -> None:
+    if item.pak_id != pak.id:
         raise VerificationSessionNotFoundError
 
 
-def ensure_session_running(verification_session: VerificationSession) -> None:
-    if verification_session.status != VerificationSessionStatus.RUNNING:
+def ensure_session_running(item: VerificationSession) -> None:
+    if item.status != VerificationSessionStatus.RUNNING:
         raise VerificationSessionNotRunningError
 
 
-def ensure_step_in_range(
-    verification_session: VerificationSession,
-    step_no: int,
-) -> None:
-    if not (1 <= step_no <= verification_session.total_steps):
+def ensure_step_in_range(item: VerificationSession, step_no: int) -> None:
+    if not 1 <= step_no <= item.total_steps:
         raise VerificationStepOutOfRangeError
 
 
 def is_reopen_stale(
-    verification_session: VerificationSession,
-    *,
-    now: datetime,
-    reopen_inactivity: timedelta,
+    item: VerificationSession, *, now: datetime, reopen_inactivity: timedelta
 ) -> bool:
-    return now - verification_session.last_activity_at >= reopen_inactivity
+    return now - item.last_activity_at >= reopen_inactivity
 
 
 def same_step_result(

@@ -22,7 +22,7 @@ from app.infrastructure.database.base import Base
 
 if TYPE_CHECKING:
     from app.contexts.production.batches.model import Batch
-    from app.modules.verification.models import VerificationSession
+    from app.contexts.quality.verification.model import VerificationSession
 
 
 class KgState(StrEnum):
