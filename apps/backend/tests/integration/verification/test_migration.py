@@ -9,6 +9,8 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.contexts.equipment.pak.adapters import adapt_pak
+from app.contexts.equipment.pak.model import PakDevice, PakDeviceKind
 from app.contexts.production.batches.model import Batch, BatchStatus
 from app.contexts.production.compat.verification_kg import ProductionVerificationKgAdapter
 from app.contexts.production.kg.model import KgDevEuiPrefix, KgState, KgUnit
@@ -21,8 +23,6 @@ from app.contexts.quality.verification.commands.start import StartVerificationSe
 from app.contexts.quality.verification.exceptions import VerificationSessionAlreadyRunningError
 from app.contexts.quality.verification.model import VerificationSession, VerificationSessionStatus
 from app.contexts.quality.verification.repository import VerificationRepository
-from app.modules.pak.compat.verification import LegacyVerificationPakAdapter
-from app.modules.pak.models import PakDevice, PakDeviceKind
 from app.shared.uow import transaction
 
 pytestmark = pytest.mark.integration
@@ -78,7 +78,7 @@ async def start(
             ProductionVerificationKgAdapter(session),
             reopen_inactivity=timedelta(minutes=60),
         ).execute(
-            pak=LegacyVerificationPakAdapter(pak),
+            pak=adapt_pak(pak),
             kg_dev_eui=kg_dev_eui,
             slot_no=slot_no,
             firmware_version="1.0",
