@@ -1,216 +1,64 @@
+"""Legacy caller-UoW compatibility delegate for the migrated defect context."""
+
 from collections.abc import Mapping
-from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.principal import CurrentPrincipal
-from app.modules.audit.service import AuditService
-
-from ..exceptions import (
-    DefectGroupAlreadyExistsError,
-    DefectGroupCannotBeDeletedError,
-    DefectGroupHasUnarchivedTypesError,
+from app.audit.writer import TransactionalAuditWriter
+from app.contexts.quality.defects.commands import (
+    CreateDefectGroup,
+    DeleteDefectGroup,
+    SetDefectGroupArchived,
+    UpdateDefectGroup,
 )
-from ..models import DefectGroup
-from ..repositories import DefectGroupRepository, DefectTypeRepository
-from .audit import _audit_actor, _group_audit_entity
-from .queries import _required_group
+from app.contexts.quality.defects.model import DefectGroup
+from app.contexts.quality.defects.queries import DefectQueries
+from app.contexts.quality.defects.repository import DefectGroupRepository, DefectTypeRepository
+from app.shared.security import CurrentPrincipal
 
 
 class DefectGroupService:
+    """Temporary legacy import adapter; contains no defect policy."""
+
     def __init__(self, session: AsyncSession) -> None:
-        self._session = session
+        self._groups = DefectGroupRepository(session)
+        self._types = DefectTypeRepository(session)
+        self._audit = TransactionalAuditWriter.from_session(session)
 
     async def get_group(self, group_id: UUID) -> DefectGroup | None:
-        session = self._session
-        return await DefectGroupRepository(session).get_by_id(group_id)
+        return await DefectQueries(self._groups, self._types).get_group(group_id)
 
-    async def get_group_by_code(
-        self,
-        code: str,
-        *,
-        for_update: bool = False,
-    ) -> DefectGroup | None:
-        session = self._session
-        return await DefectGroupRepository(session).get_by_code(code, for_update=for_update)
-
-    async def list_groups(
-        self,
-        *,
-        q: str | None,
-        archived: bool,
-        page: int,
-        page_size: int,
-        sort: str,
-        order: str,
-    ) -> tuple[list[tuple[DefectGroup, int, int]], int]:
-        session = self._session
-        return await DefectGroupRepository(session).search(
-            q=q,
-            archived=archived,
-            page=page,
-            page_size=page_size,
-            sort=sort,
-            order=order,
+    async def get_group_by_code(self, code: str, *, for_update: bool = False) -> DefectGroup | None:
+        return await DefectQueries(self._groups, self._types).get_group_by_code(
+            code, for_update=for_update
         )
+
+    async def list_groups(self, **kwargs: object) -> tuple[list[tuple[DefectGroup, int, int]], int]:
+        return await DefectQueries(self._groups, self._types).list_groups(**kwargs)
 
     async def create_group(
-        self,
-        *,
-        actor: CurrentPrincipal,
-        code: str,
-        name: str,
-        description: str | None,
+        self, *, actor: CurrentPrincipal, code: str, name: str, description: str | None
     ) -> DefectGroup:
-        session = self._session
-        repository = DefectGroupRepository(session)
-
-        if await repository.get_by_code(code) is not None:
-            raise DefectGroupAlreadyExistsError
-
-        try:
-            group = await repository.create(
-                code=code,
-                name=name,
-                description=description,
-            )
-
-        except IntegrityError as exc:
-            raise DefectGroupAlreadyExistsError from exc
-
-        await AuditService.from_session(session).record(
-            actor=_audit_actor(actor),
-            action="defect_group.created",
-            entity=_group_audit_entity(group),
-            new_data={
-                "code": group.code,
-                "name": group.name,
-                "description": group.description,
-            },
+        return await CreateDefectGroup(self._groups, self._audit).execute(
+            actor=actor, code=code, name=name, description=description
         )
-
-        return group
 
     async def update_group(
-        self,
-        *,
-        actor: CurrentPrincipal,
-        group_id: UUID,
-        updates: Mapping[str, object],
+        self, *, actor: CurrentPrincipal, group_id: UUID, updates: Mapping[str, object]
     ) -> DefectGroup:
-        session = self._session
-        repository = DefectGroupRepository(session)
-
-        group = await _required_group(repository, group_id)
-
-        if not updates:
-            return group
-
-        old_values = {field: getattr(group, field) for field in updates}
-
-        group = await repository.update_details(
-            group,
-            updates=updates,
+        return await UpdateDefectGroup(self._groups, self._audit).execute(
+            actor=actor, group_id=group_id, updates=updates
         )
-
-        new_values = {field: getattr(group, field) for field in updates}
-
-        changed = {
-            field: value for field, value in new_values.items() if value != old_values[field]
-        }
-
-        if changed:
-            await AuditService.from_session(session).record(
-                actor=_audit_actor(actor),
-                action="defect_group.updated",
-                entity=_group_audit_entity(group),
-                old_data={field: old_values[field] for field in changed},
-                new_data=changed,
-            )
-
-        return group
 
     async def set_group_archived(
-        self,
-        *,
-        actor: CurrentPrincipal,
-        group_id: UUID,
-        archived: bool,
+        self, *, actor: CurrentPrincipal, group_id: UUID, archived: bool
     ) -> DefectGroup:
-        session = self._session
-        group_repository = DefectGroupRepository(session)
-        type_repository = DefectTypeRepository(session)
-
-        group = await _required_group(group_repository, group_id)
-
-        if archived:
-            if group.archived_at is not None:
-                return group
-
-            if await type_repository.exists_unarchived_by_group(group.id):
-                raise DefectGroupHasUnarchivedTypesError
-
-            archived_at = datetime.now(UTC)
-
-            group = await group_repository.update_archived(
-                group,
-                archived_at=archived_at,
-            )
-
-            action = "defect_group.archived"
-
-        else:
-            if group.archived_at is None:
-                return group
-
-            group = await group_repository.update_archived(
-                group,
-                archived_at=None,
-            )
-
-            action = "defect_group.restored"
-
-        await AuditService.from_session(session).record(
-            actor=_audit_actor(actor),
-            action=action,
-            entity=_group_audit_entity(group),
+        return await SetDefectGroupArchived(self._groups, self._types, self._audit).execute(
+            actor=actor, group_id=group_id, archived=archived
         )
 
-        return group
-
-    async def delete_group(
-        self,
-        *,
-        actor: CurrentPrincipal,
-        group_id: UUID,
-    ) -> None:
-        session = self._session
-        group_repository = DefectGroupRepository(session)
-        type_repository = DefectTypeRepository(session)
-
-        group = await _required_group(group_repository, group_id)
-
-        if await type_repository.exists_by_group(group.id):
-            raise DefectGroupCannotBeDeletedError
-
-        await AuditService.from_session(session).record(
-            actor=_audit_actor(actor),
-            action="defect_group.deleted",
-            entity=_group_audit_entity(group),
-            old_data={
-                "code": group.code,
-                "name": group.name,
-                "description": group.description,
-                "archived_at": (
-                    group.archived_at.isoformat() if group.archived_at is not None else None
-                ),
-            },
+    async def delete_group(self, *, actor: CurrentPrincipal, group_id: UUID) -> None:
+        await DeleteDefectGroup(self._groups, self._types, self._audit).execute(
+            actor=actor, group_id=group_id
         )
-
-        try:
-            await group_repository.delete(group)
-
-        except IntegrityError as exc:
-            raise DefectGroupCannotBeDeletedError from exc

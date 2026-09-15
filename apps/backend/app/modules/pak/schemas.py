@@ -3,9 +3,23 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.modules.defects.schemas import DefectGroupSummaryResponse
+from app.contexts.quality.tests.schemas import PakTestListResponse, PakTestResponse
 
 from .enums import PakDeviceKind, PakStatus
+
+__all__ = [
+    "CreatePakDeviceRequest",
+    "CreatePakDeviceResponse",
+    "PakAccessKeyResponse",
+    "PakDeviceListResponse",
+    "PakDeviceResponse",
+    "PakDeviceSummaryResponse",
+    "PakTestListResponse",
+    "PakTestResponse",
+    "UpdateActiveRequest",
+    "UpdateArchivedRequest",
+    "UpdatePakDeviceRequest",
+]
 
 
 class PakDeviceSummaryResponse(BaseModel):
@@ -66,21 +80,3 @@ class UpdateActiveRequest(BaseModel):
 
 class UpdateArchivedRequest(BaseModel):
     archived: bool
-
-
-class PakTestResponse(BaseModel):
-    id: UUID
-    test_name: str
-    test_label: str
-    defect_group_id: UUID
-    defect_group: DefectGroupSummaryResponse
-    last_seen_at: datetime
-    created_at: datetime
-    updated_at: datetime
-
-
-class PakTestListResponse(BaseModel):
-    items: list[PakTestResponse]
-    total: int
-    page: int
-    page_size: int

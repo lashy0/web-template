@@ -1,3 +1,4 @@
+from app.contexts.quality.tests.exceptions import PakTestConfigurationError, PakTestNotFoundError
 from app.core.exceptions import (
     AppError,
     ConflictError,
@@ -5,6 +6,20 @@ from app.core.exceptions import (
     NotFoundError,
     UnauthenticatedError,
 )
+
+__all__ = [
+    "InvalidMachineAccessTokenError",
+    "PakAccessKeyConfigurationError",
+    "PakAlreadyExistsError",
+    "PakCannotBeDeletedError",
+    "PakCredentialSynchronizationError",
+    "PakDeletionSynchronizationError",
+    "PakError",
+    "PakNotFoundError",
+    "PakProvisioningError",
+    "PakTestConfigurationError",
+    "PakTestNotFoundError",
+]
 
 
 class PakError(AppError):
@@ -59,15 +74,3 @@ class PakCannotBeDeletedError(PakError, ConflictError):
     """The PAK cannot be deleted because it has verification history."""
 
     code = "pak_cannot_be_deleted"
-
-
-class PakTestNotFoundError(PakError, NotFoundError):
-    """The requested PAK test does not exist."""
-
-    code = "pak_test_not_found"
-
-
-class PakTestConfigurationError(PakError, ConflictError):
-    """A PAK test references an invalid defect configuration."""
-
-    code = "pak_test_configuration_error"
