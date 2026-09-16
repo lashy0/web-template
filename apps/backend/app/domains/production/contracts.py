@@ -10,6 +10,8 @@ in one place.
 from typing import Protocol
 from uuid import UUID
 
+from sqlalchemy.sql.selectable import Subquery
+
 
 class VerificationHistoryPort(Protocol):
     """Verification facts that production deletion rules depend on.
@@ -20,3 +22,13 @@ class VerificationHistoryPort(Protocol):
     async def has_history_for_batch(self, batch_id: UUID) -> bool: ...
 
     async def has_history_for_kg(self, dev_eui: str) -> bool: ...
+
+
+class LatestVerificationProjectionPort(Protocol):
+    """Latest verification relation required by production KG read models.
+
+    The relation is supplied by infrastructure. Production owns the shape it
+    consumes but does not import quality's ORM mapping or query.
+    """
+
+    def latest_verification_projection(self) -> Subquery: ...

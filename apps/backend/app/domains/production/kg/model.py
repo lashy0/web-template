@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import StrEnum
-from typing import TYPE_CHECKING
+from typing import Protocol
 from uuid import UUID, uuid4
 
 from sqlalchemy import (
@@ -20,9 +20,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.infrastructure.database.base import Base
 
-if TYPE_CHECKING:
-    from app.domains.production.batches.model import Batch
-    from app.domains.quality.verification.model import VerificationSession
+
+class KgBatchReference(Protocol):
+    id: UUID
+    name: str
 
 
 class KgState(StrEnum):
@@ -82,7 +83,7 @@ class KgUnit(Base):
     __tablename__ = "kg_units"
 
     dev_eui: Mapped[str] = mapped_column(String(16), primary_key=True)
-    batch: Mapped["Batch"] = relationship(lazy="selectin")
+    batch: Mapped[KgBatchReference] = relationship("Batch", lazy="selectin")
     short_id: Mapped[str] = mapped_column(String(20), nullable=False, unique=True)
     batch_id: Mapped[UUID] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("batches.id"), nullable=False
@@ -99,8 +100,8 @@ class KgUnit(Base):
     lorawan_credentials: Mapped["LoRaWanCredentials | None"] = relationship(
         back_populates="kg_unit", uselist=False, lazy="noload", cascade="all, delete-orphan"
     )
-    verification_sessions: Mapped[list["VerificationSession"]] = relationship(
-        back_populates="kg_unit", lazy="noload"
+    verification_sessions: Mapped[list[object]] = relationship(
+        "VerificationSession", back_populates="kg_unit", lazy="noload"
     )
 
     __table_args__ = (

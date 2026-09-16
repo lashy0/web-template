@@ -1,5 +1,6 @@
 """Compatibility-preserving HTTP adapter for migrated prefix/version operations."""
 
+from collections.abc import Callable
 from typing import Annotated, Literal, cast
 from uuid import UUID
 
@@ -8,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.api.auth_deps import CurrentPrincipalDep, require_permission
 from app.audit.writer import TransactionalAuditWriter
+from app.domains.production.contracts import LatestVerificationProjectionPort
 from app.shared.uow import transaction
 
 from .commands import (
@@ -55,6 +57,14 @@ router.include_router(version_router, prefix="/kg", tags=["kg"])
 
 def _factory(request: Request) -> async_sessionmaker[AsyncSession]:
     return cast(async_sessionmaker[AsyncSession], request.app.state.database.session_factory)
+
+
+def _repository(request: Request, session: AsyncSession) -> KgRepository:
+    factory = cast(
+        Callable[[], LatestVerificationProjectionPort],
+        request.app.state.latest_verification_projection_port_factory,
+    )
+    return KgRepository(session, factory())
 
 
 def _prefix_response(item: KgDevEuiPrefix, batch_count: int) -> KgDevEuiPrefixResponse:
@@ -105,7 +115,7 @@ async def list_kg_by_batch(
     page_size: int = Query(default=25, ge=1, le=100),
 ) -> KgBatchListResponse:
     async with _factory(request)() as session:
-        items, total = await KgQueries(KgRepository(session)).list_batch_items(
+        items, total = await KgQueries(_repository(request, session)).list_batch_items(
             batch_id, page=page, page_size=page_size, q=q, current_state=current_state
         )
     return KgBatchListResponse(
@@ -139,7 +149,7 @@ async def list_kg(
     order: Literal["asc", "desc"] = "desc",
 ) -> KgListResponse:
     async with _factory(request)() as session:
-        items, total = await KgQueries(KgRepository(session)).list(
+        items, total = await KgQueries(_repository(request, session)).list(
             q=q,
             batch_id=batch_id,
             current_state=current_state,
@@ -163,7 +173,7 @@ async def get_kg(
     request: Request,
 ) -> KgResponse:
     async with _factory(request)() as session:
-        item = await KgQueries(KgRepository(session)).get_with_current_state(dev_eui)
+        item = await KgQueries(_repository(request, session)).get_with_current_state(dev_eui)
     if item is None:
         raise KgNotFoundError
     return _kg_response(item.kg, current_state=item.current_state)

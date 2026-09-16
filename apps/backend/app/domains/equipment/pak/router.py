@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from typing import Annotated, Literal, cast
 from uuid import UUID
 
@@ -6,7 +7,6 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.api.auth_deps import CurrentPrincipalDep, require_permission
 from app.domains.quality.checks.router import router as checks_router
-from app.domains.quality.verification.adapters import QualityPakVerificationHistoryAdapter
 from app.infrastructure.hydra.pak import HydraPakOAuthClientAdapter
 
 from .commands import (
@@ -18,6 +18,7 @@ from .commands import (
     SetPakArchived,
     UpdatePak,
 )
+from .contracts import PakVerificationHistoryPort
 from .exceptions import PakNotFoundError
 from .model import PakDevice, PakDeviceKind
 from .permissions import PakPermission
@@ -56,6 +57,15 @@ def _session_factory(request: Request) -> async_sessionmaker[AsyncSession]:
 
 def _oauth(request: Request) -> HydraPakOAuthClientAdapter:
     return HydraPakOAuthClientAdapter(request.app.state.hydra_client_manager)
+
+
+def _verification_history_factory(
+    request: Request,
+) -> Callable[[AsyncSession], PakVerificationHistoryPort]:
+    return cast(
+        Callable[[AsyncSession], PakVerificationHistoryPort],
+        request.app.state.pak_verification_history_factory,
+    )
 
 
 @router.get("", response_model=PakDeviceListResponse)
@@ -197,6 +207,6 @@ async def delete_pak(
     await DeletePak(
         _session_factory(request),
         _oauth(request),
-        QualityPakVerificationHistoryAdapter,
+        _verification_history_factory(request),
         request.app.state.settings.PAK_ACCESS_KEY_ENCRYPTION_KEY,
     ).execute(actor=principal, pak_id=pak_id)

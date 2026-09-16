@@ -1,6 +1,6 @@
 # mypy: disable-error-code=untyped-decorator
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from typing import Annotated, Literal, cast
 from uuid import UUID
@@ -18,11 +18,11 @@ from app.domains.production.orders.schemas import AssignProductionOrderRequest
 from app.domains.production.preparation.commands.retry import RetryPreparation
 from app.domains.production.preparation.queries import PreparationQueries
 from app.domains.production.preparation.repository import PreparationRepository
-from app.domains.quality.verification.adapters import VerificationHistoryProvider
 from app.infrastructure.redis.preparation_notifier import RedisProgressNotifier
 from app.shared.uow import transaction
 from app.worker.preparation_dispatcher import CeleryWorkDispatcher
 
+from ..contracts import VerificationHistoryPort
 from ..exceptions import BatchNotFoundError
 from .commands import (
     AssignProductionOrder,
@@ -53,18 +53,26 @@ def _session_factory(request: Request) -> async_sessionmaker[AsyncSession]:
     return cast(async_sessionmaker[AsyncSession], request.app.state.database.session_factory)
 
 
+def _verification_history(request: Request, session: AsyncSession) -> VerificationHistoryPort:
+    factory = cast(
+        Callable[[AsyncSession], VerificationHistoryPort],
+        request.app.state.production_verification_history_factory,
+    )
+    return factory(session)
+
+
 @asynccontextmanager
 async def _transaction(request: Request) -> AsyncIterator[AsyncSession]:
     async with transaction(_session_factory(request)) as session:
         yield session
 
 
-async def _response(session: AsyncSession, batch: Batch) -> BatchResponse:
+async def _response(request: Request, session: AsyncSession, batch: Batch) -> BatchResponse:
     queries = BatchQueries(
         BatchRepository(session), PreparationQueries(PreparationRepository(session))
     )
     can_delete = (
-        await queries.deletion_availability([batch], VerificationHistoryProvider(session))
+        await queries.deletion_availability([batch], _verification_history(request, session))
     )[batch.id]
     return batch_response(
         batch, can_delete=can_delete, job=await queries.get_preparation_job(batch.id)
@@ -124,7 +132,7 @@ async def list_batches(
             without_production_order=without_production_order,
         )
         availability = await queries.deletion_availability(
-            batches, VerificationHistoryProvider(session)
+            batches, _verification_history(request, session)
         )
         jobs = await queries.get_preparation_jobs([batch.id for batch in batches])
         items = [
@@ -146,7 +154,7 @@ async def get_batch(
         ).get(batch_id)
         if batch is None:
             raise BatchNotFoundError
-        return await _response(session, batch)
+        return await _response(request, session, batch)
 
 
 @router.post("", response_model=BatchResponse, status_code=status.HTTP_201_CREATED)
@@ -174,7 +182,7 @@ async def create_batch(
             kg_version_id=payload.kg_version_id,
             production_order_id=payload.production_order_id,
         )
-        response = await _response(session, batch)
+        response = await _response(request, session, batch)
     await CeleryWorkDispatcher(
         _session_factory(request), RedisProgressNotifier()
     ).dispatch_after_commit(batch.id)
@@ -194,7 +202,7 @@ async def update_batch(
         ).execute(
             actor=principal, batch_id=batch_id, updates=payload.model_dump(exclude_unset=True)
         )
-        return await _response(session, batch)
+        return await _response(request, session, batch)
 
 
 @router.put("/{batch_id}/archived", response_model=BatchResponse)
@@ -208,7 +216,7 @@ async def update_batch_archived(
         batch = await SetBatchArchived(
             BatchRepository(session), TransactionalAuditWriter.from_session(session)
         ).execute(actor=principal, batch_id=batch_id, archived=payload.archived)
-        return await _response(session, batch)
+        return await _response(request, session, batch)
 
 
 @router.post("/{batch_id}/complete", response_model=BatchResponse)
@@ -225,7 +233,7 @@ async def complete_batch(
             PreparationRepository(session),
             TransactionalAuditWriter.from_session(session),
         ).execute(actor=principal, batch_id=batch_id)
-        return await _response(session, batch)
+        return await _response(request, session, batch)
 
 
 @router.post("/{batch_id}/preparation/retry", response_model=BatchResponse)
@@ -239,7 +247,7 @@ async def retry_batch_preparation(
         _, dispatched = await RetryPreparation(PreparationRepository(session)).execute(
             actor=principal, batch=batch
         )
-        response = await _response(session, batch)
+        response = await _response(request, session, batch)
     if dispatched:
         await CeleryWorkDispatcher(
             _session_factory(request), RedisProgressNotifier()
@@ -255,7 +263,10 @@ async def delete_batch(
 ) -> None:
     await DeleteBatch(
         _session_factory(request),
-        verification_history=VerificationHistoryProvider,
+        verification_history=cast(
+            Callable[[AsyncSession], VerificationHistoryPort],
+            request.app.state.production_verification_history_factory,
+        ),
         notifier=RedisProgressNotifier(),
     ).execute(actor=principal, batch_id=batch_id)
 
@@ -277,4 +288,4 @@ async def assign_production_order(
         ).execute(
             actor=principal, batch_id=batch_id, production_order_id=payload.production_order_id
         )
-        return await _response(session, batch)
+        return await _response(request, session, batch)

@@ -6,12 +6,10 @@ from uuid import UUID
 from sqlalchemy import and_, delete, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import ColumnElement
+from sqlalchemy.sql.selectable import Subquery
 
 from app.domains.production.batches.model import Batch
-
-# Residual debt: KG embeds a quality-owned subquery in its own SELECTs. A read
-# port should replace this SQL-level coupling (see docs/architecture.md).
-from app.domains.quality.verification.adapters import latest_verification_projection
+from app.domains.production.contracts import LatestVerificationProjectionPort
 
 from .model import KgDevEuiPrefix, KgState, KgUnit, KgVersion, LoRaWanCredentials
 from .projections import current_kg_state_expression
@@ -28,8 +26,18 @@ class KgListItem:
 class KgRepository:
     """Persistence and PostgreSQL concurrency primitives for the migrated KG slice."""
 
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(
+        self,
+        session: AsyncSession,
+        latest_verification: LatestVerificationProjectionPort | None = None,
+    ) -> None:
         self._session = session
+        self._latest_verification = latest_verification
+
+    def _latest_projection(self) -> Subquery:
+        if self._latest_verification is None:
+            raise RuntimeError("KG current-state reads require a verification projection port")
+        return self._latest_verification.latest_verification_projection()
 
     async def get_prefix(self, prefix: str, *, for_update: bool = False) -> KgDevEuiPrefix | None:
         return await self._session.get(
@@ -238,7 +246,7 @@ class KgRepository:
         return list((await self._session.scalars(statement)).all())
 
     async def get_with_current_state(self, dev_eui: str) -> KgListItem | None:
-        latest = latest_verification_projection()
+        latest = self._latest_projection()
         state = current_kg_state_expression(cast(ColumnElement[object], KgUnit.state), latest)
         row = (
             (
@@ -272,7 +280,7 @@ class KgRepository:
             filters.append(or_(KgUnit.dev_eui.ilike(pattern), KgUnit.short_id.ilike(pattern)))
         if batch_id is not None:
             filters.append(KgUnit.batch_id == batch_id)
-        latest = latest_verification_projection()
+        latest = self._latest_projection()
         state = current_kg_state_expression(cast(ColumnElement[object], KgUnit.state), latest)
         if current_state is not None:
             filters.append(state == current_state)
@@ -314,7 +322,7 @@ class KgRepository:
         filters: list[ColumnElement[bool]] = [KgUnit.batch_id == batch_id]
         if q:
             filters.append(KgUnit.dev_eui.ilike(f"%{q.strip()}%"))
-        latest = latest_verification_projection()
+        latest = self._latest_projection()
         state = current_kg_state_expression(cast(ColumnElement[object], KgUnit.state), latest)
         if current_state is not None:
             filters.append(state == current_state)

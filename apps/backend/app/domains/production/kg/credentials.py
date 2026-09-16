@@ -1,5 +1,6 @@
 """Credential persistence application API owned by production KG."""
 
+from typing import cast
 from uuid import UUID
 
 from pydantic import SecretStr
@@ -68,7 +69,7 @@ class KgCredentials:
         kg = await self._repository.get_by_dev_eui(kg_dev_eui)
         if kg is None:
             raise KgNotFoundError
-        await self.save(batch=kg.batch, kg_dev_eui=kg_dev_eui, credentials=credentials)
+        await self.save(batch=cast(Batch, kg.batch), kg_dev_eui=kg_dev_eui, credentials=credentials)
 
     async def credentials_exist(self, *, kg_dev_eui: str) -> bool:
         return await self.exists(kg_dev_eui=kg_dev_eui)
@@ -80,7 +81,8 @@ class KgCredentials:
         kg = await self._repository.get_by_dev_eui(kg_dev_eui)
         if kg is None:
             raise KgNotFoundError
-        if kg.batch.lorawan_config is None:
+        batch = cast(Batch, kg.batch)
+        if batch.lorawan_config is None:
             raise KgLoRaWanConfigurationMissingError
         stored = await self._repository.get_credentials(kg_dev_eui)
         if stored is None:
@@ -90,8 +92,8 @@ class KgCredentials:
             stored.schema_version,
             CredentialsEncryptionContext(
                 kg_dev_eui=kg.dev_eui,
-                activation_type=kg.batch.lorawan_config.activation_type,
-                lorawan_version=kg.batch.lorawan_config.lorawan_version,
+                activation_type=batch.lorawan_config.activation_type,
+                lorawan_version=batch.lorawan_config.lorawan_version,
             ),
         )
 

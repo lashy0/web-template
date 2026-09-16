@@ -4,8 +4,6 @@ from uuid import UUID
 from sqlalchemy import ColumnElement, and_, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.production.kg.model import KgUnit
-
 from .model import (
     VerificationSession,
     VerificationSessionStatus,
@@ -292,17 +290,5 @@ class VerificationRepository:
         return bool(
             await self._session.scalar(
                 select(exists().where(VerificationSession.kg_dev_eui == dev_eui))
-            )
-        )
-
-    async def has_history_for_batch(self, batch_id: UUID) -> bool:
-        return bool(
-            await self._session.scalar(
-                select(
-                    exists().where(
-                        VerificationSession.kg_dev_eui == KgUnit.dev_eui,
-                        KgUnit.batch_id == batch_id,
-                    )
-                )
             )
         )

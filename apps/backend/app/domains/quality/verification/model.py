@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import StrEnum
-from typing import TYPE_CHECKING
+from typing import Any, Protocol
 from uuid import UUID, uuid4
 
 from sqlalchemy import (
@@ -19,11 +19,13 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.domains.equipment.pak.model import PakDevice
 from app.infrastructure.database.base import Base
 
-if TYPE_CHECKING:
-    from app.domains.production.kg.model import KgUnit
+
+class VerificationPakReference(Protocol):
+    id: UUID
+    code: str
+    kind: Any
 
 
 class VerificationSessionStatus(StrEnum):
@@ -68,8 +70,10 @@ class VerificationSession(Base):
     kg_dev_eui: Mapped[str] = mapped_column(
         String(16), ForeignKey("kg_units.dev_eui", ondelete="RESTRICT"), nullable=False
     )
-    kg_unit: Mapped["KgUnit"] = relationship(back_populates="verification_sessions")
-    pak: Mapped[PakDevice] = relationship(lazy="selectin")
+    kg_unit: Mapped[object] = relationship(
+        "KgUnit", back_populates="verification_sessions"
+    )
+    pak: Mapped[VerificationPakReference] = relationship("PakDevice", lazy="selectin")
     firmware_version: Mapped[str] = mapped_column(String(64), nullable=False)
     pak_id: Mapped[UUID] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("pak_devices.id", ondelete="RESTRICT"), nullable=False

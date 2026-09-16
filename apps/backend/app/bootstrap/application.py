@@ -10,11 +10,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.audit.writer import TransactionalAuditWriter
 from app.core.config import Settings, get_settings
 from app.core.logging import setup_logging
-from app.domains.equipment.pak.adapters import adapt_pak
 from app.domains.equipment.pak.authentication import PakMachineAuthenticator
 from app.domains.identity.users.commands import BootstrapFirstAdministrator
-from app.domains.production.adapters import ProductionVerificationKgAdapter
 from app.infrastructure.database.session import Database, create_database
+from app.infrastructure.domain_adapters.verification import (
+    ProductionVerificationKgAdapter,
+    SqlAlchemyLatestVerificationProjection,
+    SqlAlchemyVerificationHistoryProvider,
+    adapt_pak,
+)
 from app.infrastructure.hydra.client import (
     HydraOAuthClientManager,
     HydraTokenIntrospector,
@@ -46,6 +50,9 @@ class ApplicationComponents:
         app.state.pak_machine_authenticator = self.pak_machine_authenticator
         app.state.verification_kg_port_factory = ProductionVerificationKgAdapter
         app.state.verification_pak_adapter = adapt_pak
+        app.state.production_verification_history_factory = SqlAlchemyVerificationHistoryProvider
+        app.state.pak_verification_history_factory = SqlAlchemyVerificationHistoryProvider
+        app.state.latest_verification_projection_port_factory = SqlAlchemyLatestVerificationProjection
 
     @staticmethod
     def audit_writer(session: AsyncSession) -> TransactionalAuditWriter:

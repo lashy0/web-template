@@ -19,7 +19,6 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.components.keygen.types import ActivationType, LoRaWanVersion
-from app.domains.identity.users.model import User
 
 # Temporary production-internal ORM bridge until KG versions move.
 from app.domains.production.kg.model import KgDevEuiPrefix, KgVersion
@@ -77,7 +76,7 @@ class Batch(Base):
     kg_version_id: Mapped[UUID | None] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("kg_versions.id"), nullable=True
     )
-    created_by_user: Mapped[User | None] = relationship(lazy="selectin")
+    created_by_user: Mapped[object | None] = relationship("User", lazy="selectin")
     created_by_user_id: Mapped[UUID | None] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
