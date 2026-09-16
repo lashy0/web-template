@@ -6,10 +6,11 @@ from advanced_alchemy.extensions.litestar import (
     AsyncSessionConfig,
     SQLAlchemyAsyncConfig,
 )
-from pydantic import Field, PostgresDsn, SecretStr
+from pydantic import AliasChoices, Field, PostgresDsn, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-_POSTGRES_USER = "backend"
+_POSTGRES_MIGRATOR_USER = "otk_app_migrator"
+_POSTGRES_RUNTIME_USER = "otk_app_runtime"
 
 _APP_DIR = Path(__file__).resolve().parents[1]
 _MIGRATIONS_DIR = _APP_DIR / "db" / "migrations"
@@ -30,22 +31,27 @@ class DatabaseSettings(BaseSettings):
 
     postgres_host: str = Field(
         default="localhost",
-        validation_alias="POSTGRES_HOST",
+        validation_alias=AliasChoices("BACKEND_POSTGRES_HOST", "POSTGRES_HOST"),
     )
 
     postgres_port: int = Field(
         default=5432,
-        validation_alias="POSTGRES_PORT",
+        validation_alias=AliasChoices("BACKEND_POSTGRES_PORT", "POSTGRES_PORT"),
     )
 
     postgres_db: str = Field(
-        default="backend",
-        validation_alias="POSTGRES_DB",
+        default="otk_app",
+        validation_alias=AliasChoices("BACKEND_POSTGRES_DB", "POSTGRES_DB"),
     )
 
-    postgres_password: SecretStr | None = Field(
+    postgres_runtime_password: SecretStr | None = Field(
         default=None,
-        validation_alias="POSTGRES_PASSWORD",
+        validation_alias="BACKEND_POSTGRES_RUNTIME_PASSWORD",
+    )
+
+    postgres_migrator_password: SecretStr | None = Field(
+        default=None,
+        validation_alias="BACKEND_POSTGRES_MIGRATOR_PASSWORD",
     )
 
     @property
@@ -53,15 +59,34 @@ class DatabaseSettings(BaseSettings):
         if self.database_url_override is not None:
             return self.database_url_override
 
-        if self.postgres_password is None:
+        if self.postgres_runtime_password is None:
             raise ValueError(
-                "POSTGRES_PASSWORD is required when DATABASE_URL is not set"
+                "BACKEND_POSTGRES_RUNTIME_PASSWORD is required when DATABASE_URL is not set"
             )
 
         return PostgresDsn.build(
             scheme="postgresql+psycopg",
-            username=_POSTGRES_USER,
-            password=self.postgres_password.get_secret_value(),
+            username=_POSTGRES_RUNTIME_USER,
+            password=self.postgres_runtime_password.get_secret_value(),
+            host=self.postgres_host,
+            port=self.postgres_port,
+            path=self.postgres_db,
+        )
+
+    @property
+    def migration_database_url(self) -> PostgresDsn:
+        if self.database_url_override is not None:
+            return self.database_url_override
+
+        if self.postgres_migrator_password is None:
+            raise ValueError(
+                "BACKEND_POSTGRES_MIGRATOR_PASSWORD is required when DATABASE_URL is not set"
+            )
+
+        return PostgresDsn.build(
+            scheme="postgresql+psycopg",
+            username=_POSTGRES_MIGRATOR_USER,
+            password=self.postgres_migrator_password.get_secret_value(),
             host=self.postgres_host,
             port=self.postgres_port,
             path=self.postgres_db,

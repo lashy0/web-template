@@ -12,11 +12,11 @@ from cli.compose import (
     run_command,
 )
 
-DATABASE_NETWORK = "web-database"
+DATABASE_NETWORK = "otk-app-database"
 PROJECT = ComposeProject(INFRASTRUCTURE_ROOT / "database")
 
 app = typer.Typer(
-    help="Manage the Web App database infrastructure.",
+    help="Manage the OTK App database infrastructure.",
     no_args_is_help=True,
     add_completion=False,
 )

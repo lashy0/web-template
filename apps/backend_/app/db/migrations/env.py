@@ -9,7 +9,7 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from app.config import get_database_settings
+from app.config import get_settings
 from app.db import models  # noqa: F401
 
 config = context.config
@@ -22,8 +22,8 @@ target_metadata = metadata_registry.get(None)
 
 def get_database_url() -> str:
     try:
-        settings = get_database_settings()
-        return str(settings.database_url)
+        settings = get_settings()
+        return str(settings.db.migration_database_url)
 
     except (SettingsError, ValidationError, ValueError) as error:
         raise util.CommandError(

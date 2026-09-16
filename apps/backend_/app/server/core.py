@@ -9,7 +9,7 @@ from litestar.plugins import InitPluginProtocol
 
 from app import config
 from app.__metadata__ import __version__
-from app.config import get_settings, provide_app_settings
+from app.config import AppSettings, get_settings, provide_app_settings
 from app.server import plugins
 
 if TYPE_CHECKING:
@@ -40,7 +40,14 @@ class ApplicationCore(InitPluginProtocol):
         app_config.plugins.extend(
             [
                 plugins.alchemy,
+                plugins.domain,
             ]
+        )
+
+        app_config.signature_namespace.update(
+            {
+                "AppSettings": AppSettings,
+            }
         )
 
         app_config.dependencies.update(

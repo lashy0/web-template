@@ -1,6 +1,6 @@
 # Database infrastructure
 
-This directory owns the independent `web-database` Compose project containing
+This directory owns the independent `otk-app-database` Compose project containing
 PostgreSQL and Redis. The application joins its private external network, but
 does not start, update, or stop either data service.
 
@@ -10,8 +10,8 @@ does not start, update, or stop either data service.
 database/
 ├── postgres/
 │   ├── init.sh                New-cluster initialization runner
-│   ├── web-app/
-│   │   └── init.sql           Web App database, roles and privileges
+│   ├── otk-app/
+│   │   └── init.sql           OTK App database, roles and privileges
 │   ├── kratos/
 │   │   └── init.sql           Kratos database, roles and privileges
 │   └── hydra/
@@ -28,7 +28,7 @@ database/
 The PostgreSQL image runs `postgres/init.sh` from `/docker-entrypoint-initdb.d`
 only when it initializes an empty data directory. The runner passes each
 consumer's role passwords to its own SQL file. Those files explicitly create
-the `web_app`, `kratos`, and `hydra` databases, their migrator and runtime roles, and the
+the `otk_app`, `kratos`, and `hydra` databases, their migrator and runtime roles, and the
 required privileges. The dev and prod files only override
 environment-specific container settings.
 
@@ -49,7 +49,7 @@ docker compose exec postgres sh -c '\
   psql --username="$POSTGRES_USER" --dbname=postgres --set=ON_ERROR_STOP=1 \
     --set=migrator_password="$HYDRA_POSTGRES_MIGRATOR_PASSWORD" \
     --set=runtime_password="$HYDRA_POSTGRES_RUNTIME_PASSWORD" \
-    --file=/usr/local/share/web-database/hydra/init.sql'
+    --file=/usr/local/share/otk-app-database/hydra/init.sql'
 ```
 
 Run this only when the `hydra` database and its roles do not yet exist; the SQL
@@ -63,13 +63,13 @@ Both the database and backend projects load the repository `.env` file.
 Copy `.env.example` to `.env` and replace every example credential before use.
 The fixed database and principal names are:
 
-- database: `web_app`;
-- PostgreSQL: `postgres_admin`, `web_app_migrator`, `web_app_runtime`;
+- database: `otk_app`;
+- PostgreSQL: `postgres_admin`, `otk_app_migrator`, `otk_app_runtime`;
 - identity database: `kratos`;
 - identity PostgreSQL: `kratos_migrator`, `kratos_runtime`;
 - OAuth2 database: `hydra`;
 - OAuth2 PostgreSQL: `hydra_migrator`, `hydra_runtime`;
-- Redis: `web_app_admin`, `web_app_runtime`.
+- Redis: `otk_app_admin`, `otk_app_runtime`.
 
 Each migrator role owns its database and public schema. The long-running
 runtime roles have no DDL rights; initialization grants only

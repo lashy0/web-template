@@ -26,8 +26,8 @@ async def test_migration_preserves_existing_batches_and_can_be_reversed(test_set
     migrator = create_async_engine(
         _database_url(
             test_settings,
-            username="web_app_migrator",
-            password=os.environ["POSTGRES_MIGRATOR_PASSWORD"],
+            username="otk_app_migrator",
+            password=os.environ["BACKEND_POSTGRES_MIGRATOR_PASSWORD"],
         ),
         poolclass=NullPool,
         connect_args={"options": f"-c search_path={schema}"},
@@ -75,7 +75,7 @@ async def test_migration_preserves_existing_batches_and_can_be_reversed(test_set
     try:
         async with admin.begin() as connection:
             await connection.execute(
-                sa.text(f'CREATE SCHEMA "{schema}" AUTHORIZATION web_app_migrator')
+                sa.text(f'CREATE SCHEMA "{schema}" AUTHORIZATION otk_app_migrator')
             )
         async with migrator.begin() as connection:
             await connection.run_sync(check)

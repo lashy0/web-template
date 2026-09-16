@@ -1,6 +1,6 @@
 services:
   frontend:
-    image: "web-app-frontend:${FRONTEND_TAG:?FRONTEND_TAG is required}"
+    image: "otk-app-frontend:${FRONTEND_TAG:?FRONTEND_TAG is required}"
     restart: unless-stopped
     networks:
       - traefik-public

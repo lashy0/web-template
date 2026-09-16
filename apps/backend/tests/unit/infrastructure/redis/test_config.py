@@ -34,7 +34,7 @@ def test_redis_url_is_built_from_connection_fields() -> None:
     assert settings.redis_url.scheme == "redis"
     assert settings.redis_url.host == "redis.internal"
     assert settings.redis_url.port == 6380
-    assert settings.redis_url.username == "web_app_runtime"
+    assert settings.redis_url.username == "otk_app_runtime"
     assert settings.redis_url.password == "secret"
     assert settings.redis_url.path == "/2"
 
@@ -86,4 +86,4 @@ def test_runtime_password_from_shared_environment_is_supported() -> None:
     )
 
     assert settings.REDIS_PASSWORD == SecretStr("runtime-secret")
-    assert settings.redis_url.username == "web_app_runtime"
+    assert settings.redis_url.username == "otk_app_runtime"

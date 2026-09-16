@@ -38,8 +38,8 @@ async def database_session_factory(
     )
     migrator_url = _database_url(
         test_settings,
-        username="web_app_migrator",
-        password=os.environ["POSTGRES_MIGRATOR_PASSWORD"],
+        username="otk_app_migrator",
+        password=os.environ["BACKEND_POSTGRES_MIGRATOR_PASSWORD"],
     )
 
     admin_engine = create_async_engine(admin_url, poolclass=NullPool)
@@ -52,15 +52,15 @@ async def database_session_factory(
     try:
         async with admin_engine.begin() as connection:
             await connection.execute(
-                text(f'CREATE SCHEMA "{schema}" AUTHORIZATION web_app_migrator')
+                text(f'CREATE SCHEMA "{schema}" AUTHORIZATION otk_app_migrator')
             )
 
         async with migrator_engine.begin() as connection:
             await connection.run_sync(Base.metadata.create_all)
-            await connection.execute(text(f'GRANT USAGE ON SCHEMA "{schema}" TO web_app_runtime'))
+            await connection.execute(text(f'GRANT USAGE ON SCHEMA "{schema}" TO otk_app_runtime'))
             await connection.execute(
                 text(
-                    f'GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA "{schema}" TO web_app_runtime'
+                    f'GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA "{schema}" TO otk_app_runtime'
                 )
             )
 

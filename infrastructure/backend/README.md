@@ -1,9 +1,9 @@
 # Backend infrastructure
 
-This directory owns the independent `web-backend` Compose project containing
+This directory owns the independent `otk-app-backend` Compose project containing
 the FastAPI API, Celery worker, standalone realtime SSE application, and
 its migration prestart container. It joins the external
-`web-database`, `web-identity`, and `traefik-public` networks but never creates
+`otk-app-database`, `otk-app-identity`, and `traefik-public` networks but never creates
 or manages their services.
 
 ## Structure
@@ -22,9 +22,9 @@ files are overrides and are not intended to be used without the base file.
 ## Configuration
 
 The project loads the shared `.env` from the repository root. The prestart
-container connects to PostgreSQL as `web_app_migrator`; the backend, worker,
-and realtime services use Redis as `web_app_runtime`. All three application
-services use the same `web-app-backend` image. The worker uses Redis as its
+container connects to PostgreSQL as `otk_app_migrator`; the backend, worker,
+and realtime services use Redis as `otk_app_runtime`. All three application
+services use the same `otk-app-backend` image. The worker uses Redis as its
 Celery broker and realtime uses Redis Pub/Sub; neither creates a Redis service.
 Their startup commands are kept in `apps/backend/scripts/start-api.sh`,
 `apps/backend/scripts/start-worker.sh`, and

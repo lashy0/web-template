@@ -1,11 +1,11 @@
 services:
   prestart:
-    image: "web-app-backend:${BACKEND_TAG:?BACKEND_TAG is required}"
+    image: "otk-app-backend:${BACKEND_TAG:?BACKEND_TAG is required}"
     environment:
       BACKEND_DEBUG: "false"
 
   api:
-    image: "web-app-backend:${BACKEND_TAG:?BACKEND_TAG is required}"
+    image: "otk-app-backend:${BACKEND_TAG:?BACKEND_TAG is required}"
     restart: unless-stopped
     labels:
       traefik.http.routers.api.entrypoints: https
@@ -24,11 +24,11 @@ services:
       BACKEND_DEBUG: "false"
 
   worker:
-    image: "web-app-backend:${BACKEND_TAG:?BACKEND_TAG is required}"
+    image: "otk-app-backend:${BACKEND_TAG:?BACKEND_TAG is required}"
     restart: unless-stopped
 
   realtime:
-    image: "web-app-backend:${BACKEND_TAG:?BACKEND_TAG is required}"
+    image: "otk-app-backend:${BACKEND_TAG:?BACKEND_TAG is required}"
     restart: unless-stopped
     labels:
       traefik.http.routers.realtime.entrypoints: https

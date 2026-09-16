@@ -5,8 +5,8 @@ set -euo pipefail
 : "${REDIS_ADMIN_PASSWORD:?REDIS_ADMIN_PASSWORD is required}"
 : "${REDIS_RUNTIME_PASSWORD:?REDIS_RUNTIME_PASSWORD is required}"
 
-ACL_TEMPLATE="/usr/local/share/web-database/users.acl.template"
-ACL_DIRECTORY="/run/web-database-redis"
+ACL_TEMPLATE="/usr/local/share/otk-app-database/users.acl.template"
+ACL_DIRECTORY="/run/otk-app-database-redis"
 ACL_FILE="${ACL_DIRECTORY}/users.acl"
 
 hash_password() {

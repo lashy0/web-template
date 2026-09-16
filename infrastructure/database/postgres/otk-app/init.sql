@@ -1,0 +1,27 @@
+CREATE ROLE otk_app_migrator
+    LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION
+    PASSWORD :'migrator_password';
+
+CREATE ROLE otk_app_runtime
+    LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION
+    PASSWORD :'runtime_password';
+
+CREATE DATABASE otk_app OWNER otk_app_migrator;
+REVOKE ALL ON DATABASE otk_app FROM PUBLIC;
+GRANT CONNECT ON DATABASE otk_app TO otk_app_migrator, otk_app_runtime;
+
+\connect otk_app
+
+REVOKE ALL ON SCHEMA public FROM PUBLIC;
+ALTER SCHEMA public OWNER TO otk_app_migrator;
+GRANT USAGE ON SCHEMA public TO otk_app_runtime;
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+    ON ALL TABLES IN SCHEMA public TO otk_app_runtime;
+GRANT USAGE, SELECT, UPDATE
+    ON ALL SEQUENCES IN SCHEMA public TO otk_app_runtime;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE otk_app_migrator IN SCHEMA public
+    GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO otk_app_runtime;
+ALTER DEFAULT PRIVILEGES FOR ROLE otk_app_migrator IN SCHEMA public
+    GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO otk_app_runtime;

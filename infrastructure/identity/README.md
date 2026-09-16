@@ -1,6 +1,6 @@
 # Identity infrastructure
 
-This directory owns the independent `web-identity` Compose project. It runs
+This directory owns the independent `otk-app-identity` Compose project. It runs
 Ory Kratos `v26.2.0` and Ory Hydra `v26.2.0` against the shared PostgreSQL
 cluster, but its lifecycle is independent from both the database and application
 projects.
@@ -44,8 +44,8 @@ uv run --project infrastructure infra-traefik up dev
 uv run --project infrastructure infra-identity up dev
 ```
 
-`infra-identity up` checks the `web-database` and `traefik-public` networks,
-creates the stack-owned external `web-identity` network, runs SQL migrations,
+`infra-identity up` checks the `otk-app-database` and `traefik-public` networks,
+creates the stack-owned external `otk-app-identity` network, runs SQL migrations,
 and waits for Kratos and Hydra readiness. Use `--health-timeout` to change the
 default 90-second wait.
 
@@ -60,7 +60,7 @@ Replace `dev` with `prod` for production. Production has no host port mappings.
 Development binds Kratos's Public and Admin APIs only to `127.0.0.1:4433` and
 `127.0.0.1:4434` respectively. Hydra has no host port mappings: its Public API
 is served through Traefik at `http://oauth.${BASE_DOMAIN}` and its Admin API is
-reachable only by containers on `web-identity`.
+reachable only by containers on `otk-app-identity`.
 
 ## Public contract
 
@@ -83,7 +83,7 @@ host in production, and has no Traefik router.
 Hydra's public API is routed at `oauth.${BASE_DOMAIN}`. It supports OAuth2
 `client_credentials`, including `POST /oauth2/token`; the configured issuer is
 the same public URL. Access tokens use the opaque strategy and must be checked
-through the Admin API's introspection endpoint by a service on `web-identity`.
+through the Admin API's introspection endpoint by a service on `otk-app-identity`.
 
 For PAK integrations, use one base URL: `api.${BASE_DOMAIN}`. Traefik forwards
 only `POST /oauth2/token` from that host directly to Hydra. A PAK therefore

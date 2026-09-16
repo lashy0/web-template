@@ -73,11 +73,11 @@ The backend reads the following client settings:
 | --- | --- | --- |
 | `BACKEND_DATABASE_URL` | empty | Complete runtime SQLAlchemy connection URL; overrides the individual connection fields |
 | `BACKEND_MIGRATION_DATABASE_URL` | empty | Complete Alembic connection URL; overrides other migration connection settings |
-| `BACKEND_POSTGRES_MIGRATOR_PASSWORD` | empty | Password used by Alembic with the `web_app_migrator` role |
+| `BACKEND_POSTGRES_MIGRATOR_PASSWORD` | empty | Password used by Alembic with the `otk_app_migrator` role |
 | `BACKEND_POSTGRES_HOST` | `localhost` | PostgreSQL server hostname |
 | `BACKEND_POSTGRES_PORT` | `5432` | PostgreSQL server port |
-| `BACKEND_POSTGRES_PASSWORD` | `changepassword` | PostgreSQL password |
-| `BACKEND_POSTGRES_DB` | `web_app` | PostgreSQL database name |
+| `BACKEND_POSTGRES_RUNTIME_PASSWORD` | `changepassword` | PostgreSQL password |
+| `BACKEND_POSTGRES_DB` | `otk_app` | PostgreSQL database name |
 | `BACKEND_DB_POOL_SIZE` | `5` | Regular connections per application worker |
 | `BACKEND_DB_MAX_OVERFLOW` | `5` | Extra connections per worker during traffic bursts |
 | `BACKEND_DB_POOL_TIMEOUT` | `30` | Seconds to wait when all connections are busy |
@@ -87,14 +87,13 @@ The backend reads the following client settings:
 Use `BACKEND_DATABASE_URL` for managed Postgres or TLS settings:
 
 ```env
-BACKEND_DATABASE_URL=postgresql+psycopg://user:password@db.example.com:5432/web_app?sslmode=require
+BACKEND_DATABASE_URL=postgresql+psycopg://user:password@db.example.com:5432/otk_app?sslmode=require
 ```
 
 `BACKEND_DATABASE_URL` configures the runtime connection, and
 `BACKEND_MIGRATION_DATABASE_URL` configures Alembic. Without explicit URLs,
-the application connects as `web_app_runtime` and Alembic connects as
-`web_app_migrator`. The shared and legacy `POSTGRES_*` variables remain
-supported for component fields and passwords.
+the application connects as `otk_app_runtime` and Alembic connects as
+`otk_app_migrator`. Legacy `POSTGRES_*` component variables remain supported.
 
 ## Connection capacity
 
@@ -126,8 +125,8 @@ With PostgreSQL available, generate a migration from `apps/backend/`:
 uv run --env-file ../../.env alembic revision --autogenerate -m "describe the change"
 ```
 
-Alembic uses the schema-owning `web_app_migrator` role, while the application
-continues to use the least-privileged `web_app_runtime` role.
+Alembic uses the schema-owning `otk_app_migrator` role, while the application
+continues to use the least-privileged `otk_app_runtime` role.
 
 The post-write hooks in `alembic.ini` apply Ruff fixes and formatting to newly
 generated revisions.

@@ -15,8 +15,8 @@ from cli.compose import (
 )
 
 IDENTITY_ROOT = INFRASTRUCTURE_ROOT / "identity"
-IDENTITY_NETWORK = "web-identity"
-DATABASE_NETWORK = "web-database"
+IDENTITY_NETWORK = "otk-app-identity"
+DATABASE_NETWORK = "otk-app-database"
 TRAEFIK_NETWORK = "traefik-public"
 PROJECT = ComposeProject(IDENTITY_ROOT, (ROOT_ENV_FILE, IDENTITY_ROOT / ".env"))
 

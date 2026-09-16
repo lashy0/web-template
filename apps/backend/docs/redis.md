@@ -34,7 +34,7 @@ The connection is configured with the following environment variables:
 | `BACKEND_REDIS_PORT` | `6379` | Redis server port |
 | `BACKEND_REDIS_PASSWORD` | empty | Redis password |
 | `BACKEND_REDIS_DB` | `0` | Logical Redis database |
-| `BACKEND_REDIS_PREFIX` | `web-app` | Prefix prepended to application-owned Redis keys |
+| `BACKEND_REDIS_PREFIX` | `otk-app` | Prefix prepended to application-owned Redis keys |
 | `BACKEND_REDIS_MAX_CONNECTIONS` | `20` | Maximum pool size per application worker |
 | `BACKEND_REDIS_SOCKET_CONNECT_TIMEOUT` | `2` | Connection timeout in seconds |
 | `BACKEND_REDIS_SOCKET_TIMEOUT` | `2` | Command timeout in seconds |
@@ -56,7 +56,7 @@ all connections in a worker pool are busy, Redis operations can fail.
 
 For local compatibility, `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`,
 `REDIS_RUNTIME_PASSWORD`, and `REDIS_DB` are accepted as fallbacks. Component
-fields always use the fixed `web_app_runtime` ACL user.
+fields always use the fixed `otk_app_runtime` ACL user.
 When both forms are set, the `BACKEND_REDIS_*` variable takes precedence.
 
 Use `BACKEND_REDIS_URL` for managed Redis or TLS connections:
@@ -72,7 +72,7 @@ Build application-owned keys with `build_redis_key()` so the configured prefix
 and key format remain consistent between reads, writes, and invalidation.
 
 Every session write must set a TTL. The runtime ACL is restricted to
-`web-app:*` keys and channels. In addition to the small command set needed by
+`otk-app:*` keys and channels. In addition to the small command set needed by
 TTL-backed sessions, it allows the list, hash, sorted-set, transaction, and
 Pub/Sub commands required by realtime events and the Celery Redis broker.
 Celery remote control and gossip are disabled because this base worker does not

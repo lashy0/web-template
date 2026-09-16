@@ -1,4 +1,4 @@
-name: web-backend
+name: otk-app-backend
 
 x-default-logging: &default-logging
   driver: local
@@ -9,18 +9,18 @@ x-default-logging: &default-logging
 x-backend-environment: &backend-environment
   BACKEND_POSTGRES_HOST: postgres
   BACKEND_POSTGRES_PORT: 5432
-  BACKEND_POSTGRES_DB: web_app
+  BACKEND_POSTGRES_DB: otk_app
   BACKEND_REDIS_HOST: redis
   BACKEND_REDIS_PORT: 6379
   BACKEND_REDIS_DB: 0
-  BACKEND_REDIS_PREFIX: web-app
+  BACKEND_REDIS_PREFIX: otk-app
   BACKEND_KRATOS_PUBLIC_URL: http://kratos:4433
   BACKEND_KRATOS_ADMIN_URL: http://kratos:4434
   BACKEND_HYDRA_PUBLIC_URL: http://hydra:4444
   BACKEND_HYDRA_ADMIN_URL: http://hydra:4445
 
 x-backend-image: &backend-image
-  image: "web-app-backend:${BACKEND_TAG:-dev}"
+  image: "otk-app-backend:${BACKEND_TAG:-dev}"
   build:
     context: ../../apps/backend
     dockerfile: Dockerfile
@@ -34,12 +34,12 @@ services:
       - ../../.env
     networks:
       - default
-      - web-database
-      - web-identity
+      - otk-app-database
+      - otk-app-identity
     command: ["bash", "scripts/prestart.sh"]
     environment:
       <<: *backend-environment
-      BACKEND_POSTGRES_MIGRATOR_PASSWORD: ${POSTGRES_MIGRATOR_PASSWORD:?POSTGRES_MIGRATOR_PASSWORD is required}
+      BACKEND_POSTGRES_MIGRATOR_PASSWORD: ${BACKEND_POSTGRES_MIGRATOR_PASSWORD:?BACKEND_POSTGRES_MIGRATOR_PASSWORD is required}
 
   api:
     <<: *backend-image
@@ -50,8 +50,8 @@ services:
     networks:
       - default
       - traefik-public
-      - web-database
-      - web-identity
+      - otk-app-database
+      - otk-app-identity
     labels:
       traefik.enable: "true"
       traefik.constraint-label: traefik-public
@@ -65,7 +65,7 @@ services:
     command: ["bash", "scripts/start-api.sh"]
     environment:
       <<: *backend-environment
-      BACKEND_POSTGRES_PASSWORD: ${POSTGRES_RUNTIME_PASSWORD:?POSTGRES_RUNTIME_PASSWORD is required}
+      BACKEND_POSTGRES_RUNTIME_PASSWORD: ${BACKEND_POSTGRES_RUNTIME_PASSWORD:?BACKEND_POSTGRES_RUNTIME_PASSWORD is required}
       BACKEND_REDIS_PASSWORD: ${REDIS_RUNTIME_PASSWORD:?REDIS_RUNTIME_PASSWORD is required}
     healthcheck:
       test: ["CMD", "python", "scripts/healthcheck.py"]
@@ -83,7 +83,7 @@ services:
       - ../../.env
     networks:
       - default
-      - web-database
+      - otk-app-database
     command: ["bash", "scripts/start-worker.sh"]
     environment:
       <<: *backend-environment
@@ -98,7 +98,7 @@ services:
     networks:
       - default
       - traefik-public
-      - web-database
+      - otk-app-database
     labels:
       traefik.enable: "true"
       traefik.constraint-label: traefik-public
@@ -127,9 +127,9 @@ networks:
   traefik-public:
     name: traefik-public
     external: true
-  web-database:
-    name: web-database
+  otk-app-database:
+    name: otk-app-database
     external: true
-  web-identity:
-    name: web-identity
+  otk-app-identity:
+    name: otk-app-identity
     external: true

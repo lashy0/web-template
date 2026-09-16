@@ -21,8 +21,8 @@ production variables are:
 | Variable | Required | Description |
 | --- | --- | --- |
 | `POSTGRES_ADMIN_PASSWORD` | yes | Password for the `postgres_admin` bootstrap and operations role |
-| `POSTGRES_MIGRATOR_PASSWORD` | yes | Alembic DDL role |
-| `POSTGRES_RUNTIME_PASSWORD` | yes | Backend DML role |
+| `BACKEND_POSTGRES_MIGRATOR_PASSWORD` | yes | Alembic DDL role |
+| `BACKEND_POSTGRES_RUNTIME_PASSWORD` | yes | Backend DML role |
 | `KRATOS_POSTGRES_MIGRATOR_PASSWORD` | yes | Kratos database owner and migration role |
 | `KRATOS_POSTGRES_RUNTIME_PASSWORD` | yes | Least-privileged Kratos runtime role |
 | `REDIS_ADMIN_PASSWORD` | yes | Redis operations and ACL management |
@@ -55,9 +55,9 @@ uv run --project infrastructure infra-application frontend up prod
 
 The identity command checks its database and Traefik networks, applies Kratos
 migrations, and waits for readiness. The backend command fails before
-build/start if the `web-database` network or either healthy data-service
+build/start if the `otk-app-database` network or either healthy data-service
 container is absent. It never invokes the database project. The `prestart`
-container then applies Alembic migrations as `web_app_migrator`; the backend
+container then applies Alembic migrations as `otk_app_migrator`; the backend
 connects as the runtime roles.
 
 Shut down in reverse order. Database shutdown is guarded while application
@@ -78,7 +78,7 @@ a capacity review; PgBouncer is not part of the current topology.
 There are no off-host backups, WAL archiving, point-in-time recovery, automated
 restore, replication, or failover. No RPO or RTO is guaranteed for host/storage
 loss. PostgreSQL volume loss can lose both application and identity data;
-production backups must include the `web_app` and `kratos` databases, and a
+production backups must include the `otk_app` and `kratos` databases, and a
 backup is required before upgrading Kratos. Redis volume loss can invalidate
 all sessions but must not lose business data.
 

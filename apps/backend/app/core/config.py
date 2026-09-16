@@ -20,9 +20,9 @@ _CORS_ORIGINS_FORMAT_ERROR = (
     "BACKEND_CORS_ORIGINS must be a JSON array of HTTP or HTTPS origins, "
     "for example '[\"http://localhost:5173\"]'"
 )
-_POSTGRES_MIGRATOR_USER = "web_app_migrator"
-_POSTGRES_RUNTIME_USER = "web_app_runtime"
-_REDIS_RUNTIME_USER = "web_app_runtime"
+_POSTGRES_MIGRATOR_USER = "otk_app_migrator"
+_POSTGRES_RUNTIME_USER = "otk_app_runtime"
+_REDIS_RUNTIME_USER = "otk_app_runtime"
 
 
 class Settings(BaseSettings):
@@ -190,16 +190,12 @@ class Settings(BaseSettings):
     )
     POSTGRES_MIGRATOR_PASSWORD: SecretStr | None = Field(
         default=None,
-        validation_alias=AliasChoices(
-            "BACKEND_POSTGRES_MIGRATOR_PASSWORD",
-            "POSTGRES_MIGRATOR_PASSWORD",
-        ),
+        validation_alias="BACKEND_POSTGRES_MIGRATOR_PASSWORD",
     )
     POSTGRES_PASSWORD: SecretStr = Field(
         default=SecretStr("changepassword"),
         validation_alias=AliasChoices(
-            "BACKEND_POSTGRES_PASSWORD",
-            "POSTGRES_RUNTIME_PASSWORD",
+            "BACKEND_POSTGRES_RUNTIME_PASSWORD",
             "POSTGRES_PASSWORD",
         ),
     )
@@ -218,7 +214,7 @@ class Settings(BaseSettings):
         ),
     )
     POSTGRES_DB: str = Field(
-        default="web_app",
+        default="otk_app",
         validation_alias=AliasChoices(
             "BACKEND_POSTGRES_DB",
             "POSTGRES_DB",
@@ -286,7 +282,7 @@ class Settings(BaseSettings):
         ),
     )
     REDIS_PREFIX: str = Field(
-        default="web-app",
+        default="otk-app",
         min_length=1,
         validation_alias="BACKEND_REDIS_PREFIX",
     )
@@ -391,7 +387,7 @@ class Settings(BaseSettings):
 
         if self.POSTGRES_MIGRATOR_PASSWORD is None:
             raise ValueError(
-                "POSTGRES_MIGRATOR_PASSWORD is required when no migration database URL is set"
+                "BACKEND_POSTGRES_MIGRATOR_PASSWORD is required when no migration database URL is set"
             )
 
         return self._build_database_url(

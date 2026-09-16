@@ -17,8 +17,8 @@ from cli.compose import (
 
 BACKEND_ROOT = REPOSITORY_ROOT / "apps" / "backend"
 BACKEND_INFRASTRUCTURE_ROOT = INFRASTRUCTURE_ROOT / "backend"
-DATABASE_NETWORK = "web-database"
-DATABASE_PROJECT = "web-database"
+DATABASE_NETWORK = "otk-app-database"
+DATABASE_PROJECT = "otk-app-database"
 TRAEFIK_NETWORK = "traefik-public"
 PROJECT = ComposeProject(BACKEND_INFRASTRUCTURE_ROOT)
 

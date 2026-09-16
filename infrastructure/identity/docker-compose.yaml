@@ -1,4 +1,4 @@
-name: web-identity
+name: otk-app-identity
 
 x-default-logging: &default-logging
   driver: local
@@ -29,8 +29,8 @@ services:
       DSN: "postgres://kratos_migrator:${KRATOS_POSTGRES_MIGRATOR_PASSWORD:?KRATOS_POSTGRES_MIGRATOR_PASSWORD is required}@postgres:5432/kratos?sslmode=disable"
       SQA_OPT_OUT: "true"
     networks:
-      - web-identity
-      - web-database
+      - otk-app-identity
+      - otk-app-database
 
   kratos:
     <<: *kratos-image
@@ -46,8 +46,8 @@ services:
       - ./kratos/kratos.yaml:/etc/config/kratos/kratos.yaml:ro
       - ./kratos/identity.schema.json:/etc/config/kratos/identity.schema.json:ro
     networks:
-      - web-identity
-      - web-database
+      - otk-app-identity
+      - otk-app-database
       - traefik-public
     depends_on:
       kratos-migrate:
@@ -94,8 +94,8 @@ services:
       DSN: "postgres://hydra_migrator:${HYDRA_POSTGRES_MIGRATOR_PASSWORD:?HYDRA_POSTGRES_MIGRATOR_PASSWORD is required}@postgres:5432/hydra?sslmode=disable"
       SQA_OPT_OUT: "true"
     networks:
-      - web-identity
-      - web-database
+      - otk-app-identity
+      - otk-app-database
 
   hydra:
     <<: *hydra-image
@@ -109,8 +109,8 @@ services:
     volumes:
       - ./hydra/hydra.yaml:/etc/config/hydra/hydra.yaml:ro
     networks:
-      - web-identity
-      - web-database
+      - otk-app-identity
+      - otk-app-database
       - traefik-public
     depends_on:
       hydra-migrate:
@@ -142,11 +142,11 @@ services:
       traefik.http.routers.api-oauth2-token.service: hydra-public
 
 networks:
-  web-identity:
-    name: web-identity
+  otk-app-identity:
+    name: otk-app-identity
     external: true
-  web-database:
-    name: web-database
+  otk-app-database:
+    name: otk-app-database
     external: true
   traefik-public:
     name: traefik-public

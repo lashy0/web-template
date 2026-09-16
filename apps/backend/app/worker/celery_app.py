@@ -7,7 +7,7 @@ def create_celery_app(settings: Settings | None = None) -> Celery:
     """Create the Celery application backed by the configured Redis instance."""
     app_settings = settings or get_settings()
     celery = Celery(
-        "web_app",
+        "otk_app",
         broker=str(app_settings.redis_url),
         include=["app.worker.tasks"],
     )

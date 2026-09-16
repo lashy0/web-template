@@ -7,7 +7,7 @@ from app.infrastructure.redis.keys import build_redis_key
 @pytest.mark.unit
 def test_build_redis_key() -> None:
     settings = Settings.model_validate(
-        {"BACKEND_REDIS_PREFIX": "web-app"},
+        {"BACKEND_REDIS_PREFIX": "otk-app"},
     )
 
     result = build_redis_key(
@@ -16,7 +16,7 @@ def test_build_redis_key() -> None:
         42,
     )
 
-    assert result == "web-app:users:42"
+    assert result == "otk-app:users:42"
 
 
 @pytest.mark.unit
@@ -24,8 +24,8 @@ def test_build_redis_key() -> None:
     ("prefix", "parts"),
     [
         pytest.param(":", ("users", 42), id="empty-prefix"),
-        pytest.param("web-app", (), id="missing-parts"),
-        pytest.param("web-app", ("users", ""), id="empty-part"),
+        pytest.param("otk-app", (), id="missing-parts"),
+        pytest.param("otk-app", ("users", ""), id="empty-part"),
     ],
 )
 def test_build_redis_key_rejects_invalid_values(
