@@ -1,0 +1,159 @@
+[project]
+name = "backend"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "advanced-alchemy>=1.11.0,<2.0.0",
+    "alembic[tz]>=1.20.0,<2.0.0",
+    "litestar[standard]>=2.24.0,<3.0.0",
+    "loguru>=0.7.3",
+    "psycopg[binary,pool]>=3.3.5,<4.0.0",
+    "pydantic>=2.13.5,<3.0.0",
+    "pydantic-settings>=2.15.0,<3.0.0",
+]
+
+[dependency-groups]
+dev = [
+    { include-group = "linting" },
+    { include-group = "test" },
+]
+
+linting = [
+    "basedpyright",
+    "mypy>=2.3.1,<3.0.0",
+    "ruff>=0.16.7",
+    "ty>=0.0.81",
+]
+
+test = [
+    "pytest>=9.1.1,<10.0.0",
+    "pytest-asyncio>=1.4.0,<2.0.0",
+    "pytest-databases[postgres]",
+    "pytest-xdist",
+    "pytest-mock",
+    "pytest-sugar",
+]
+
+[tool.uv]
+package = false
+
+# Ruff
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+
+exclude = [
+    ".venv",
+    "app/db/migrations/versions",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "W",
+    "F",
+    "I",
+    "B",
+    "C4",
+    "UP",
+    "ARG",
+    "T20",
+    "RUF",
+]
+
+ignore = [
+    "E501",
+    "B008",
+    "B904",
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app", "tests"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.per-file-ignores]
+"app/db/migrations/*.py" = [
+    "ARG001",
+]
+"tests/**/*.py" = [
+    "S101",
+    "ARG001",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+# BasedPyright
+[tool.basedpyright]
+pythonVersion = "3.13"
+typeCheckingMode = "strict"
+
+include = [
+    "app",
+    "tests",
+]
+
+exclude = [
+    ".venv",
+    "app/db/migrations",
+]
+
+reportMissingTypeStubs = false
+reportPrivateUsage = false
+reportUnnecessaryTypeIgnoreComment = true
+
+# mypy
+[tool.mypy]
+python_version = "3.13"
+strict = true
+
+exclude = [
+    ".venv",
+    "app/db/migrations",
+]
+
+show_error_codes = true
+warn_redundant_casts = true
+warn_unreachable = true
+warn_unused_configs = true
+warn_unused_ignores = true
+
+# pytest
+[tool.pytest.ini_options]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--cov=app",
+    "--cov-report=term-missing",
+    "--cov-report=html:htmlcov",
+    "--cov-report=xml",
+    "--cov-fail-under=65",
+    "--tb=short",
+    "-v",
+    "-ra",
+    "-n",
+    "auto",
+]
+
+markers = [
+    "unit: marks tests as unit tests (fast, isolated)",
+    "integration: marks tests as integration tests (slower, database)",
+    "slow: marks tests as slow running tests",
+    "auth: marks tests related to authentication",
+    "services: marks tests for service layer",
+    "models: marks tests for database models",
+    "endpoints: marks tests for API endpoints",
+    "security: marks tests for security features",
+]
+
+python_classes = ["Test*"]
+python_files = ["test_*.py", "*_test.py"]
+python_functions = ["test_*"]
+
+testpaths = ["tests"]
