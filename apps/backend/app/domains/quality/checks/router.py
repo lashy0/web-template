@@ -1,24 +1,19 @@
-from typing import Annotated, Literal, cast
+from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Request
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from fastapi import APIRouter, Depends, Query
 
 from app.domains.equipment.pak.permissions import PakPermission
 from app.domains.quality.defects.schemas import DefectGroupSummaryResponse
+from app.shared.dependencies import SessionFactoryDep
 from app.shared.security.dependencies import CurrentPrincipalDep, require_permission
 
 from .exceptions import CheckNotFoundError
 from .model import Check
-from .queries import CheckQueries
-from .repository import CheckRepository
 from .schemas import PakTestListResponse, PakTestResponse
+from .wiring import create_queries
 
 router = APIRouter(tags=["pak"])
-
-
-def _session_factory(request: Request) -> async_sessionmaker[AsyncSession]:
-    return cast(async_sessionmaker[AsyncSession], request.app.state.database.session_factory)
 
 
 def _response(item: Check) -> PakTestResponse:
@@ -42,7 +37,7 @@ def _response(item: Check) -> PakTestResponse:
 @router.get("/tests", response_model=PakTestListResponse)
 async def list_pak_tests(
     _: Annotated[CurrentPrincipalDep, Depends(require_permission(PakPermission.READ))],
-    request: Request,
+    session_factory: SessionFactoryDep,
     q: str | None = None,
     defect_group_id: UUID | None = None,
     page: int = Query(default=1, ge=1),
@@ -52,8 +47,8 @@ async def list_pak_tests(
     ] = "test_name",
     order: Literal["asc", "desc"] = "asc",
 ) -> PakTestListResponse:
-    async with _session_factory(request)() as session:
-        items, total = await CheckQueries(CheckRepository(session)).list(
+    async with session_factory() as session:
+        items, total = await create_queries(session).list(
             q=q,
             defect_group_id=defect_group_id,
             page=page,
@@ -70,10 +65,10 @@ async def list_pak_tests(
 async def get_pak_test(
     test_id: UUID,
     _: Annotated[CurrentPrincipalDep, Depends(require_permission(PakPermission.READ))],
-    request: Request,
+    session_factory: SessionFactoryDep,
 ) -> PakTestResponse:
-    async with _session_factory(request)() as session:
-        item = await CheckQueries(CheckRepository(session)).get(test_id)
+    async with session_factory() as session:
+        item = await create_queries(session).get(test_id)
     if item is None:
         raise CheckNotFoundError
     return _response(item)

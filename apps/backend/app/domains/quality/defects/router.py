@@ -1,29 +1,17 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Annotated, Literal, cast
+from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Request, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.audit.writer import TransactionalAuditWriter
+from app.shared.dependencies import SessionFactoryDep
 from app.shared.security.dependencies import CurrentPrincipalDep, require_permission
 
-from .commands import (
-    CreateDefectGroup,
-    CreateDefectType,
-    DeleteDefectGroup,
-    DeleteDefectType,
-    SetDefectGroupArchived,
-    SetDefectTypeArchived,
-    UpdateDefectGroup,
-    UpdateDefectType,
-)
 from .exceptions import DefectGroupNotFoundError, DefectTypeNotFoundError
 from .model import DefectGroup, DefectType
 from .permissions import DefectPermission
-from .queries import DefectQueries
-from .repository import DefectGroupRepository, DefectTypeRepository
 from .schemas import (
     CreateDefectGroupRequest,
     CreateDefectTypeRequest,
@@ -38,22 +26,25 @@ from .schemas import (
     UpdateDefectTypeArchivedRequest,
     UpdateDefectTypeRequest,
 )
+from .wiring import (
+    create_group_command,
+    create_queries,
+    create_type_command,
+    delete_group_command,
+    delete_type_command,
+    set_group_archived_command,
+    set_type_archived_command,
+    update_group_command,
+    update_type_command,
+)
 
 router = APIRouter(prefix="/defects", tags=["defects"])
 
 
-def _session_factory(request: Request) -> async_sessionmaker[AsyncSession]:
-    return cast(async_sessionmaker[AsyncSession], request.app.state.database.session_factory)
-
-
 @asynccontextmanager
-async def _transaction(request: Request) -> AsyncIterator[AsyncSession]:
-    async with _session_factory(request)() as session, session.begin():
+async def _transaction(factory: async_sessionmaker[AsyncSession]) -> AsyncIterator[AsyncSession]:
+    async with factory() as session, session.begin():
         yield session
-
-
-def _queries(session: AsyncSession) -> DefectQueries:
-    return DefectQueries(DefectGroupRepository(session), DefectTypeRepository(session))
 
 
 def _group_response(
@@ -98,7 +89,7 @@ def _type_response(item: DefectType) -> DefectTypeResponse:
 @router.get("/groups", response_model=DefectGroupListResponse)
 async def list_groups(
     _: Annotated[CurrentPrincipalDep, Depends(require_permission(DefectPermission.READ))],
-    request: Request,
+    session_factory: SessionFactoryDep,
     q: str | None = None,
     archived: bool = False,
     page: int = Query(default=1, ge=1),
@@ -106,8 +97,8 @@ async def list_groups(
     sort: Literal["code", "name", "created_at", "updated_at", "archived_at"] = "code",
     order: Literal["asc", "desc"] = "asc",
 ) -> DefectGroupListResponse:
-    async with _session_factory(request)() as session:
-        items, total = await _queries(session).list_groups(
+    async with session_factory() as session:
+        items, total = await create_queries(session).list_groups(
             q=q, archived=archived, page=page, page_size=page_size, sort=sort, order=order
         )
     return DefectGroupListResponse(
@@ -127,10 +118,10 @@ async def list_groups(
 async def get_group(
     group_id: UUID,
     _: Annotated[CurrentPrincipalDep, Depends(require_permission(DefectPermission.READ))],
-    request: Request,
+    session_factory: SessionFactoryDep,
 ) -> DefectGroupResponse:
-    async with _session_factory(request)() as session:
-        item = await _queries(session).get_group(group_id)
+    async with session_factory() as session:
+        item = await create_queries(session).get_group(group_id)
     if item is None:
         raise DefectGroupNotFoundError
     return _group_response(item)
@@ -140,12 +131,10 @@ async def get_group(
 async def create_group(
     payload: CreateDefectGroupRequest,
     actor: Annotated[CurrentPrincipalDep, Depends(require_permission(DefectPermission.CREATE))],
-    request: Request,
+    session_factory: SessionFactoryDep,
 ) -> DefectGroupResponse:
-    async with _transaction(request) as session:
-        item = await CreateDefectGroup(
-            DefectGroupRepository(session), TransactionalAuditWriter.from_session(session)
-        ).execute(
+    async with _transaction(session_factory) as session:
+        item = await create_group_command(session).execute(
             actor=actor, code=payload.code, name=payload.name, description=payload.description
         )
     return _group_response(item)
@@ -156,12 +145,12 @@ async def update_group(
     group_id: UUID,
     payload: UpdateDefectGroupRequest,
     actor: Annotated[CurrentPrincipalDep, Depends(require_permission(DefectPermission.UPDATE))],
-    request: Request,
+    session_factory: SessionFactoryDep,
 ) -> DefectGroupResponse:
-    async with _transaction(request) as session:
-        item = await UpdateDefectGroup(
-            DefectGroupRepository(session), TransactionalAuditWriter.from_session(session)
-        ).execute(actor=actor, group_id=group_id, updates=payload.model_dump(exclude_unset=True))
+    async with _transaction(session_factory) as session:
+        item = await update_group_command(session).execute(
+            actor=actor, group_id=group_id, updates=payload.model_dump(exclude_unset=True)
+        )
     return _group_response(item)
 
 
@@ -170,14 +159,12 @@ async def set_group_archived(
     group_id: UUID,
     payload: UpdateDefectGroupArchivedRequest,
     actor: Annotated[CurrentPrincipalDep, Depends(require_permission(DefectPermission.ARCHIVE))],
-    request: Request,
+    session_factory: SessionFactoryDep,
 ) -> DefectGroupResponse:
-    async with _transaction(request) as session:
-        item = await SetDefectGroupArchived(
-            DefectGroupRepository(session),
-            DefectTypeRepository(session),
-            TransactionalAuditWriter.from_session(session),
-        ).execute(actor=actor, group_id=group_id, archived=payload.archived)
+    async with _transaction(session_factory) as session:
+        item = await set_group_archived_command(session).execute(
+            actor=actor, group_id=group_id, archived=payload.archived
+        )
     return _group_response(item)
 
 
@@ -185,20 +172,16 @@ async def set_group_archived(
 async def delete_group(
     group_id: UUID,
     actor: Annotated[CurrentPrincipalDep, Depends(require_permission(DefectPermission.DELETE))],
-    request: Request,
+    session_factory: SessionFactoryDep,
 ) -> None:
-    async with _transaction(request) as session:
-        await DeleteDefectGroup(
-            DefectGroupRepository(session),
-            DefectTypeRepository(session),
-            TransactionalAuditWriter.from_session(session),
-        ).execute(actor=actor, group_id=group_id)
+    async with _transaction(session_factory) as session:
+        await delete_group_command(session).execute(actor=actor, group_id=group_id)
 
 
 @router.get("/types", response_model=DefectTypeListResponse)
 async def list_types(
     _: Annotated[CurrentPrincipalDep, Depends(require_permission(DefectPermission.READ))],
-    request: Request,
+    session_factory: SessionFactoryDep,
     q: str | None = None,
     group_id: UUID | None = None,
     archived: bool = False,
@@ -207,8 +190,8 @@ async def list_types(
     sort: Literal["code", "name", "created_at", "updated_at", "archived_at"] = "code",
     order: Literal["asc", "desc"] = "asc",
 ) -> DefectTypeListResponse:
-    async with _session_factory(request)() as session:
-        items, total = await _queries(session).list_types(
+    async with session_factory() as session:
+        items, total = await create_queries(session).list_types(
             q=q,
             group_id=group_id,
             archived=archived,
@@ -226,10 +209,10 @@ async def list_types(
 async def get_type(
     item_id: UUID,
     _: Annotated[CurrentPrincipalDep, Depends(require_permission(DefectPermission.READ))],
-    request: Request,
+    session_factory: SessionFactoryDep,
 ) -> DefectTypeResponse:
-    async with _session_factory(request)() as session:
-        item = await _queries(session).get_type(item_id)
+    async with session_factory() as session:
+        item = await create_queries(session).get_type(item_id)
     if item is None:
         raise DefectTypeNotFoundError
     return _type_response(item)
@@ -239,14 +222,10 @@ async def get_type(
 async def create_type(
     payload: CreateDefectTypeRequest,
     actor: Annotated[CurrentPrincipalDep, Depends(require_permission(DefectPermission.CREATE))],
-    request: Request,
+    session_factory: SessionFactoryDep,
 ) -> DefectTypeResponse:
-    async with _transaction(request) as session:
-        item = await CreateDefectType(
-            DefectGroupRepository(session),
-            DefectTypeRepository(session),
-            TransactionalAuditWriter.from_session(session),
-        ).execute(actor=actor, **payload.model_dump())
+    async with _transaction(session_factory) as session:
+        item = await create_type_command(session).execute(actor=actor, **payload.model_dump())
     return _type_response(item)
 
 
@@ -255,12 +234,10 @@ async def update_type(
     item_id: UUID,
     payload: UpdateDefectTypeRequest,
     actor: Annotated[CurrentPrincipalDep, Depends(require_permission(DefectPermission.UPDATE))],
-    request: Request,
+    session_factory: SessionFactoryDep,
 ) -> DefectTypeResponse:
-    async with _transaction(request) as session:
-        item = await UpdateDefectType(
-            DefectTypeRepository(session), TransactionalAuditWriter.from_session(session)
-        ).execute(
+    async with _transaction(session_factory) as session:
+        item = await update_type_command(session).execute(
             actor=actor, defect_type_id=item_id, updates=payload.model_dump(exclude_unset=True)
         )
     return _type_response(item)
@@ -271,14 +248,12 @@ async def set_type_archived(
     item_id: UUID,
     payload: UpdateDefectTypeArchivedRequest,
     actor: Annotated[CurrentPrincipalDep, Depends(require_permission(DefectPermission.ARCHIVE))],
-    request: Request,
+    session_factory: SessionFactoryDep,
 ) -> DefectTypeResponse:
-    async with _transaction(request) as session:
-        item = await SetDefectTypeArchived(
-            DefectGroupRepository(session),
-            DefectTypeRepository(session),
-            TransactionalAuditWriter.from_session(session),
-        ).execute(actor=actor, defect_type_id=item_id, archived=payload.archived)
+    async with _transaction(session_factory) as session:
+        item = await set_type_archived_command(session).execute(
+            actor=actor, defect_type_id=item_id, archived=payload.archived
+        )
     return _type_response(item)
 
 
@@ -286,9 +261,7 @@ async def set_type_archived(
 async def delete_type(
     item_id: UUID,
     actor: Annotated[CurrentPrincipalDep, Depends(require_permission(DefectPermission.DELETE))],
-    request: Request,
+    session_factory: SessionFactoryDep,
 ) -> None:
-    async with _transaction(request) as session:
-        await DeleteDefectType(
-            DefectTypeRepository(session), TransactionalAuditWriter.from_session(session)
-        ).execute(actor=actor, defect_type_id=item_id)
+    async with _transaction(session_factory) as session:
+        await delete_type_command(session).execute(actor=actor, defect_type_id=item_id)

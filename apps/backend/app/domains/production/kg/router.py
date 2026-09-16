@@ -1,32 +1,17 @@
 """Compatibility-preserving HTTP adapter for migrated prefix/version operations."""
 
-from collections.abc import Callable
-from typing import Annotated, Literal, cast
+from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Request, status
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from fastapi import APIRouter, Depends, Query, status
 
-from app.audit.writer import TransactionalAuditWriter
-from app.domains.production.contracts import LatestVerificationProjectionPort
+from app.shared.dependencies import SessionFactoryDep
 from app.shared.security.dependencies import CurrentPrincipalDep, require_permission
 from app.shared.uow import transaction
 
-from .commands import (
-    CreatePrefix,
-    CreateVersion,
-    DeletePrefix,
-    DeleteVersion,
-    SetPrefixArchived,
-    SetVersionArchived,
-    UpdatePrefix,
-    UpdateVersion,
-)
 from .exceptions import KgNotFoundError
 from .model import KgDevEuiPrefix, KgUnit, KgVersion
 from .permissions import KgPermission
-from .queries import KgQueries
-from .repository import KgRepository
 from .schemas import (
     CreateKgDevEuiPrefixRequest,
     CreateKgVersionRequest,
@@ -47,24 +32,25 @@ from .schemas import (
     UpdateKgVersionArchivedRequest,
     UpdateKgVersionRequest,
 )
+from .wiring import (
+    ProjectionFactoryDep,
+    create_prefix_command,
+    create_queries,
+    create_repository,
+    create_version_command,
+    delete_prefix_command,
+    delete_version_command,
+    set_prefix_archived_command,
+    set_version_archived_command,
+    update_prefix_command,
+    update_version_command,
+)
 
 prefix_router = APIRouter()
 version_router = APIRouter()
 router = APIRouter()
 router.include_router(prefix_router, prefix="/kg", tags=["kg"])
 router.include_router(version_router, prefix="/kg", tags=["kg"])
-
-
-def _factory(request: Request) -> async_sessionmaker[AsyncSession]:
-    return cast(async_sessionmaker[AsyncSession], request.app.state.database.session_factory)
-
-
-def _repository(request: Request, session: AsyncSession) -> KgRepository:
-    factory = cast(
-        Callable[[], LatestVerificationProjectionPort],
-        request.app.state.latest_verification_projection_port_factory,
-    )
-    return KgRepository(session, factory())
 
 
 def _prefix_response(item: KgDevEuiPrefix, batch_count: int) -> KgDevEuiPrefixResponse:
@@ -108,14 +94,15 @@ def _kg_response(kg: KgUnit, *, current_state: KgCurrentState) -> KgResponse:
 async def list_kg_by_batch(
     batch_id: UUID,
     _: Annotated[CurrentPrincipalDep, Depends(require_permission(KgPermission.READ))],
-    request: Request,
+    session_factory: SessionFactoryDep,
+    projection_factory: ProjectionFactoryDep,
     q: str | None = None,
     current_state: KgCurrentState | None = None,
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=25, ge=1, le=100),
 ) -> KgBatchListResponse:
-    async with _factory(request)() as session:
-        items, total = await KgQueries(_repository(request, session)).list_batch_items(
+    async with session_factory() as session:
+        items, total = await create_queries(session, projection_factory).list_batch_items(
             batch_id, page=page, page_size=page_size, q=q, current_state=current_state
         )
     return KgBatchListResponse(
@@ -137,7 +124,8 @@ async def list_kg_by_batch(
 @router.get("/kg", response_model=KgListResponse)
 async def list_kg(
     _: Annotated[CurrentPrincipalDep, Depends(require_permission(KgPermission.READ))],
-    request: Request,
+    session_factory: SessionFactoryDep,
+    projection_factory: ProjectionFactoryDep,
     q: str | None = None,
     batch_id: UUID | None = None,
     current_state: KgCurrentState | None = None,
@@ -148,8 +136,8 @@ async def list_kg(
     ] = "created_at",
     order: Literal["asc", "desc"] = "desc",
 ) -> KgListResponse:
-    async with _factory(request)() as session:
-        items, total = await KgQueries(_repository(request, session)).list(
+    async with session_factory() as session:
+        items, total = await create_queries(session, projection_factory).list(
             q=q,
             batch_id=batch_id,
             current_state=current_state,
@@ -170,10 +158,11 @@ async def list_kg(
 async def get_kg(
     dev_eui: DevEui,
     _: Annotated[CurrentPrincipalDep, Depends(require_permission(KgPermission.READ))],
-    request: Request,
+    session_factory: SessionFactoryDep,
+    projection_factory: ProjectionFactoryDep,
 ) -> KgResponse:
-    async with _factory(request)() as session:
-        item = await KgQueries(_repository(request, session)).get_with_current_state(dev_eui)
+    async with session_factory() as session:
+        item = await create_queries(session, projection_factory).get_with_current_state(dev_eui)
     if item is None:
         raise KgNotFoundError
     return _kg_response(item.kg, current_state=item.current_state)
@@ -182,7 +171,7 @@ async def get_kg(
 @prefix_router.get("/dev-eui-prefixes", response_model=KgDevEuiPrefixListResponse)
 async def list_dev_eui_prefixes(
     _: Annotated[CurrentPrincipalDep, Depends(require_permission(KgPermission.PREFIX_READ))],
-    request: Request,
+    session_factory: SessionFactoryDep,
     q: str | None = None,
     archived: bool = False,
     page: int = Query(default=1, ge=1),
@@ -190,8 +179,8 @@ async def list_dev_eui_prefixes(
     sort: Literal["prefix", "name", "short_code", "created_at", "archived_at"] = "prefix",
     order: Literal["asc", "desc"] = "asc",
 ) -> KgDevEuiPrefixListResponse:
-    async with _factory(request)() as session:
-        items, total = await KgQueries(KgRepository(session)).list_prefixes(
+    async with session_factory() as session:
+        items, total = await create_queries(session).list_prefixes(
             q=q, archived=archived, page=page, page_size=page_size, sort=sort, order=order
         )
     return KgDevEuiPrefixListResponse(
@@ -210,14 +199,11 @@ async def create_dev_eui_prefix(
     principal: Annotated[
         CurrentPrincipalDep, Depends(require_permission(KgPermission.PREFIX_CREATE))
     ],
-    request: Request,
+    session_factory: SessionFactoryDep,
 ) -> KgDevEuiPrefixResponse:
-    async with transaction(_factory(request)) as session:
-        repository = KgRepository(session)
-        item = await CreatePrefix(
-            repository, TransactionalAuditWriter.from_session(session)
-        ).execute(actor=principal, **payload.model_dump())
-        count = await repository.count_batches_for_prefix(item.prefix)
+    async with transaction(session_factory) as session:
+        item = await create_prefix_command(session).execute(actor=principal, **payload.model_dump())
+        count = await create_repository(session).count_batches_for_prefix(item.prefix)
     return _prefix_response(item, count)
 
 
@@ -228,14 +214,13 @@ async def update_dev_eui_prefix(
     principal: Annotated[
         CurrentPrincipalDep, Depends(require_permission(KgPermission.PREFIX_UPDATE))
     ],
-    request: Request,
+    session_factory: SessionFactoryDep,
 ) -> KgDevEuiPrefixResponse:
-    async with transaction(_factory(request)) as session:
-        repository = KgRepository(session)
-        item = await UpdatePrefix(
-            repository, TransactionalAuditWriter.from_session(session)
-        ).execute(actor=principal, prefix=prefix, updates=payload.model_dump(exclude_unset=True))
-        count = await repository.count_batches_for_prefix(item.prefix)
+    async with transaction(session_factory) as session:
+        item = await update_prefix_command(session).execute(
+            actor=principal, prefix=prefix, updates=payload.model_dump(exclude_unset=True)
+        )
+        count = await create_repository(session).count_batches_for_prefix(item.prefix)
     return _prefix_response(item, count)
 
 
@@ -246,14 +231,13 @@ async def update_dev_eui_prefix_archived(
     principal: Annotated[
         CurrentPrincipalDep, Depends(require_permission(KgPermission.PREFIX_ARCHIVE))
     ],
-    request: Request,
+    session_factory: SessionFactoryDep,
 ) -> KgDevEuiPrefixResponse:
-    async with transaction(_factory(request)) as session:
-        repository = KgRepository(session)
-        item = await SetPrefixArchived(
-            repository, TransactionalAuditWriter.from_session(session)
-        ).execute(actor=principal, prefix=prefix, archived=payload.archived)
-        count = await repository.count_batches_for_prefix(item.prefix)
+    async with transaction(session_factory) as session:
+        item = await set_prefix_archived_command(session).execute(
+            actor=principal, prefix=prefix, archived=payload.archived
+        )
+        count = await create_repository(session).count_batches_for_prefix(item.prefix)
     return _prefix_response(item, count)
 
 
@@ -263,18 +247,16 @@ async def delete_dev_eui_prefix(
     principal: Annotated[
         CurrentPrincipalDep, Depends(require_permission(KgPermission.PREFIX_DELETE))
     ],
-    request: Request,
+    session_factory: SessionFactoryDep,
 ) -> None:
-    async with transaction(_factory(request)) as session:
-        await DeletePrefix(
-            KgRepository(session), TransactionalAuditWriter.from_session(session)
-        ).execute(actor=principal, prefix=prefix)
+    async with transaction(session_factory) as session:
+        await delete_prefix_command(session).execute(actor=principal, prefix=prefix)
 
 
 @version_router.get("/versions", response_model=KgVersionListResponse)
 async def list_kg_versions(
     _: Annotated[CurrentPrincipalDep, Depends(require_permission(KgPermission.VERSION_READ))],
-    request: Request,
+    session_factory: SessionFactoryDep,
     q: str | None = None,
     archived: bool = False,
     page: int = Query(default=1, ge=1),
@@ -284,8 +266,8 @@ async def list_kg_versions(
     ] = "code",
     sort_order: Literal["asc", "desc"] = "asc",
 ) -> KgVersionListResponse:
-    async with _factory(request)() as session:
-        items, total = await KgQueries(KgRepository(session)).list_versions(
+    async with session_factory() as session:
+        items, total = await create_queries(session).list_versions(
             q=q,
             archived=archived,
             page=page,
@@ -309,14 +291,13 @@ async def create_kg_version(
     principal: Annotated[
         CurrentPrincipalDep, Depends(require_permission(KgPermission.VERSION_CREATE))
     ],
-    request: Request,
+    session_factory: SessionFactoryDep,
 ) -> KgVersionResponse:
-    async with transaction(_factory(request)) as session:
-        repository = KgRepository(session)
-        item = await CreateVersion(
-            repository, TransactionalAuditWriter.from_session(session)
-        ).execute(actor=principal, **payload.model_dump())
-        count = await repository.count_batches_for_version(item.id)
+    async with transaction(session_factory) as session:
+        item = await create_version_command(session).execute(
+            actor=principal, **payload.model_dump()
+        )
+        count = await create_repository(session).count_batches_for_version(item.id)
     return _version_response(item, count)
 
 
@@ -327,16 +308,13 @@ async def update_kg_version(
     principal: Annotated[
         CurrentPrincipalDep, Depends(require_permission(KgPermission.VERSION_UPDATE))
     ],
-    request: Request,
+    session_factory: SessionFactoryDep,
 ) -> KgVersionResponse:
-    async with transaction(_factory(request)) as session:
-        repository = KgRepository(session)
-        item = await UpdateVersion(
-            repository, TransactionalAuditWriter.from_session(session)
-        ).execute(
+    async with transaction(session_factory) as session:
+        item = await update_version_command(session).execute(
             actor=principal, version_id=version_id, updates=payload.model_dump(exclude_unset=True)
         )
-        count = await repository.count_batches_for_version(item.id)
+        count = await create_repository(session).count_batches_for_version(item.id)
     return _version_response(item, count)
 
 
@@ -347,14 +325,13 @@ async def update_kg_version_archived(
     principal: Annotated[
         CurrentPrincipalDep, Depends(require_permission(KgPermission.VERSION_ARCHIVE))
     ],
-    request: Request,
+    session_factory: SessionFactoryDep,
 ) -> KgVersionResponse:
-    async with transaction(_factory(request)) as session:
-        repository = KgRepository(session)
-        item = await SetVersionArchived(
-            repository, TransactionalAuditWriter.from_session(session)
-        ).execute(actor=principal, version_id=version_id, archived=payload.archived)
-        count = await repository.count_batches_for_version(item.id)
+    async with transaction(session_factory) as session:
+        item = await set_version_archived_command(session).execute(
+            actor=principal, version_id=version_id, archived=payload.archived
+        )
+        count = await create_repository(session).count_batches_for_version(item.id)
     return _version_response(item, count)
 
 
@@ -364,9 +341,7 @@ async def delete_kg_version(
     principal: Annotated[
         CurrentPrincipalDep, Depends(require_permission(KgPermission.VERSION_DELETE))
     ],
-    request: Request,
+    session_factory: SessionFactoryDep,
 ) -> None:
-    async with transaction(_factory(request)) as session:
-        await DeleteVersion(
-            KgRepository(session), TransactionalAuditWriter.from_session(session)
-        ).execute(actor=principal, version_id=version_id)
+    async with transaction(session_factory) as session:
+        await delete_version_command(session).execute(actor=principal, version_id=version_id)

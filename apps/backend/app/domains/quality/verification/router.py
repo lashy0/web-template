@@ -1,28 +1,16 @@
-from collections.abc import Callable
-from datetime import timedelta
-from typing import Annotated, Literal, cast
+from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Request, status
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from fastapi import APIRouter, Depends, Query, status
 
-from app.audit.writer import TransactionalAuditWriter
 from app.domains.equipment.pak.deps import CurrentPakDep
 from app.domains.equipment.pak.schemas import PakDeviceSummaryResponse
+from app.shared.dependencies import SessionFactoryDep
 from app.shared.security.dependencies import CurrentPrincipalDep, require_permission
 
-from .commands import (
-    CompleteVerificationSession,
-    CompleteVerificationStep,
-    StartVerificationSession,
-    StartVerificationStep,
-)
-from .contracts import VerificationKgPort, VerificationPakPort
 from .exceptions import VerificationSessionNotFoundError
 from .model import VerificationSession, VerificationSessionStatus, VerificationStep
 from .permissions import VerificationPermission
-from .queries import VerificationQueries
-from .repository import VerificationRepository
 from .schemas import (
     CompleteVerificationSessionRequest,
     CompleteVerificationStepRequest,
@@ -34,33 +22,19 @@ from .schemas import (
     VerificationStepResponse,
 )
 from .transaction import verification_transaction
+from .wiring import (
+    KgPortFactoryDep,
+    PakAdapterDep,
+    ReopenInactivityDep,
+    complete_session_command,
+    complete_step_command,
+    create_queries,
+    start_session_command,
+    start_step_command,
+)
 
 router = APIRouter(prefix="/verification", tags=["verification"])
 machine_router = APIRouter(prefix="/verification", tags=["verification-machine"])
-
-
-def _factory(request: Request) -> async_sessionmaker[AsyncSession]:
-    return cast(async_sessionmaker[AsyncSession], request.app.state.database.session_factory)
-
-
-def _kg_port(request: Request, session: AsyncSession) -> VerificationKgPort:
-    factory = cast(
-        Callable[[AsyncSession], VerificationKgPort], request.app.state.verification_kg_port_factory
-    )
-    return factory(session)
-
-
-def _pak_port(request: Request, pak: object) -> VerificationPakPort:
-    adapter = cast(
-        Callable[[object], VerificationPakPort], request.app.state.verification_pak_adapter
-    )
-    return adapter(pak)
-
-
-def _reopen_inactivity(request: Request) -> timedelta:
-    return timedelta(
-        minutes=request.app.state.settings.VERIFICATION_SESSION_REOPEN_INACTIVITY_MINUTES
-    )
 
 
 def _session_response(item: VerificationSession) -> VerificationSessionResponse:
@@ -106,7 +80,7 @@ def _step_response(item: VerificationStep) -> VerificationStepResponse:
 @router.get("/sessions", response_model=VerificationSessionListResponse)
 async def list_sessions(
     _: Annotated[CurrentPrincipalDep, Depends(require_permission(VerificationPermission.READ))],
-    request: Request,
+    session_factory: SessionFactoryDep,
     q: str | None = None,
     pak_id: UUID | None = None,
     status_filter: VerificationSessionStatus | None = Query(default=None, alias="status"),
@@ -117,8 +91,8 @@ async def list_sessions(
     ] = "started_at",
     order: Literal["asc", "desc"] = "desc",
 ) -> VerificationSessionListResponse:
-    async with _factory(request)() as session:
-        items, total = await VerificationQueries(VerificationRepository(session)).list(
+    async with session_factory() as session:
+        items, total = await create_queries(session).list(
             q=q,
             pak_id=pak_id,
             status=status_filter,
@@ -139,10 +113,10 @@ async def list_sessions(
 async def get_session(
     session_id: UUID,
     _: Annotated[CurrentPrincipalDep, Depends(require_permission(VerificationPermission.READ))],
-    request: Request,
+    session_factory: SessionFactoryDep,
 ) -> VerificationSessionDetailResponse:
-    async with _factory(request)() as session:
-        result = await VerificationQueries(VerificationRepository(session)).get_detail(session_id)
+    async with session_factory() as session:
+        result = await create_queries(session).get_detail(session_id)
     if result is None:
         raise VerificationSessionNotFoundError
     item, steps = result
@@ -155,14 +129,17 @@ async def get_session(
     "/sessions", response_model=VerificationSessionResponse, status_code=status.HTTP_201_CREATED
 )
 async def open_session(
-    payload: OpenVerificationSessionRequest, pak: CurrentPakDep, request: Request
+    payload: OpenVerificationSessionRequest,
+    pak: CurrentPakDep,
+    session_factory: SessionFactoryDep,
+    kg_port_factory: KgPortFactoryDep,
+    pak_adapter: PakAdapterDep,
+    reopen_inactivity: ReopenInactivityDep,
 ) -> VerificationSessionResponse:
-    async with verification_transaction(_factory(request)) as session:
-        item = await StartVerificationSession(
-            VerificationRepository(session),
-            _kg_port(request, session),
-            reopen_inactivity=_reopen_inactivity(request),
-        ).execute(pak=_pak_port(request, pak), **payload.model_dump())
+    async with verification_transaction(session_factory) as session:
+        item = await start_session_command(session, kg_port_factory, reopen_inactivity).execute(
+            pak=pak_adapter(pak), **payload.model_dump()
+        )
     return _session_response(item)
 
 
@@ -172,12 +149,16 @@ async def open_session(
     status_code=status.HTTP_201_CREATED,
 )
 async def start_step(
-    session_id: UUID, payload: StartVerificationStepRequest, pak: CurrentPakDep, request: Request
+    session_id: UUID,
+    payload: StartVerificationStepRequest,
+    pak: CurrentPakDep,
+    session_factory: SessionFactoryDep,
+    pak_adapter: PakAdapterDep,
 ) -> VerificationStepResponse:
-    async with verification_transaction(_factory(request)) as session:
-        item = await StartVerificationStep(
-            VerificationRepository(session), TransactionalAuditWriter.from_session(session)
-        ).execute(pak=_pak_port(request, pak), session_id=session_id, **payload.model_dump())
+    async with verification_transaction(session_factory) as session:
+        item = await start_step_command(session).execute(
+            pak=pak_adapter(pak), session_id=session_id, **payload.model_dump()
+        )
     return _step_response(item)
 
 
@@ -189,11 +170,12 @@ async def complete_step(
     step_no: int,
     payload: CompleteVerificationStepRequest,
     pak: CurrentPakDep,
-    request: Request,
+    session_factory: SessionFactoryDep,
+    pak_adapter: PakAdapterDep,
 ) -> VerificationStepResponse:
-    async with verification_transaction(_factory(request)) as session:
-        item = await CompleteVerificationStep(VerificationRepository(session)).execute(
-            pak=_pak_port(request, pak),
+    async with verification_transaction(session_factory) as session:
+        item = await complete_step_command(session).execute(
+            pak=pak_adapter(pak),
             session_id=session_id,
             step_no=step_no,
             **payload.model_dump(),
@@ -206,10 +188,11 @@ async def complete_session(
     session_id: UUID,
     payload: CompleteVerificationSessionRequest,
     pak: CurrentPakDep,
-    request: Request,
+    session_factory: SessionFactoryDep,
+    pak_adapter: PakAdapterDep,
 ) -> VerificationSessionResponse:
-    async with verification_transaction(_factory(request)) as session:
-        item = await CompleteVerificationSession(VerificationRepository(session)).execute(
-            pak=_pak_port(request, pak), session_id=session_id, status=payload.status
+    async with verification_transaction(session_factory) as session:
+        item = await complete_session_command(session).execute(
+            pak=pak_adapter(pak), session_id=session_id, status=payload.status
         )
     return _session_response(item)

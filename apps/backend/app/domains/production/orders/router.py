@@ -1,25 +1,17 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Annotated, Literal, cast
+from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Request, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.audit.writer import TransactionalAuditWriter
+from app.shared.dependencies import SessionFactoryDep
 from app.shared.security.dependencies import CurrentPrincipalDep, require_permission
 
-from .commands import (
-    CreateProductionOrder,
-    DeleteProductionOrder,
-    SetProductionOrderArchived,
-    UpdateProductionOrder,
-)
 from .exceptions import ProductionOrderNotFoundError
 from .model import ProductionOrder
 from .permissions import ProductionOrderPermission
-from .queries import ProductionOrderQueries
-from .repository import ProductionOrderRepository
 from .schemas import (
     CreateProductionOrderRequest,
     ProductionOrderListResponse,
@@ -27,17 +19,20 @@ from .schemas import (
     UpdateProductionOrderArchivedRequest,
     UpdateProductionOrderRequest,
 )
+from .wiring import (
+    create_order_command,
+    create_queries,
+    delete_order_command,
+    set_order_archived_command,
+    update_order_command,
+)
 
 router = APIRouter(prefix="/production-orders", tags=["production_order"])
 
 
-def _session_factory(request: Request) -> async_sessionmaker[AsyncSession]:
-    return cast(async_sessionmaker[AsyncSession], request.app.state.database.session_factory)
-
-
 @asynccontextmanager
-async def _transaction(request: Request) -> AsyncIterator[AsyncSession]:
-    async with _session_factory(request)() as session, session.begin():
+async def _transaction(factory: async_sessionmaker[AsyncSession]) -> AsyncIterator[AsyncSession]:
+    async with factory() as session, session.begin():
         yield session
 
 
@@ -59,7 +54,7 @@ def _response(
 @router.get("/", response_model=ProductionOrderListResponse)
 async def list_orders(
     _: Annotated[CurrentPrincipalDep, Depends(require_permission(ProductionOrderPermission.READ))],
-    request: Request,
+    session_factory: SessionFactoryDep,
     q: str | None = None,
     archived: bool = False,
     page: int = Query(default=1, ge=1),
@@ -69,8 +64,8 @@ async def list_orders(
     ] = "created_at",
     order: Literal["asc", "desc"] = "desc",
 ) -> ProductionOrderListResponse:
-    async with _session_factory(request)() as session:
-        items, total = await ProductionOrderQueries(ProductionOrderRepository(session)).list(
+    async with session_factory() as session:
+        items, total = await create_queries(session).list(
             q=q, archived=archived, page=page, page_size=page_size, sort=sort, order=order
         )
     return ProductionOrderListResponse(
@@ -88,10 +83,10 @@ async def list_orders(
 async def get_order(
     order_id: UUID,
     _: Annotated[CurrentPrincipalDep, Depends(require_permission(ProductionOrderPermission.READ))],
-    request: Request,
+    session_factory: SessionFactoryDep,
 ) -> ProductionOrderResponse:
-    async with _session_factory(request)() as session:
-        queries = ProductionOrderQueries(ProductionOrderRepository(session))
+    async with session_factory() as session:
+        queries = create_queries(session)
         item = await queries.get(order_id)
         batches_count, total_planned_qty = (
             await queries.totals(order_id) if item is not None else (0, 0)
@@ -107,14 +102,13 @@ async def create_order(
     actor: Annotated[
         CurrentPrincipalDep, Depends(require_permission(ProductionOrderPermission.CREATE))
     ],
-    request: Request,
+    session_factory: SessionFactoryDep,
 ) -> ProductionOrderResponse:
-    async with _transaction(request) as session:
-        repository = ProductionOrderRepository(session)
-        item = await CreateProductionOrder(
-            repository, TransactionalAuditWriter.from_session(session)
-        ).execute(actor=actor, name=payload.name, description=payload.description)
-        batches_count, total_planned_qty = await ProductionOrderQueries(repository).totals(item.id)
+    async with _transaction(session_factory) as session:
+        item = await create_order_command(session).execute(
+            actor=actor, name=payload.name, description=payload.description
+        )
+        batches_count, total_planned_qty = await create_queries(session).totals(item.id)
     return _response(item, batches_count=batches_count, total_planned_qty=total_planned_qty)
 
 
@@ -125,14 +119,13 @@ async def update_order(
     actor: Annotated[
         CurrentPrincipalDep, Depends(require_permission(ProductionOrderPermission.UPDATE))
     ],
-    request: Request,
+    session_factory: SessionFactoryDep,
 ) -> ProductionOrderResponse:
-    async with _transaction(request) as session:
-        repository = ProductionOrderRepository(session)
-        item = await UpdateProductionOrder(
-            repository, TransactionalAuditWriter.from_session(session)
-        ).execute(order_id=order_id, actor=actor, updates=payload.model_dump(exclude_unset=True))
-        batches_count, total_planned_qty = await ProductionOrderQueries(repository).totals(item.id)
+    async with _transaction(session_factory) as session:
+        item = await update_order_command(session).execute(
+            order_id=order_id, actor=actor, updates=payload.model_dump(exclude_unset=True)
+        )
+        batches_count, total_planned_qty = await create_queries(session).totals(item.id)
     return _response(item, batches_count=batches_count, total_planned_qty=total_planned_qty)
 
 
@@ -143,14 +136,13 @@ async def archive_order(
     actor: Annotated[
         CurrentPrincipalDep, Depends(require_permission(ProductionOrderPermission.ARCHIVE))
     ],
-    request: Request,
+    session_factory: SessionFactoryDep,
 ) -> ProductionOrderResponse:
-    async with _transaction(request) as session:
-        repository = ProductionOrderRepository(session)
-        item = await SetProductionOrderArchived(
-            repository, TransactionalAuditWriter.from_session(session)
-        ).execute(order_id=order_id, actor=actor, archived=payload.archived)
-        batches_count, total_planned_qty = await ProductionOrderQueries(repository).totals(item.id)
+    async with _transaction(session_factory) as session:
+        item = await set_order_archived_command(session).execute(
+            order_id=order_id, actor=actor, archived=payload.archived
+        )
+        batches_count, total_planned_qty = await create_queries(session).totals(item.id)
     return _response(item, batches_count=batches_count, total_planned_qty=total_planned_qty)
 
 
@@ -160,9 +152,7 @@ async def delete_order(
     actor: Annotated[
         CurrentPrincipalDep, Depends(require_permission(ProductionOrderPermission.DELETE))
     ],
-    request: Request,
+    session_factory: SessionFactoryDep,
 ) -> None:
-    async with _transaction(request) as session:
-        await DeleteProductionOrder(
-            ProductionOrderRepository(session), TransactionalAuditWriter.from_session(session)
-        ).execute(order_id=order_id, actor=actor)
+    async with _transaction(session_factory) as session:
+        await delete_order_command(session).execute(order_id=order_id, actor=actor)

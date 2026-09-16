@@ -1,35 +1,26 @@
-from collections.abc import AsyncGenerator
 from typing import Annotated, cast
 
 from fastapi import Depends, Request
 from redis.asyncio import Redis
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.infrastructure.database.session import Database
+from app.shared.dependencies import (
+    DatabaseDep,
+    SessionDep,
+    SessionFactoryDep,
+    get_database,
+    get_session,
+    get_session_factory,
+)
 
-
-async def get_database(request: Request) -> Database:
-    try:
-        return cast(Database, request.app.state.database)
-    except AttributeError as exc:
-        raise RuntimeError(
-            "Database is not initialized. Application lifespan was probably not started."
-        ) from exc
-
-
-DatabaseDep = Annotated[Database, Depends(get_database)]
-
-
-async def get_session(
-    database: DatabaseDep,
-) -> AsyncGenerator[AsyncSession]:
-    async with database.session_factory() as session:
-        yield session
-
-
-SessionDep = Annotated[
-    AsyncSession,
-    Depends(get_session),
+__all__ = [
+    "DatabaseDep",
+    "RedisDep",
+    "SessionDep",
+    "SessionFactoryDep",
+    "get_database",
+    "get_redis",
+    "get_session",
+    "get_session_factory",
 ]
 
 

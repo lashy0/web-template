@@ -1,40 +1,22 @@
 # mypy: disable-error-code=untyped-decorator
 
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Annotated, Literal, cast
+from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Request, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.audit.writer import TransactionalAuditWriter
-from app.domains.production.kg.queries import KgQueries
-from app.domains.production.kg.repository import KgRepository
-from app.domains.production.orders.queries import ProductionOrderQueries
-from app.domains.production.orders.repository import ProductionOrderRepository
 from app.domains.production.orders.schemas import AssignProductionOrderRequest
-from app.domains.production.preparation.commands.retry import RetryPreparation
-from app.domains.production.preparation.queries import PreparationQueries
-from app.domains.production.preparation.repository import PreparationRepository
+from app.shared.dependencies import SessionFactoryDep
 from app.shared.security.dependencies import CurrentPrincipalDep, require_permission
 from app.shared.uow import PostCommitExecutor, UnitOfWork, transaction
 
-from ..contracts import VerificationHistoryPort
 from ..exceptions import BatchNotFoundError
-from .commands import (
-    AssignProductionOrder,
-    CompleteBatch,
-    CreateBatch,
-    DeleteBatch,
-    SetBatchArchived,
-    UpdateBatch,
-)
 from .model import Batch, BatchStatus
 from .permissions import BatchPermission
 from .presentation import batch_response
-from .queries import BatchQueries, required_batch
-from .repository import BatchRepository
 from .schemas import (
     BatchListResponse,
     BatchResponse,
@@ -43,35 +25,38 @@ from .schemas import (
     UpdateBatchArchivedRequest,
     UpdateBatchRequest,
 )
+from .wiring import (
+    PostCommitExecutorDep,
+    VerificationHistoryFactoryDep,
+    assign_production_order_command,
+    complete_batch_command,
+    create_batch_command,
+    create_preview_queries,
+    create_queries,
+    delete_batch_command,
+    required_batch_for_update,
+    retry_preparation_command,
+    set_batch_archived_command,
+    update_batch_command,
+)
 
 router = APIRouter(prefix="/batches", tags=["batch"])
 
 
-def _session_factory(request: Request) -> async_sessionmaker[AsyncSession]:
-    return cast(async_sessionmaker[AsyncSession], request.app.state.database.session_factory)
-
-
-def _verification_history(request: Request, session: AsyncSession) -> VerificationHistoryPort:
-    factory = cast(
-        Callable[[AsyncSession], VerificationHistoryPort],
-        request.app.state.production_verification_history_factory,
-    )
-    return factory(session)
-
-
 @asynccontextmanager
-async def _transaction(request: Request) -> AsyncIterator[UnitOfWork]:
-    executor = cast(PostCommitExecutor, request.app.state.post_commit_executor)
-    async with transaction(_session_factory(request), executor=executor) as uow:
+async def _transaction(
+    factory: async_sessionmaker[AsyncSession], executor: PostCommitExecutor
+) -> AsyncIterator[UnitOfWork]:
+    async with transaction(factory, executor=executor) as uow:
         yield uow
 
 
-async def _response(request: Request, session: AsyncSession, batch: Batch) -> BatchResponse:
-    queries = BatchQueries(
-        BatchRepository(session), PreparationQueries(PreparationRepository(session))
-    )
+async def _response(
+    session: AsyncSession, batch: Batch, verification_history_factory: VerificationHistoryFactoryDep
+) -> BatchResponse:
+    queries = create_queries(session)
     can_delete = (
-        await queries.deletion_availability([batch], _verification_history(request, session))
+        await queries.deletion_availability([batch], verification_history_factory(session))
     )[batch.id]
     return batch_response(
         batch, can_delete=can_delete, job=await queries.get_preparation_job(batch.id)
@@ -81,12 +66,12 @@ async def _response(request: Request, session: AsyncSession, batch: Batch) -> Ba
 @router.get("/dev-eui-range-preview", response_model=DevEuiRangePreviewResponse)
 async def preview_dev_eui_range(
     _: Annotated[CurrentPrincipalDep, Depends(require_permission(BatchPermission.CREATE))],
-    request: Request,
+    session_factory: SessionFactoryDep,
     dev_eui_prefix: str,
     planned_qty: int = Query(gt=0),
 ) -> DevEuiRangePreviewResponse:
-    async with _session_factory(request)() as session:
-        first, last = await KgQueries(KgRepository(session)).preview_allocation(
+    async with session_factory() as session:
+        first, last = await create_preview_queries(session).preview_allocation(
             dev_eui_prefix, planned_qty
         )
     return DevEuiRangePreviewResponse(first_dev_eui=first, last_dev_eui=last)
@@ -95,7 +80,8 @@ async def preview_dev_eui_range(
 @router.get("/", response_model=BatchListResponse)
 async def list_batches(
     _: Annotated[CurrentPrincipalDep, Depends(require_permission(BatchPermission.READ))],
-    request: Request,
+    session_factory: SessionFactoryDep,
+    verification_history_factory: VerificationHistoryFactoryDep,
     q: str | None = None,
     status_filter: BatchStatus | None = Query(default=None, alias="status"),
     archived: bool = False,
@@ -115,10 +101,8 @@ async def list_batches(
     production_order_id: UUID | None = None,
     without_production_order: bool = False,
 ) -> BatchListResponse:
-    async with _session_factory(request)() as session:
-        queries = BatchQueries(
-            BatchRepository(session), PreparationQueries(PreparationRepository(session))
-        )
+    async with session_factory() as session:
+        queries = create_queries(session)
         batches, total = await queries.list(
             q=q,
             status=status_filter,
@@ -131,7 +115,7 @@ async def list_batches(
             without_production_order=without_production_order,
         )
         availability = await queries.deletion_availability(
-            batches, _verification_history(request, session)
+            batches, verification_history_factory(session)
         )
         jobs = await queries.get_preparation_jobs([batch.id for batch in batches])
         items = [
@@ -145,33 +129,27 @@ async def list_batches(
 async def get_batch(
     batch_id: UUID,
     _: Annotated[CurrentPrincipalDep, Depends(require_permission(BatchPermission.READ))],
-    request: Request,
+    session_factory: SessionFactoryDep,
+    verification_history_factory: VerificationHistoryFactoryDep,
 ) -> BatchResponse:
-    async with _session_factory(request)() as session:
-        batch = await BatchQueries(
-            BatchRepository(session), PreparationQueries(PreparationRepository(session))
-        ).get(batch_id)
+    async with session_factory() as session:
+        batch = await create_queries(session).get(batch_id)
         if batch is None:
             raise BatchNotFoundError
-        return await _response(request, session, batch)
+        return await _response(session, batch, verification_history_factory)
 
 
 @router.post("", response_model=BatchResponse, status_code=status.HTTP_201_CREATED)
 async def create_batch(
     payload: CreateBatchRequest,
     principal: Annotated[CurrentPrincipalDep, Depends(require_permission(BatchPermission.CREATE))],
-    request: Request,
+    session_factory: SessionFactoryDep,
+    executor: PostCommitExecutorDep,
+    verification_history_factory: VerificationHistoryFactoryDep,
 ) -> BatchResponse:
-    async with _transaction(request) as uow:
+    async with _transaction(session_factory, executor) as uow:
         session = uow.session
-        batch = await CreateBatch(
-            BatchRepository(session),
-            KgRepository(session),
-            PreparationRepository(session),
-            ProductionOrderQueries(ProductionOrderRepository(session)),
-            TransactionalAuditWriter.from_session(session),
-            uow,
-        ).execute(
+        batch = await create_batch_command(session, uow).execute(
             actor=principal,
             name=payload.name,
             description=payload.description,
@@ -183,7 +161,7 @@ async def create_batch(
             kg_version_id=payload.kg_version_id,
             production_order_id=payload.production_order_id,
         )
-        response = await _response(request, session, batch)
+        response = await _response(session, batch, verification_history_factory)
     return response
 
 
@@ -192,16 +170,16 @@ async def update_batch(
     batch_id: UUID,
     payload: UpdateBatchRequest,
     principal: Annotated[CurrentPrincipalDep, Depends(require_permission(BatchPermission.UPDATE))],
-    request: Request,
+    session_factory: SessionFactoryDep,
+    executor: PostCommitExecutorDep,
+    verification_history_factory: VerificationHistoryFactoryDep,
 ) -> BatchResponse:
-    async with _transaction(request) as uow:
+    async with _transaction(session_factory, executor) as uow:
         session = uow.session
-        batch = await UpdateBatch(
-            BatchRepository(session), TransactionalAuditWriter.from_session(session)
-        ).execute(
+        batch = await update_batch_command(session).execute(
             actor=principal, batch_id=batch_id, updates=payload.model_dump(exclude_unset=True)
         )
-        return await _response(request, session, batch)
+        return await _response(session, batch, verification_history_factory)
 
 
 @router.put("/{batch_id}/archived", response_model=BatchResponse)
@@ -209,14 +187,16 @@ async def update_batch_archived(
     batch_id: UUID,
     payload: UpdateBatchArchivedRequest,
     principal: Annotated[CurrentPrincipalDep, Depends(require_permission(BatchPermission.ARCHIVE))],
-    request: Request,
+    session_factory: SessionFactoryDep,
+    executor: PostCommitExecutorDep,
+    verification_history_factory: VerificationHistoryFactoryDep,
 ) -> BatchResponse:
-    async with _transaction(request) as uow:
+    async with _transaction(session_factory, executor) as uow:
         session = uow.session
-        batch = await SetBatchArchived(
-            BatchRepository(session), TransactionalAuditWriter.from_session(session)
-        ).execute(actor=principal, batch_id=batch_id, archived=payload.archived)
-        return await _response(request, session, batch)
+        batch = await set_batch_archived_command(session).execute(
+            actor=principal, batch_id=batch_id, archived=payload.archived
+        )
+        return await _response(session, batch, verification_history_factory)
 
 
 @router.post("/{batch_id}/complete", response_model=BatchResponse)
@@ -225,31 +205,29 @@ async def complete_batch(
     principal: Annotated[
         CurrentPrincipalDep, Depends(require_permission(BatchPermission.COMPLETE))
     ],
-    request: Request,
+    session_factory: SessionFactoryDep,
+    executor: PostCommitExecutorDep,
+    verification_history_factory: VerificationHistoryFactoryDep,
 ) -> BatchResponse:
-    async with _transaction(request) as uow:
+    async with _transaction(session_factory, executor) as uow:
         session = uow.session
-        batch = await CompleteBatch(
-            BatchRepository(session),
-            PreparationRepository(session),
-            TransactionalAuditWriter.from_session(session),
-        ).execute(actor=principal, batch_id=batch_id)
-        return await _response(request, session, batch)
+        batch = await complete_batch_command(session).execute(actor=principal, batch_id=batch_id)
+        return await _response(session, batch, verification_history_factory)
 
 
 @router.post("/{batch_id}/preparation/retry", response_model=BatchResponse)
 async def retry_batch_preparation(
     batch_id: UUID,
     principal: Annotated[CurrentPrincipalDep, Depends(require_permission(BatchPermission.UPDATE))],
-    request: Request,
+    session_factory: SessionFactoryDep,
+    executor: PostCommitExecutorDep,
+    verification_history_factory: VerificationHistoryFactoryDep,
 ) -> BatchResponse:
-    async with _transaction(request) as uow:
+    async with _transaction(session_factory, executor) as uow:
         session = uow.session
-        batch = await required_batch(BatchRepository(session), batch_id, for_update=True)
-        await RetryPreparation(PreparationRepository(session), uow).execute(
-            actor=principal, batch=batch
-        )
-        response = await _response(request, session, batch)
+        batch = await required_batch_for_update(session, batch_id)
+        await retry_preparation_command(session, uow).execute(actor=principal, batch=batch)
+        response = await _response(session, batch, verification_history_factory)
     return response
 
 
@@ -257,16 +235,13 @@ async def retry_batch_preparation(
 async def delete_batch(
     batch_id: UUID,
     principal: Annotated[CurrentPrincipalDep, Depends(require_permission(BatchPermission.DELETE))],
-    request: Request,
+    session_factory: SessionFactoryDep,
+    executor: PostCommitExecutorDep,
+    verification_history_factory: VerificationHistoryFactoryDep,
 ) -> None:
-    await DeleteBatch(
-        _session_factory(request),
-        verification_history=cast(
-            Callable[[AsyncSession], VerificationHistoryPort],
-            request.app.state.production_verification_history_factory,
-        ),
-        effect_executor=cast(PostCommitExecutor, request.app.state.post_commit_executor),
-    ).execute(actor=principal, batch_id=batch_id)
+    await delete_batch_command(session_factory, verification_history_factory, executor).execute(
+        actor=principal, batch_id=batch_id
+    )
 
 
 @router.put("/{batch_id}/production-order", response_model=BatchResponse)
@@ -276,15 +251,13 @@ async def assign_production_order(
     principal: Annotated[
         CurrentPrincipalDep, Depends(require_permission(BatchPermission.ASSIGN_PRODUCTION_ORDER))
     ],
-    request: Request,
+    session_factory: SessionFactoryDep,
+    executor: PostCommitExecutorDep,
+    verification_history_factory: VerificationHistoryFactoryDep,
 ) -> BatchResponse:
-    async with _transaction(request) as uow:
+    async with _transaction(session_factory, executor) as uow:
         session = uow.session
-        batch = await AssignProductionOrder(
-            BatchRepository(session),
-            ProductionOrderQueries(ProductionOrderRepository(session)),
-            TransactionalAuditWriter.from_session(session),
-        ).execute(
+        batch = await assign_production_order_command(session).execute(
             actor=principal, batch_id=batch_id, production_order_id=payload.production_order_id
         )
-        return await _response(request, session, batch)
+        return await _response(session, batch, verification_history_factory)

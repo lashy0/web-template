@@ -1,26 +1,16 @@
-from typing import Annotated, Literal, cast
+from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Request, status
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from fastapi import APIRouter, Depends, Query, status
 
-from app.infrastructure.kratos.users import KratosUserIdentityProvider
+from app.shared.dependencies import SessionFactoryDep
 from app.shared.security import Role
 from app.shared.security.dependencies import CurrentPrincipalDep, require_permission
 
-from .commands import (
-    CreateUser,
-    DeleteUser,
-    SetUserActive,
-    SetUserArchived,
-    SetUserPassword,
-    UpdateUser,
-)
 from .enums import AuthState
 from .exceptions import UserNotFoundError
 from .permissions import UserPermission
 from .presentation import user_response
-from .queries import UserQueries
 from .schemas import (
     CreateUserRequest,
     UpdateActiveRequest,
@@ -30,22 +20,24 @@ from .schemas import (
     UserListResponse,
     UserResponse,
 )
+from .wiring import (
+    IdentityProviderDep,
+    create_queries,
+    create_user_command,
+    delete_user_command,
+    set_active_command,
+    set_archived_command,
+    set_password_command,
+    update_user_command,
+)
 
 router = APIRouter(prefix="/users", tags=["users"])
-
-
-def _session_factory(request: Request) -> async_sessionmaker[AsyncSession]:
-    return cast(async_sessionmaker[AsyncSession], request.app.state.database.session_factory)
-
-
-def _identities(request: Request) -> KratosUserIdentityProvider:
-    return KratosUserIdentityProvider(request.app.state.identity_manager)
 
 
 @router.get("", response_model=UserListResponse)
 async def list_users(
     _: Annotated[CurrentPrincipalDep, Depends(require_permission(UserPermission.READ))],
-    request: Request,
+    session_factory: SessionFactoryDep,
     q: str | None = None,
     role: Role | None = None,
     auth_state: AuthState | None = None,
@@ -55,7 +47,7 @@ async def list_users(
     sort: Literal["name", "login", "created_at", "archived_at"] = "name",
     order: Literal["asc", "desc"] = "asc",
 ) -> UserListResponse:
-    users, total = await UserQueries(_session_factory(request)).list(
+    users, total = await create_queries(session_factory).list(
         q=q,
         role=role,
         auth_state=auth_state,
@@ -74,9 +66,9 @@ async def list_users(
 async def get_user(
     user_id: UUID,
     _: Annotated[CurrentPrincipalDep, Depends(require_permission(UserPermission.READ))],
-    request: Request,
+    session_factory: SessionFactoryDep,
 ) -> UserResponse:
-    user = await UserQueries(_session_factory(request)).get(user_id)
+    user = await create_queries(session_factory).get(user_id)
     if user is None:
         raise UserNotFoundError
     return user_response(user)
@@ -86,9 +78,10 @@ async def get_user(
 async def create_user(
     payload: CreateUserRequest,
     principal: Annotated[CurrentPrincipalDep, Depends(require_permission(UserPermission.CREATE))],
-    request: Request,
+    session_factory: SessionFactoryDep,
+    identities: IdentityProviderDep,
 ) -> UserResponse:
-    user = await CreateUser(_session_factory(request), _identities(request)).execute(
+    user = await create_user_command(session_factory, identities).execute(
         actor=principal,
         name=payload.name,
         role=payload.role,
@@ -104,9 +97,10 @@ async def update_user(
     user_id: UUID,
     payload: UpdateUserRequest,
     principal: Annotated[CurrentPrincipalDep, Depends(require_permission(UserPermission.UPDATE))],
-    request: Request,
+    session_factory: SessionFactoryDep,
+    identities: IdentityProviderDep,
 ) -> UserResponse:
-    user = await UpdateUser(_session_factory(request), _identities(request)).execute(
+    user = await update_user_command(session_factory, identities).execute(
         actor=principal, user_id=user_id, login=payload.login, name=payload.name, role=payload.role
     )
     return user_response(user)
@@ -119,9 +113,10 @@ async def update_password(
     principal: Annotated[
         CurrentPrincipalDep, Depends(require_permission(UserPermission.SET_PASSWORD))
     ],
-    request: Request,
+    session_factory: SessionFactoryDep,
+    identities: IdentityProviderDep,
 ) -> None:
-    await SetUserPassword(_session_factory(request), _identities(request)).execute(
+    await set_password_command(session_factory, identities).execute(
         actor=principal, user_id=user_id, password=payload.password
     )
 
@@ -133,10 +128,11 @@ async def update_active(
     principal: Annotated[
         CurrentPrincipalDep, Depends(require_permission(UserPermission.SET_ACTIVE))
     ],
-    request: Request,
+    session_factory: SessionFactoryDep,
+    identities: IdentityProviderDep,
 ) -> UserResponse:
     return user_response(
-        await SetUserActive(_session_factory(request), _identities(request)).execute(
+        await set_active_command(session_factory, identities).execute(
             actor=principal, user_id=user_id, active=payload.active
         )
     )
@@ -147,10 +143,11 @@ async def update_archived(
     user_id: UUID,
     payload: UpdateArchivedRequest,
     principal: Annotated[CurrentPrincipalDep, Depends(require_permission(UserPermission.ARCHIVE))],
-    request: Request,
+    session_factory: SessionFactoryDep,
+    identities: IdentityProviderDep,
 ) -> UserResponse:
     return user_response(
-        await SetUserArchived(_session_factory(request), _identities(request)).execute(
+        await set_archived_command(session_factory, identities).execute(
             actor=principal, user_id=user_id, archived=payload.archived
         )
     )
@@ -160,8 +157,7 @@ async def update_archived(
 async def delete_user(
     user_id: UUID,
     principal: Annotated[CurrentPrincipalDep, Depends(require_permission(UserPermission.DELETE))],
-    request: Request,
+    session_factory: SessionFactoryDep,
+    identities: IdentityProviderDep,
 ) -> None:
-    await DeleteUser(_session_factory(request), _identities(request)).execute(
-        actor=principal, user_id=user_id
-    )
+    await delete_user_command(session_factory, identities).execute(actor=principal, user_id=user_id)

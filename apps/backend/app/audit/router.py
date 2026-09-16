@@ -3,10 +3,10 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Query
 
-from app.api.deps import DatabaseDep
 from app.audit.permissions import AuditPermission
-from app.audit.repository import AuditRepository
 from app.audit.schemas import AuditEventResponse, AuditListResponse
+from app.audit.wiring import create_repository
+from app.shared.dependencies import SessionFactoryDep
 from app.shared.security.dependencies import CurrentPrincipalDep, require_permission
 
 router = APIRouter(prefix="/audit", tags=["audit"])
@@ -15,7 +15,7 @@ router = APIRouter(prefix="/audit", tags=["audit"])
 @router.get("", response_model=AuditListResponse)
 async def list_audit_events(
     _: Annotated[CurrentPrincipalDep, Depends(require_permission(AuditPermission.READ))],
-    database: DatabaseDep,
+    session_factory: SessionFactoryDep,
     entity_type: list[str] | None = Query(default=None),
     created_from: datetime | None = None,
     created_to: datetime | None = None,
@@ -24,8 +24,8 @@ async def list_audit_events(
     sort: Literal["created_at", "actor_display_name"] = "created_at",
     order: Literal["asc", "desc"] = "desc",
 ) -> AuditListResponse:
-    async with database.session_factory() as session:
-        events, total = await AuditRepository(session).search(
+    async with session_factory() as session:
+        events, total = await create_repository(session).search(
             created_from=created_from,
             created_to=created_to,
             entity_type=entity_type,
