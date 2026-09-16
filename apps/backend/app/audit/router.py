@@ -3,11 +3,11 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Query
 
-from app.api.auth_deps import CurrentPrincipalDep, require_permission
 from app.api.deps import DatabaseDep
 from app.audit.permissions import AuditPermission
 from app.audit.repository import AuditRepository
 from app.audit.schemas import AuditEventResponse, AuditListResponse
+from app.shared.security.dependencies import CurrentPrincipalDep, require_permission
 
 router = APIRouter(prefix="/audit", tags=["audit"])
 

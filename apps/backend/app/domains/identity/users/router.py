@@ -4,9 +4,9 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.api.auth_deps import CurrentPrincipalDep, require_permission
 from app.infrastructure.kratos.users import KratosUserIdentityProvider
 from app.shared.security import Role
+from app.shared.security.dependencies import CurrentPrincipalDep, require_permission
 
 from .commands import (
     CreateUser,

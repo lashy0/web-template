@@ -4,7 +4,6 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.api.auth_deps import CurrentPrincipalDep, require_permission
 from app.audit.writer import TransactionalAuditWriter
 from app.domains.production.batches.permissions import BatchPermission
 from app.domains.production.batches.presentation import shipment_item_response, shipment_response
@@ -13,6 +12,7 @@ from app.domains.production.batches.rules import BATCH_EDIT_WINDOW
 from app.domains.production.kg.repository import KgRepository
 from app.domains.production.kg.schemas import DevEui
 from app.domains.production.preparation.repository import PreparationRepository
+from app.shared.security.dependencies import CurrentPrincipalDep, require_permission
 from app.shared.uow import transaction
 
 from .commands import (

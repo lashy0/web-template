@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
 from loguru import logger
 
+from app.api.auth_deps import get_current_principal as get_api_current_principal
 from app.api.errors import install_error_handlers
 from app.api.main import api_router
 from app.bootstrap.application import create_application_components
@@ -134,8 +135,13 @@ def create_app(
     # Permission values are composed once by the application composition root,
     # never as an import-time side effect of auth or shared security.
     from app.shared.security import install_permission_registry
+    from app.shared.security.dependencies import get_current_principal
 
     install_permission_registry(compose_permission_registry())
+    # Domain routers depend only on the provider-neutral security contract.
+    # The HTTP composition root binds it to the cookie/Kratos/user-repository
+    # implementation for this FastAPI application instance.
+    app.dependency_overrides[get_current_principal] = get_api_current_principal
 
     app.add_middleware(
         CORSMiddleware,

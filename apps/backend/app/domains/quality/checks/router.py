@@ -4,9 +4,9 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.api.auth_deps import CurrentPrincipalDep, require_permission
 from app.domains.equipment.pak.permissions import PakPermission
 from app.domains.quality.defects.schemas import DefectGroupSummaryResponse
+from app.shared.security.dependencies import CurrentPrincipalDep, require_permission
 
 from .exceptions import CheckNotFoundError
 from .model import Check

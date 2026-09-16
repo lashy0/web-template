@@ -5,9 +5,9 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.api.auth_deps import CurrentPrincipalDep, require_permission
 from app.domains.quality.checks.router import router as checks_router
 from app.infrastructure.hydra.pak import HydraPakOAuthClientAdapter
+from app.shared.security.dependencies import CurrentPrincipalDep, require_permission
 
 from .commands import (
     CreatePak,

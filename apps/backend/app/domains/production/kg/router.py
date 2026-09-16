@@ -7,9 +7,9 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.api.auth_deps import CurrentPrincipalDep, require_permission
 from app.audit.writer import TransactionalAuditWriter
 from app.domains.production.contracts import LatestVerificationProjectionPort
+from app.shared.security.dependencies import CurrentPrincipalDep, require_permission
 from app.shared.uow import transaction
 
 from .commands import (

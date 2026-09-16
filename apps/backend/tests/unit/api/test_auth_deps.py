@@ -13,6 +13,9 @@ from app.api.auth_deps import get_current_principal
 from app.auth.contracts import AuthSession, Identity
 from app.auth.exceptions import AccountDisabledError, InvalidSessionError, UserNotProvisionedError
 from app.auth.roles import Role
+from app.core.config import Settings
+from app.main import create_app
+from app.shared.security.dependencies import get_current_principal as get_contract_principal
 
 
 class _SessionFactory:
@@ -24,6 +27,13 @@ class _SessionFactory:
 
     async def __aexit__(self, *args: object) -> None:
         return None
+
+
+@pytest.mark.unit
+def test_http_composition_binds_the_shared_authentication_contract() -> None:
+    app = create_app(Settings.model_validate({}))
+
+    assert app.dependency_overrides[get_contract_principal] is get_current_principal
 
 
 def _request(cookie: str | None) -> SimpleNamespace:

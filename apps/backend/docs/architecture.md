@@ -72,6 +72,12 @@ modules. Importing it provides an empty registry until the composition root
 installs the application registry. `app.bootstrap.permissions` is the only
 module that knows the complete permission surface.
 
+HTTP routers consume `app.shared.security.dependencies` for a current
+principal and permission checks. `app.api.auth_deps.get_current_principal`
+contains the concrete cookie/Kratos/local-user implementation; `create_app`
+binds that implementation to the shared dependency contract for each FastAPI
+application instance.
+
 Lifespan constructs and invokes startup workflows directly. User reconciliation
 and stale-verification reconciliation are not stored in `app.state`.
 
@@ -108,10 +114,6 @@ which is itself the last item.
 
 ### Wave 2 - composition
 
-* Ten domain routers import `app.api.auth_deps`, inverting the dependency
-  direction. Because `auth_deps` imports `identity.users.repository`, every
-  module transitively depends on identity persistence. Fix: move
-  `CurrentPrincipalDep` and `require_permission` into `app.shared`.
 * `_session_factory` is copy-pasted into eight routers and `_transaction` into
   three, each with a `cast` over untyped `request.app.state`.
 * Commands are assembled by hand in every handler. A `Command.build(session)`

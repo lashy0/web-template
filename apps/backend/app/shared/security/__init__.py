@@ -1,6 +1,7 @@
 """Security vocabulary shared by application contexts.
 
-This package intentionally has no dependency on ``app.auth`` or FastAPI.
+The value types intentionally have no dependency on ``app.auth`` or an
+identity provider.
 """
 
 from app.shared.security.contracts import Identity

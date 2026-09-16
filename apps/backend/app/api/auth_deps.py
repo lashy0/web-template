@@ -1,4 +1,3 @@
-from collections.abc import Awaitable, Callable
 from typing import Annotated, cast
 
 from fastapi import Depends, Request
@@ -7,7 +6,7 @@ from app.api.deps import DatabaseDep
 from app.auth.contracts import SessionVerifier
 from app.auth.exceptions import AccountDisabledError, InvalidSessionError, UserNotProvisionedError
 from app.domains.identity.users.repository import UserRepository
-from app.shared.security import CurrentPrincipal, Permission
+from app.shared.security import CurrentPrincipal
 
 
 async def get_session_verifier(request: Request) -> SessionVerifier:
@@ -44,19 +43,3 @@ async def get_current_principal(
         name=user.name,
         login=user.identity_login,
     )
-
-
-CurrentPrincipalDep = Annotated[CurrentPrincipal, Depends(get_current_principal)]
-
-
-def require_permission(
-    permission: Permission,
-) -> Callable[[CurrentPrincipalDep], Awaitable[CurrentPrincipal]]:
-    async def dependency(principal: CurrentPrincipalDep) -> CurrentPrincipal:
-        if not principal.has_permission(permission):
-            from app.auth.exceptions import ForbiddenError
-
-            raise ForbiddenError
-        return principal
-
-    return dependency
