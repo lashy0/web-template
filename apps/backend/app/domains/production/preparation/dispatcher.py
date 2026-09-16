@@ -3,6 +3,6 @@ from uuid import UUID
 
 
 class WorkDispatcher(Protocol):
-    """Outbound port invoked after a CREATING transaction has committed."""
+    """Outbound port which starts a committed preparation request."""
 
-    async def dispatch_after_commit(self, batch_id: UUID) -> None: ...
+    async def dispatch(self, batch_id: UUID) -> None: ...

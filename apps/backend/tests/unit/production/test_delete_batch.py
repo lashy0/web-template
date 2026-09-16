@@ -10,6 +10,7 @@ import pytest
 from app.domains.production.batches.commands.delete import DeleteBatch
 from app.domains.production.batches.model import Batch, BatchStatus
 from app.domains.production.exceptions import BatchCannotBeDeletedError
+from app.domains.production.preparation.effects import PublishPreparationProgress
 from app.domains.production.preparation.model import (
     BatchKeyGenerationJob,
     BatchKeyGenerationStatus,
@@ -110,11 +111,17 @@ def workflow_parts(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
 
 
 def _workflow(parts: SimpleNamespace, publisher: MagicMock | None = None) -> DeleteBatch:
-    notifier = SimpleNamespace(publish=publisher or MagicMock())
+    publish = publisher or MagicMock()
+
+    class _EffectExecutor:
+        async def execute(self, effect: object) -> None:
+            assert isinstance(effect, PublishPreparationProgress)
+            publish(effect.batch_id, effect.status, effect.progress)
+
     return DeleteBatch(
         _SessionFactory(parts.events),  # type: ignore[arg-type]
         verification_history=lambda session: parts.verification,
-        notifier=notifier,
+        effect_executor=_EffectExecutor(),
     )
 
 

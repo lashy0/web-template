@@ -26,7 +26,10 @@ from app.infrastructure.hydra.client import (
 from app.infrastructure.hydra.pak import HydraPakTokenIntrospectorAdapter
 from app.infrastructure.kratos.client import KratosIdentityManager, KratosSessionVerifier
 from app.infrastructure.kratos.users import KratosUserIdentityProvider
+from app.infrastructure.post_commit import InProcessPostCommitExecutor, preparation_effect_executor
 from app.infrastructure.redis.client import create_redis_client
+from app.infrastructure.redis.preparation_notifier import RedisProgressNotifier
+from app.worker.preparation_dispatcher import CeleryWorkDispatcher
 
 
 @dataclass(slots=True)
@@ -39,6 +42,7 @@ class ApplicationComponents:
     identity_manager: KratosIdentityManager
     hydra_client_manager: HydraOAuthClientManager
     pak_machine_authenticator: PakMachineAuthenticator
+    post_commit_executor: InProcessPostCommitExecutor
 
     def install(self, app: FastAPI) -> None:
         """Expose compatibility dependencies expected by the legacy routers."""
@@ -52,7 +56,10 @@ class ApplicationComponents:
         app.state.verification_pak_adapter = adapt_pak
         app.state.production_verification_history_factory = SqlAlchemyVerificationHistoryProvider
         app.state.pak_verification_history_factory = SqlAlchemyVerificationHistoryProvider
-        app.state.latest_verification_projection_port_factory = SqlAlchemyLatestVerificationProjection
+        app.state.latest_verification_projection_port_factory = (
+            SqlAlchemyLatestVerificationProjection
+        )
+        app.state.post_commit_executor = self.post_commit_executor
 
     @staticmethod
     def audit_writer(session: AsyncSession) -> TransactionalAuditWriter:
@@ -71,6 +78,9 @@ def create_application_components(settings: Settings) -> ApplicationComponents:
     identity_manager = KratosIdentityManager(settings)
     hydra_client_manager = HydraOAuthClientManager(settings)
     pak_tokens = HydraPakTokenIntrospectorAdapter(HydraTokenIntrospector(settings))
+    notifier = RedisProgressNotifier()
+    progress_effect_executor = preparation_effect_executor(notifier)
+    dispatcher = CeleryWorkDispatcher(database.session_factory, notifier, progress_effect_executor)
 
     return ApplicationComponents(
         database=database,
@@ -79,6 +89,7 @@ def create_application_components(settings: Settings) -> ApplicationComponents:
         identity_manager=identity_manager,
         hydra_client_manager=hydra_client_manager,
         pak_machine_authenticator=PakMachineAuthenticator(database.session_factory, pak_tokens),
+        post_commit_executor=preparation_effect_executor(notifier, dispatcher=dispatcher),
     )
 
 

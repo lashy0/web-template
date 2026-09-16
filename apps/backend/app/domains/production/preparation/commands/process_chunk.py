@@ -8,8 +8,9 @@ from app.components.keygen import generate_credentials
 from app.domains.production.kg.credentials import KgCredentials
 from app.domains.production.kg.exceptions import KgLoRaWanCredentialsAlreadyExistError
 from app.domains.production.kg.repository import KgRepository
-from app.shared.uow import transaction
+from app.shared.uow import PostCommitExecutor, transaction
 
+from ..effects import PublishPreparationProgress
 from ..model import BatchKeyGenerationStatus
 from ..repository import PreparationRepository
 from ..rules import can_process_chunk, progress_for
@@ -26,13 +27,19 @@ class ChunkResult:
 
 class ProcessChunk:
     def __init__(
-        self, session_factory: async_sessionmaker[AsyncSession], *, encryption_key: SecretStr | None
+        self,
+        session_factory: async_sessionmaker[AsyncSession],
+        *,
+        encryption_key: SecretStr | None,
+        effect_executor: PostCommitExecutor,
     ) -> None:
         self._session_factory = session_factory
         self._encryption_key = encryption_key
+        self._effect_executor = effect_executor
 
     async def execute(self, batch_id: UUID) -> ChunkResult | None:
-        async with transaction(self._session_factory) as session:
+        async with transaction(self._session_factory, executor=self._effect_executor) as uow:
+            session = uow.session
             repository = PreparationRepository(session)
             kg_repository = KgRepository(session)
             batch = await repository.lock_batch(batch_id)
@@ -66,4 +73,5 @@ class ProcessChunk:
             await repository.update(
                 job, status=BatchKeyGenerationStatus.GENERATING, progress=progress
             )
+            uow.after_commit(PublishPreparationProgress(batch_id, job.status, progress))
             return ChunkResult(job.status, progress, processed=True)

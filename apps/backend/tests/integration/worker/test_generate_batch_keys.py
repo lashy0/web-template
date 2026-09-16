@@ -15,6 +15,7 @@ from app.domains.production.preparation.commands.process_chunk import KEY_GENERA
 from app.domains.production.preparation.commands.process_job import ProcessJob
 from app.domains.production.preparation.model import BatchKeyGenerationStatus
 from app.domains.production.preparation.repository import PreparationRepository
+from app.infrastructure.post_commit import preparation_effect_executor
 
 
 def _encryption_key() -> SecretStr:
@@ -75,7 +76,9 @@ async def test_task_generates_keys_transitions_status_and_is_idempotent(
     await ProcessJob(
         database_session_factory,
         encryption_key=_encryption_key(),
-        notifier=type("Notifier", (), {"publish": staticmethod(publisher)})(),
+        effect_executor=preparation_effect_executor(
+            type("Notifier", (), {"publish": staticmethod(publisher)})()
+        ),
     ).execute(batch_id)
 
     assert (
@@ -94,7 +97,9 @@ async def test_task_generates_keys_transitions_status_and_is_idempotent(
     await ProcessJob(
         database_session_factory,
         encryption_key=_encryption_key(),
-        notifier=type("Notifier", (), {"publish": staticmethod(publisher)})(),
+        effect_executor=preparation_effect_executor(
+            type("Notifier", (), {"publish": staticmethod(publisher)})()
+        ),
     ).execute(batch_id)
 
     async with database_session_factory() as session:
@@ -124,11 +129,17 @@ async def test_task_marks_batch_failed_and_publishes_event(
         await ProcessJob(
             database_session_factory,
             encryption_key=_encryption_key(),
-            notifier=type(
-                "Notifier",
-                (),
-                {"publish": staticmethod(lambda _, event_status, __: events.append(event_status))},
-            )(),
+            effect_executor=preparation_effect_executor(
+                type(
+                    "Notifier",
+                    (),
+                    {
+                        "publish": staticmethod(
+                            lambda _, event_status, __: events.append(event_status)
+                        )
+                    },
+                )()
+            ),
         ).execute(batch_id)
 
     assert (
@@ -149,7 +160,9 @@ async def test_task_processes_more_than_one_thousand_units_in_chunks(
     await ProcessJob(
         database_session_factory,
         encryption_key=_encryption_key(),
-        notifier=type("Notifier", (), {"publish": staticmethod(lambda *_: None)})(),
+        effect_executor=preparation_effect_executor(
+            type("Notifier", (), {"publish": staticmethod(lambda *_: None)})()
+        ),
     ).execute(batch_id)
 
     assert (

@@ -117,11 +117,10 @@ which is itself the last item.
 * Commands are assembled by hand in every handler. A `Command.build(session)`
   classmethod would remove the duplication without introducing a container or
   returning to service facades.
-* There is no post-commit effects mechanism, so `batches/router.py` imports the
-  concrete `CeleryWorkDispatcher` and `batches/commands/delete.py` imports
-  `RedisProgressNotifier`, bypassing the `WorkDispatcher` port. Registering
-  effects on the unit of work would let commands own their side effects and
-  would later become an outbox without touching them.
+* Post-commit effects are registered as semantic values through
+  `uow.after_commit(effect)`. The in-process executor is bound to Celery and
+  Redis only in composition; it can later be replaced with an outbox writer
+  without changing command code.
 
 Note: the transaction boundary must stay in the handler body. FastAPI runs the
 exit code of `yield` dependencies **after** the response is produced, so

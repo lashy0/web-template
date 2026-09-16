@@ -18,9 +18,7 @@ from app.domains.production.orders.schemas import AssignProductionOrderRequest
 from app.domains.production.preparation.commands.retry import RetryPreparation
 from app.domains.production.preparation.queries import PreparationQueries
 from app.domains.production.preparation.repository import PreparationRepository
-from app.infrastructure.redis.preparation_notifier import RedisProgressNotifier
-from app.shared.uow import transaction
-from app.worker.preparation_dispatcher import CeleryWorkDispatcher
+from app.shared.uow import PostCommitExecutor, UnitOfWork, transaction
 
 from ..contracts import VerificationHistoryPort
 from ..exceptions import BatchNotFoundError
@@ -62,9 +60,10 @@ def _verification_history(request: Request, session: AsyncSession) -> Verificati
 
 
 @asynccontextmanager
-async def _transaction(request: Request) -> AsyncIterator[AsyncSession]:
-    async with transaction(_session_factory(request)) as session:
-        yield session
+async def _transaction(request: Request) -> AsyncIterator[UnitOfWork]:
+    executor = cast(PostCommitExecutor, request.app.state.post_commit_executor)
+    async with transaction(_session_factory(request), executor=executor) as uow:
+        yield uow
 
 
 async def _response(request: Request, session: AsyncSession, batch: Batch) -> BatchResponse:
@@ -163,13 +162,15 @@ async def create_batch(
     principal: Annotated[CurrentPrincipalDep, Depends(require_permission(BatchPermission.CREATE))],
     request: Request,
 ) -> BatchResponse:
-    async with _transaction(request) as session:
+    async with _transaction(request) as uow:
+        session = uow.session
         batch = await CreateBatch(
             BatchRepository(session),
             KgRepository(session),
             PreparationRepository(session),
             ProductionOrderQueries(ProductionOrderRepository(session)),
             TransactionalAuditWriter.from_session(session),
+            uow,
         ).execute(
             actor=principal,
             name=payload.name,
@@ -183,9 +184,6 @@ async def create_batch(
             production_order_id=payload.production_order_id,
         )
         response = await _response(request, session, batch)
-    await CeleryWorkDispatcher(
-        _session_factory(request), RedisProgressNotifier()
-    ).dispatch_after_commit(batch.id)
     return response
 
 
@@ -196,7 +194,8 @@ async def update_batch(
     principal: Annotated[CurrentPrincipalDep, Depends(require_permission(BatchPermission.UPDATE))],
     request: Request,
 ) -> BatchResponse:
-    async with _transaction(request) as session:
+    async with _transaction(request) as uow:
+        session = uow.session
         batch = await UpdateBatch(
             BatchRepository(session), TransactionalAuditWriter.from_session(session)
         ).execute(
@@ -212,7 +211,8 @@ async def update_batch_archived(
     principal: Annotated[CurrentPrincipalDep, Depends(require_permission(BatchPermission.ARCHIVE))],
     request: Request,
 ) -> BatchResponse:
-    async with _transaction(request) as session:
+    async with _transaction(request) as uow:
+        session = uow.session
         batch = await SetBatchArchived(
             BatchRepository(session), TransactionalAuditWriter.from_session(session)
         ).execute(actor=principal, batch_id=batch_id, archived=payload.archived)
@@ -227,7 +227,8 @@ async def complete_batch(
     ],
     request: Request,
 ) -> BatchResponse:
-    async with _transaction(request) as session:
+    async with _transaction(request) as uow:
+        session = uow.session
         batch = await CompleteBatch(
             BatchRepository(session),
             PreparationRepository(session),
@@ -242,16 +243,13 @@ async def retry_batch_preparation(
     principal: Annotated[CurrentPrincipalDep, Depends(require_permission(BatchPermission.UPDATE))],
     request: Request,
 ) -> BatchResponse:
-    async with _transaction(request) as session:
+    async with _transaction(request) as uow:
+        session = uow.session
         batch = await required_batch(BatchRepository(session), batch_id, for_update=True)
-        _, dispatched = await RetryPreparation(PreparationRepository(session)).execute(
+        await RetryPreparation(PreparationRepository(session), uow).execute(
             actor=principal, batch=batch
         )
         response = await _response(request, session, batch)
-    if dispatched:
-        await CeleryWorkDispatcher(
-            _session_factory(request), RedisProgressNotifier()
-        ).dispatch_after_commit(batch.id)
     return response
 
 
@@ -267,7 +265,7 @@ async def delete_batch(
             Callable[[AsyncSession], VerificationHistoryPort],
             request.app.state.production_verification_history_factory,
         ),
-        notifier=RedisProgressNotifier(),
+        effect_executor=cast(PostCommitExecutor, request.app.state.post_commit_executor),
     ).execute(actor=principal, batch_id=batch_id)
 
 
@@ -280,7 +278,8 @@ async def assign_production_order(
     ],
     request: Request,
 ) -> BatchResponse:
-    async with _transaction(request) as session:
+    async with _transaction(request) as uow:
+        session = uow.session
         batch = await AssignProductionOrder(
             BatchRepository(session),
             ProductionOrderQueries(ProductionOrderRepository(session)),

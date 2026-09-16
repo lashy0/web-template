@@ -9,8 +9,10 @@ from app.domains.production.kg.exceptions import KgVersionNotFoundError
 from app.domains.production.kg.repository import KgRepository
 from app.domains.production.orders.queries import ProductionOrderQueries
 from app.domains.production.preparation.commands.start import CreateInitialPreparation
+from app.domains.production.preparation.effects import DispatchPreparation
 from app.domains.production.preparation.repository import PreparationRepository
 from app.shared.security import CurrentPrincipal
+from app.shared.uow import UnitOfWork
 
 from ..audit import audit_actor, batch_entity
 from ..model import Batch
@@ -28,12 +30,14 @@ class CreateBatch:
         preparation: PreparationRepository,
         orders: ProductionOrderQueries,
         audit: TransactionalAuditWriter,
+        uow: UnitOfWork,
     ) -> None:
         self._repository = repository
         self._kg_repository = kg_repository
         self._preparation = preparation
         self._orders = orders
         self._audit = audit
+        self._uow = uow
 
     async def execute(
         self,
@@ -82,6 +86,7 @@ class CreateBatch:
             )
         )
         await CreateInitialPreparation(self._preparation).execute(batch.id)
+        self._uow.after_commit(DispatchPreparation(batch.id))
         await self._audit.record(
             actor=audit_actor(actor),
             action="batch.created",

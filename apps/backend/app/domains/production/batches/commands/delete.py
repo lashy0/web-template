@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
-from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.audit.writer import TransactionalAuditWriter
@@ -15,13 +14,13 @@ from app.domains.production.contracts import VerificationHistoryPort
 from app.domains.production.exceptions import BatchCannotBeDeletedError
 from app.domains.production.kg.repository import KgRepository
 from app.domains.production.preparation.commands.request_cancellation import request_cancellation
+from app.domains.production.preparation.effects import PublishPreparationProgress
 from app.domains.production.preparation.model import BatchKeyGenerationStatus
-from app.domains.production.preparation.notifier import ProgressNotifier
 from app.domains.production.preparation.repository import PreparationRepository
 from app.domains.production.receipts.repository import ReceiptRepository
 from app.domains.production.shipments.repository import ShipmentRepository
 from app.shared.security import CurrentPrincipal
-from app.shared.uow import transaction
+from app.shared.uow import PostCommitExecutor, transaction
 
 from ..audit import audit_actor, batch_entity
 from ..model import Batch, BatchStatus
@@ -50,13 +49,13 @@ class DeleteBatch:
         session_factory: async_sessionmaker[AsyncSession],
         *,
         verification_history: VerificationHistoryFactory,
-        notifier: ProgressNotifier,
+        effect_executor: PostCommitExecutor | None = None,
         edit_window: timedelta = BATCH_EDIT_WINDOW,
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
         self._session_factory = session_factory
         self._verification_history = verification_history
-        self._notifier = notifier
+        self._effect_executor = effect_executor
         self._edit_window = edit_window
         self._clock = clock
 
@@ -66,23 +65,13 @@ class DeleteBatch:
         if cancellation is None:
             return
 
-        # This happens only after phase 1 committed. Redis is best-effort and
-        # cannot undo the authoritative database transition.
-        try:
-            self._notifier.publish(
-                batch_id, BatchKeyGenerationStatus.CANCELLING, cancellation.progress
-            )
-        except Exception:
-            logger.bind(
-                event="batch.preparation_notification_failed", batch_id=str(batch_id)
-            ).exception("Could not publish committed batch preparation cancellation")
-
         await self._cleanup_cancelled_preparation(actor=actor, batch_id=batch_id)
 
     async def _request_cancellation_or_delete(
         self, *, actor: CurrentPrincipal, batch_id: UUID
     ) -> _CancellationRequested | None:
-        async with transaction(self._session_factory) as session:
+        async with transaction(self._session_factory, executor=self._effect_executor) as uow:
+            session = uow.session
             batches = BatchRepository(session)
             batch = await required_batch(batches, batch_id, for_update=True)
             self._ensure_deletable_basics(batch, actor=actor)
@@ -102,6 +91,11 @@ class DeleteBatch:
             job = await preparation.get(batch.id, for_update=True)
             if job is not None and job.status is not BatchKeyGenerationStatus.READY:
                 await request_cancellation(preparation, job)
+                uow.after_commit(
+                    PublishPreparationProgress(
+                        batch_id, BatchKeyGenerationStatus.CANCELLING, job.progress
+                    )
+                )
                 return _CancellationRequested(progress=job.progress)
 
             await self._delete_in_current_transaction(
@@ -116,7 +110,8 @@ class DeleteBatch:
     async def _cleanup_cancelled_preparation(
         self, *, actor: CurrentPrincipal, batch_id: UUID
     ) -> None:
-        async with transaction(self._session_factory) as session:
+        async with transaction(self._session_factory, executor=self._effect_executor) as uow:
+            session = uow.session
             batches = BatchRepository(session)
             # The preparation worker takes this row lock before each chunk.
             # Waiting lets an in-flight chunk commit; CANCELLING stops the next one.

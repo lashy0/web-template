@@ -22,6 +22,7 @@ from app.domains.production.exceptions import (
     BatchPreparationNotReadyError,
 )
 from app.domains.production.kg.commands.allocate_for_batch import BatchAllocation
+from app.domains.production.preparation.effects import DispatchPreparation
 from app.domains.production.preparation.model import (
     BatchKeyGenerationJob,
     BatchKeyGenerationStatus,
@@ -200,12 +201,14 @@ async def test_create_uses_allocation_and_creates_initial_preparation_job(monkey
     preparation = SimpleNamespace(create_initial_job=AsyncMock())
     audit = SimpleNamespace(record=AsyncMock())
 
+    uow = SimpleNamespace(after_commit=MagicMock())
     created = await CreateBatch(
         repository,
         kg_repository,
         preparation,
         SimpleNamespace(ensure_assignable=AsyncMock()),
         audit,
+        uow,
     ).execute(
         actor=actor,
         name=batch.name,
@@ -219,7 +222,25 @@ async def test_create_uses_allocation_and_creates_initial_preparation_job(monkey
 
     assert created is batch
     preparation.create_initial_job.assert_awaited_once_with(batch.id)
+    uow.after_commit.assert_called_once_with(DispatchPreparation(batch.id))
     assert audit.record.await_args.kwargs["action"] == "batch.created"
+
+
+@pytest.mark.unit
+def test_application_commands_do_not_depend_on_celery_or_redis_adapters() -> None:
+    command_modules = (
+        "app.domains.production.batches.commands.create",
+        "app.domains.production.batches.commands.delete",
+        "app.domains.production.preparation.commands.retry",
+    )
+
+    for module_name in command_modules:
+        module = __import__(module_name, fromlist=["*"])
+        source = module.__file__
+        assert source is not None
+        text = open(source, encoding="utf-8").read()
+        assert "CeleryWorkDispatcher" not in text
+        assert "RedisProgressNotifier" not in text
 
 
 @pytest.mark.unit
@@ -233,10 +254,12 @@ async def test_dispatch_failure_marks_initial_preparation_job_failed(monkeypatch
     monkeypatch.setattr("app.worker.preparation_dispatcher.mark_failed", mark_failed)
     publish = MagicMock()
     notifier = SimpleNamespace(publish=publish)
+    failed_effect_executor = SimpleNamespace(execute=AsyncMock())
 
-    await CeleryWorkDispatcher(_TransactionSessionFactory([]), notifier).dispatch_after_commit(
-        batch_id
-    )
+    await CeleryWorkDispatcher(
+        _TransactionSessionFactory([]), notifier, failed_effect_executor
+    ).dispatch(batch_id)
 
     mark_failed.assert_awaited_once()
-    publish.assert_called_once_with(batch_id, BatchKeyGenerationStatus.FAILED, 0)
+    assert mark_failed.await_args.kwargs["effect_executor"] is failed_effect_executor
+    publish.assert_not_called()
