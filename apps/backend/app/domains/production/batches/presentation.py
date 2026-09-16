@@ -5,11 +5,11 @@ from app.domains.production.kg.schemas import (
     KgDevEuiPrefixSummaryResponse,
     KgVersionSummaryResponse,
 )
+from app.domains.production.orders.schemas import ProductionOrderSummaryResponse
 from app.domains.production.preparation.model import (
     BatchKeyGenerationJob,
     BatchKeyGenerationStatus,
 )
-from app.domains.production.production_orders.schemas import ProductionOrderSummaryResponse
 from app.domains.production.receipts.model import BatchReceipt
 from app.domains.production.receipts.schemas import BatchReceiptResponse
 from app.domains.production.shipments.model import BatchShipment, BatchShipmentItem

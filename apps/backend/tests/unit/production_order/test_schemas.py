@@ -6,8 +6,8 @@ from pydantic import ValidationError
 from app.auth.permissions import permissions_for_role
 from app.auth.roles import Role
 from app.domains.production.batches.permissions import BatchPermission
-from app.domains.production.production_orders.permissions import ProductionOrderPermission
-from app.domains.production.production_orders.schemas import (
+from app.domains.production.orders.permissions import ProductionOrderPermission
+from app.domains.production.orders.schemas import (
     AssignProductionOrderRequest,
     CreateProductionOrderRequest,
     UpdateProductionOrderRequest,

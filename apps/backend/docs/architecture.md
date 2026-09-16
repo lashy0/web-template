@@ -10,7 +10,7 @@ one transaction. It is not "a thing from the problem domain". There are five.
 
 ```text
 production   batches, receipts, shipments, preparation, KG, production orders
-quality      verification, defects, PAK test catalogue
+quality      verification, defects, quality-check catalogue
 equipment    PAK devices, credentials, machine authentication
 identity     users, provisioning, bootstrap, reconciliation
 audit        audit events, actor/entity vocabulary, transactional writer
@@ -155,10 +155,10 @@ committing inside a dependency would send `201` before the commit could fail.
 * `app/auth/principal.py`, `roles.py` and `permissions.py` are empty
   re-export shims with no domain consumers. Delete after rewriting the few
   remaining imports.
-* `equipment/pak/router.py` mounts `quality.tests.router`, performing URL
+* `equipment/pak/router.py` mounts `quality.checks.router`, performing URL
   composition for another module and creating an import cycle. Move to
   `app/api/main.py`.
-* `quality/tests/router.py` guards a quality endpoint with `PakPermission`, and
+* `quality/checks/router.py` guards a quality endpoint with `PakPermission`, and
   `quality/verification/router.py` consumes `equipment/pak/deps.CurrentPakDep`.
 * The permission registry is a process-global mutable singleton. Reading it
   before installation silently yields an empty frozenset. Fail loudly instead.

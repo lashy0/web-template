@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.api.auth_deps import CurrentPrincipalDep, require_permission
-from app.domains.quality.tests.router import router as tests_router
+from app.domains.quality.checks.router import router as checks_router
 from app.domains.quality.verification.adapters import QualityPakVerificationHistoryAdapter
 from app.infrastructure.hydra.pak import HydraPakOAuthClientAdapter
 
@@ -35,7 +35,7 @@ from .schemas import (
 )
 
 router = APIRouter(prefix="/pak", tags=["pak"])
-router.include_router(tests_router)
+router.include_router(checks_router)
 
 
 def _response(pak: PakDevice) -> PakDeviceResponse:

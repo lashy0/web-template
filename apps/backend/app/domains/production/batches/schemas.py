@@ -12,8 +12,8 @@ from app.domains.production.kg.schemas import (
     KgDevEuiPrefixSummaryResponse,
     KgVersionSummaryResponse,
 )
+from app.domains.production.orders.schemas import ProductionOrderSummaryResponse
 from app.domains.production.preparation.model import BatchKeyGenerationStatus
-from app.domains.production.production_orders.schemas import ProductionOrderSummaryResponse
 
 from .model import BatchStatus
 

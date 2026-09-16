@@ -14,8 +14,8 @@ from app.domains.equipment.pak.model import PakDevice, PakDeviceKind
 from app.domains.production.adapters import ProductionVerificationKgAdapter
 from app.domains.production.batches.model import Batch, BatchStatus
 from app.domains.production.kg.model import KgDevEuiPrefix, KgState, KgUnit
+from app.domains.quality.checks.model import Check
 from app.domains.quality.defects.model import DefectGroup
-from app.domains.quality.tests.model import PakTest
 from app.domains.quality.verification.commands.reconcile import (
     ReconcileStaleVerificationSessions,
 )
@@ -174,31 +174,31 @@ async def test_partial_indexes_and_step_number_constraint_are_real(
     group = DefectGroup(code=f"G{uuid4().hex[:8]}", name="Group", description=None)
     db_session.add(group)
     await db_session.flush()
-    test = PakTest(
+    check = Check(
         test_name=f"test-{uuid4().hex}",
         test_label="Test",
         defect_group_id=group.id,
         last_seen_at=datetime.now(UTC),
     )
-    db_session.add(test)
+    db_session.add(check)
     await db_session.flush()
     await repo.create_step(
         session_id=first.id,
         step_no=1,
-        pak_test_id=test.id,
+        pak_test_id=check.id,
         defect_group_id=group.id,
-        test_name=test.test_name,
-        test_label=test.test_label,
+        test_name=check.test_name,
+        test_label=check.test_label,
         error_group_code=group.code,
     )
     with pytest.raises(IntegrityError), db_session.begin_nested():
         await repo.create_step(
             session_id=first.id,
             step_no=1,
-            pak_test_id=test.id,
+            pak_test_id=check.id,
             defect_group_id=group.id,
-            test_name=test.test_name,
-            test_label=test.test_label,
+            test_name=check.test_name,
+            test_label=check.test_label,
             error_group_code=group.code,
         )
 

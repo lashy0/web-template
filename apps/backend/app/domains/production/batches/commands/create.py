@@ -7,9 +7,9 @@ from app.domains.production.exceptions import BatchKgVersionArchivedError
 from app.domains.production.kg.commands import AllocateForBatch
 from app.domains.production.kg.exceptions import KgVersionNotFoundError
 from app.domains.production.kg.repository import KgRepository
+from app.domains.production.orders.queries import ProductionOrderQueries
 from app.domains.production.preparation.commands.start import CreateInitialPreparation
 from app.domains.production.preparation.repository import PreparationRepository
-from app.domains.production.production_orders.queries import ProductionOrderQueries
 from app.shared.security import CurrentPrincipal
 
 from ..audit import audit_actor, batch_entity

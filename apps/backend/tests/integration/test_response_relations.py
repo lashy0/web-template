@@ -20,11 +20,11 @@ from app.domains.production.shipments.model import BatchShipmentItem
 from app.domains.production.shipments.repository import (
     ShipmentRepository as BatchShipmentRepository,
 )
+from app.domains.quality.checks.model import Check
+from app.domains.quality.checks.router import _response as check_response
 from app.domains.quality.defects.model import DefectGroup, DefectType
 from app.domains.quality.defects.repository import DefectGroupRepository
 from app.domains.quality.defects.router import _group_response
-from app.domains.quality.tests.model import PakTest
-from app.domains.quality.tests.router import _response as test_response
 from app.domains.quality.verification.model import VerificationSession
 from app.domains.quality.verification.router import _session_response
 
@@ -108,20 +108,20 @@ async def test_summaries_survive_detach_and_archived_relations(db_session: Async
     )
     db_session.add_all([kg, group, pak])
     await db_session.flush()
-    test = PakTest(test_name=uuid4().hex, test_label="Test", defect_group_id=group.id)
+    check = Check(test_name=uuid4().hex, test_label="Test", defect_group_id=group.id)
     verification = VerificationSession(
         kg_dev_eui=kg.dev_eui, pak_id=pak.id, slot_no=1, firmware_version="1.0", total_steps=1
     )
-    db_session.add_all([test, verification])
+    db_session.add_all([check, verification])
     await db_session.flush()
-    keys = (kg.dev_eui, test.id, verification.id)
+    keys = (kg.dev_eui, check.id, verification.id)
     db_session.expunge_all()
     kg = await db_session.get(KgUnit, keys[0])
-    test = await db_session.get(PakTest, keys[1])
+    check = await db_session.get(Check, keys[1])
     verification = await db_session.get(VerificationSession, keys[2])
     db_session.expunge_all()
     assert _kg_response(kg, current_state=KgCurrentState.REGISTERED).batch.name == "Production"
-    assert test_response(test).defect_group.name == "Archived group"
+    assert check_response(check).defect_group.name == "Archived group"
     assert _session_response(verification).pak.code == pak.code
     assert "encrypted_access_key" not in _session_response(verification).model_dump()["pak"]
 

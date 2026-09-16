@@ -1,9 +1,9 @@
 from app.core.exceptions import ConflictError, NotFoundError
 
 
-class PakTestNotFoundError(NotFoundError):
+class CheckNotFoundError(NotFoundError):
     code = "pak_test_not_found"
 
 
-class PakTestConfigurationError(ConflictError):
+class CheckConfigurationError(ConflictError):
     code = "pak_test_configuration_error"

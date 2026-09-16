@@ -6,8 +6,8 @@ import pytest
 from app.domains.production.batches.model import Batch, BatchStatus
 from app.domains.production.batches.repository import BatchRepository
 from app.domains.production.kg.model import KgDevEuiPrefix
-from app.domains.production.production_orders.model import ProductionOrder
-from app.domains.production.production_orders.repository import ProductionOrderRepository
+from app.domains.production.orders.model import ProductionOrder
+from app.domains.production.orders.repository import ProductionOrderRepository
 
 pytestmark = pytest.mark.integration
 

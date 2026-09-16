@@ -8,7 +8,7 @@ from app.domains.quality.defects.model import DefectGroup
 from app.infrastructure.database.base import Base
 
 
-class PakTest(Base):
+class Check(Base):
     __tablename__ = "pak_tests"
 
     id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)

@@ -8,10 +8,10 @@ from app.api.auth_deps import CurrentPrincipalDep, require_permission
 from app.domains.equipment.pak.permissions import PakPermission
 from app.domains.quality.defects.schemas import DefectGroupSummaryResponse
 
-from .exceptions import PakTestNotFoundError
-from .model import PakTest
-from .queries import PakTestQueries
-from .repository import PakTestRepository
+from .exceptions import CheckNotFoundError
+from .model import Check
+from .queries import CheckQueries
+from .repository import CheckRepository
 from .schemas import PakTestListResponse, PakTestResponse
 
 router = APIRouter(tags=["pak"])
@@ -21,7 +21,7 @@ def _session_factory(request: Request) -> async_sessionmaker[AsyncSession]:
     return cast(async_sessionmaker[AsyncSession], request.app.state.database.session_factory)
 
 
-def _response(item: PakTest) -> PakTestResponse:
+def _response(item: Check) -> PakTestResponse:
     return PakTestResponse(
         id=item.id,
         test_name=item.test_name,
@@ -53,7 +53,7 @@ async def list_pak_tests(
     order: Literal["asc", "desc"] = "asc",
 ) -> PakTestListResponse:
     async with _session_factory(request)() as session:
-        items, total = await PakTestQueries(PakTestRepository(session)).list(
+        items, total = await CheckQueries(CheckRepository(session)).list(
             q=q,
             defect_group_id=defect_group_id,
             page=page,
@@ -73,7 +73,7 @@ async def get_pak_test(
     request: Request,
 ) -> PakTestResponse:
     async with _session_factory(request)() as session:
-        item = await PakTestQueries(PakTestRepository(session)).get(test_id)
+        item = await CheckQueries(CheckRepository(session)).get(test_id)
     if item is None:
-        raise PakTestNotFoundError
+        raise CheckNotFoundError
     return _response(item)

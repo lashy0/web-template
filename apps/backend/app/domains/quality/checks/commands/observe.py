@@ -9,9 +9,9 @@ from app.audit.writer import TransactionalAuditWriter
 from app.domains.quality.defects.exceptions import DefectGroupArchivedError
 from app.domains.quality.defects.repository import DefectGroupRepository
 
-from ..exceptions import PakTestConfigurationError
-from ..model import PakTest
-from ..repository import PakTestRepository
+from ..exceptions import CheckConfigurationError
+from ..model import Check
+from ..repository import CheckRepository
 from ..rules import ensure_observation_group_active
 
 
@@ -26,17 +26,17 @@ class ObservingPak(Protocol):
     def oauth_client_id(self) -> str: ...
 
 
-class ObservePakTest:
+class ObserveCheck:
     """Upsert one catalogue definition reported by a PAK in the caller UoW."""
 
     def __init__(
         self,
         groups: DefectGroupRepository,
-        tests: PakTestRepository,
+        checks: CheckRepository,
         audit: TransactionalAuditWriter,
     ) -> None:
         self._groups = groups
-        self._tests = tests
+        self._checks = checks
         self._audit = audit
 
     async def execute(
@@ -47,7 +47,7 @@ class ObservePakTest:
         test_label: str,
         defect_group_code: str,
         seen_at: datetime | None = None,
-    ) -> PakTest:
+    ) -> Check:
         observed_at = seen_at or datetime.now(UTC)
         group = await self._groups.get_by_code(defect_group_code, for_update=True)
         if group is None:
@@ -57,7 +57,7 @@ class ObservePakTest:
                 defect_group_code=defect_group_code,
                 reason="unknown_defect_group",
             )
-            raise PakTestConfigurationError(
+            raise CheckConfigurationError(
                 "PAK test references an unknown defect group",
                 details={
                     "pak_id": str(pak.id),
@@ -75,7 +75,7 @@ class ObservePakTest:
                 defect_group_code=defect_group_code,
                 reason="archived_defect_group",
             )
-            raise PakTestConfigurationError(
+            raise CheckConfigurationError(
                 "PAK test references an archived defect group",
                 details={
                     "pak_id": str(pak.id),
@@ -84,9 +84,9 @@ class ObservePakTest:
                     "defect_group_code": defect_group_code,
                 },
             ) from exc
-        item = await self._tests.get_by_test_name(test_name)
+        item = await self._checks.get_by_test_name(test_name)
         if item is None:
-            item = await self._tests.create(
+            item = await self._checks.create(
                 test_name=test_name,
                 test_label=test_label,
                 defect_group_id=group.id,
@@ -115,7 +115,7 @@ class ObservePakTest:
             old_group = await self._groups.get(item.defect_group_id)
             old_data["defect_group_code"] = old_group.code if old_group is not None else None
             new_data["defect_group_code"] = group.code
-        item = await self._tests.update_observation(
+        item = await self._checks.update_observation(
             item, test_label=test_label, defect_group_id=group.id, last_seen_at=observed_at
         )
         if new_data:
@@ -135,7 +135,7 @@ class ObservePakTest:
         )
 
     @staticmethod
-    def _entity(item: PakTest) -> AuditEntity:
+    def _entity(item: Check) -> AuditEntity:
         return AuditEntity(
             type="pak_test",
             id=str(item.id),

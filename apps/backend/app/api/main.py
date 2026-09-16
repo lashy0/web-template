@@ -6,7 +6,7 @@ from app.domains.equipment.pak.router import router as pak_router
 from app.domains.identity.users.router import router as users_router
 from app.domains.production.batches.router import router as batches_router
 from app.domains.production.kg.router import router as kg_router
-from app.domains.production.production_orders.router import router as production_order_router
+from app.domains.production.orders.router import router as production_order_router
 from app.domains.production.receipts.router import router as receipts_router
 from app.domains.production.shipments.router import router as shipments_router
 from app.domains.quality.defects.router import router as defects_router

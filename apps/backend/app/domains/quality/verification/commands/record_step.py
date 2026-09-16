@@ -2,9 +2,9 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from app.audit.writer import TransactionalAuditWriter
+from app.domains.quality.checks.commands import ObserveCheck
+from app.domains.quality.checks.repository import CheckRepository
 from app.domains.quality.defects.repository import DefectGroupRepository
-from app.domains.quality.tests.commands import ObservePakTest
-from app.domains.quality.tests.repository import PakTestRepository
 
 from ..contracts import VerificationPakPort
 from ..exceptions import (
@@ -56,9 +56,9 @@ class StartVerificationStep:
             raise VerificationStepAlreadyExistsError
         if await self._repository.has_running_step(item.id):
             raise VerificationStepInProgressError
-        pak_test = await ObservePakTest(
+        check = await ObserveCheck(
             DefectGroupRepository(self._repository.session),
-            PakTestRepository(self._repository.session),
+            CheckRepository(self._repository.session),
             self._audit,
         ).execute(
             pak=pak,
@@ -70,8 +70,8 @@ class StartVerificationStep:
         step = await self._repository.create_step(
             session_id=item.id,
             step_no=step_no,
-            pak_test_id=pak_test.id,
-            defect_group_id=pak_test.defect_group_id,
+            pak_test_id=check.id,
+            defect_group_id=check.defect_group_id,
             test_name=test_name,
             test_label=test_label,
             error_group_code=error_group_code,

@@ -23,7 +23,7 @@ from app.domains.identity.users.model import User
 
 # Temporary production-internal ORM bridge until KG versions move.
 from app.domains.production.kg.model import KgDevEuiPrefix, KgVersion
-from app.domains.production.production_orders.model import ProductionOrder
+from app.domains.production.orders.model import ProductionOrder
 from app.infrastructure.database.base import Base
 
 

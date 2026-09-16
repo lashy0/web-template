@@ -25,8 +25,8 @@ from app.domains.equipment.pak.exceptions import (
     PakProvisioningError,
 )
 from app.domains.equipment.pak.model import PakDevice, PakDeviceKind
+from app.domains.quality.checks.model import Check
 from app.domains.quality.defects.model import DefectGroup
-from app.domains.quality.tests.model import PakTest
 from app.main import create_app
 
 _ALLOWED_ORIGIN = "https://admin.example"
@@ -67,10 +67,10 @@ def _pak(*, pak_id: UUID | None = None) -> PakDevice:
     )
 
 
-def _pak_test(*, test_id: UUID | None = None) -> PakTest:
+def _check(*, test_id: UUID | None = None) -> Check:
     now = datetime.now(UTC)
     group = DefectGroup(id=uuid4(), code="INSULATION", name="Insulation", archived_at=now)
-    return PakTest(
+    return Check(
         id=test_id or uuid4(),
         test_name="INSULATION_RESISTANCE",
         test_label="Insulation resistance",
@@ -214,30 +214,30 @@ def test_pak_list_never_exposes_access_key(
 
 
 @pytest.mark.api
-def test_pak_test_list_forwards_filters_and_returns_catalog_fields(
+def test_pak_checks_list_forwards_filters_and_returns_catalog_fields(
     pak_client: tuple[FastAPI, TestClient], mocker: MockerFixture
 ) -> None:
     app, client = pak_client
-    test = _pak_test()
-    catalog = SimpleNamespace(list=AsyncMock(return_value=([test], 1)))
+    check = _check()
+    catalog = SimpleNamespace(list=AsyncMock(return_value=([check], 1)))
     _configure_principal(app, mocker, SimpleNamespace(), Role.ADMINISTRATOR)
     mocker.patch.object(app.state, "pak_test_catalog", catalog)
 
     response = client.get(
-        f"/pak/tests?q=insulation&defect_group_id={test.defect_group_id}"
+        f"/pak/tests?q=insulation&defect_group_id={check.defect_group_id}"
         "&page=2&page_size=10&sort=last_seen_at&order=desc",
         headers=_headers(),
     )
 
     assert response.status_code == status.HTTP_200_OK
-    assert response.json()["items"][0]["test_name"] == test.test_name
-    assert response.json()["items"][0]["defect_group_id"] == str(test.defect_group_id)
-    assert response.json()["items"][0]["defect_group"]["name"] == test.defect_group.name
+    assert response.json()["items"][0]["test_name"] == check.test_name
+    assert response.json()["items"][0]["defect_group_id"] == str(check.defect_group_id)
+    assert response.json()["items"][0]["defect_group"]["name"] == check.defect_group.name
     assert response.json()["items"][0]["defect_group"]["archived_at"] is not None
     assert response.json()["total"] == 1
     catalog.list.assert_awaited_once_with(
         q="insulation",
-        defect_group_id=test.defect_group_id,
+        defect_group_id=check.defect_group_id,
         page=2,
         page_size=10,
         sort="last_seen_at",
@@ -246,7 +246,7 @@ def test_pak_test_list_forwards_filters_and_returns_catalog_fields(
 
 
 @pytest.mark.api
-def test_missing_pak_test_returns_not_found(
+def test_missing_pak_check_returns_not_found(
     pak_client: tuple[FastAPI, TestClient], mocker: MockerFixture
 ) -> None:
     app, client = pak_client

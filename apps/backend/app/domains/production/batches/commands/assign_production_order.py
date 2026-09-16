@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from app.audit.writer import TransactionalAuditWriter
-from app.domains.production.production_orders.queries import ProductionOrderQueries
+from app.domains.production.orders.queries import ProductionOrderQueries
 from app.shared.security import CurrentPrincipal
 
 from ..audit import audit_actor, batch_entity
