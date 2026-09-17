@@ -7,6 +7,7 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.config.database import DatabaseSettings
+from app.config.kratos import KratosSettings
 
 
 class AppSettings(BaseSettings):
@@ -46,6 +47,7 @@ class AppSettings(BaseSettings):
 class Settings:
     app: AppSettings = field(default_factory=AppSettings)
     db: DatabaseSettings = field(default_factory=DatabaseSettings)
+    kratos: KratosSettings = field(default_factory=KratosSettings)
 
 
 @lru_cache
@@ -55,3 +57,7 @@ def get_settings() -> Settings:
 
 def provide_app_settings() -> AppSettings:
     return get_settings().app
+
+
+def provide_kratos_settings() -> KratosSettings:
+    return get_settings().kratos

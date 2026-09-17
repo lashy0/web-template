@@ -9,7 +9,14 @@ from litestar.plugins import InitPluginProtocol
 
 from app import config
 from app.__metadata__ import __version__
-from app.config import AppSettings, get_settings, provide_app_settings
+from app.config import (
+    AppSettings,
+    KratosSettings,
+    get_settings,
+    provide_app_settings,
+    provide_kratos_settings,
+)
+from app.lib.kratos import KratosClient, provide_kratos_client
 from app.server import plugins
 
 if TYPE_CHECKING:
@@ -25,6 +32,9 @@ class ApplicationCore(InitPluginProtocol):
         settings = get_settings()
 
         self.app_slug = settings.app.slug
+
+        self.kratos_client = provide_kratos_client(settings.kratos)
+
         app_config.debug = settings.app.debug
 
         app_config.openapi_config = OpenAPIConfig(
@@ -47,6 +57,8 @@ class ApplicationCore(InitPluginProtocol):
         app_config.signature_namespace.update(
             {
                 "AppSettings": AppSettings,
+                "KratosSettings": KratosSettings,
+                "KratosClient": KratosClient,
             }
         )
 
@@ -54,6 +66,14 @@ class ApplicationCore(InitPluginProtocol):
             {
                 "settings": Provide(
                     provide_app_settings,
+                    sync_to_thread=False,
+                ),
+                "kratos_settings": Provide(
+                    provide_kratos_settings,
+                    sync_to_thread=False,
+                ),
+                "kratos": Provide(
+                    provide_kratos_client,
                     sync_to_thread=False,
                 ),
             }
