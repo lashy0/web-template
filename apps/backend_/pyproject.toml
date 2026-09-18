@@ -3,7 +3,7 @@ name = "backend"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
-    "advanced-alchemy>=1.11.0,<2.0.0",
+    "advanced-alchemy[uuid]>=1.11.0,<2.0.0",
     "alembic[tz]>=1.20.0,<2.0.0",
     "litestar[standard]>=2.24.0,<3.0.0",
     "loguru>=0.7.3",

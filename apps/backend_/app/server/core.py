@@ -16,6 +16,7 @@ from app.config import (
     provide_app_settings,
     provide_kratos_settings,
 )
+from app.db import models as m
 from app.lib.kratos import KratosClient, provide_kratos_client
 from app.server import plugins
 
@@ -32,8 +33,6 @@ class ApplicationCore(InitPluginProtocol):
         settings = get_settings()
 
         self.app_slug = settings.app.slug
-
-        self.kratos_client = provide_kratos_client(settings.kratos)
 
         app_config.debug = settings.app.debug
 
@@ -59,6 +58,7 @@ class ApplicationCore(InitPluginProtocol):
                 "AppSettings": AppSettings,
                 "KratosSettings": KratosSettings,
                 "KratosClient": KratosClient,
+                "m": m,
             }
         )
 

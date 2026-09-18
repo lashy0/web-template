@@ -4,7 +4,7 @@ from datetime import datetime
 from uuid import UUID
 
 from advanced_alchemy.base import UUIDv7AuditBase
-from sqlalchemy import Enum, String
+from sqlalchemy import Boolean, Enum, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.enums import UserRole
@@ -24,12 +24,18 @@ class User(UUIDv7AuditBase):
         nullable=False,
     )
 
-    name: Mapped[str] = mapped_column(
+    identity_login: Mapped[str] = mapped_column(
         String(255),
         nullable=False,
     )
 
-    identity_login: Mapped[str] = mapped_column(
+    identity_active: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False,
+    )
+
+    name: Mapped[str] = mapped_column(
         String(255),
         nullable=False,
     )
