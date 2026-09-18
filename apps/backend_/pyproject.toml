@@ -33,11 +33,14 @@ linting = [
 
 test = [
     "pytest>=9.1.1,<10.0.0",
-    "pytest-asyncio>=1.4.0,<2.0.0",
     "pytest-databases[postgres]",
     "pytest-xdist",
     "pytest-mock",
     "pytest-sugar",
+    "polyfactory",
+    "anyio",
+    "asyncpg",
+    "docker>=7.2.0,<8",
 ]
 
 [tool.uv]
@@ -162,3 +165,9 @@ python_files = ["test_*.py", "*_test.py"]
 python_functions = ["test_*"]
 
 testpaths = ["tests"]
+
+filterwarnings = [
+    # Emitted by Advanced Alchemy 1.11 internally; the current PyPI release
+    # still calls this deprecated compatibility hook.
+    "ignore:Call to deprecated function 'set_async_context':DeprecationWarning:advanced_alchemy\\._listeners",
+]

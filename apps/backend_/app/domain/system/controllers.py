@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Literal
 
 from litestar import Controller, MediaType, get
+from litestar.di import NamedDependency
 from litestar.response import Response
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
@@ -29,12 +30,12 @@ class SystemController(Controller):
         path="/health",
         summary="Health Check",
         exclude_from_auth=True,
-        security=[], # Public endpoint - no auth required
+        security=[],  # Public endpoint - no auth required
     )
     async def check_system_health(
         self,
-        db_session: AsyncSession,
-        settings: AppSettings,
+        db_session: NamedDependency[AsyncSession],
+        settings: NamedDependency[AppSettings],
     ) -> Response[s.SystemHealth]:
         """Check database availability and return application config info.
 

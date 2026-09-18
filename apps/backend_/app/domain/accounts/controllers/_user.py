@@ -6,7 +6,8 @@ from typing import TYPE_CHECKING, Annotated
 from uuid import UUID
 
 from litestar import Controller, delete, get, patch, post
-from litestar.params import Dependency, Parameter
+from litestar.di import NamedDependency
+from litestar.params import Parameter, SkipValidation
 from litestar.status_codes import HTTP_204_NO_CONTENT
 
 from app.domain.accounts.guards import requires_administrator
@@ -45,11 +46,8 @@ class UserController(Controller):
     @get(operation_id="ListUsers")
     async def list_users(
         self,
-        users_service: UserService,
-        filters: Annotated[
-            list[FilterTypes],
-            Dependency(skip_validation=True),
-        ],
+        users_service: NamedDependency[UserService],
+        filters: NamedDependency[SkipValidation[list[FilterTypes]]],
     ) -> OffsetPagination[User]:
         results, total = await users_service.list_and_count(*filters)
 
@@ -66,7 +64,7 @@ class UserController(Controller):
     )
     async def get_user(
         self,
-        users_service: UserService,
+        users_service: NamedDependency[UserService],
         user_id: Annotated[
             UUID,
             Parameter(
@@ -85,8 +83,8 @@ class UserController(Controller):
     @post(operation_id="CreateUser")
     async def create_user(
         self,
-        users_service: UserService,
-        kratos: KratosClient,
+        users_service: NamedDependency[UserService],
+        kratos: NamedDependency[KratosClient],
         data: UserCreate,
     ) -> User:
         db_obj = await users_service.create_user(
@@ -106,8 +104,8 @@ class UserController(Controller):
     async def update_user(
         self,
         data: UserUpdate,
-        users_service: UserService,
-        kratos: KratosClient,
+        users_service: NamedDependency[UserService],
+        kratos: NamedDependency[KratosClient],
         user_id: Annotated[
             UUID,
             Parameter(
@@ -134,8 +132,8 @@ class UserController(Controller):
     )
     async def delete_user(
         self,
-        users_service: UserService,
-        kratos: KratosClient,
+        users_service: NamedDependency[UserService],
+        kratos: NamedDependency[KratosClient],
         user_id: Annotated[
             UUID,
             Parameter(

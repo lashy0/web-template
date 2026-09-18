@@ -226,6 +226,7 @@ class UserService(CompositeServiceMixin, service.SQLAlchemyAsyncRepositoryServic
                 user.identity_id,
                 is_active=False,
             )
+            user.identity_active = False
 
         try:
             user.archived_at = datetime.now(UTC)

@@ -6,6 +6,7 @@ from typing import Annotated
 from uuid import UUID
 
 from litestar import Controller, put
+from litestar.di import NamedDependency
 from litestar.params import Parameter
 from litestar.status_codes import HTTP_204_NO_CONTENT
 
@@ -45,8 +46,8 @@ class AdminUsersController(Controller):
     async def update_password(
         self,
         data: UserPasswordUpdate,
-        users_service: UserService,
-        kratos: KratosClient,
+        users_service: NamedDependency[UserService],
+        kratos: NamedDependency[KratosClient],
         user_id: Annotated[
             UUID,
             Parameter(
@@ -68,8 +69,8 @@ class AdminUsersController(Controller):
     async def update_active(
         self,
         data: UserActiveUpdate,
-        users_service: UserService,
-        kratos: KratosClient,
+        users_service: NamedDependency[UserService],
+        kratos: NamedDependency[KratosClient],
         user_id: Annotated[
             UUID,
             Parameter(
@@ -96,8 +97,8 @@ class AdminUsersController(Controller):
     async def update_archived(
         self,
         data: UserArchivedUpdate,
-        users_service: UserService,
-        kratos: KratosClient,
+        users_service: NamedDependency[UserService],
+        kratos: NamedDependency[KratosClient],
         user_id: Annotated[
             UUID,
             Parameter(
