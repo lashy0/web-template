@@ -53,6 +53,7 @@ async def test_user_lifecycle_is_consistent_in_postgresql_and_kratos(
     )
 
     identity = await kratos_client.get_identity(user.identity_id)
+
     assert identity.login == user.identity_login == "kratos-integration-user"
     assert identity.is_active is user.identity_active is True
 
@@ -62,6 +63,7 @@ async def test_user_lifecycle_is_consistent_in_postgresql_and_kratos(
         kratos=kratos_client,
     )
     updated_identity = await kratos_client.get_identity(user.identity_id)
+
     assert updated_user.identity_login == updated_identity.login == "kratos-integration-renamed"
 
     archived_user = await user_service.set_archived(
@@ -70,5 +72,6 @@ async def test_user_lifecycle_is_consistent_in_postgresql_and_kratos(
         kratos=kratos_client,
     )
     archived_identity = await kratos_client.get_identity(user.identity_id)
+
     assert archived_user.archived_at is not None
     assert archived_identity.is_active is archived_user.identity_active is False

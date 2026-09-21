@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING, Annotated, Any
 from uuid import UUID
 
-from litestar import Controller, delete, get, patch, post, put
-from litestar.di import NamedDependency
+import msgspec
+from litestar import Controller, Request, delete, get, patch, post, put
+from litestar.di import NamedDependency, Provide
 from litestar.params import Parameter, SkipValidation
 from litestar.status_codes import HTTP_204_NO_CONTENT
 
+from app.db import models as m
 from app.domain.accounts.permissions import UserPermission
 from app.domain.accounts.schemas import (
     User,
@@ -20,6 +22,8 @@ from app.domain.accounts.schemas import (
     UserUpdate,
 )
 from app.domain.accounts.services import UserService
+from app.domain.admin.deps import provide_audit_log_service
+from app.domain.admin.services import AuditLogService
 from app.lib.authorization import requires_permission
 from app.lib.deps import create_service_dependencies
 from app.lib.kratos import KratosClient
@@ -49,6 +53,28 @@ class UserController(Controller):
             "sort_order": "desc",
         },
     )
+    dependencies["audit_service"] = Provide(provide_audit_log_service)
+
+    @staticmethod
+    async def _log_user_action(
+        request: Request[m.User, Any, Any],
+        audit_service: AuditLogService,
+        *,
+        action: str,
+        target: m.User,
+        details: dict[str, Any] | None = None,
+    ) -> None:
+        """Write an audit entry from the request-scoped controller context."""
+        await audit_service.log_action(
+            action=action,
+            actor_id=request.user.id,
+            actor_login=request.user.identity_login,
+            target_type="user",
+            target_id=str(target.id),
+            target_label=target.identity_login,
+            details=details,
+            request=request,
+        )
 
     @get(
         operation_id="ListUsers",
@@ -97,13 +123,22 @@ class UserController(Controller):
     )
     async def create_user(
         self,
+        request: Request[m.User, Any, Any],
         users_service: NamedDependency[UserService],
         kratos: NamedDependency[KratosClient],
+        audit_service: NamedDependency[AuditLogService],
         data: UserCreate,
     ) -> User:
         db_obj = await users_service.create_user(
             data,
             kratos=kratos,
+        )
+        await self._log_user_action(
+            request,
+            audit_service,
+            action="user.created",
+            target=db_obj,
+            details={"is_active": data.is_active},
         )
 
         return users_service.to_schema(
@@ -118,9 +153,11 @@ class UserController(Controller):
     )
     async def update_user(
         self,
+        request: Request[m.User, Any, Any],
         data: UserUpdate,
         users_service: NamedDependency[UserService],
         kratos: NamedDependency[KratosClient],
+        audit_service: NamedDependency[AuditLogService],
         user_id: Annotated[
             UUID,
             Parameter(
@@ -133,6 +170,16 @@ class UserController(Controller):
             user_id,
             data,
             kratos=kratos,
+        )
+
+        await self._log_user_action(
+            request,
+            audit_service,
+            action="user.updated",
+            target=db_obj,
+            details={
+                "fields": [field for field in ("login", "name", "role") if getattr(data, field) is not msgspec.UNSET]
+            },
         )
 
         return users_service.to_schema(
@@ -148,8 +195,10 @@ class UserController(Controller):
     )
     async def delete_user(
         self,
+        request: Request[m.User, Any, Any],
         users_service: NamedDependency[UserService],
         kratos: NamedDependency[KratosClient],
+        audit_service: NamedDependency[AuditLogService],
         user_id: Annotated[
             UUID,
             Parameter(
@@ -158,9 +207,18 @@ class UserController(Controller):
             ),
         ],
     ) -> None:
+        target = await users_service.get(user_id)
+
         await users_service.delete_user(
             user_id,
             kratos=kratos,
+        )
+
+        await self._log_user_action(
+            request,
+            audit_service,
+            action="user.deleted",
+            target=target,
         )
 
     @put(
@@ -195,9 +253,11 @@ class UserController(Controller):
     )
     async def update_active(
         self,
+        request: Request[m.User, Any, Any],
         data: UserActiveUpdate,
         users_service: NamedDependency[UserService],
         kratos: NamedDependency[KratosClient],
+        audit_service: NamedDependency[AuditLogService],
         user_id: Annotated[
             UUID,
             Parameter(
@@ -206,11 +266,22 @@ class UserController(Controller):
             ),
         ],
     ) -> User:
+        target = await users_service.get(user_id)
+        was_active = target.identity_active
         db_obj = await users_service.set_active(
             user_id,
             is_active=data.is_active,
             kratos=kratos,
         )
+
+        if was_active != data.is_active:
+            await self._log_user_action(
+                request,
+                audit_service,
+                action="user.activated" if data.is_active else "user.deactivated",
+                target=db_obj,
+                details={"is_active": data.is_active},
+            )
 
         return users_service.to_schema(
             db_obj,
@@ -224,9 +295,11 @@ class UserController(Controller):
     )
     async def update_archived(
         self,
+        request: Request[m.User, Any, Any],
         data: UserArchivedUpdate,
         users_service: NamedDependency[UserService],
         kratos: NamedDependency[KratosClient],
+        audit_service: NamedDependency[AuditLogService],
         user_id: Annotated[
             UUID,
             Parameter(
@@ -235,11 +308,21 @@ class UserController(Controller):
             ),
         ],
     ) -> User:
+        target = await users_service.get(user_id)
+        was_archived = target.archived_at is not None
         db_obj = await users_service.set_archived(
             user_id,
             archived=data.archived,
             kratos=kratos,
         )
+
+        if was_archived != data.archived:
+            await self._log_user_action(
+                request,
+                audit_service,
+                action="user.archived" if data.archived else "user.restored",
+                target=db_obj,
+            )
 
         return users_service.to_schema(
             db_obj,
