@@ -19,6 +19,7 @@ from app.config import (
 from app.db import models as m
 from app.lib.kratos import KratosClient, provide_kratos_client
 from app.server import plugins
+from app.server.authorization import create_authorization_policy
 
 if TYPE_CHECKING:
     from litestar.config.app import AppConfig
@@ -45,6 +46,7 @@ class ApplicationCore(InitPluginProtocol):
         )
 
         app_config.cors_config = config.cors
+        app_config.state["authorization_policy"] = create_authorization_policy()
 
         app_config.plugins.extend(
             [

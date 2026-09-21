@@ -147,6 +147,7 @@ addopts = [
     "-ra",
     "-n",
     "auto",
+    "--basetemp=.pytest-basetemp",
 ]
 
 markers = [

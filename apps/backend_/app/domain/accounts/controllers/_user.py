@@ -5,14 +5,22 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Annotated
 from uuid import UUID
 
-from litestar import Controller, delete, get, patch, post
+from litestar import Controller, delete, get, patch, post, put
 from litestar.di import NamedDependency
 from litestar.params import Parameter, SkipValidation
 from litestar.status_codes import HTTP_204_NO_CONTENT
 
-from app.domain.accounts.guards import requires_administrator
-from app.domain.accounts.schemas import User, UserCreate, UserUpdate
+from app.domain.accounts.permissions import UserPermission
+from app.domain.accounts.schemas import (
+    User,
+    UserActiveUpdate,
+    UserArchivedUpdate,
+    UserCreate,
+    UserPasswordUpdate,
+    UserUpdate,
+)
 from app.domain.accounts.services import UserService
+from app.lib.authorization import requires_permission
 from app.lib.deps import create_service_dependencies
 from app.lib.kratos import KratosClient
 
@@ -25,8 +33,7 @@ class UserController(Controller):
     """User Account Controller."""
 
     path = "/users"
-    tags = ["User Accounts"]
-    guards = [requires_administrator]
+    tags = ["User Accounts"]  # noqa: RUF012
 
     dependencies = create_service_dependencies(
         UserService,
@@ -43,7 +50,10 @@ class UserController(Controller):
         },
     )
 
-    @get(operation_id="ListUsers")
+    @get(
+        operation_id="ListUsers",
+        guards=[requires_permission(UserPermission.READ)],
+    )
     async def list_users(
         self,
         users_service: NamedDependency[UserService],
@@ -61,6 +71,7 @@ class UserController(Controller):
     @get(
         operation_id="GetUser",
         path="/{user_id:uuid}",
+        guards=[requires_permission(UserPermission.READ)],
     )
     async def get_user(
         self,
@@ -80,7 +91,10 @@ class UserController(Controller):
             schema_type=User,
         )
 
-    @post(operation_id="CreateUser")
+    @post(
+        operation_id="CreateUser",
+        guards=[requires_permission(UserPermission.CREATE)],
+    )
     async def create_user(
         self,
         users_service: NamedDependency[UserService],
@@ -100,6 +114,7 @@ class UserController(Controller):
     @patch(
         operation_id="UpdateUser",
         path="/{user_id:uuid}",
+        guards=[requires_permission(UserPermission.UPDATE)],
     )
     async def update_user(
         self,
@@ -129,6 +144,7 @@ class UserController(Controller):
         operation_id="DeleteUser",
         path="/{user_id:uuid}",
         status_code=HTTP_204_NO_CONTENT,
+        guards=[requires_permission(UserPermission.DELETE)],
     )
     async def delete_user(
         self,
@@ -145,4 +161,87 @@ class UserController(Controller):
         await users_service.delete_user(
             user_id,
             kratos=kratos,
+        )
+
+    @put(
+        operation_id="UpdateUserPassword",
+        path="/{user_id:uuid}/password",
+        status_code=HTTP_204_NO_CONTENT,
+        guards=[requires_permission(UserPermission.UPDATE)],
+    )
+    async def update_password(
+        self,
+        data: UserPasswordUpdate,
+        users_service: NamedDependency[UserService],
+        kratos: NamedDependency[KratosClient],
+        user_id: Annotated[
+            UUID,
+            Parameter(
+                title="User ID",
+                description="The user whose password to update.",
+            ),
+        ],
+    ) -> None:
+        await users_service.set_password(
+            user_id,
+            data.password,
+            kratos=kratos,
+        )
+
+    @put(
+        operation_id="UpdateUserActive",
+        path="/{user_id:uuid}/active",
+        guards=[requires_permission(UserPermission.UPDATE)],
+    )
+    async def update_active(
+        self,
+        data: UserActiveUpdate,
+        users_service: NamedDependency[UserService],
+        kratos: NamedDependency[KratosClient],
+        user_id: Annotated[
+            UUID,
+            Parameter(
+                title="User ID",
+                description="The user to activate or deactivate.",
+            ),
+        ],
+    ) -> User:
+        db_obj = await users_service.set_active(
+            user_id,
+            is_active=data.is_active,
+            kratos=kratos,
+        )
+
+        return users_service.to_schema(
+            db_obj,
+            schema_type=User,
+        )
+
+    @put(
+        operation_id="UpdateUserArchived",
+        path="/{user_id:uuid}/archived",
+        guards=[requires_permission(UserPermission.UPDATE)],
+    )
+    async def update_archived(
+        self,
+        data: UserArchivedUpdate,
+        users_service: NamedDependency[UserService],
+        kratos: NamedDependency[KratosClient],
+        user_id: Annotated[
+            UUID,
+            Parameter(
+                title="User ID",
+                description="The user to archive or restore.",
+            ),
+        ],
+    ) -> User:
+        db_obj = await users_service.set_archived(
+            user_id,
+            archived=data.archived,
+            kratos=kratos,
+        )
+
+        return users_service.to_schema(
+            db_obj,
+            schema_type=User,
         )

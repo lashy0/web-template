@@ -24,7 +24,7 @@ async def fx_client(app: Litestar) -> AsyncGenerator[AsyncTestClient]:
     try:
         async with AsyncTestClient(app=app) as client:
             yield client
-    except Exception:  # noqa: BLE001
+    except Exception:
         ...
 
 
