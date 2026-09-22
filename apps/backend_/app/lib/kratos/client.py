@@ -8,12 +8,15 @@ import anyio
 import ory_kratos_client as kratos
 from anyio.to_thread import run_sync
 from ory_kratos_client.api.identity_api import IdentityApi
+from ory_kratos_client.api.metadata_api import MetadataApi
 from ory_kratos_client.exceptions import ApiException
 from ory_kratos_client.models.identity import Identity as SDKIdentity
 
 from app.lib.kratos.exceptions import (
+    KratosError,
     KratosIdentityAlreadyExistsError,
     KratosIdentityNotFoundError,
+    KratosInvalidSessionError,
     KratosUnavailableError,
 )
 from app.lib.kratos.schemas import KratosIdentity
@@ -78,13 +81,23 @@ class _SDKClient:
         self.timeout = timeout
         self.limiter = anyio.CapacityLimiter(concurrency)
 
-    async def call(self, operation: Callable[[], T]) -> T:
+    async def call(
+        self,
+        operation: Callable[[], T],
+        *,
+        invalid_session: bool = False,
+    ) -> T:
         try:
             async with self.limiter:
                 return await run_sync(operation)
 
         except ApiException as exc:
             status = cast("int | None", exc.status)
+
+            if invalid_session and status in {401, 403}:
+                raise KratosInvalidSessionError(
+                    detail="Kratos session is invalid or expired",
+                ) from exc
 
             if status == 404:
                 raise KratosIdentityNotFoundError(
@@ -99,6 +112,14 @@ class _SDKClient:
             raise KratosUnavailableError(
                 detail="Kratos request failed"
             ) from exc
+
+        except (OSError, TimeoutError) as exc:
+            raise KratosUnavailableError(detail="Kratos request failed") from exc
+
+        except Exception as exc:
+            # The generated client wraps DNS/connectivity failures in urllib3
+            # exceptions (for example MaxRetryError), not OSError.
+            raise KratosUnavailableError(detail="Kratos request failed") from exc
 
 
 class KratosClient:
@@ -119,6 +140,18 @@ class KratosClient:
 
         self._client = client
         self._identities = IdentityApi(client.api_client)
+        self._metadata = MetadataApi(client.api_client)
+
+    async def is_ready(self) -> bool:
+        """Return whether the Kratos Admin API reports readiness."""
+        try:
+            await self._client.call(
+                lambda: self._metadata.is_ready(_request_timeout=self._client.timeout)
+            )
+        except KratosError:
+            return False
+
+        return True
 
     async def create_identity(
         self,

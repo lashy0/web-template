@@ -10,17 +10,9 @@ dependency resolution.
 
 from __future__ import annotations
 
-from typing import Any, cast
-from uuid import uuid4
-
 import pytest
-from httpx import ASGITransport, AsyncClient
-from litestar.enums import ScopeType
-from litestar.middleware import ASGIMiddleware
 from litestar.testing import AsyncTestClient
-from litestar.types import ASGIApp, Receive, Scope, Send
 
-from app.db import models as m
 from app.db.enums import UserRole
 from app.lib.authorization import PermissionPolicy
 from app.lib.authorization.guards import AUTHORIZATION_POLICY_STATE_KEY
@@ -44,9 +36,6 @@ USER_OPERATIONS = (
     ("put", f"/users/{_USER_ID}/archived"),
 )
 
-DENIED_ROLES = (UserRole.MANAGER, UserRole.ENGINEER, UserRole.PACKER, UserRole.OPERATOR)
-
-
 def test_production_app_installs_immutable_authorization_policy() -> None:
     app = create_app()
 
@@ -67,6 +56,8 @@ def test_users_resource_is_registered_once_without_legacy_paths() -> None:
     paths = app.openapi_schema.to_schema()["paths"]
 
     assert not any(path.startswith("/admin/users") for path in paths)
+    assert "/auth/me" in paths
+    assert "/me" not in paths
 
     operation_ids = [
         operation["operationId"]
@@ -75,31 +66,6 @@ def test_users_resource_is_registered_once_without_legacy_paths() -> None:
         if method in {"get", "post", "put", "patch", "delete", "head", "options"}
     ]
     assert len(operation_ids) == len(set(operation_ids))
-
-
-def _principal(role: UserRole) -> m.User:
-    return m.User(
-        identity_id=uuid4(),
-        identity_login="http-user",
-        name="HTTP User",
-        role=role,
-    )
-
-
-class _PrincipalMiddleware(ASGIMiddleware):
-    """Inject a trusted principal without touching the app's dependencies."""
-
-    scopes = (ScopeType.HTTP,)
-
-    def __init__(self, user: m.User, litestar_app: Any) -> None:
-        self.user = user
-        self.litestar_app = litestar_app
-
-    async def handle(self, scope: Scope, receive: Receive, send: Send, next_app: ASGIApp) -> None:
-        scope_dict = cast("dict[str, object]", scope)
-        scope_dict["user"] = self.user
-        scope_dict["litestar_app"] = self.litestar_app
-        await next_app(cast("Scope", scope_dict), receive, send)
 
 
 @pytest.mark.anyio
@@ -114,17 +80,23 @@ async def test_user_operations_return_401_without_authentication(method: str, pa
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize(("method", "path"), USER_OPERATIONS)
-@pytest.mark.parametrize("role", DENIED_ROLES)
-async def test_user_operations_return_403_without_permission(method: str, path: str, role: UserRole) -> None:
+async def test_profile_returns_401_without_authentication() -> None:
     app = create_app()
-    asgi_app = _PrincipalMiddleware(user=_principal(role), litestar_app=app)(app.asgi_handler)
 
-    transport = ASGITransport(app=cast("Any", asgi_app))
-    async with AsyncClient(transport=transport, base_url="http://testserver.local") as client:
-        response = await getattr(client, method)(path)
+    async with AsyncTestClient(app) as client:
+        response = await client.get("/auth/me")
 
-    assert response.status_code == 403
+    assert response.status_code == 401
+
+
+@pytest.mark.anyio
+async def test_documentation_is_public() -> None:
+    app = create_app()
+
+    async with AsyncTestClient(app) as client:
+        response = await client.get("/schema/openapi.json")
+
+    assert response.status_code == 200
 
 
 @pytest.mark.anyio

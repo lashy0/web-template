@@ -19,6 +19,7 @@ from app.config import (
 from app.db import models as m
 from app.lib.kratos import KratosClient, provide_kratos_client
 from app.server import plugins
+from app.server.authentication import create_authentication_middleware
 from app.server.authorization import create_authorization_policy
 
 if TYPE_CHECKING:
@@ -54,6 +55,7 @@ class ApplicationCore(InitPluginProtocol):
                 plugins.domain,
             ]
         )
+        app_config.middleware.append(create_authentication_middleware(settings.kratos))
 
         app_config.signature_namespace.update(
             {

@@ -21,6 +21,7 @@ async def test_health(client: "AsyncClient") -> None:
 
     data = response.json()
     assert data["database_status"] == "online"
+    assert data["kratos_status"] == "online"
     assert "app" in data and len(data["app"]) > 0
 
 

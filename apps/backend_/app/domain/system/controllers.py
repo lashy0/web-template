@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
     from app.config.settings import AppSettings
+    from app.lib.kratos import KratosClient
 
 
 class SystemController(Controller):
@@ -36,6 +37,7 @@ class SystemController(Controller):
         self,
         db_session: NamedDependency[AsyncSession],
         settings: NamedDependency[AppSettings],
+        kratos: NamedDependency[KratosClient],
     ) -> Response[s.SystemHealth]:
         """Check database availability and return application config info.
 
@@ -55,13 +57,17 @@ class SystemController(Controller):
         except SQLAlchemyError:
             database_status = "offline"
 
-        healthy = database_status == "online"
+        kratos_status: Literal["online", "offline"] = (
+            "online" if await kratos.is_ready() else "offline"
+        )
+        healthy = database_status == "online" and kratos_status == "online"
 
         return Response(
             content=s.SystemHealth(
                 app=settings.name,
                 database_status=database_status,
+                kratos_status=kratos_status,
             ),
-            status_code=200 if healthy else 500,
+            status_code=200 if healthy else 503,
             media_type=MediaType.JSON,
         )

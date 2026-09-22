@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 class ProfileController(Controller):
     """Current user profile."""
 
-    path = "/me"
+    path = "/auth"
     tags = ["Profile"]  # noqa: RUF012
     dependencies = {  # noqa: RUF012
         "current_user": Provide(provide_current_user, sync_to_thread=False),
@@ -31,6 +31,7 @@ class ProfileController(Controller):
 
     @get(
         operation_id="GetProfile",
+        path="/me",
         summary="Get current user profile",
         description="User profile information.",
     )

@@ -53,10 +53,10 @@ request, so separate applications can use different immutable policies. A
 missing policy grants nothing; a configured policy of the wrong type is an
 application configuration error.
 
-This backend does not yet wire production authentication middleware. Until
-that prerequisite is installed, protected requests without an injected
-principal correctly return 401; the future authentication layer validates the
-session before populating the trusted principal.
+Authentication is a separate concern. Before a guard runs, the authentication
+adapter must place the trusted local `User` in `scope["user"]`. The guard does
+not validate cookies or identity-provider sessions itself. See
+`docs/authentication.md` for the Kratos session-to-local-user flow.
 
 ## Adding permissions for a new domain
 
