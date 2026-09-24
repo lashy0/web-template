@@ -2,6 +2,7 @@ import msgspec
 import pytest
 
 from app.domain.production.schemas import (
+    BatchUpdate,
     KgPrefixCreate,
     KgPrefixUpdate,
     KgVersionCreate,
@@ -88,3 +89,8 @@ def test_kg_version_update_accepts_cleared_description() -> None:
     data = msgspec.convert({"description": None}, KgVersionUpdate)
 
     assert data.to_dict() == {"description": None}
+
+
+def test_batch_update_requires_a_field() -> None:
+    with pytest.raises(msgspec.ValidationError):
+        msgspec.convert({}, BatchUpdate)

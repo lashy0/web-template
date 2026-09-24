@@ -1,10 +1,6 @@
-"""LoRaWAN DevEUI and credential errors."""
+"""LoRaWAN DevEUI errors."""
 
-from app.lib.exceptions import (
-    ApplicationClientError,
-    ApplicationConflictError,
-    ApplicationError,
-)
+from app.lib.exceptions import ApplicationClientError, ApplicationConflictError
 
 
 class InvalidDevEuiError(ApplicationClientError):
@@ -28,45 +24,8 @@ class DevEuiRangeOverflowError(ApplicationConflictError):
     detail = "The DevEUI prefix has no room for the requested quantity."
 
 
-class CredentialsError(ApplicationError):
-    """Stored credentials or their configuration are unusable (HTTP 500).
-
-    These are server faults: the client cannot fix them, and details must not
-    reveal key material or plaintext.
-    """
-
-
-class CredentialsEncryptionConfigurationError(CredentialsError):
-    """The credentials encryption key is missing or invalid."""
-
-    detail = "LoRaWAN credentials encryption is not configured correctly."
-
-
-class CredentialsPayloadError(CredentialsError):
-    """Credentials do not match the payload type of their LoRaWAN configuration."""
-
-    detail = "LoRaWAN credentials payload is invalid."
-
-
-class UnsupportedCredentialsSchemaVersionError(CredentialsError):
-    """Stored credentials use an unknown schema version."""
-
-    detail = "LoRaWAN credentials schema version is unsupported."
-
-
-class CredentialsDecryptionError(CredentialsError):
-    """Stored credentials cannot be authenticated or decoded."""
-
-    detail = "Stored LoRaWAN credentials cannot be decrypted."
-
-
 __all__ = (
-    "CredentialsDecryptionError",
-    "CredentialsEncryptionConfigurationError",
-    "CredentialsError",
-    "CredentialsPayloadError",
     "DevEuiRangeOverflowError",
     "InvalidDevEuiError",
     "InvalidDevEuiPrefixError",
-    "UnsupportedCredentialsSchemaVersionError",
 )

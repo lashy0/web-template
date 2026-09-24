@@ -8,7 +8,7 @@ from uuid import uuid4
 import pytest
 from advanced_alchemy.exceptions import NotFoundError
 
-from app.domain.production.exceptions import ProductionOrderArchivedError
+from app.domain.production.exceptions import ProductionOrderArchivedError, ProductionOrderInUseError
 from app.lib.filters import provide_archived_filter
 from app.lib.uow import unit_of_work
 
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
     from app.domain.production.services import ProductionOrderService
-    from tests.integration.production.conftest import CreateOrder
+    from tests.integration.production.conftest import CreateBatch, CreateOrder
 
 pytestmark = [
     pytest.mark.anyio,
@@ -110,3 +110,17 @@ async def test_archived_filter_lists_only_archived_orders(
     orders, total = await production_order_service.get_many_and_count(*provide_archived_filter(archived=True))
 
     assert ([order.name for order in orders], total) == (["Archived"], 1)
+
+
+async def test_delete_order_with_batches_is_rejected(
+    session: AsyncSession,
+    production_order_service: ProductionOrderService,
+    create_order: CreateOrder,
+    create_batch: CreateBatch,
+) -> None:
+    order = await create_order()
+    await create_batch(production_order_id=order.id)
+
+    with pytest.raises(ProductionOrderInUseError):
+        async with unit_of_work(session):
+            await production_order_service.delete_order(order.id)

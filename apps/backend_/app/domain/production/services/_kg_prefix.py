@@ -9,6 +9,7 @@ from advanced_alchemy.extensions.litestar import repository, service
 from app.db import models as m
 from app.domain.production.exceptions import (
     KgPrefixArchivedError,
+    KgPrefixInUseError,
     KgPrefixShortCodeTakenError,
     KgPrefixTakenError,
 )
@@ -77,6 +78,10 @@ class KgPrefixService(service.SQLAlchemyAsyncRepositoryService[m.KgPrefix]):
 
     async def delete_prefix(self, prefix_id: UUID) -> m.KgPrefix:
         prefix = await self._require(prefix_id, for_update=True)
+
+        # Deleting the row would reset its counter and reissue the DevEUIs.
+        if prefix.next_serial > 1:
+            raise KgPrefixInUseError
 
         await self.repository.session.delete(prefix)
         await self.repository.session.flush()

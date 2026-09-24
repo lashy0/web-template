@@ -2,19 +2,27 @@
 
 from app.domain.production import controllers, schemas, services
 from app.domain.production.permissions import (
+    BatchPermission,
     KgPrefixPermission,
+    KgUnitPermission,
     KgVersionPermission,
     ProductionOrderPermission,
 )
 from app.domain.production.services import (
+    BatchService,
     KgPrefixService,
+    KgUnitService,
     KgVersionService,
     ProductionOrderService,
 )
 
 __all__ = (
+    "BatchPermission",
+    "BatchService",
     "KgPrefixPermission",
     "KgPrefixService",
+    "KgUnitPermission",
+    "KgUnitService",
     "KgVersionPermission",
     "KgVersionService",
     "ProductionOrderPermission",

@@ -17,3 +17,15 @@ class UserRole(StrEnum):
 class PakDeviceKind(StrEnum):
     ENGINEERING = "engineering"
     OTK_LINE = "otk_line"
+
+
+class BatchStatus(StrEnum):
+    IN_PRODUCTION = "in_production"
+    COMPLETED = "completed"
+
+
+class KgState(StrEnum):
+    """Lifecycle of a KG unit; verification results are tracked separately."""
+
+    REGISTERED = "registered"
+    SCRAPPED = "scrapped"

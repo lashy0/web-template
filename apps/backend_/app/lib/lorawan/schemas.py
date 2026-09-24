@@ -16,7 +16,7 @@ class LoRaWanVersion(StrEnum):
 
 
 class CredentialsPayload(msgspec.Struct, frozen=True, forbid_unknown_fields=True):
-    """Base of the credential payloads; field names are the persisted schema."""
+    """Base of the credential payloads; field names are part of the API contract."""
 
 
 class Abp10Credentials(CredentialsPayload, frozen=True):

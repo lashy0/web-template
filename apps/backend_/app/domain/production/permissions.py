@@ -39,4 +39,30 @@ class KgVersionPermission(StrEnum):
     DELETE = "kg_versions.delete"
 
 
-__all__ = ("KgPrefixPermission", "KgVersionPermission", "ProductionOrderPermission")
+class KgUnitPermission(StrEnum):
+    """Capabilities for viewing KG units of batches; production processes change them."""
+
+    READ = "kg_units.read"
+
+
+class BatchPermission(StrEnum):
+    """Capabilities for managing production batches."""
+
+    READ = "batches.read"
+    CREATE = "batches.create"
+    UPDATE = "batches.update"
+    ASSIGN_PRODUCTION_ORDER = "batches.assign_production_order"
+    COMPLETE = "batches.complete"
+
+    ARCHIVE = "batches.archive"
+
+    DELETE = "batches.delete"
+
+
+__all__ = (
+    "BatchPermission",
+    "KgPrefixPermission",
+    "KgUnitPermission",
+    "KgVersionPermission",
+    "ProductionOrderPermission",
+)

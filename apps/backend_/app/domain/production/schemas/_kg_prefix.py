@@ -31,6 +31,7 @@ class KgPrefix(CamelizedBaseStruct):
     prefix: str
     short_code: str
     name: str | None
+    available_qty: int
     archived_at: datetime | None
     created_at: datetime
     updated_at: datetime

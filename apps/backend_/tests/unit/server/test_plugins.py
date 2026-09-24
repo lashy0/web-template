@@ -23,7 +23,9 @@ def test_autowire_registers_every_domain_controller() -> None:
     }
 
     assert controllers == {
+        "BatchController",
         "KgPrefixController",
+        "KgUnitController",
         "KgVersionController",
         "PakDeviceController",
         "ProductionOrderController",

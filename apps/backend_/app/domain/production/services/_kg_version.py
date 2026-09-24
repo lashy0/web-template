@@ -5,9 +5,14 @@ from uuid import UUID
 
 from advanced_alchemy.exceptions import IntegrityError, NotFoundError
 from advanced_alchemy.extensions.litestar import repository, service
+from sqlalchemy import exists, select
 
 from app.db import models as m
-from app.domain.production.exceptions import KgVersionArchivedError, KgVersionCodeTakenError
+from app.domain.production.exceptions import (
+    KgVersionArchivedError,
+    KgVersionCodeTakenError,
+    KgVersionInUseError,
+)
 
 
 class KgVersionService(service.SQLAlchemyAsyncRepositoryService[m.KgVersion]):
@@ -65,6 +70,15 @@ class KgVersionService(service.SQLAlchemyAsyncRepositoryService[m.KgVersion]):
 
     async def delete_version(self, version_id: UUID) -> m.KgVersion:
         version = await self._require(version_id, for_update=True)
+
+        if await self.repository.session.scalar(
+            select(
+                exists().where(
+                    m.Batch.kg_version_id == version.id
+                )
+            )
+        ):
+            raise KgVersionInUseError
 
         await self.repository.session.delete(version)
         await self.repository.session.flush()

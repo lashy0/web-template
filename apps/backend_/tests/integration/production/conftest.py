@@ -7,15 +7,20 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from app.domain.production.schemas import BatchCreate
 from app.domain.production.services import (
+    BatchService,
     KgPrefixService,
+    KgUnitService,
     KgVersionService,
     ProductionOrderService,
 )
+from app.lib.lorawan import ActivationType, LoRaWanVersion
 from app.lib.uow import unit_of_work
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
+    from uuid import UUID
 
     from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,6 +32,7 @@ pytestmark = pytest.mark.anyio
 type CreateOrder = Callable[..., Awaitable[m.ProductionOrder]]
 type CreatePrefix = Callable[..., Awaitable[m.KgPrefix]]
 type CreateVersion = Callable[..., Awaitable[m.KgVersion]]
+type CreateBatch = Callable[..., Awaitable[m.Batch]]
 
 
 @pytest.fixture
@@ -47,6 +53,20 @@ async def kg_prefix_service(session: AsyncSession) -> AsyncGenerator[KgPrefixSer
 async def kg_version_service(session: AsyncSession) -> AsyncGenerator[KgVersionService]:
     """Create KgVersionService instance with the test session."""
     async with KgVersionService.new(session) as service:
+        yield service
+
+
+@pytest.fixture
+async def batch_service(session: AsyncSession) -> AsyncGenerator[BatchService]:
+    """Create BatchService instance with the test session."""
+    async with BatchService.new(session) as service:
+        yield service
+
+
+@pytest.fixture
+async def kg_unit_service(session: AsyncSession) -> AsyncGenerator[KgUnitService]:
+    """Create KgUnitService instance with the test session."""
+    async with KgUnitService.new(session) as service:
         yield service
 
 
@@ -99,5 +119,44 @@ def create_version(session: AsyncSession, kg_version_service: KgVersionService) 
                 item = await kg_version_service.set_archived(item.id, archived=True)
 
         return item
+
+    return _create
+
+
+@pytest.fixture
+def create_batch(
+    session: AsyncSession,
+    batch_service: BatchService,
+    create_prefix: CreatePrefix,
+) -> CreateBatch:
+    """Return a helper that commits a batch with its KG units, from a new prefix unless one is given."""
+
+    async def _create(
+        prefix: m.KgPrefix | None = None,
+        *,
+        planned_qty: int = 3,
+        production_order_id: UUID | None = None,
+        archived: bool = False,
+    ) -> m.Batch:
+        prefix = prefix or await create_prefix()
+
+        async with unit_of_work(session):
+            batch = await batch_service.create_batch(
+                BatchCreate(
+                    name="Batch",
+                    kg_prefix_id=prefix.id,
+                    planned_qty=planned_qty,
+                    day_plan_qty=planned_qty,
+                    activation_type=ActivationType.OTAA,
+                    lorawan_version=LoRaWanVersion.V1_0,
+                    production_order_id=production_order_id,
+                ),
+                created_by_id=None,
+            )
+
+            if archived:
+                batch = await batch_service.set_archived(batch.id, archived=True)
+
+        return batch
 
     return _create

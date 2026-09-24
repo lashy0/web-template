@@ -1,7 +1,9 @@
 import pytest
 
 from app.domain.production.permissions import (
+    BatchPermission,
     KgPrefixPermission,
+    KgUnitPermission,
     KgVersionPermission,
     ProductionOrderPermission,
 )
@@ -52,5 +54,31 @@ def test_kg_version_routes_use_operation_specific_permissions() -> None:
             "ArchiveKgVersion": {KgVersionPermission.ARCHIVE},
             "RestoreKgVersion": {KgVersionPermission.ARCHIVE},
             "DeleteKgVersion": {KgVersionPermission.DELETE},
+        }
+    )
+
+
+def test_batch_routes_use_operation_specific_permissions() -> None:
+    assert_routes_require(
+        {
+            "ListBatches": {BatchPermission.READ},
+            "GetBatch": {BatchPermission.READ},
+            "PreviewBatchDevEuiRange": {BatchPermission.CREATE},
+            "CreateBatch": {BatchPermission.CREATE},
+            "UpdateBatch": {BatchPermission.UPDATE},
+            "AssignBatchProductionOrder": {BatchPermission.ASSIGN_PRODUCTION_ORDER},
+            "CompleteBatch": {BatchPermission.COMPLETE},
+            "ArchiveBatch": {BatchPermission.ARCHIVE},
+            "RestoreBatch": {BatchPermission.ARCHIVE},
+            "DeleteBatch": {BatchPermission.DELETE},
+        }
+    )
+
+
+def test_kg_unit_routes_use_operation_specific_permissions() -> None:
+    assert_routes_require(
+        {
+            "ListKgUnits": {KgUnitPermission.READ},
+            "GetKgUnit": {KgUnitPermission.READ},
         }
     )

@@ -5,9 +5,13 @@ from uuid import UUID
 
 from advanced_alchemy.exceptions import NotFoundError
 from advanced_alchemy.extensions.litestar import repository, service
+from sqlalchemy import exists, select
 
 from app.db import models as m
-from app.domain.production.exceptions import ProductionOrderArchivedError
+from app.domain.production.exceptions import (
+    ProductionOrderArchivedError,
+    ProductionOrderInUseError,
+)
 
 
 class ProductionOrderService(service.SQLAlchemyAsyncRepositoryService[m.ProductionOrder]):
@@ -56,6 +60,15 @@ class ProductionOrderService(service.SQLAlchemyAsyncRepositoryService[m.Producti
 
     async def delete_order(self, order_id: UUID) -> m.ProductionOrder:
         order = await self._require(order_id, for_update=True)
+
+        if await self.repository.session.scalar(
+            select(
+                exists().where(
+                    m.Batch.production_order_id == order.id
+                )
+            )
+        ):
+            raise ProductionOrderInUseError
 
         await self.repository.session.delete(order)
         await self.repository.session.flush()

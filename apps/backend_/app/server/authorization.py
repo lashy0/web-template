@@ -4,7 +4,9 @@ from app.db.enums import UserRole
 from app.domain.accounts.permissions import UserPermission
 from app.domain.pak.permissions import PakPermission
 from app.domain.production.permissions import (
+    BatchPermission,
     KgPrefixPermission,
+    KgUnitPermission,
     KgVersionPermission,
     ProductionOrderPermission,
 )
@@ -21,13 +23,19 @@ def create_authorization_policy() -> PermissionPolicy:
                 *ProductionOrderPermission,
                 *KgPrefixPermission,
                 *KgVersionPermission,
+                *BatchPermission,
+                *KgUnitPermission,
             },
             UserRole.MANAGER: {
                 *ProductionOrderPermission,
                 KgPrefixPermission.READ,
                 KgVersionPermission.READ,
+                *BatchPermission,
+                KgUnitPermission.READ,
             },
-            UserRole.ENGINEER: set(),
+            UserRole.ENGINEER: {
+                KgUnitPermission.READ,
+            },
             UserRole.PACKER: set(),
             UserRole.OPERATOR: set(),
         }

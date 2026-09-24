@@ -10,6 +10,7 @@ from advanced_alchemy.exceptions import NotFoundError
 
 from app.domain.production.exceptions import (
     KgPrefixArchivedError,
+    KgPrefixInUseError,
     KgPrefixShortCodeTakenError,
     KgPrefixTakenError,
 )
@@ -19,7 +20,7 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
     from app.domain.production.services import KgPrefixService
-    from tests.integration.production.conftest import CreatePrefix
+    from tests.integration.production.conftest import CreateBatch, CreatePrefix
 
 pytestmark = [
     pytest.mark.anyio,
@@ -88,3 +89,15 @@ async def test_archive_prefix_again_keeps_original_archive_time(
         await kg_prefix_service.set_archived(item.id, archived=True)
 
     assert (await kg_prefix_service.get(item.id)).archived_at == archived_at
+
+
+async def test_delete_prefix_with_allocated_dev_euis_is_rejected(
+    session: AsyncSession,
+    kg_prefix_service: KgPrefixService,
+    create_batch: CreateBatch,
+) -> None:
+    batch = await create_batch()
+
+    with pytest.raises(KgPrefixInUseError):
+        async with unit_of_work(session):
+            await kg_prefix_service.delete_prefix(batch.kg_prefix_id)
