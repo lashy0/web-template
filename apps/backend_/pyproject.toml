@@ -13,6 +13,7 @@ dependencies = [
     "python-dotenv>=1.2.3",
     "ory-hydra-client==26.2.0",
     "ory-kratos-client==26.2.0",
+    "cryptography>=46.0.5,<47.0.0",
 ]
 
 [project.scripts]
@@ -41,6 +42,7 @@ test = [
     "anyio",
     "asyncpg",
     "docker>=7.2.0,<8",
+    "types-docker>=7.2.0.20260923",
 ]
 
 [tool.uv]
@@ -153,11 +155,8 @@ addopts = [
 markers = [
     "unit: marks tests as unit tests (fast, isolated)",
     "integration: marks tests as integration tests (slower, database)",
-    "slow: marks tests as slow running tests",
     "auth: marks tests related to authentication",
     "services: marks tests for service layer",
-    "models: marks tests for database models",
-    "endpoints: marks tests for API endpoints",
     "security: marks tests for security features",
 ]
 

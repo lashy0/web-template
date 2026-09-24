@@ -2,6 +2,7 @@
 
 from app.db.enums import UserRole
 from app.domain.accounts.permissions import UserPermission
+from app.domain.pak.permissions import PakPermission
 from app.lib.authorization import PermissionPolicy
 
 
@@ -11,6 +12,7 @@ def create_authorization_policy() -> PermissionPolicy:
         {
             UserRole.ADMINISTRATOR: {
                 *UserPermission,
+                *PakPermission,
             },
             UserRole.MANAGER: set(),
             UserRole.ENGINEER: set(),
