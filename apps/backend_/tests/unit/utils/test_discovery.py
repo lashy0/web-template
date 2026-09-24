@@ -16,6 +16,7 @@ def test_discovers_every_domain_controller() -> None:
 
     assert controllers == {
         "PakDeviceController",
+        "ProductionOrderController",
         "ProfileController",
         "SystemController",
         "UserController",
