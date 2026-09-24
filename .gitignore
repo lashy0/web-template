@@ -16,6 +16,7 @@ test-results/
 .agents/
 skills-lock.json
 openspec/
+.claude/settings.local.json
 
 # Pytest temp root (kept out of the broken system cache directory)
 .pytest-basetemp/
