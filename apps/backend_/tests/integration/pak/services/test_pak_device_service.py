@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from app.domain.pak.crypto import PakAccessKeyCipher
+from app.domain.pak.exceptions import PakDeviceArchivedError, PakDeviceCodeTakenError
 from app.domain.pak.services import PakDeviceService
 from app.lib.exceptions import AuthenticationError
 from app.lib.hydra import HydraClient
@@ -145,6 +146,33 @@ async def test_archived_pak_is_rejected(
 
     with pytest.raises(AuthenticationError):
         await pak_service.authorize_machine_access_token(token, hydra=hydra_client)
+
+
+async def test_create_pak_with_taken_code_is_rejected(create_pak: CreatePak) -> None:
+    await create_pak("pak-taken")
+
+    with pytest.raises(PakDeviceCodeTakenError):
+        await create_pak("pak-taken")
+
+
+async def test_update_archived_pak_is_rejected(
+    session: AsyncSession,
+    hydra_client: HydraClient,
+    pak_service: PakDeviceService,
+    create_pak: CreatePak,
+) -> None:
+    pak, _ = await create_pak("pak-archived-update")
+
+    async with unit_of_work(session) as uow:
+        await pak_service.set_archived(
+            pak.id,
+            archived=True,
+            hydra=hydra_client,
+            uow=uow,
+        )
+
+    with pytest.raises(PakDeviceArchivedError):
+        await pak_service.update_pak(pak.id, {"code": "pak-renamed"})
 
 
 async def test_delete_pak_removes_hydra_client(

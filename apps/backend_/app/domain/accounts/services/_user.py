@@ -12,8 +12,12 @@ from uuid_utils.compat import uuid7
 from app.db import models as m
 from app.db.enums import UserRole
 from app.domain.accounts import schemas as s
+from app.domain.accounts.exceptions import (
+    LastAdministratorError,
+    SelfActionForbiddenError,
+    UserArchivedError,
+)
 from app.lib.deps import CompositeServiceMixin
-from app.lib.exceptions import ApplicationConflictError, AuthorizationError
 from app.lib.kratos import KratosClient
 from app.lib.uow import UnitOfWork
 
@@ -237,7 +241,7 @@ class UserService(CompositeServiceMixin, service.SQLAlchemyAsyncRepositoryServic
     @staticmethod
     def _ensure_not_archived(user: m.User) -> None:
         if user.archived_at is not None:
-            raise ApplicationConflictError(detail="Archived user cannot be modified.")
+            raise UserArchivedError
 
     @staticmethod
     def _ensure_not_self(
@@ -246,7 +250,7 @@ class UserService(CompositeServiceMixin, service.SQLAlchemyAsyncRepositoryServic
         detail: str,
     ) -> None:
         if actor_id is not None and user.id == actor_id:
-            raise AuthorizationError(detail=detail)
+            raise SelfActionForbiddenError(detail=detail)
 
     async def _ensure_administrator_remains(self, user: m.User) -> None:
         if not _is_active_administrator(user):
@@ -264,9 +268,7 @@ class UserService(CompositeServiceMixin, service.SQLAlchemyAsyncRepositoryServic
         )
 
         if not any(administrator_id != user.id for administrator_id in administrator_ids):
-            raise ApplicationConflictError(
-                detail="At least one active administrator must remain.",
-            )
+            raise LastAdministratorError
 
 
 def _is_active_administrator(user: m.User) -> bool:

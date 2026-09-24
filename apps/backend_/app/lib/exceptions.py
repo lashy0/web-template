@@ -36,13 +36,21 @@ class ApplicationError(Exception):
     """Base exception type for the lib's custom exception types."""
 
     detail: str
+    code: str | None = None
+    """Stable machine-readable error code, sent to clients as ``extra.code``."""
 
-    def __init__(self, *args: Any, detail: str = "") -> None:
+    def __init__(
+        self,
+        *args: Any,
+        detail: str = "",
+        code: str | None = None,
+    ) -> None:
         """Initialize ``AdvancedAlchemyException``.
 
         Args:
             *args: args are converted to :class:`str` before passing to :class:`Exception`
             detail: detail of the exception.
+            code: overrides the class-level error code.
         """
         str_args = [str(arg) for arg in args if arg]
 
@@ -53,6 +61,10 @@ class ApplicationError(Exception):
                 detail = self.detail
 
         self.detail = detail
+
+        if code is not None:
+            self.code = code
+
         super().__init__(*str_args)
 
     def __repr__(self) -> str:
@@ -113,9 +125,9 @@ def _is_database_fault(exc: Exception) -> bool:
     ``wrap_sqlalchemy_exception`` raises ``IntegrityError`` for every
     ``StatementError``, including ``OperationalError`` (lost connection,
     deadlock). Only a real constraint violation is a conflict. The whole cause
-    chain is checked because services re-raise wrapped errors as
-    ``DuplicateKeyError``; an error without a database cause is a conflict
-    the application detected itself.
+    chain is checked because services re-raise wrapped errors as domain
+    conflict errors (``raise PakDeviceCodeTakenError from error``); an error
+    without a database cause is a conflict the application detected itself.
     """
     cause = exc.__cause__
 
@@ -133,7 +145,7 @@ def _http_exception_type(exc: Exception) -> type[HTTPException]:
         return NotFoundException
 
     # Server faults such as a lost connection must not look like 409.
-    if isinstance(exc, IntegrityError) and _is_database_fault(exc):
+    if isinstance(exc, IntegrityError | ApplicationConflictError) and _is_database_fault(exc):
         return InternalServerException
 
     # Covers DuplicateKeyError and ForeignKeyError.
@@ -184,8 +196,10 @@ def exception_to_http_response(request: Request[Any, Any, Any], exc: Exception) 
         return create_exception_response(request, http_exc())
 
     detail = getattr(exc, "detail", "") or str(exc)
+    code = exc.code if isinstance(exc, ApplicationError) else None
+    extra = {"code": code} if code else None
 
-    return create_exception_response(request, http_exc(detail=detail))
+    return create_exception_response(request, http_exc(detail=detail, extra=extra))
 
 
 def _leaf_exceptions(group: BaseExceptionGroup[Any]) -> list[BaseException]:
@@ -203,7 +217,10 @@ def _leaf_exceptions(group: BaseExceptionGroup[Any]) -> list[BaseException]:
     return leaves
 
 
-def exception_group_to_http_response(request: Request[Any, Any, Any], exc: ExceptionGroup[Exception]) -> Response[Any]:
+def exception_group_to_http_response(
+    request: Request[Any, Any, Any],
+    exc: ExceptionGroup[Exception],
+) -> Response[Any]:
     """Unwrap errors raised while Litestar cleans up ``yield`` dependencies.
 
     With more than one generator dependency, Litestar finishes them in an

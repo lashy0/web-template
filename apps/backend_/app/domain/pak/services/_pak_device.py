@@ -5,13 +5,14 @@ from functools import partial
 from typing import cast
 from uuid import UUID
 
-from advanced_alchemy.exceptions import DuplicateKeyError, IntegrityError, NotFoundError, RepositoryError
+from advanced_alchemy.exceptions import IntegrityError, NotFoundError, RepositoryError
 from advanced_alchemy.extensions.litestar import repository, service
 from uuid_utils.compat import uuid7
 
 from app.db import models as m
 from app.domain.pak.crypto import PakAccessKeyCipher
-from app.lib.exceptions import ApplicationConflictError, AuthenticationError, AuthorizationError
+from app.domain.pak.exceptions import PakDeviceArchivedError, PakDeviceCodeTakenError
+from app.lib.exceptions import AuthenticationError, AuthorizationError
 from app.lib.hydra import HydraClient
 from app.lib.uow import UnitOfWork
 
@@ -101,7 +102,7 @@ class PakDeviceService(service.SQLAlchemyAsyncRepositoryService[m.PakDevice]):
                 auto_commit=False,
             )
         except IntegrityError as error:
-            raise DuplicateKeyError("PAK device code is already registered.") from error
+            raise PakDeviceCodeTakenError from error
 
         return pak, credentials.client_secret
 
@@ -109,7 +110,7 @@ class PakDeviceService(service.SQLAlchemyAsyncRepositoryService[m.PakDevice]):
         pak = await self._require(pak_id)
 
         if pak.archived_at is not None:
-            raise ApplicationConflictError(detail="Archived PAK device cannot be modified.")
+            raise PakDeviceArchivedError
 
         code = data.get("code")
         if code != pak.code:
@@ -118,7 +119,7 @@ class PakDeviceService(service.SQLAlchemyAsyncRepositoryService[m.PakDevice]):
         try:
             return await self.update(data, item_id=pak_id, auto_commit=False)
         except IntegrityError as error:
-            raise DuplicateKeyError("PAK device code is already registered.") from error
+            raise PakDeviceCodeTakenError from error
 
     async def set_active(
         self,
@@ -131,10 +132,13 @@ class PakDeviceService(service.SQLAlchemyAsyncRepositoryService[m.PakDevice]):
         pak = await self._require(pak_id, for_update=True)
 
         if pak.archived_at is not None:
-            raise ApplicationConflictError(detail="Archived PAK device cannot be modified.")
+            raise PakDeviceArchivedError
 
         if not is_active:
-            uow.after_commit("pak.deactivate", partial(hydra.revoke_client_tokens, pak.oauth_client_id))
+            uow.after_commit(
+                "pak.deactivate",
+                partial(hydra.revoke_client_tokens, pak.oauth_client_id),
+            )
 
         pak.is_active = is_active
         await self.repository.session.flush()
@@ -189,7 +193,7 @@ class PakDeviceService(service.SQLAlchemyAsyncRepositoryService[m.PakDevice]):
         pak = await self._require(pak_id, for_update=True)
 
         if pak.archived_at is not None:
-            raise ApplicationConflictError(detail="Archived PAK device cannot be modified.")
+            raise PakDeviceArchivedError
 
         previous_secret = cipher.decrypt(pak.encrypted_access_key)
         credentials = await hydra.rotate_client_credentials(pak.oauth_client_id)
@@ -270,4 +274,4 @@ class PakDeviceService(service.SQLAlchemyAsyncRepositoryService[m.PakDevice]):
 
     async def _ensure_unique_code(self, code: object) -> None:
         if isinstance(code, str) and await self.get_by_code(code) is not None:
-            raise DuplicateKeyError("PAK device code is already registered.")
+            raise PakDeviceCodeTakenError

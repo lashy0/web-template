@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING
 import pytest
 
 from app.db.enums import UserRole
+from app.domain.accounts.exceptions import LastAdministratorError, SelfActionForbiddenError
 from app.domain.accounts.services import UserService
-from app.lib.exceptions import ApplicationConflictError, AuthorizationError
 from app.lib.kratos import KratosClient
 from app.lib.uow import UnitOfWork, unit_of_work
 
@@ -29,7 +29,7 @@ async def test_last_administrator_cannot_be_demoted(
 ) -> None:
     administrator = await create_user(role=UserRole.ADMINISTRATOR)
 
-    with pytest.raises(ApplicationConflictError):
+    with pytest.raises(LastAdministratorError):
         await user_service.assign_role(administrator.id, UserRole.MANAGER)
 
 
@@ -41,7 +41,7 @@ async def test_last_administrator_cannot_be_deactivated(
     administrator = await create_user(role=UserRole.ADMINISTRATOR)
     uow = UnitOfWork(user_service.repository.session)
 
-    with pytest.raises(ApplicationConflictError):
+    with pytest.raises(LastAdministratorError):
         await user_service.set_active(
             administrator.id,
             is_active=False,
@@ -58,7 +58,7 @@ async def test_last_administrator_cannot_be_archived(
     administrator = await create_user(role=UserRole.ADMINISTRATOR)
     uow = UnitOfWork(user_service.repository.session)
 
-    with pytest.raises(ApplicationConflictError):
+    with pytest.raises(LastAdministratorError):
         await user_service.set_archived(
             administrator.id,
             archived=True,
@@ -75,7 +75,7 @@ async def test_last_administrator_cannot_be_deleted(
     administrator = await create_user(role=UserRole.ADMINISTRATOR)
     uow = UnitOfWork(user_service.repository.session)
 
-    with pytest.raises(ApplicationConflictError):
+    with pytest.raises(LastAdministratorError):
         await user_service.delete_user(
             administrator.id,
             kratos=kratos_client,
@@ -109,7 +109,7 @@ async def test_administrator_cannot_demote_themselves(
     actor = await create_user(role=UserRole.ADMINISTRATOR)
     await create_user(role=UserRole.ADMINISTRATOR)
 
-    with pytest.raises(AuthorizationError):
+    with pytest.raises(SelfActionForbiddenError):
         await user_service.assign_role(actor.id, UserRole.MANAGER, actor_id=actor.id)
 
 
@@ -122,7 +122,7 @@ async def test_administrator_cannot_deactivate_themselves(
     await create_user(role=UserRole.ADMINISTRATOR)
     uow = UnitOfWork(user_service.repository.session)
 
-    with pytest.raises(AuthorizationError):
+    with pytest.raises(SelfActionForbiddenError):
         await user_service.set_active(
             actor.id,
             is_active=False,
@@ -141,7 +141,7 @@ async def test_administrator_cannot_archive_themselves(
     await create_user(role=UserRole.ADMINISTRATOR)
     uow = UnitOfWork(user_service.repository.session)
 
-    with pytest.raises(AuthorizationError):
+    with pytest.raises(SelfActionForbiddenError):
         await user_service.set_archived(
             actor.id,
             archived=True,
@@ -160,7 +160,7 @@ async def test_administrator_cannot_delete_themselves(
     await create_user(role=UserRole.ADMINISTRATOR)
     uow = UnitOfWork(user_service.repository.session)
 
-    with pytest.raises(AuthorizationError):
+    with pytest.raises(SelfActionForbiddenError):
         await user_service.delete_user(
             actor.id,
             kratos=kratos_client,

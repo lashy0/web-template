@@ -6,11 +6,21 @@ import msgspec
 from litestar.openapi.datastructures import ResponseSpec
 
 
+class ErrorExtra(msgspec.Struct):
+    """Machine-readable details of an application error."""
+
+    code: str
+
+
 class ErrorResponse(msgspec.Struct):
-    """Body of every error response (``litestar.exceptions.responses``)."""
+    """Body of every error response (``litestar.exceptions.responses``).
+
+    ``extra`` is present only for application errors that define a stable code.
+    """
 
     status_code: int
     detail: str
+    extra: ErrorExtra | None = None
 
 
 _DESCRIPTIONS = {
@@ -34,4 +44,4 @@ def error_responses(*status_codes: int) -> dict[int, ResponseSpec]:
     }
 
 
-__all__ = ("ErrorResponse", "error_responses")
+__all__ = ("ErrorExtra", "ErrorResponse", "error_responses")
