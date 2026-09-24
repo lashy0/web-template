@@ -12,6 +12,7 @@ Create Date: ${create_date}
 
 from collections.abc import Sequence
 
+import advanced_alchemy.types  # noqa: F401  (autogenerate renders GUID/DateTimeUTC by full module path)
 import sqlalchemy as sa
 from alembic import op
 

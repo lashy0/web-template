@@ -1,4 +1,5 @@
 import asyncio
+import sys
 from logging.config import fileConfig
 
 from advanced_alchemy.base import metadata_registry
@@ -10,6 +11,7 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from app.config import get_settings
+from app.config.database import MIGRATION_VERSION_TABLE
 from app.db import models  # noqa: F401
 
 config = context.config
@@ -26,9 +28,7 @@ def get_database_url() -> str:
         return str(settings.db.migration_database_url)
 
     except (SettingsError, ValidationError, ValueError) as error:
-        raise util.CommandError(
-            f"Invalid backend configuration:\n{error}"
-        ) from None
+        raise util.CommandError(f"Invalid backend configuration:\n{error}") from None
 
 
 config.set_main_option(
@@ -45,6 +45,7 @@ def run_migrations_offline() -> None:
         dialect_opts={"paramstyle": "named"},
         compare_type=True,
         compare_server_default=True,
+        version_table=MIGRATION_VERSION_TABLE,
     )
 
     with context.begin_transaction():
@@ -57,11 +58,11 @@ def do_run_migrations(connection: Connection) -> None:
         target_metadata=target_metadata,
         compare_type=True,
         compare_server_default=True,
+        version_table=MIGRATION_VERSION_TABLE,
     )
 
     with context.begin_transaction():
         context.run_migrations()
-
 
 
 async def run_async_migrations() -> None:
@@ -85,7 +86,10 @@ async def run_async_migrations() -> None:
 
 
 def run_migrations_online() -> None:
-    asyncio.run(run_async_migrations())
+    # psycopg's async driver cannot run on the Proactor loop that is the Windows default,
+    # so plain ``alembic`` invocations need a selector loop just like ``app.__main__``.
+    loop_factory = asyncio.SelectorEventLoop if sys.platform == "win32" else None
+    asyncio.run(run_async_migrations(), loop_factory=loop_factory)
 
 
 if context.is_offline_mode():

@@ -12,10 +12,10 @@ def setup_environment() -> None:
     )
 
     if sys.platform == "win32":
-        asyncio.set_event_loop_policy(
+        # psycopg's async driver cannot run on the default Proactor loop.
+        asyncio.set_event_loop_policy(  # pyright: ignore[reportDeprecated]
             asyncio.WindowsSelectorEventLoopPolicy()
         )
-
 
 
 def run_cli() -> None:
@@ -32,7 +32,7 @@ def run_cli() -> None:
         litestar_group()
 
     except ImportError as exc:
-        print( # noqa: T201
+        print(  # noqa: T201
             "Could not load required libraries.\n",
             "Please check your installation and make sure you activated any necessary virtual environment",
         )
