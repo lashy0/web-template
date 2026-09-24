@@ -1,10 +1,6 @@
-"""Production-ready field validation utilities with comprehensive security checks."""
+"""Field validators shared by request schemas."""
 
-import hashlib
 import re
-from typing import Annotated, Any
-
-import msgspec
 
 from app.lib.exceptions import ApplicationClientError
 
@@ -19,13 +15,10 @@ PASSWORD_UPPERCASE_PATTERN = re.compile(r"[A-Z]")
 PASSWORD_LOWERCASE_PATTERN = re.compile(r"[a-z]")
 PASSWORD_DIGIT_PATTERN = re.compile(r"\d")
 PASSWORD_SPECIAL_PATTERN = re.compile(r"""[!@#$%^&*(),.?":{}|<>_+=\-\[\]\\/~`]""")
-PASSWORD_SIMPLE_REPEATED_PATTERN = re.compile(r"^(.)\1{11,}$")
-PASSWORD_SEQUENTIAL_PATTERN = re.compile(
-    r"^(012|123|234|345|456|567|678|789|890|abc|bcd|cde)",
-    re.IGNORECASE,
-)
-PASSWORD_KEYBOARD_PATTERN = re.compile(
-    r"^(qwe|asd|zxc)",
+# A password that passes the character-class checks can still start with a
+# run a person types without thinking.
+PASSWORD_PREDICTABLE_START_PATTERN = re.compile(
+    r"^(012|123|234|345|456|567|678|789|890|abc|bcd|cde|qwe|asd|zxc)",
     re.IGNORECASE,
 )
 
@@ -38,11 +31,6 @@ LOGIN_MAX_LENGTH = 64
 
 PASSWORD_MIN_LENGTH = 12
 PASSWORD_MAX_LENGTH = 128
-PASSWORD_STRONG_LENGTH = 16
-PASSWORD_VERY_STRONG_LENGTH = 20
-
-PASSWORD_SCORE_MEDIUM = 5
-PASSWORD_SCORE_STRONG = 7
 
 
 # `admin`, `administrator`, etc. intentionally are NOT reserved:
@@ -52,24 +40,6 @@ RESERVED_LOGINS = {
     "null",
     "undefined",
     "none",
-}
-
-COMMON_PASSWORDS = {
-    "password",
-    "password123",
-    "password1234",
-    "password12345",
-    "123456789",
-    "qwertyuiop",
-    "administrator",
-    "welcome123",
-    "letmein123",
-    "admin123456",
-}
-
-COMMON_PASSWORD_HASHES = {
-    hashlib.sha256(password.encode()).hexdigest()
-    for password in COMMON_PASSWORDS
 }
 
 
@@ -83,29 +53,6 @@ class ValidationError(ApplicationClientError):
 
 class PasswordValidationError(ValidationError):
     """Exception raised when password validation fails."""
-
-
-def _ensure_str(
-    value: Any,
-    field_name: str,
-    exc_type: type[ValidationError] = ValidationError,
-) -> str:
-    """Ensure the value is a string.
-
-    Args:
-        value: The value to validate.
-        field_name: Field label used in error messages.
-        exc_type: Exception type to raise on validation failure.
-
-    Returns:
-        The validated string.
-    """
-    if not isinstance(value, str):
-        msg = f"{field_name} must be a string"
-
-        raise exc_type(msg)
-
-    return value
 
 
 def validate_not_empty(value: str) -> str:
@@ -131,10 +78,7 @@ def validate_length(value: str, min_length: int = 0, max_length: int | None = No
 
 
 def validate_name(value: str) -> str:
-    value = _ensure_str(value, "Name")
-
-    name = value.strip()
-    name = NAME_WHITESPACE_PATTERN.sub(" ", name)
+    name = NAME_WHITESPACE_PATTERN.sub(" ", value.strip())
 
     if len(name) < NAME_MIN_LENGTH:
         msg = "Name cannot be empty"
@@ -156,8 +100,6 @@ def validate_name(value: str) -> str:
 
 
 def validate_login(value: str) -> str:
-    value = _ensure_str(value, "Login")
-
     login = value.strip().lower()
 
     if len(login) < LOGIN_MIN_LENGTH:
@@ -186,164 +128,33 @@ def validate_login(value: str) -> str:
     return login
 
 
-def _is_common_password(password: str) -> bool:
-    password_lower = password.lower()
-
-    if password_lower in COMMON_PASSWORDS:
-        return True
-
-    if PASSWORD_SIMPLE_REPEATED_PATTERN.match(password):
-        return True
-
-    if PASSWORD_SEQUENTIAL_PATTERN.match(password_lower):
-        return True
-
-    return bool(PASSWORD_KEYBOARD_PATTERN.match(password_lower))
-
-
-def validate_password_strength(password: str) -> None:
-    password = _ensure_str(
-        password,
-        "Password",
-        PasswordValidationError,
-    )
-
-    if len(password) < PASSWORD_MIN_LENGTH:
+def validate_password(value: str) -> str:
+    if len(value) < PASSWORD_MIN_LENGTH:
         msg = f"Password must be at least {PASSWORD_MIN_LENGTH} characters long"
         raise PasswordValidationError(msg)
 
-    if len(password) > PASSWORD_MAX_LENGTH:
+    if len(value) > PASSWORD_MAX_LENGTH:
         msg = f"Password must not exceed {PASSWORD_MAX_LENGTH} characters"
         raise PasswordValidationError(msg)
 
-    if not PASSWORD_UPPERCASE_PATTERN.search(password):
+    if not PASSWORD_UPPERCASE_PATTERN.search(value):
         msg = "Password must contain at least one uppercase letter"
         raise PasswordValidationError(msg)
 
-    if not PASSWORD_LOWERCASE_PATTERN.search(password):
+    if not PASSWORD_LOWERCASE_PATTERN.search(value):
         msg = "Password must contain at least one lowercase letter"
         raise PasswordValidationError(msg)
 
-    if not PASSWORD_DIGIT_PATTERN.search(password):
+    if not PASSWORD_DIGIT_PATTERN.search(value):
         msg = "Password must contain at least one digit"
         raise PasswordValidationError(msg)
 
-    if not PASSWORD_SPECIAL_PATTERN.search(password):
+    if not PASSWORD_SPECIAL_PATTERN.search(value):
         msg = "Password must contain at least one special character"
         raise PasswordValidationError(msg)
 
-    if _is_common_password(password):
+    if PASSWORD_PREDICTABLE_START_PATTERN.match(value):
         msg = "Password is too common - please choose a more unique password"
         raise PasswordValidationError(msg)
 
-
-def validate_password(value: str) -> str:
-    value = _ensure_str(
-        value,
-        "Password",
-        PasswordValidationError,
-    )
-
-    validate_password_strength(value)
-
-    password_hash = hashlib.sha256(value.encode()).hexdigest()
-
-    if password_hash in COMMON_PASSWORD_HASHES:
-        msg = "Password is too common, please choose a different one"
-        raise PasswordValidationError(msg)
-
     return value
-
-
-def get_password_strength(password: str) -> dict[str, Any]:
-    """Get detailed password strength analysis.
-
-    Args:
-        password: The password to analyze.
-
-    Returns:
-        Dictionary with strength analysis.
-    """
-    analysis: dict[str, Any] = {
-        "score": 0,
-        "strength": "weak",
-        "requirements": {
-            "length": len(password) >= PASSWORD_MIN_LENGTH,
-            "uppercase": bool(PASSWORD_UPPERCASE_PATTERN.search(password)),
-            "lowercase": bool(PASSWORD_LOWERCASE_PATTERN.search(password)),
-            "digits": bool(PASSWORD_DIGIT_PATTERN.search(password)),
-            "special_chars": bool(PASSWORD_SPECIAL_PATTERN.search(password)),
-            "not_common": not _is_common_password(password),
-        },
-        "feedback": [],
-    }
-
-    if analysis["requirements"]["length"]:
-        analysis["score"] += 2
-    else:
-        analysis["feedback"].append("Use at least 12 characters")
-
-    if analysis["requirements"]["uppercase"]:
-        analysis["score"] += 1
-    else:
-        analysis["feedback"].append("Include uppercase letters")
-
-    if analysis["requirements"]["lowercase"]:
-        analysis["score"] += 1
-    else:
-        analysis["feedback"].append("Include lowercase letters")
-
-    if analysis["requirements"]["digits"]:
-        analysis["score"] += 1
-    else:
-        analysis["feedback"].append("Include numbers")
-
-    if analysis["requirements"]["special_chars"]:
-        analysis["score"] += 1
-    else:
-        analysis["feedback"].append("Include special characters (!@#$%^&*)")
-
-    if analysis["requirements"]["not_common"]:
-        analysis["score"] += 1
-    else:
-        analysis["feedback"].append("Avoid common passwords")
-
-    if len(password) >= PASSWORD_STRONG_LENGTH:
-        analysis["score"] += 1
-    if len(password) >= PASSWORD_VERY_STRONG_LENGTH:
-        analysis["score"] += 1
-
-    if analysis["score"] >= PASSWORD_SCORE_STRONG:
-        analysis["strength"] = "strong"
-    elif analysis["score"] >= PASSWORD_SCORE_MEDIUM:
-        analysis["strength"] = "medium"
-    else:
-        analysis["strength"] = "weak"
-
-    return analysis
-
-
-Name = Annotated[
-    str,
-    msgspec.Meta(
-        description="Human name (1-128 characters)",
-    ),
-]
-
-Login = Annotated[
-    str,
-    msgspec.Meta(
-        description=(
-            "Kratos login (3-64 characters, lowercase alphanumeric/dots/hyphens/underscores)"
-        ),
-    ),
-]
-
-Password = Annotated[
-    str,
-    msgspec.Meta(
-        description=(
-            "Strong password (12+ characters, mixed case, number and special character)"
-        ),
-    ),
-]
