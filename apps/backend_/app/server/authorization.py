@@ -10,10 +10,7 @@ def create_authorization_policy() -> PermissionPolicy:
     return PermissionPolicy(
         {
             UserRole.ADMINISTRATOR: {
-                UserPermission.READ,
-                UserPermission.CREATE,
-                UserPermission.UPDATE,
-                UserPermission.DELETE,
+                *UserPermission,
             },
             UserRole.MANAGER: set(),
             UserRole.ENGINEER: set(),

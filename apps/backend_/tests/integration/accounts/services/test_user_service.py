@@ -2,17 +2,26 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.db import models as m
-from app.db.enums import UserRole
-from app.domain.accounts.schemas import UserCreate, UserUpdate
+from app.domain.accounts.schemas import UserUpdate
 from app.domain.accounts.services import UserService
 from app.lib.kratos import KratosClient
+from app.lib.uow import unit_of_work
 
-pytestmark = [pytest.mark.anyio, pytest.mark.integration, pytest.mark.services]
+if TYPE_CHECKING:
+    from tests.integration.accounts.conftest import CreateUser
+
+pytestmark = [
+    pytest.mark.anyio,
+    pytest.mark.integration,
+    pytest.mark.services,
+]
 
 
 async def test_seeded_users_exist_in_postgresql_and_kratos(
@@ -36,42 +45,71 @@ async def test_seeded_users_exist_in_postgresql_and_kratos(
         assert identity.is_active is user.identity_active
 
 
-async def test_user_lifecycle_is_consistent_in_postgresql_and_kratos(
-    user_service: UserService,
+async def test_create_user_creates_kratos_identity(
     kratos_client: KratosClient,
-    db_cleanup: None,
+    create_user: CreateUser,
 ) -> None:
-    """Create, rename and archive a user across both systems."""
-    user = await user_service.create_user(
-        UserCreate(
-            login="kratos-integration-user",
-            name="Kratos Integration User",
-            password="KratosIntegration_2026!",
-            role=UserRole.OPERATOR,
-        ),
-        kratos=kratos_client,
-    )
+    user = await create_user()
 
     identity = await kratos_client.get_identity(user.identity_id)
+    assert identity.login == user.identity_login
+    assert identity.is_active is True
 
-    assert identity.login == user.identity_login == "kratos-integration-user"
-    assert identity.is_active is user.identity_active is True
 
-    updated_user = await user_service.update_user(
-        user.id,
-        UserUpdate(login="kratos-integration-renamed"),
-        kratos=kratos_client,
-    )
-    updated_identity = await kratos_client.get_identity(user.identity_id)
+async def test_update_user_renames_kratos_identity(
+    user_service: UserService,
+    kratos_client: KratosClient,
+    create_user: CreateUser,
+) -> None:
+    user = await create_user()
+    login = f"{user.identity_login}-renamed"
 
-    assert updated_user.identity_login == updated_identity.login == "kratos-integration-renamed"
+    async with unit_of_work(user_service.repository.session) as uow:
+        updated = await user_service.update_user(
+            user.id,
+            UserUpdate(login=login),
+            kratos=kratos_client,
+            uow=uow,
+        )
 
-    archived_user = await user_service.set_archived(
-        user.id,
-        archived=True,
-        kratos=kratos_client,
-    )
-    archived_identity = await kratos_client.get_identity(user.identity_id)
+    assert updated.identity_login == login
+    assert (await kratos_client.get_identity(user.identity_id)).login == login
 
-    assert archived_user.archived_at is not None
-    assert archived_identity.is_active is archived_user.identity_active is False
+
+async def test_activate_user_activates_kratos_identity(
+    user_service: UserService,
+    kratos_client: KratosClient,
+    create_user: CreateUser,
+) -> None:
+    user = await create_user(is_active=False)
+
+    async with unit_of_work(user_service.repository.session) as uow:
+        activated = await user_service.set_active(
+            user.id,
+            is_active=True,
+            kratos=kratos_client,
+            uow=uow,
+        )
+
+    assert activated.identity_active is True
+    assert (await kratos_client.get_identity(user.identity_id)).is_active is True
+
+
+async def test_archive_user_deactivates_kratos_identity(
+    user_service: UserService,
+    kratos_client: KratosClient,
+    create_user: CreateUser,
+) -> None:
+    user = await create_user()
+
+    async with unit_of_work(user_service.repository.session) as uow:
+        archived = await user_service.set_archived(
+            user.id,
+            archived=True,
+            kratos=kratos_client,
+            uow=uow,
+        )
+
+    assert archived.archived_at is not None
+    assert archived.identity_active is False
+    assert (await kratos_client.get_identity(user.identity_id)).is_active is False

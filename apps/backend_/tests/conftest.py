@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import importlib.util
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -17,6 +18,9 @@ os.environ.update(
         "DATABASE_URL": "postgresql+asyncpg://test:test@localhost:5432/test",
         "BACKEND_KRATOS_PUBLIC_URL": "http://kratos.test:4433",
         "BACKEND_KRATOS_ADMIN_URL": "http://kratos.test:4434",
+        "BACKEND_HYDRA_PUBLIC_URL": "http://hydra.test:4444",
+        "BACKEND_HYDRA_ADMIN_URL": "http://hydra.test:4445",
+        "BACKEND_PAK_ACCESS_KEY_ENCRYPTION_KEY": "8VmFOM9tWG6LbUOfXkxRYnyrl7I0K8VXcYz0aSlBryM=",
     }
 )
 
@@ -55,6 +59,64 @@ class KratosService:
     public_url: str
 
 
+@dataclass(frozen=True, slots=True)
+class HydraService:
+    """Addresses of the isolated Hydra instance used by integration tests."""
+
+    admin_url: str
+    public_url: str
+
+
+def _published_port(container: Container, port: str) -> int:
+    """Return the host port Docker assigned to a published container port."""
+    bindings: list[dict[str, str]] | None = container.ports.get(port)
+
+    if not bindings:
+        msg = f"Container port {port} is not published."
+        raise RuntimeError(msg)
+
+    return int(bindings[0]["HostPort"])
+
+
+def _ensure_database(postgres_service: PostgresService, name: str) -> None:
+    """Create a database next to the test database unless it already exists.
+
+    Kratos and Hydra both own tables such as ``networks``; each needs its own
+    database or whichever migrates second fails. Callers hold a file lock so
+    parallel workers do not race on ``CREATE DATABASE``.
+    """
+    import psycopg
+    from psycopg import sql
+    from psycopg.conninfo import make_conninfo
+
+    conninfo = make_conninfo(
+        host=postgres_service.host,
+        port=postgres_service.port,
+        user=postgres_service.user,
+        password=postgres_service.password,
+        dbname=postgres_service.database,
+    )
+
+    with psycopg.connect(conninfo, autocommit=True) as connection:
+        exists = connection.execute(
+            "SELECT 1 FROM pg_database WHERE datname = %s",
+            (name,)
+        ).fetchone()
+
+        if exists is None:
+            connection.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(name)))
+
+
+def _ory_dsn(postgres_service: PostgresService, database: str) -> str:
+    """DSN for an Ory container reaching the host's test PostgreSQL."""
+    return (
+        "postgres://"
+        f"{postgres_service.user}:{postgres_service.password}"
+        f"@host.docker.internal:{postgres_service.port}/{database}"
+        "?sslmode=disable"
+    )
+
+
 @pytest.fixture(scope="session")
 def anyio_backend() -> str:
     return "asyncio"
@@ -63,9 +125,7 @@ def anyio_backend() -> str:
 @pytest.fixture(scope="session")
 def anyio_backend_options() -> dict[str, bool]:
     """Prefer uvloop when available for AnyIO's asyncio backend."""
-    try:
-        import uvloop  # noqa: F401
-    except ImportError:
+    if importlib.util.find_spec("uvloop") is None:
         return {}
 
     return {"use_uvloop": True}
@@ -73,20 +133,15 @@ def anyio_backend_options() -> dict[str, bool]:
 
 @pytest.fixture(name="kratos_service", scope="session")
 def fx_kratos_service(postgres_service: PostgresService) -> Generator[KratosService]:
-    """Start an isolated Kratos instance backed by the test PostgreSQL database."""
+    """Start an isolated Kratos instance backed by its own test PostgreSQL database."""
     from docker import DockerClient
     from docker.errors import APIError
     from filelock import FileLock
 
     kratos_config_dir = Path(__file__).resolve().parents[3] / "infrastructure" / "identity" / "kratos"
-    dsn = (
-        "postgres://"
-        f"{postgres_service.user}:{postgres_service.password}"
-        f"@host.docker.internal:{postgres_service.port}/{postgres_service.database}"
-        "?sslmode=disable"
-    )
+    database = f"{postgres_service.database}_kratos"
     environment = {
-        "DSN": dsn,
+        "DSN": _ory_dsn(postgres_service, database),
         "SQA_OPT_OUT": "true",
         "SECRETS_COOKIE": "a" * 64,
         "SECRETS_CIPHER": "b" * 32,
@@ -101,6 +156,7 @@ def fx_kratos_service(postgres_service: PostgresService) -> Generator[KratosServ
     image = "oryd/kratos:v26.2.0"
 
     with FileLock(Path(gettempdir()) / "backend-kratos-migrations.lock"):
+        _ensure_database(postgres_service, database)
         migration = client.containers.run(
             image,
             command=["migrate", "sql", "-e", "--yes", "--config", "/etc/config/kratos/kratos.yaml"],
@@ -132,8 +188,8 @@ def fx_kratos_service(postgres_service: PostgresService) -> Generator[KratosServ
 
     try:
         container.reload()
-        public_port = int(container.ports["4433/tcp"][0]["HostPort"])
-        admin_port = int(container.ports["4434/tcp"][0]["HostPort"])
+        public_port = _published_port(container, "4433/tcp")
+        admin_port = _published_port(container, "4434/tcp")
         service = KratosService(
             admin_url=f"http://127.0.0.1:{admin_port}",
             public_url=f"http://127.0.0.1:{public_port}",
@@ -173,6 +229,106 @@ def fx_kratos_service(postgres_service: PostgresService) -> Generator[KratosServ
             os.environ.pop("BACKEND_KRATOS_PUBLIC_URL", None)
         else:
             os.environ["BACKEND_KRATOS_PUBLIC_URL"] = previous_public_url
+
+        try:
+            container.remove(force=True)
+        except APIError:
+            pass
+
+
+@pytest.fixture(name="hydra_service", scope="session")
+def fx_hydra_service(postgres_service: PostgresService) -> Generator[HydraService]:
+    """Start an isolated Hydra instance backed by its own test PostgreSQL database."""
+    from docker import DockerClient
+    from docker.errors import APIError
+    from filelock import FileLock
+
+    hydra_config_dir = Path(__file__).resolve().parents[3] / "infrastructure" / "identity" / "hydra"
+    database = f"{postgres_service.database}_hydra"
+    environment = {
+        "DSN": _ory_dsn(postgres_service, database),
+        "SQA_OPT_OUT": "true",
+        "SECRETS_SYSTEM": "c" * 32,
+        "URLS_SELF_ISSUER": "http://hydra.test",
+    }
+    volumes = {
+        str(hydra_config_dir): {
+            "bind": "/etc/config/hydra",
+            "mode": "ro",
+        }
+    }
+    client = DockerClient.from_env()
+    image = "oryd/hydra:v26.2.0"
+
+    with FileLock(Path(gettempdir()) / "backend-hydra-migrations.lock"):
+        _ensure_database(postgres_service, database)
+        migration = client.containers.run(
+            image,
+            command=["migrate", "sql", "-e", "--yes", "--config", "/etc/config/hydra/hydra.yaml"],
+            detach=True,
+            remove=True,
+            environment=environment,
+            volumes=volumes,
+            extra_hosts={"host.docker.internal": "host-gateway"},
+        )
+        result = migration.wait(timeout=120)
+        if result["StatusCode"] != 0:
+            logs = migration.logs().decode(errors="replace")
+            msg = f"Hydra database migration failed:\n{logs}"
+            raise RuntimeError(msg)
+
+    container: Container = client.containers.run(
+        image,
+        command=["serve", "all", "--dev", "--sqa-opt-out", "--config", "/etc/config/hydra/hydra.yaml"],
+        detach=True,
+        environment=environment,
+        ports={"4444/tcp": None, "4445/tcp": None},
+        volumes=volumes,
+        extra_hosts={"host.docker.internal": "host-gateway"},
+    )
+
+    previous_admin_url = os.environ.get("BACKEND_HYDRA_ADMIN_URL")
+    previous_public_url = os.environ.get("BACKEND_HYDRA_PUBLIC_URL")
+    try:
+        container.reload()
+        public_port = _published_port(container, "4444/tcp")
+        admin_port = _published_port(container, "4445/tcp")
+        service = HydraService(
+            admin_url=f"http://127.0.0.1:{admin_port}",
+            public_url=f"http://127.0.0.1:{public_port}",
+        )
+        deadline = monotonic() + 90
+        while monotonic() < deadline:
+            try:
+                with urlopen(f"{service.admin_url}/health/ready", timeout=1) as response:
+                    if response.status == 200:
+                        break
+            except (HTTPError, OSError, URLError):
+                sleep(0.5)
+        else:
+            logs = container.logs().decode(errors="replace")
+            msg = f"Hydra did not become ready:\n{logs}"
+            raise RuntimeError(msg)
+
+        os.environ["BACKEND_HYDRA_ADMIN_URL"] = service.admin_url
+        os.environ["BACKEND_HYDRA_PUBLIC_URL"] = service.public_url
+
+        from app.config.settings import get_settings
+
+        get_settings.cache_clear()
+
+        yield service
+
+    finally:
+        if previous_admin_url is None:
+            os.environ.pop("BACKEND_HYDRA_ADMIN_URL", None)
+        else:
+            os.environ["BACKEND_HYDRA_ADMIN_URL"] = previous_admin_url
+
+        if previous_public_url is None:
+            os.environ.pop("BACKEND_HYDRA_PUBLIC_URL", None)
+        else:
+            os.environ["BACKEND_HYDRA_PUBLIC_URL"] = previous_public_url
 
         try:
             container.remove(force=True)

@@ -8,7 +8,9 @@ from litestar.testing import AsyncTestClient
 from app import config
 from app.domain.accounts.schemas import UserCreate
 from app.domain.accounts.services import UserService
+from app.lib.hydra import HydraClient
 from app.lib.kratos import KratosClient
+from app.lib.uow import unit_of_work
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, AsyncIterator
@@ -17,7 +19,7 @@ if TYPE_CHECKING:
     from litestar import Litestar
     from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
-    from tests.conftest import KratosService
+    from tests.conftest import HydraService, KratosService
 
 
 pytestmark = pytest.mark.anyio
@@ -27,6 +29,12 @@ pytestmark = pytest.mark.anyio
 def fx_kratos_client(kratos_service: KratosService) -> KratosClient:
     """Kratos Admin API client bound to the isolated test instance."""
     return KratosClient(base_url=kratos_service.admin_url)
+
+
+@pytest.fixture(name="hydra_client")
+def fx_hydra_client(hydra_service: HydraService) -> HydraClient:
+    """Hydra Admin API client bound to the isolated test instance."""
+    return HydraClient(base_url=hydra_service.admin_url)
 
 
 @pytest.fixture
@@ -72,23 +80,26 @@ async def seeded_db(
         users_service = UserService(session=session)
 
         for raw_user in raw_users:
-            user = await users_service.create_user(
-                UserCreate(
-                    login=raw_user["login"],
-                    name=raw_user["name"],
-                    password=raw_user["password"],
-                    role=raw_user["role"],
-                    is_active=raw_user["is_active"],
-                ),
-                kratos=kratos_client,
-            )
-
-            if raw_user["archived"]:
-                await users_service.set_archived(
-                    user.id,
-                    archived=True,
+            async with unit_of_work(session) as uow:
+                user = await users_service.create_user(
+                    UserCreate(
+                        login=raw_user["login"],
+                        name=raw_user["name"],
+                        password=raw_user["password"],
+                        role=raw_user["role"],
+                        is_active=raw_user["is_active"],
+                    ),
                     kratos=kratos_client,
+                    uow=uow,
                 )
+
+                if raw_user["archived"]:
+                    await users_service.set_archived(
+                        user.id,
+                        archived=True,
+                        kratos=kratos_client,
+                        uow=uow,
+                    )
 
     yield
 
@@ -101,20 +112,4 @@ async def fx_client(
 ) -> AsyncIterator[AsyncClient]:
     """Async client that calls requests on the app."""
     async with AsyncTestClient(app) as client:
-        yield client
-
-
-@pytest.fixture(name="seeded_client")
-async def fx_seeded_client(
-    app: Litestar,
-    _patch_db: None,
-    seeded_db: None,
-    db_cleanup: None,
-) -> AsyncIterator[AsyncClient]:
-    """Async client with seeded database.
-
-    Uses _patch_db to ensure the test client uses the same database
-    that was seeded with fixtures.
-    """
-    async with AsyncTestClient(app=app) as client:
         yield client

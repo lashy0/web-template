@@ -44,17 +44,18 @@ class UserCreate(CamelizedBaseStruct):
 
 
 class UserUpdate(CamelizedBaseStruct, omit_defaults=True):
-    """Administrative update of an existing user."""
+    """Administrative update of a user's attributes.
+
+    The role has its own endpoint and permission, see ``UserRoleUpdate``.
+    """
 
     login: str | msgspec.UnsetType = msgspec.UNSET
     name: str | msgspec.UnsetType = msgspec.UNSET
-    role: UserRole | msgspec.UnsetType = msgspec.UNSET
 
     def __post_init__(self) -> None:
         fields = (
             self.login,
             self.name,
-            self.role,
         )
 
         if all(field is msgspec.UNSET for field in fields):
@@ -87,13 +88,7 @@ class UserPasswordUpdate(CamelizedBaseStruct):
         self.password = validate_password(self.password)
 
 
-class UserActiveUpdate(CamelizedBaseStruct):
-    """Enable or disable a user's Kratos identity."""
+class UserRoleUpdate(CamelizedBaseStruct):
+    """Assign a user's role."""
 
-    is_active: bool
-
-
-class UserArchivedUpdate(CamelizedBaseStruct):
-    """Archive or restore an application user."""
-
-    archived: bool
+    role: UserRole

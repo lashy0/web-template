@@ -7,3 +7,4 @@ class SystemHealth:
     app: str
     database_status: Literal["online", "offline"]
     kratos_status: Literal["online", "offline"]
+    hydra_status: Literal["online", "offline"]

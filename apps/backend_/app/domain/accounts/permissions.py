@@ -9,6 +9,14 @@ class UserPermission(StrEnum):
     READ = "users.read"
     CREATE = "users.create"
     UPDATE = "users.update"
+
+    ASSIGN_ROLE = "users.assign_role"
+
+    SET_PASSWORD = "users.set_password"
+    SET_ACTIVE = "users.set_active"
+
+    ARCHIVE = "users.archive"
+
     DELETE = "users.delete"
 
 

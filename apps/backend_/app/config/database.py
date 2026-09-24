@@ -15,6 +15,9 @@ _POSTGRES_RUNTIME_USER = "otk_app_runtime"
 _APP_DIR = Path(__file__).resolve().parents[1]
 _MIGRATIONS_DIR = _APP_DIR / "db" / "migrations"
 
+# Shared by the Litestar CLI config and ``migrations/env.py`` so both track the same revision table.
+MIGRATION_VERSION_TABLE = "ddl_version"
+
 
 class DatabaseSettings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -60,9 +63,7 @@ class DatabaseSettings(BaseSettings):
             return self.database_url_override
 
         if self.postgres_runtime_password is None:
-            raise ValueError(
-                "BACKEND_POSTGRES_RUNTIME_PASSWORD is required when DATABASE_URL is not set"
-            )
+            raise ValueError("BACKEND_POSTGRES_RUNTIME_PASSWORD is required when DATABASE_URL is not set")
 
         return PostgresDsn.build(
             scheme="postgresql+psycopg",
@@ -79,9 +80,7 @@ class DatabaseSettings(BaseSettings):
             return self.database_url_override
 
         if self.postgres_migrator_password is None:
-            raise ValueError(
-                "BACKEND_POSTGRES_MIGRATOR_PASSWORD is required when DATABASE_URL is not set"
-            )
+            raise ValueError("BACKEND_POSTGRES_MIGRATOR_PASSWORD is required when DATABASE_URL is not set")
 
         return PostgresDsn.build(
             scheme="postgresql+psycopg",
@@ -95,12 +94,11 @@ class DatabaseSettings(BaseSettings):
     def get_config(self) -> SQLAlchemyAsyncConfig:
         return SQLAlchemyAsyncConfig(
             connection_string=str(self.database_url),
-            before_send_handler="autocommit",
             session_config=AsyncSessionConfig(
                 expire_on_commit=False,
             ),
             alembic_config=AlembicAsyncConfig(
-                version_table_name="ddl_version",
+                version_table_name=MIGRATION_VERSION_TABLE,
                 script_config="alembic.ini",
                 script_location=str(_MIGRATIONS_DIR),
             ),

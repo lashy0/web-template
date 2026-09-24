@@ -13,6 +13,8 @@ from app.domain.accounts.schemas import ProfileUpdate, User
 from app.domain.accounts.services import UserService
 from app.domain.admin.deps import provide_audit_log_service
 from app.domain.admin.services import AuditLogService
+from app.lib.openapi import error_responses
+from app.lib.uow import UnitOfWork
 
 if TYPE_CHECKING:
     from app.db import models as m
@@ -34,6 +36,7 @@ class ProfileController(Controller):
         path="/me",
         summary="Get current user profile",
         description="User profile information.",
+        responses=error_responses(401),
     )
     async def get_profile(
         self,
@@ -52,7 +55,9 @@ class ProfileController(Controller):
 
     @patch(
         operation_id="UpdateProfile",
+        path="/me",
         summary="Update current user profile",
+        responses=error_responses(401, 409),
     )
     async def update_profile(
         self,
@@ -61,6 +66,7 @@ class ProfileController(Controller):
         data: ProfileUpdate,
         users_service: NamedDependency[UserService],
         audit_service: NamedDependency[AuditLogService],
+        uow: NamedDependency[UnitOfWork],  # noqa: ARG002 - requested so the change commits
     ) -> User:
         db_obj = await users_service.update_profile(
             current_user.id,

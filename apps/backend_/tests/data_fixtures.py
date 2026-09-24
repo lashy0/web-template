@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from litestar import Litestar
     from sqlalchemy.ext.asyncio import AsyncEngine
 
-    from tests.conftest import KratosService
+    from tests.conftest import HydraService, KratosService
 
 pytestmark = pytest.mark.anyio
 
@@ -18,8 +18,9 @@ def fx_app(
     engine: AsyncEngine,
     db_schema: None,
     kratos_service: KratosService,
+    hydra_service: HydraService,
 ) -> Litestar:
-    """Create an application bound to the test database."""
+    """Create an application bound to the test database, Kratos and Hydra."""
     from app.server.asgi import create_app
 
     return create_app()

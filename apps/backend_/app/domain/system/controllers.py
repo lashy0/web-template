@@ -16,14 +16,15 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
     from app.config.settings import AppSettings
+    from app.lib.hydra import HydraClient
     from app.lib.kratos import KratosClient
 
 
 class SystemController(Controller):
     """System health and configuration."""
 
-    tags = ["System"]
-    dependencies = {}
+    tags = ["System"]  # noqa: RUF012
+    dependencies = {}  # noqa: RUF012
 
     @get(
         operation_id="SystemHealth",
@@ -37,6 +38,7 @@ class SystemController(Controller):
         self,
         db_session: NamedDependency[AsyncSession],
         settings: NamedDependency[AppSettings],
+        hydra: NamedDependency[HydraClient],
         kratos: NamedDependency[KratosClient],
     ) -> Response[s.SystemHealth]:
         """Check database availability and return application config info.
@@ -57,16 +59,16 @@ class SystemController(Controller):
         except SQLAlchemyError:
             database_status = "offline"
 
-        kratos_status: Literal["online", "offline"] = (
-            "online" if await kratos.is_ready() else "offline"
-        )
-        healthy = database_status == "online" and kratos_status == "online"
+        kratos_status: Literal["online", "offline"] = "online" if await kratos.is_ready() else "offline"
+        hydra_status: Literal["online", "offline"] = "online" if await hydra.is_ready() else "offline"
+        healthy = database_status == "online" and kratos_status == "online" and hydra_status == "online"
 
         return Response(
             content=s.SystemHealth(
                 app=settings.name,
                 database_status=database_status,
                 kratos_status=kratos_status,
+                hydra_status=hydra_status,
             ),
             status_code=200 if healthy else 503,
             media_type=MediaType.JSON,

@@ -7,6 +7,7 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.config.database import DatabaseSettings
+from app.config.hydra import HydraSettings
 from app.config.kratos import KratosSettings
 
 
@@ -47,6 +48,7 @@ class AppSettings(BaseSettings):
 class Settings:
     app: AppSettings = field(default_factory=AppSettings)
     db: DatabaseSettings = field(default_factory=DatabaseSettings)
+    hydra: HydraSettings = field(default_factory=HydraSettings)
     kratos: KratosSettings = field(default_factory=KratosSettings)
 
 
@@ -61,3 +63,7 @@ def provide_app_settings() -> AppSettings:
 
 def provide_kratos_settings() -> KratosSettings:
     return get_settings().kratos
+
+
+def provide_hydra_settings() -> HydraSettings:
+    return get_settings().hydra

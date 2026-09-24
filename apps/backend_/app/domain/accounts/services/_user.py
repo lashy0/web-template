@@ -1,20 +1,21 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from functools import partial
 from uuid import UUID
 
 import msgspec
 from advanced_alchemy.extensions.litestar import repository, service
-from loguru import logger
+from sqlalchemy import select
 from uuid_utils.compat import uuid7
 
 from app.db import models as m
+from app.db.enums import UserRole
 from app.domain.accounts import schemas as s
 from app.lib.deps import CompositeServiceMixin
-from app.lib.exceptions import ApplicationClientError
+from app.lib.exceptions import ApplicationConflictError, AuthorizationError
 from app.lib.kratos import KratosClient
-from app.lib.kratos.exceptions import KratosIdentityNotFoundError
-from app.lib.kratos.schemas import KratosIdentity
+from app.lib.uow import UnitOfWork
 
 
 class UserService(CompositeServiceMixin, service.SQLAlchemyAsyncRepositoryService[m.User]):
@@ -32,63 +33,32 @@ class UserService(CompositeServiceMixin, service.SQLAlchemyAsyncRepositoryServic
         data: s.UserCreate,
         *,
         kratos: KratosClient,
+        uow: UnitOfWork,
     ) -> m.User:
         user_id = uuid7()
 
+        # Authentication also requires the local user, so an active identity
+        # grants nothing until this transaction commits.
         identity = await kratos.create_identity(
             user_id=user_id,
             login=data.login,
             password=data.password,
-            # Identity must not become usable before DB user exists.
-            is_active=False,
+            is_active=data.is_active,
         )
+        # Not needed for safety; frees the login so the request can be retried.
+        uow.on_rollback("user.create.rollback", partial(kratos.delete_identity, identity.id))
 
-        try:
-            user = await self.create(
-                data={
-                    "id": user_id,
-                    "identity_id": identity.id,
-                    "identity_login": identity.login,
-                    "identity_active": False,
-                    "name": data.name,
-                    "role": data.role,
-                },
-                auto_commit=False,
-            )
-
-            await self.repository.session.commit()
-
-        except Exception:
-            await self.repository.session.rollback()
-
-            await self._delete_identity_safely(
-                identity.id,
-                kratos=kratos,
-                operation="user.create",
-            )
-
-            raise
-
-        if data.is_active:
-            try:
-                await kratos.set_active(
-                    identity.id,
-                    is_active=True,
-                )
-
-                user.identity_active = True
-
-                await self.repository.session.flush()
-
-            except Exception:
-                logger.bind(
-                    user_id=str(user.id),
-                    identity_id=str(identity.id),
-                ).exception("User created but Kratos identity activation failed")
-
-                raise
-
-        return user
+        return await self.create(
+            data={
+                "id": user_id,
+                "identity_id": identity.id,
+                "identity_login": identity.login,
+                "identity_active": identity.is_active,
+                "name": data.name,
+                "role": data.role,
+            },
+            auto_commit=False,
+        )
 
     async def update_user(
         self,
@@ -96,44 +66,49 @@ class UserService(CompositeServiceMixin, service.SQLAlchemyAsyncRepositoryServic
         data: s.UserUpdate,
         *,
         kratos: KratosClient,
+        uow: UnitOfWork,
     ) -> m.User:
         user = await self.get(user_id)
 
         self._ensure_not_archived(user)
 
-        old_login = user.identity_login
-        login_changed = False
+        if data.login is not msgspec.UNSET and data.login != user.identity_login:
+            # Kratos owns the login used to sign in; the column is a copy.
+            identity = await kratos.update_login(user.identity_id, login=data.login)
+            uow.on_rollback(
+                "user.update.rollback",
+                partial(kratos.update_login, user.identity_id, login=user.identity_login),
+            )
+            user.identity_login = identity.login
 
-        try:
-            if data.login is not msgspec.UNSET and data.login != user.identity_login:
-                identity = await kratos.update_login(
-                    user.identity_id,
-                    login=data.login,
-                )
+        if data.name is not msgspec.UNSET:
+            user.name = data.name
 
-                user.identity_login = identity.login
-                login_changed = True
+        await self.repository.session.flush()
 
-            if data.name is not msgspec.UNSET:
-                user.name = data.name
+        return user
 
-            if data.role is not msgspec.UNSET:
-                user.role = data.role
+    async def assign_role(
+        self,
+        user_id: UUID,
+        role: UserRole,
+        *,
+        actor_id: UUID | None = None,
+    ) -> m.User:
+        user = await self.get(user_id)
 
-            await self.repository.session.flush()
-            await self.repository.session.commit()
+        self._ensure_not_archived(user)
 
-        except Exception:
-            await self.repository.session.rollback()
+        if user.role == role:
+            return user
 
-            if login_changed:
-                await self._restore_login_safely(
-                    identity_id=user.identity_id,
-                    login=old_login,
-                    kratos=kratos,
-                )
+        if user.role == UserRole.ADMINISTRATOR:
+            self._ensure_not_self(user, actor_id, "You cannot remove your own administrator role.")
+            await self._ensure_administrator_remains(user)
 
-            raise
+        user.role = role
+
+        await self.repository.session.flush()
 
         return user
 
@@ -155,17 +130,15 @@ class UserService(CompositeServiceMixin, service.SQLAlchemyAsyncRepositoryServic
         password: str,
         *,
         kratos: KratosClient,
-    ) -> None:
+    ) -> m.User:
         user = await self.get(user_id)
 
         self._ensure_not_archived(user)
 
-        await kratos.set_password(
-            user.identity_id,
-            password=password,
-        )
-
+        await kratos.set_password(user.identity_id, password=password)
         await kratos.revoke_all_sessions(user.identity_id)
+
+        return user
 
     async def set_active(
         self,
@@ -173,27 +146,27 @@ class UserService(CompositeServiceMixin, service.SQLAlchemyAsyncRepositoryServic
         *,
         is_active: bool,
         kratos: KratosClient,
+        uow: UnitOfWork,
+        actor_id: UUID | None = None,
     ) -> m.User:
         user = await self.get(user_id)
 
         self._ensure_not_archived(user)
 
-        identity = await kratos.get_identity(user.identity_id)
+        if is_active:
+            # Grants access: fail the request before anything is committed.
+            await kratos.set_active(user.identity_id, is_active=True)
+        else:
+            if user.identity_active:
+                self._ensure_not_self(user, actor_id, "You cannot deactivate your own account.")
+                await self._ensure_administrator_remains(user)
 
-        if identity.is_active == is_active:
-            return user
-
-        await kratos.set_active(
-            user.identity_id,
-            is_active=is_active,
-        )
+            # Revokes access: the committed local flag already denies it.
+            self._deactivate_identity_after_commit(user, kratos=kratos, uow=uow)
 
         user.identity_active = is_active
 
         await self.repository.session.flush()
-
-        if not is_active:
-            await kratos.revoke_all_sessions(user.identity_id)
 
         return user
 
@@ -203,13 +176,10 @@ class UserService(CompositeServiceMixin, service.SQLAlchemyAsyncRepositoryServic
         *,
         archived: bool,
         kratos: KratosClient,
+        uow: UnitOfWork,
+        actor_id: UUID | None = None,
     ) -> m.User:
         user = await self.get(user_id)
-
-        currently_archived = user.archived_at is not None
-
-        if currently_archived == archived:
-            return user
 
         if not archived:
             user.archived_at = None
@@ -217,170 +187,91 @@ class UserService(CompositeServiceMixin, service.SQLAlchemyAsyncRepositoryServic
 
             return user
 
-        identity = await kratos.get_identity(user.identity_id)
-
-        was_active = identity.is_active
-
-        if was_active:
-            await kratos.set_active(
-                user.identity_id,
-                is_active=False,
-            )
-            user.identity_active = False
-
-        try:
+        if user.archived_at is None:
+            self._ensure_not_self(user, actor_id, "You cannot archive your own account.")
+            await self._ensure_administrator_remains(user)
             user.archived_at = datetime.now(UTC)
 
-            await self.repository.session.flush()
-            await self.repository.session.commit()
+        user.identity_active = False
+        self._deactivate_identity_after_commit(user, kratos=kratos, uow=uow)
 
-        except Exception:
-            await self.repository.session.rollback()
-
-            if was_active:
-                await self._set_active_safely(
-                    identity_id=user.identity_id,
-                    is_active=True,
-                    kratos=kratos,
-                    operation="user.archive.rollback",
-                )
-
-            raise
-
-        await kratos.revoke_all_sessions(user.identity_id)
+        await self.repository.session.flush()
 
         return user
 
-    async def delete_user(self, user_id: UUID, *, kratos: KratosClient) -> None:
+    async def delete_user(
+        self,
+        user_id: UUID,
+        *,
+        kratos: KratosClient,
+        uow: UnitOfWork,
+        actor_id: UUID | None = None,
+    ) -> m.User:
         user = await self.get(user_id)
 
-        identity: KratosIdentity | None
+        self._ensure_not_self(user, actor_id, "You cannot delete your own account.")
+        await self._ensure_administrator_remains(user)
 
-        try:
-            identity = await kratos.get_identity(user.identity_id)
+        await self.repository.session.delete(user)
+        await self.repository.session.flush()
+        uow.after_commit("user.delete", partial(kratos.delete_identity, user.identity_id))
 
-        except KratosIdentityNotFoundError:
-            identity = None
+        return user
 
-        if identity is not None:
-            if identity.is_active:
-                await kratos.set_active(
-                    identity.id,
-                    is_active=False,
-                )
-
-            await kratos.revoke_all_sessions(identity.id)
-
-        try:
-            await self.repository.session.delete(user)
-            await self.repository.session.commit()
-
-        except Exception:
-            await self.repository.session.rollback()
-
-            if identity is not None and identity.is_active:
-                await self._set_active_safely(
-                    identity_id=identity.id,
-                    is_active=True,
-                    kratos=kratos,
-                    operation="user.delete.rollback",
-                )
-
-            raise
-
-        if identity is not None:
-            await self._delete_identity_safely(
-                identity.id,
-                kratos=kratos,
-                operation="user.delete",
-            )
+    @staticmethod
+    def _deactivate_identity_after_commit(
+        user: m.User,
+        *,
+        kratos: KratosClient,
+        uow: UnitOfWork,
+    ) -> None:
+        uow.after_commit(
+            "user.deactivate",
+            partial(kratos.set_active, user.identity_id, is_active=False),
+        )
+        uow.after_commit(
+            "user.deactivate.sessions",
+            partial(kratos.revoke_all_sessions, user.identity_id),
+        )
 
     @staticmethod
     def _ensure_not_archived(user: m.User) -> None:
         if user.archived_at is not None:
-            raise ApplicationClientError(
-                detail="Archived user cannot be modified.",
-            )
+            raise ApplicationConflictError(detail="Archived user cannot be modified.")
 
-    async def _rollback_created_user(
-        self,
-        *,
+    @staticmethod
+    def _ensure_not_self(
         user: m.User,
-        identity_id: UUID,
-        kratos: KratosClient,
+        actor_id: UUID | None,
+        detail: str,
     ) -> None:
-        await self._delete_identity_safely(
-            identity_id,
-            kratos=kratos,
-            operation="user.create.rollback",
+        if actor_id is not None and user.id == actor_id:
+            raise AuthorizationError(detail=detail)
+
+    async def _ensure_administrator_remains(self, user: m.User) -> None:
+        if not _is_active_administrator(user):
+            return
+
+        administrator_ids = await self.repository.session.scalars(
+            select(m.User.id)
+            .where(
+                m.User.role == UserRole.ADMINISTRATOR,
+                m.User.identity_active.is_(True),
+                m.User.archived_at.is_(None),
+            )
+            .order_by(m.User.id)
+            .with_for_update()
         )
 
-        try:
-            await self.repository.session.delete(user)
-            await self.repository.session.commit()
-
-        except Exception:
-            await self.repository.session.rollback()
-
-            logger.bind(
-                operation="user.create.rollback",
-                user_id=str(user.id),
-                identity_id=str(identity_id),
-            ).exception("Failed to roll back database user")
-
-    async def _delete_identity_safely(
-        self,
-        identity_id: UUID,
-        *,
-        kratos: KratosClient,
-        operation: str,
-    ) -> None:
-        try:
-            await kratos.delete_identity(identity_id)
-
-        except Exception:
-            logger.bind(
-                operation=operation,
-                identity_id=str(identity_id),
-            ).exception("Failed to delete Kratos identity")
-
-    async def _restore_login_safely(
-        self,
-        *,
-        identity_id: UUID,
-        login: str,
-        kratos: KratosClient,
-    ) -> None:
-        try:
-            await kratos.update_login(
-                identity_id,
-                login=login,
+        if not any(administrator_id != user.id for administrator_id in administrator_ids):
+            raise ApplicationConflictError(
+                detail="At least one active administrator must remain.",
             )
 
-        except Exception:
-            logger.bind(
-                operation="user.update.rollback",
-                identity_id=str(identity_id),
-                login=login,
-            ).exception("Failed to restore Kratos login")
 
-    async def _set_active_safely(
-        self,
-        *,
-        identity_id: UUID,
-        is_active: bool,
-        kratos: KratosClient,
-        operation: str,
-    ) -> None:
-        try:
-            await kratos.set_active(
-                identity_id,
-                is_active=is_active,
-            )
-
-        except Exception:
-            logger.bind(
-                operation=operation,
-                identity_id=str(identity_id),
-                is_active=is_active,
-            ).exception("Failed to restore Kratos identity state")
+def _is_active_administrator(user: m.User) -> bool:
+    return (
+        user.role == UserRole.ADMINISTRATOR
+        and user.identity_active
+        and user.archived_at is None
+    )
