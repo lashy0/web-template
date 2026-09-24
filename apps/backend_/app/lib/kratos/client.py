@@ -28,18 +28,14 @@ def _to_identity(value: SDKIdentity) -> KratosIdentity:
     raw_traits = cast("object", value.traits)
 
     if not isinstance(raw_traits, dict):
-        raise KratosUnavailableError(
-            detail="Kratos identity contains invalid traits"
-        )
+        raise KratosUnavailableError(detail="Kratos identity contains invalid traits")
 
     traits = cast("dict[str, Any]", raw_traits)
 
     login = traits.get("login")
 
     if not isinstance(login, str):
-        raise KratosUnavailableError(
-            detail="Kratos identity does not contain a valid login"
-        )
+        raise KratosUnavailableError(detail="Kratos identity does not contain a valid login")
 
     raw_metadata = cast("object", value.metadata_admin)
 
@@ -50,9 +46,7 @@ def _to_identity(value: SDKIdentity) -> KratosIdentity:
     elif isinstance(raw_metadata, dict):
         metadata = cast("dict[str, Any]", raw_metadata)
     else:
-        raise KratosUnavailableError(
-            detail="Kratos identity contains invalid admin metadata"
-        )
+        raise KratosUnavailableError(detail="Kratos identity contains invalid admin metadata")
 
     return KratosIdentity(
         id=UUID(str(value.id)),
@@ -100,18 +94,12 @@ class _SDKClient:
                 ) from exc
 
             if status == 404:
-                raise KratosIdentityNotFoundError(
-                    detail="Identity was not found"
-                ) from exc
+                raise KratosIdentityNotFoundError(detail="Identity was not found") from exc
 
             if status == 409:
-                raise KratosIdentityAlreadyExistsError(
-                    detail="Identity already exists"
-                ) from exc
+                raise KratosIdentityAlreadyExistsError(detail="Identity already exists") from exc
 
-            raise KratosUnavailableError(
-                detail="Kratos request failed"
-            ) from exc
+            raise KratosUnavailableError(detail="Kratos request failed") from exc
 
         except (OSError, TimeoutError) as exc:
             raise KratosUnavailableError(detail="Kratos request failed") from exc
@@ -145,9 +133,7 @@ class KratosClient:
     async def is_ready(self) -> bool:
         """Return whether the Kratos Admin API reports readiness."""
         try:
-            await self._client.call(
-                lambda: self._metadata.is_ready(_request_timeout=self._client.timeout)
-            )
+            await self._client.call(lambda: self._metadata.is_ready(_request_timeout=self._client.timeout))
         except KratosError:
             return False
 
@@ -204,9 +190,7 @@ class KratosClient:
         self,
         identity_id: UUID,
     ) -> KratosIdentity:
-        return _to_identity(
-            await self._get_identity(identity_id)
-        )
+        return _to_identity(await self._get_identity(identity_id))
 
     async def get_identity_by_user_id(
         self,
@@ -232,18 +216,14 @@ class KratosClient:
         traits = current.traits
 
         if not isinstance(traits, dict):
-            raise KratosUnavailableError(
-                detail="Kratos identity contains invalid traits"
-            )
+            raise KratosUnavailableError(detail="Kratos identity contains invalid traits")
 
         current.traits = {
             **traits,
             "login": login,
         }
 
-        return _to_identity(
-            await self._update_identity(current)
-        )
+        return _to_identity(await self._update_identity(current))
 
     async def set_password(
         self,
@@ -276,9 +256,7 @@ class KratosClient:
 
         current.state = "active" if is_active else "inactive"
 
-        return _to_identity(
-            await self._update_identity(current)
-        )
+        return _to_identity(await self._update_identity(current))
 
     async def revoke_all_sessions(
         self,
@@ -330,9 +308,7 @@ class KratosClient:
         credentials: kratos.IdentityWithCredentials | None = None,
     ) -> SDKIdentity:
         if current.state is None or not isinstance(current.traits, dict):
-            raise KratosUnavailableError(
-                detail="Kratos returned an incomplete identity"
-            )
+            raise KratosUnavailableError(detail="Kratos returned an incomplete identity")
 
         traits = cast("dict[str, Any]", current.traits)
 

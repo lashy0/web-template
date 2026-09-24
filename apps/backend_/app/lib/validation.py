@@ -9,22 +9,16 @@ import msgspec
 from app.lib.exceptions import ApplicationClientError
 
 NAME_WHITESPACE_PATTERN = re.compile(r"\s+")
-NAME_VALID_PATTERN = re.compile(
-    r"^[a-zA-ZÀ-ÿĀ-žА-яЁё\s'.-]+$"
-)
+NAME_VALID_PATTERN = re.compile(r"^[a-zA-ZÀ-ÿĀ-žА-яЁё\s'.-]+$")
 NAME_REPEATED_PATTERN = re.compile(r"(.)\1{4,}")
 
-LOGIN_VALID_PATTERN = re.compile(
-    r"^[a-z0-9][a-z0-9._-]*$"
-)
+LOGIN_VALID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
 LOGIN_REPEATED_PATTERN = re.compile(r"(.)\1{3,}")
 
 PASSWORD_UPPERCASE_PATTERN = re.compile(r"[A-Z]")
 PASSWORD_LOWERCASE_PATTERN = re.compile(r"[a-z]")
 PASSWORD_DIGIT_PATTERN = re.compile(r"\d")
-PASSWORD_SPECIAL_PATTERN = re.compile(
-    r"""[!@#$%^&*(),.?":{}|<>_+=\-\[\]\\/~`]"""
-)
+PASSWORD_SPECIAL_PATTERN = re.compile(r"""[!@#$%^&*(),.?":{}|<>_+=\-\[\]\\/~`]""")
 PASSWORD_SIMPLE_REPEATED_PATTERN = re.compile(r"^(.)\1{11,}$")
 PASSWORD_SEQUENTIAL_PATTERN = re.compile(
     r"^(012|123|234|345|456|567|678|789|890|abc|bcd|cde)",
@@ -91,8 +85,11 @@ class PasswordValidationError(ValidationError):
     """Exception raised when password validation fails."""
 
 
-
-def _ensure_str(value: Any, field_name: str, exc_type: type[ValidationError] = ValidationError) -> str:
+def _ensure_str(
+    value: Any,
+    field_name: str,
+    exc_type: type[ValidationError] = ValidationError,
+) -> str:
     """Ensure the value is a string.
 
     Args:
@@ -212,17 +209,11 @@ def validate_password_strength(password: str) -> None:
     )
 
     if len(password) < PASSWORD_MIN_LENGTH:
-        msg = (
-            f"Password must be at least "
-            f"{PASSWORD_MIN_LENGTH} characters long"
-        )
+        msg = f"Password must be at least {PASSWORD_MIN_LENGTH} characters long"
         raise PasswordValidationError(msg)
 
     if len(password) > PASSWORD_MAX_LENGTH:
-        msg = (
-            f"Password must not exceed "
-            f"{PASSWORD_MAX_LENGTH} characters"
-        )
+        msg = f"Password must not exceed {PASSWORD_MAX_LENGTH} characters"
         raise PasswordValidationError(msg)
 
     if not PASSWORD_UPPERCASE_PATTERN.search(password):

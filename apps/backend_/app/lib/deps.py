@@ -2,20 +2,22 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator, AsyncIterator, Callable
+import inspect
+from collections.abc import AsyncGenerator, Callable
 from contextlib import (
     AbstractAsyncContextManager,
     AsyncExitStack,
     aclosing,
     asynccontextmanager,
 )
-import inspect
-from typing import TYPE_CHECKING, Any, Protocol, TypeVar, cast, overload
+from typing import TYPE_CHECKING, Any, Protocol, cast, overload
 
 from advanced_alchemy.extensions.litestar.providers import (
     create_filter_dependencies,
-    create_service_dependencies as _create_service_dependencies,
     create_service_provider,
+)
+from advanced_alchemy.extensions.litestar.providers import (
+    create_service_dependencies as _create_service_dependencies,
 )
 from litestar.di import Provide
 
@@ -33,21 +35,11 @@ __all__ = (
 )
 
 
-T = TypeVar("T")
-T1 = TypeVar("T1")
-T2 = TypeVar("T2")
-T3 = TypeVar("T3")
-T4 = TypeVar("T4")
-T5 = TypeVar("T5")
-
-S = TypeVar("S", bound="_ServiceWithSession")
-
-
 class _ServiceWithSession(Protocol):
     def __init__(self, *, session: AsyncSession) -> None: ...
 
 
-ServiceProvider = Callable[["AsyncSession"], AsyncGenerator[T, None]]
+type ServiceProvider[T] = Callable[[AsyncSession], AsyncGenerator[T]]
 
 
 def create_service_dependencies(
@@ -83,7 +75,7 @@ def create_service_dependencies(
 
 
 @overload
-def provide_services(
+def provide_services[T1](
     p1: ServiceProvider[T1],
     /,
     *,
@@ -93,7 +85,7 @@ def provide_services(
 
 
 @overload
-def provide_services(
+def provide_services[T1, T2](
     p1: ServiceProvider[T1],
     p2: ServiceProvider[T2],
     /,
@@ -104,7 +96,7 @@ def provide_services(
 
 
 @overload
-def provide_services(
+def provide_services[T1, T2, T3](
     p1: ServiceProvider[T1],
     p2: ServiceProvider[T2],
     p3: ServiceProvider[T3],
@@ -116,7 +108,7 @@ def provide_services(
 
 
 @overload
-def provide_services(
+def provide_services[T1, T2, T3, T4](
     p1: ServiceProvider[T1],
     p2: ServiceProvider[T2],
     p3: ServiceProvider[T3],
@@ -129,7 +121,7 @@ def provide_services(
 
 
 @overload
-def provide_services(
+def provide_services[T1, T2, T3, T4, T5](
     p1: ServiceProvider[T1],
     p2: ServiceProvider[T2],
     p3: ServiceProvider[T3],
@@ -144,10 +136,10 @@ def provide_services(
 
 @asynccontextmanager
 async def provide_services(
-    *providers: Callable[[AsyncSession], AsyncGenerator[Any, None]],
+    *providers: Callable[[AsyncSession], AsyncGenerator[Any]],
     session: AsyncSession | None = None,
     connection: ASGIConnection[Any, Any, Any, Any] | None = None,
-) -> AsyncIterator[tuple[Any, ...]]:
+) -> AsyncGenerator[tuple[Any, ...]]:
     """Provide multiple services sharing the same database session.
 
     Simplifies acquiring services outside of Litestar's DI context (background jobs,
@@ -247,7 +239,7 @@ class CompositeServiceMixin:
 
     _service_cache: dict[type, Any]
 
-    def _get_service(self, service_cls: type[S]) -> S:
+    def _get_service[S: _ServiceWithSession](self, service_cls: type[S]) -> S:
         """Get or create a dependent service instance.
 
         Args:

@@ -96,7 +96,10 @@ def _iter_domain_directories(domain_pkg: str) -> list[tuple[str, Path]]:
     return results
 
 
-def _iter_submodules(domain_packages: list[str], submodules: list[str]) -> Generator[str, None, None]:
+def _iter_submodules(
+    domain_packages: list[str],
+    submodules: list[str],
+) -> Generator[str]:
     """Iterate over submodules within domain packages.
 
     Yields:
@@ -109,8 +112,9 @@ def _iter_submodules(domain_packages: list[str], submodules: list[str]) -> Gener
 
 
 def _discover_modules_exports(
-    domain_packages: list[str], submodules: list[str]
-) -> Generator[tuple[str, object], None, None]:
+    domain_packages: list[str],
+    submodules: list[str],
+) -> Generator[tuple[str, object]]:
     """Helper to discover exported objects from submodules.
 
     Yields:
@@ -210,7 +214,7 @@ def discover_domain_controllers(
 
 def discover_domain_signals(
     domain_packages: list[str],
-    signal_submodules: list[str] | None = None
+    signal_submodules: list[str] | None = None,
 ) -> list[EventListener]:
     """Discover signals/listeners in domain subpackages.
 

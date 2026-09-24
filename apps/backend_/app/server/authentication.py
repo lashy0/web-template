@@ -25,11 +25,8 @@ SessionFactory = Callable[[], AbstractAsyncContextManager[AsyncSession]]
 def _cookie_header(scope: Scope) -> str | None:
     scope_dict = cast(dict[str, object], scope)
     headers = cast(Iterable[tuple[bytes, bytes]], scope_dict.get("headers", ()))
-    cookie_values = [
-        value.decode("latin-1")
-        for name, value in headers
-        if name.lower() == b"cookie"
-    ]
+    cookie_values = [value.decode("latin-1") for name, value in headers if name.lower() == b"cookie"]
+
     return "; ".join(cookie_values) or None
 
 
@@ -71,13 +68,9 @@ class KratosAuthenticationMiddleware(ASGIMiddleware):
         try:
             identity = await self._verifier.verify_session(cookie_header=cookie_header)
         except KratosInvalidSessionError as exc:
-            raise NotAuthorizedException(
-                detail="Authentication required."
-            ) from exc
+            raise NotAuthorizedException(detail="Authentication required.") from exc
         except KratosUnavailableError as exc:
-            raise ServiceUnavailableException(
-                detail="Authentication provider unavailable."
-            ) from exc
+            raise ServiceUnavailableException(detail="Authentication provider unavailable.") from exc
 
         async with self._session_factory() as session:
             user = await session.scalar(
@@ -98,10 +91,7 @@ class KratosAuthenticationMiddleware(ASGIMiddleware):
     def _has_session_cookie(self, cookie_header: str) -> bool:
         prefix = f"{self._session_cookie}="
 
-        return any(
-            part.strip().startswith(prefix)
-            for part in cookie_header.split(";")
-        )
+        return any(part.strip().startswith(prefix) for part in cookie_header.split(";"))
 
 
 def create_authentication_middleware(settings: KratosSettings) -> KratosAuthenticationMiddleware:

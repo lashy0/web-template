@@ -1,5 +1,3 @@
-# app/config/kratos.py
-
 from functools import lru_cache
 
 from pydantic import Field

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from loguru import logger
 
@@ -50,14 +50,14 @@ cache = DiscoveryCache()
 class DiscoveryState:
     """Store discovery results for deferred logging during lifespan startup."""
 
-    controller_count: int = 0
-    controllers_by_domain: dict[str, list[str]] = {}
-    signal_count: int = 0
-    schema_count: int = 0
-    service_count: int = 0
-    repository_count: int = 0
+    controller_count: ClassVar[int] = 0
+    controllers_by_domain: ClassVar[dict[str, list[str]]] = {}
+    signal_count: ClassVar[int] = 0
+    schema_count: ClassVar[int] = 0
+    service_count: ClassVar[int] = 0
+    repository_count: ClassVar[int] = 0
 
-    logged_controllers: bool = False
+    logged_controllers: ClassVar[bool] = False
 
     @classmethod
     def reset(cls) -> None:

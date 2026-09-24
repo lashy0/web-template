@@ -28,9 +28,7 @@ def _policy_for_connection(connection: ASGIConnection[Any, m.User, Any, Any]) ->
         return PermissionPolicy()
 
     if not isinstance(policy, PermissionPolicy):
-        raise TypeError(
-            f"Application state {AUTHORIZATION_POLICY_STATE_KEY!r} must contain a PermissionPolicy."
-        )
+        raise TypeError(f"Application state {AUTHORIZATION_POLICY_STATE_KEY!r} must contain a PermissionPolicy.")
 
     return policy
 
