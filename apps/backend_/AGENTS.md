@@ -14,6 +14,8 @@ Before writing or changing tests, read `tests/README.md`.
 - `uv run pytest path/to/test_file.py` — run a targeted test file.
 - `uv run pytest` — full suite; requires Docker Desktop with Postgres and
   Kratos.
+- `uv run pytest --cov` — full suite with branch coverage; fails below the
+  `fail_under` threshold in `pyproject.toml`.
 - `uv run ruff check .` — lint.
 - `uv run ruff format --check .` — check formatting without changing files.
 - `uv run mypy .` and `uv run basedpyright` — type checks.
