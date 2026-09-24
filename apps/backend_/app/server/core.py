@@ -3,21 +3,19 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from advanced_alchemy.exceptions import RepositoryError
+from advanced_alchemy.extensions.litestar import SQLAlchemyPlugin
 from litestar.di import Provide
 from litestar.openapi.config import OpenAPIConfig
 from litestar.openapi.plugins import ScalarRenderPlugin
-from litestar.plugins import InitPluginProtocol
+from litestar.plugins import InitPlugin
 
-from app import config
 from app.__metadata__ import __version__
 from app.config import (
     AppSettings,
     HydraSettings,
     KratosSettings,
+    Settings,
     get_settings,
-    provide_app_settings,
-    provide_hydra_settings,
-    provide_kratos_settings,
 )
 from app.db import models as m
 from app.lib.exceptions import (
@@ -29,20 +27,38 @@ from app.lib.hydra import HydraClient, provide_hydra_client
 from app.lib.kratos import KratosClient, provide_kratos_client
 from app.lib.uow import UnitOfWork, provide_uow
 from app.server import plugins
-from app.server.authentication import create_authentication_middleware
+from app.server.authentication import SessionVerifier, create_authentication_middleware
 from app.server.authorization import create_authorization_policy
 
 if TYPE_CHECKING:
     from litestar.config.app import AppConfig
 
 
-class ApplicationCore(InitPluginProtocol):
-    __slots__ = ("app_slug",)
+class ApplicationCore(InitPlugin):
+    """Compose the application from one set of settings.
+
+    Everything environment-specific (database, CORS, Kratos, Hydra) is built from
+    ``settings``, so an application built with other settings, e.g. in tests,
+    shares no connections with the default one. ``session_verifier`` replaces
+    the Kratos Public API check of browser sessions.
+    """
+
+    __slots__ = ("_session_verifier", "_settings", "app_slug")
 
     app_slug: str
 
+    def __init__(
+        self,
+        *,
+        settings: Settings | None = None,
+        session_verifier: SessionVerifier | None = None,
+    ) -> None:
+        self._settings = settings
+        self._session_verifier = session_verifier
+
     def on_app_init(self, app_config: AppConfig) -> AppConfig:
-        settings = get_settings()
+        settings = self._settings or get_settings()
+        alchemy = settings.db.get_config()
 
         self.app_slug = settings.app.slug
 
@@ -56,7 +72,7 @@ class ApplicationCore(InitPluginProtocol):
             ],
         )
 
-        app_config.cors_config = config.cors
+        app_config.cors_config = settings.app.get_cors_config()
         app_config.exception_handlers.update(  # pyright: ignore[reportUnknownMemberType]
             {
                 ApplicationError: exception_to_http_response,
@@ -68,11 +84,17 @@ class ApplicationCore(InitPluginProtocol):
 
         app_config.plugins.extend(
             [
-                plugins.alchemy,
-                plugins.domain,
+                SQLAlchemyPlugin(config=alchemy),
+                plugins.autowire,
             ]
         )
-        app_config.middleware.append(create_authentication_middleware(settings.kratos))
+        app_config.middleware.append(
+            create_authentication_middleware(
+                settings.kratos,
+                session_factory=alchemy.get_session,
+                verifier=self._session_verifier,
+            )
+        )
 
         app_config.signature_namespace.update(
             {
@@ -85,6 +107,15 @@ class ApplicationCore(InitPluginProtocol):
                 "m": m,
             }
         )
+
+        def provide_app_settings() -> AppSettings:
+            return settings.app
+
+        def provide_kratos_settings() -> KratosSettings:
+            return settings.kratos
+
+        def provide_hydra_settings() -> HydraSettings:
+            return settings.hydra
 
         app_config.dependencies.update(
             {

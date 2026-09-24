@@ -17,12 +17,11 @@ from app.domain.accounts.exceptions import (
     SelfActionForbiddenError,
     UserArchivedError,
 )
-from app.lib.deps import CompositeServiceMixin
 from app.lib.kratos import KratosClient
 from app.lib.uow import UnitOfWork
 
 
-class UserService(CompositeServiceMixin, service.SQLAlchemyAsyncRepositoryService[m.User]):
+class UserService(service.SQLAlchemyAsyncRepositoryService[m.User]):
     """Handles database operations for users."""
 
     class Repo(repository.SQLAlchemyAsyncRepository[m.User]):

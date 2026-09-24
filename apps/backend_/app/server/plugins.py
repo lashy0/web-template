@@ -1,7 +1,3 @@
-from advanced_alchemy.extensions.litestar import SQLAlchemyPlugin
+from litestar_autowire import AutowireConfig, AutowirePlugin
 
-from app import config
-from app.utils.domain import DomainPlugin
-
-alchemy = SQLAlchemyPlugin(config=config.alchemy)
-domain = DomainPlugin()
+autowire = AutowirePlugin(AutowireConfig(domain_packages=["app.domain"]))

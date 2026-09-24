@@ -54,16 +54,5 @@ class Settings:
 
 @lru_cache
 def get_settings() -> Settings:
+    """Settings from the environment; the application default when none are passed."""
     return Settings()
-
-
-def provide_app_settings() -> AppSettings:
-    return get_settings().app
-
-
-def provide_kratos_settings() -> KratosSettings:
-    return get_settings().kratos
-
-
-def provide_hydra_settings() -> HydraSettings:
-    return get_settings().hydra

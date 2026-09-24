@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 from contextlib import AbstractAsyncContextManager
-from typing import Any, cast
+from typing import Any, Protocol, cast
 
 from litestar.enums import ScopeType
 from litestar.exceptions import NotAuthorizedException, ServiceUnavailableException
@@ -13,13 +13,23 @@ from litestar.types import ASGIApp, Receive, Scope, Send
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import config
 from app.config.kratos import KratosSettings
 from app.db import models as m
 from app.lib.kratos import KratosSessionVerifier
 from app.lib.kratos.exceptions import KratosInvalidSessionError, KratosUnavailableError
+from app.lib.kratos.schemas import KratosIdentity
 
 SessionFactory = Callable[[], AbstractAsyncContextManager[AsyncSession]]
+
+
+class SessionVerifier(Protocol):
+    """Resolve a browser ``Cookie`` header to the Kratos identity it belongs to.
+
+    Raises ``KratosInvalidSessionError`` for a missing or expired session and
+    ``KratosUnavailableError`` when Kratos cannot answer.
+    """
+
+    async def verify_session(self, *, cookie_header: str) -> KratosIdentity: ...
 
 
 def _cookie_header(scope: Scope) -> str | None:
@@ -46,7 +56,7 @@ class KratosAuthenticationMiddleware(ASGIMiddleware):
     def __init__(
         self,
         *,
-        verifier: KratosSessionVerifier,
+        verifier: SessionVerifier,
         session_cookie: str,
         session_factory: SessionFactory,
     ) -> None:
@@ -94,14 +104,23 @@ class KratosAuthenticationMiddleware(ASGIMiddleware):
         return any(part.strip().startswith(prefix) for part in cookie_header.split(";"))
 
 
-def create_authentication_middleware(settings: KratosSettings) -> KratosAuthenticationMiddleware:
-    """Build the application authentication middleware from Kratos settings."""
+def create_authentication_middleware(
+    settings: KratosSettings,
+    *,
+    session_factory: SessionFactory,
+    verifier: SessionVerifier | None = None,
+) -> KratosAuthenticationMiddleware:
+    """Build the authentication middleware; ``verifier`` defaults to the Kratos Public API."""
 
     return KratosAuthenticationMiddleware(
-        verifier=KratosSessionVerifier(settings),
+        verifier=verifier or KratosSessionVerifier(settings),
         session_cookie=settings.session_cookie,
-        session_factory=config.alchemy.get_session,
+        session_factory=session_factory,
     )
 
 
-__all__ = ("KratosAuthenticationMiddleware", "create_authentication_middleware")
+__all__ = (
+    "KratosAuthenticationMiddleware",
+    "SessionVerifier",
+    "create_authentication_middleware",
+)

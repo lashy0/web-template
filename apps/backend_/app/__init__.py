@@ -1,4 +1,4 @@
-from app import config, db, domain, lib, server, utils
+from app import config, db, domain, lib, server
 
 __all__ = (
     "config",
@@ -6,5 +6,4 @@ __all__ = (
     "domain",
     "lib",
     "server",
-    "utils",
 )
