@@ -7,7 +7,11 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from app.domain.production.services import ProductionOrderService
+from app.domain.production.services import (
+    KgPrefixService,
+    KgVersionService,
+    ProductionOrderService,
+)
 from app.lib.uow import unit_of_work
 
 if TYPE_CHECKING:
@@ -21,12 +25,28 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.anyio
 
 type CreateOrder = Callable[..., Awaitable[m.ProductionOrder]]
+type CreatePrefix = Callable[..., Awaitable[m.KgPrefix]]
+type CreateVersion = Callable[..., Awaitable[m.KgVersion]]
 
 
 @pytest.fixture
 async def production_order_service(session: AsyncSession) -> AsyncGenerator[ProductionOrderService]:
     """Create ProductionOrderService instance with the test session."""
     async with ProductionOrderService.new(session) as service:
+        yield service
+
+
+@pytest.fixture
+async def kg_prefix_service(session: AsyncSession) -> AsyncGenerator[KgPrefixService]:
+    """Create KgPrefixService instance with the test session."""
+    async with KgPrefixService.new(session) as service:
+        yield service
+
+
+@pytest.fixture
+async def kg_version_service(session: AsyncSession) -> AsyncGenerator[KgVersionService]:
+    """Create KgVersionService instance with the test session."""
+    async with KgVersionService.new(session) as service:
         yield service
 
 
@@ -42,5 +62,42 @@ def create_order(session: AsyncSession, production_order_service: ProductionOrde
                 order = await production_order_service.set_archived(order.id, archived=True)
 
         return order
+
+    return _create
+
+
+@pytest.fixture
+def create_prefix(session: AsyncSession, kg_prefix_service: KgPrefixService) -> CreatePrefix:
+    """Return a helper that commits a DevEUI prefix, archived when requested."""
+
+    async def _create(
+        prefix: str = "a1b2c3d4e5",
+        short_code: str = "ab1",
+        *,
+        archived: bool = False,
+    ) -> m.KgPrefix:
+        async with unit_of_work(session):
+            item = await kg_prefix_service.create_prefix({"prefix": prefix, "short_code": short_code})
+
+            if archived:
+                item = await kg_prefix_service.set_archived(item.id, archived=True)
+
+        return item
+
+    return _create
+
+
+@pytest.fixture
+def create_version(session: AsyncSession, kg_version_service: KgVersionService) -> CreateVersion:
+    """Return a helper that commits a KG version, archived when requested."""
+
+    async def _create(code: str = "v1", *, archived: bool = False) -> m.KgVersion:
+        async with unit_of_work(session):
+            item = await kg_version_service.create_version({"code": code, "name": f"Version {code}"})
+
+            if archived:
+                item = await kg_version_service.set_archived(item.id, archived=True)
+
+        return item
 
     return _create

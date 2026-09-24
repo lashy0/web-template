@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
 from uuid import UUID
 
 from advanced_alchemy.exceptions import NotFoundError
@@ -9,11 +8,6 @@ from advanced_alchemy.extensions.litestar import repository, service
 
 from app.db import models as m
 from app.domain.production.exceptions import ProductionOrderArchivedError
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
-
-    from advanced_alchemy.filters import StatementFilter
 
 
 class ProductionOrderService(service.SQLAlchemyAsyncRepositoryService[m.ProductionOrder]):
@@ -25,20 +19,6 @@ class ProductionOrderService(service.SQLAlchemyAsyncRepositoryService[m.Producti
         model_type = m.ProductionOrder
 
     repository_type = Repo
-
-    async def list_orders(
-        self,
-        *filters: StatementFilter,
-        archived: bool | None = None,
-    ) -> tuple[Sequence[m.ProductionOrder], int]:
-        """List orders, optionally only archived (``True``) or only current (``False``) ones."""
-        if archived is None:
-            return await self.get_many_and_count(*filters)
-
-        archived_at = m.ProductionOrder.archived_at
-        state = archived_at.is_not(None) if archived else archived_at.is_(None)
-
-        return await self.get_many_and_count(*filters, state)
 
     async def update_order(
         self,

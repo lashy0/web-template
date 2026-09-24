@@ -25,6 +25,7 @@ from app.domain.admin.deps import provide_audit_log_service
 from app.domain.admin.services import AuditLogService
 from app.lib.authorization import requires_permission
 from app.lib.deps import create_service_dependencies
+from app.lib.filters import provide_archived_filter
 from app.lib.kratos import KratosClient
 from app.lib.openapi import error_responses
 from app.lib.uow import UnitOfWork
@@ -56,6 +57,7 @@ class UserController(Controller):
             "sort_order": "desc",
         },
     )
+    dependencies["archived_filter"] = Provide(provide_archived_filter, sync_to_thread=False)
     dependencies["audit_service"] = Provide(provide_audit_log_service)
 
     @staticmethod
@@ -88,8 +90,9 @@ class UserController(Controller):
         self,
         users_service: NamedDependency[UserService],
         filters: NamedDependency[SkipValidation[list[FilterTypes]]],
+        archived_filter: NamedDependency[SkipValidation[list[FilterTypes]]],
     ) -> OffsetPagination[User]:
-        results, total = await users_service.list_and_count(*filters)
+        results, total = await users_service.get_many_and_count(*filters, *archived_filter)
 
         return users_service.to_schema(
             results,

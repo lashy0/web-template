@@ -9,6 +9,7 @@ import pytest
 from advanced_alchemy.exceptions import NotFoundError
 
 from app.domain.production.exceptions import ProductionOrderArchivedError
+from app.lib.filters import provide_archived_filter
 from app.lib.uow import unit_of_work
 
 if TYPE_CHECKING:
@@ -99,21 +100,13 @@ async def test_delete_order_removes_it(
     assert await production_order_service.get_one_or_none(id=order.id) is None
 
 
-@pytest.mark.parametrize(
-    ("archived", "expected"),
-    [(None, {"Current", "Archived"}), (True, {"Archived"}), (False, {"Current"})],
-    ids=["all", "archived", "current"],
-)
-async def test_list_orders_filters_by_archive_state(
+async def test_archived_filter_lists_only_archived_orders(
     production_order_service: ProductionOrderService,
     create_order: CreateOrder,
-    archived: bool | None,
-    expected: set[str],
 ) -> None:
     await create_order("Current")
     await create_order("Archived", archived=True)
 
-    orders, total = await production_order_service.list_orders(archived=archived)
+    orders, total = await production_order_service.get_many_and_count(*provide_archived_filter(archived=True))
 
-    assert {order.name for order in orders} == expected
-    assert total == len(expected)
+    assert ([order.name for order in orders], total) == (["Archived"], 1)

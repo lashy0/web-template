@@ -27,6 +27,7 @@ from app.domain.pak.schemas import (
 from app.domain.pak.services import PakDeviceService
 from app.lib.authorization import requires_permission
 from app.lib.deps import create_service_dependencies
+from app.lib.filters import provide_archived_filter
 from app.lib.hydra import HydraClient
 from app.lib.openapi import error_responses
 from app.lib.uow import UnitOfWork
@@ -57,6 +58,7 @@ class PakDeviceController(Controller):
             "sort_order": "asc",
         },
     )
+    dependencies["archived_filter"] = Provide(provide_archived_filter, sync_to_thread=False)
     dependencies["audit_service"] = Provide(provide_audit_log_service)
     dependencies["pak_cipher"] = Provide(provide_pak_access_key_cipher, sync_to_thread=False)
 
@@ -89,8 +91,9 @@ class PakDeviceController(Controller):
         self,
         pak_devices_service: NamedDependency[PakDeviceService],
         filters: NamedDependency[SkipValidation[list[FilterTypes]]],
+        archived_filter: NamedDependency[SkipValidation[list[FilterTypes]]],
     ) -> OffsetPagination[PakDevice]:
-        results, total = await pak_devices_service.list_and_count(*filters)
+        results, total = await pak_devices_service.get_many_and_count(*filters, *archived_filter)
 
         return pak_devices_service.to_schema(
             results,

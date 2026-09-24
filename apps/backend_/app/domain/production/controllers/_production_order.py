@@ -8,7 +8,7 @@ from uuid import UUID
 import msgspec
 from litestar import Controller, Request, delete, get, patch, post
 from litestar.di import NamedDependency, Provide
-from litestar.params import Parameter, QueryParameter, SkipValidation
+from litestar.params import Parameter, SkipValidation
 from litestar.status_codes import HTTP_200_OK, HTTP_204_NO_CONTENT
 
 from app.db import models as m
@@ -23,6 +23,7 @@ from app.domain.production.schemas import (
 from app.domain.production.services import ProductionOrderService
 from app.lib.authorization import requires_permission
 from app.lib.deps import create_service_dependencies
+from app.lib.filters import provide_archived_filter
 from app.lib.openapi import error_responses
 from app.lib.uow import UnitOfWork
 
@@ -55,6 +56,7 @@ class ProductionOrderController(Controller):
             "sort_order": "desc",
         },
     )
+    dependencies["archived_filter"] = Provide(provide_archived_filter, sync_to_thread=False)
     dependencies["audit_service"] = Provide(provide_audit_log_service)
 
     @staticmethod
@@ -86,12 +88,9 @@ class ProductionOrderController(Controller):
         self,
         production_orders_service: NamedDependency[ProductionOrderService],
         filters: NamedDependency[SkipValidation[list[FilterTypes]]],
-        archived: Annotated[
-            bool | None,
-            QueryParameter(description="Only archived (true) or only current (false) orders; all when omitted."),
-        ] = None,
+        archived_filter: NamedDependency[SkipValidation[list[FilterTypes]]],
     ) -> OffsetPagination[ProductionOrder]:
-        results, total = await production_orders_service.list_orders(*filters, archived=archived)
+        results, total = await production_orders_service.get_many_and_count(*filters, *archived_filter)
 
         return production_orders_service.to_schema(
             results,
