@@ -19,12 +19,12 @@ endpoint only when the application policy assigns that exact permission name.
   from app.domain.quality.permissions import QualityPermission
   from app.lib.authorization import requires_permission
 
+
   @get(
       path="/lots",
       guards=[requires_permission(QualityPermission.INSPECT)],
   )
-  async def inspect_lot() -> ...:
-      ...
+  async def inspect_lot() -> ...: ...
   ```
 
 - **Policies grant permissions to roles.** A `PermissionPolicy` is an
@@ -65,6 +65,7 @@ not validate cookies or identity-provider sessions itself. See
    ```python
    # app/domain/quality/permissions.py
    from enum import StrEnum
+
 
    class QualityPermission(StrEnum):
        INSPECT = "quality.inspect"
