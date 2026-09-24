@@ -56,7 +56,8 @@ class SystemController(Controller):
             await db_session.execute(text("select 1"))
             database_status = "online"
 
-        except SQLAlchemyError:
+        # asyncpg reports a refused connection as a plain OSError, not a DBAPI error.
+        except (SQLAlchemyError, OSError):
             database_status = "offline"
 
         kratos_status: Literal["online", "offline"] = "online" if await kratos.is_ready() else "offline"
