@@ -1,8 +1,13 @@
+from collections.abc import AsyncGenerator
 from unittest.mock import MagicMock, patch
 
 import pytest
 from advanced_alchemy.exceptions import NotFoundError
+from litestar import Litestar, get
+from litestar.di import NamedDependency, Provide
 from litestar.exceptions import InternalServerException, NotFoundException, PermissionDeniedException
+from litestar.testing import AsyncTestClient
+from litestar.types import ExceptionHandlersMap
 from sqlalchemy.exc import IntegrityError as SQLAlchemyIntegrityError
 from sqlalchemy.exc import OperationalError
 
@@ -10,6 +15,7 @@ from app.lib.exceptions import (
     ApplicationConflictError,
     ApplicationError,
     AuthorizationError,
+    exception_group_to_http_response,
     exception_to_http_response,
 )
 from app.server.asgi import create_app
@@ -20,19 +26,87 @@ pytestmark = [
 ]
 
 
-def test_application_error_init() -> None:
-    exc = ApplicationError("msg", detail="detailed info")
-    assert exc.detail == "detailed info"
-    assert "msg" in str(exc)
-    assert "detailed info" in str(exc)
-
-    exc2 = ApplicationError("msg")
-    assert exc2.detail == "msg"
-
-    assert "ApplicationError" in repr(exc)
+class _CommitConflictError(ApplicationConflictError):
+    code = "commit_conflict"
 
 
-async def test_exception_to_http_response_not_found() -> None:
+async def _fail_after_handler() -> AsyncGenerator[None]:
+    """Like ``provide_uow``: fails in the cleanup that runs after the handler."""
+    yield
+    raise _CommitConflictError
+
+
+async def _finish_quietly() -> AsyncGenerator[None]:
+    yield
+
+
+async def _also_fail_after_handler() -> AsyncGenerator[None]:
+    yield
+    raise RuntimeError("second cleanup failed")
+
+
+# With more than one generator dependency Litestar finishes them in a task
+# group, so an error from their cleanup arrives wrapped in an ExceptionGroup.
+@get(
+    "/one-failure",
+    dependencies={
+        "failing": Provide(_fail_after_handler),
+        "quiet": Provide(_finish_quietly),
+    },
+    sync_to_thread=False,
+)
+def _one_failure(failing: NamedDependency[None], quiet: NamedDependency[None]) -> None:
+    return None
+
+
+@get(
+    "/two-failures",
+    dependencies={
+        "failing": Provide(_fail_after_handler),
+        "also_failing": Provide(_also_fail_after_handler),
+    },
+    sync_to_thread=False,
+)
+def _two_failures(failing: NamedDependency[None], also_failing: NamedDependency[None]) -> None:
+    return None
+
+
+def _app_with_error_handlers() -> Litestar:
+    handlers: ExceptionHandlersMap = {  # pyright: ignore[reportUnknownVariableType]
+        ApplicationError: exception_to_http_response,
+        ExceptionGroup: exception_group_to_http_response,
+    }
+
+    return Litestar(route_handlers=[_one_failure, _two_failures], exception_handlers=handlers)
+
+
+async def test_exception_group_with_one_error_answers_as_that_error() -> None:
+    async with AsyncTestClient(_app_with_error_handlers()) as client:
+        response = await client.get("/one-failure")
+
+    assert (response.status_code, response.json()["extra"]) == (409, {"code": "commit_conflict"})
+
+
+async def test_exception_group_with_several_errors_is_server_error() -> None:
+    async with AsyncTestClient(_app_with_error_handlers()) as client:
+        response = await client.get("/two-failures")
+
+    assert response.status_code == 500
+
+
+def test_application_error_detail_defaults_to_message() -> None:
+    assert ApplicationError("msg").detail == "msg"
+
+
+def test_application_error_str_joins_message_and_detail() -> None:
+    assert str(ApplicationError("msg", detail="detailed info")) == "msg detailed info"
+
+
+def test_application_error_repr_names_class_and_detail() -> None:
+    assert repr(ApplicationError(detail="detailed info")) == "ApplicationError - detailed info"
+
+
+def test_exception_to_http_response_not_found() -> None:
     request = MagicMock()
     request.app.debug = False
     exc = NotFoundError("not found")
@@ -44,7 +118,7 @@ async def test_exception_to_http_response_not_found() -> None:
         assert isinstance(args[1], NotFoundException)
 
 
-async def test_exception_to_http_response_auth_error() -> None:
+def test_exception_to_http_response_auth_error() -> None:
     request = MagicMock()
     request.app.debug = False
     exc = AuthorizationError("unauthorized")
@@ -129,7 +203,7 @@ def test_application_error_code_overrides_class_code() -> None:
     assert exc.code == "custom_conflict"
 
 
-async def test_exception_to_http_response_debug() -> None:
+def test_exception_to_http_response_debug() -> None:
     request = MagicMock()
     request.app.debug = True
     exc = ValueError("internal error")  # Will hit 'else' -> InternalServerException

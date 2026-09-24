@@ -5,10 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.db import models as m
 from app.domain.accounts.schemas import UserUpdate
 from app.domain.accounts.services import UserService
 from app.lib.kratos import KratosClient
@@ -22,27 +19,6 @@ pytestmark = [
     pytest.mark.integration,
     pytest.mark.services,
 ]
-
-
-async def test_seeded_users_exist_in_postgresql_and_kratos(
-    sessionmaker: async_sessionmaker[AsyncSession],
-    kratos_client: KratosClient,
-    seeded_db: None,
-) -> None:
-    """Seed data is created through UserService in both backing systems."""
-    async with sessionmaker() as session:
-        users = list((await session.scalars(select(m.User))).all())
-
-    assert {user.identity_login for user in users} == {
-        "administrator",
-        "operator",
-        "archived-user",
-    }
-
-    for user in users:
-        identity = await kratos_client.get_identity(user.identity_id)
-        assert identity.login == user.identity_login
-        assert identity.is_active is user.identity_active
 
 
 async def test_create_user_creates_kratos_identity(

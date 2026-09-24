@@ -15,6 +15,7 @@ from app.lib.kratos.exceptions import KratosIdentityNotFoundError, KratosUnavail
 from app.lib.uow import unit_of_work
 
 if TYPE_CHECKING:
+    from app.domain.accounts.schemas import UserCreate
     from tests.integration.accounts.conftest import CreateUser, UserData
 
 pytestmark = [
@@ -63,29 +64,59 @@ async def _stored(sessionmaker: async_sessionmaker[AsyncSession], user_id: UUID)
     return user
 
 
-async def test_rolled_back_creation_removes_identity_and_frees_login(
+async def _create_and_roll_back(
+    sessionmaker: async_sessionmaker[AsyncSession],
+    kratos: KratosClient,
+    data: UserCreate,
+) -> m.User:
+    """Create a user in a transaction whose request then fails."""
+    created: list[m.User] = []
+
+    with pytest.raises(RuntimeError):
+        async with sessionmaker() as session, unit_of_work(session) as uow:
+            created.append(
+                await UserService(session=session).create_user(
+                    data,
+                    kratos=kratos,
+                    uow=uow,
+                )
+            )
+
+            raise RuntimeError("request failed")
+
+    return created[0]
+
+
+async def test_rolled_back_creation_leaves_no_local_user(
+    sessionmaker: async_sessionmaker[AsyncSession],
+    kratos_client: KratosClient,
+    user_service: UserService,
+    user_data: UserData,
+) -> None:
+    user = await _create_and_roll_back(sessionmaker, kratos_client, user_data())
+
+    assert await user_service.get_one_or_none(id=user.id) is None
+
+
+async def test_rolled_back_creation_removes_identity(
+    sessionmaker: async_sessionmaker[AsyncSession],
+    kratos_client: KratosClient,
+    user_data: UserData,
+) -> None:
+    user = await _create_and_roll_back(sessionmaker, kratos_client, user_data())
+
+    with pytest.raises(KratosIdentityNotFoundError):
+        await kratos_client.get_identity(user.identity_id)
+
+
+async def test_rolled_back_creation_frees_login(
     sessionmaker: async_sessionmaker[AsyncSession],
     kratos_client: KratosClient,
     user_service: UserService,
     user_data: UserData,
 ) -> None:
     data = user_data()
-    created: list[m.User] = []
-
-    with pytest.raises(RuntimeError):
-        async with sessionmaker() as session, unit_of_work(session) as uow:
-            created.append(await UserService(session=session).create_user(
-                data,
-                kratos=kratos_client,
-                uow=uow,
-            ))
-
-            raise RuntimeError("request failed")
-
-    assert await user_service.get_one_or_none(id=created[0].id) is None
-
-    with pytest.raises(KratosIdentityNotFoundError):
-        await kratos_client.get_identity(created[0].identity_id)
+    await _create_and_roll_back(sessionmaker, kratos_client, data)
 
     async with unit_of_work(user_service.repository.session) as uow:
         retried = await user_service.create_user(data, kratos=kratos_client, uow=uow)

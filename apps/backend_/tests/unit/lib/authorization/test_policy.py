@@ -13,6 +13,11 @@ def test_policy_grants_assigned_permission() -> None:
     policy = PermissionPolicy({"manager": {"users.read"}})
 
     assert policy.has_permission("manager", "users.read") is True
+
+
+def test_policy_denies_unassigned_permission() -> None:
+    policy = PermissionPolicy({"manager": {"users.read"}})
+
     assert policy.has_permission("manager", "users.update") is False
 
 

@@ -18,7 +18,7 @@ pytestmark = [
 ]
 
 
-def test_to_identity() -> None:
+def test_to_identity_reads_login_and_state() -> None:
     identity_id = uuid4()
     sdk_identity = MagicMock(
         id=str(identity_id),
@@ -34,7 +34,7 @@ def test_to_identity() -> None:
     assert identity.is_active is True
 
 
-def test_to_identity_without_login() -> None:
+def test_to_identity_without_login_is_unavailable() -> None:
     sdk_identity = MagicMock(id=str(uuid4()), traits={}, state="active", metadata_admin=None)
 
     with pytest.raises(KratosUnavailableError):

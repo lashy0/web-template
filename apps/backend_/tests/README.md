@@ -8,7 +8,11 @@ Run from `apps/backend_`:
 uv run pytest tests/unit                  # no external services
 uv run pytest path/to/test_file.py        # one file
 uv run pytest                             # full suite; needs Docker Desktop
+uv run pytest --cov                       # full suite with the coverage gate
 ```
+
+The coverage gate (`fail_under` in `pyproject.toml`) applies to the full suite
+only; a partial run always falls below it.
 
 Integration tests start the containers they need (PostgreSQL and external
 services) themselves.
@@ -29,7 +33,9 @@ mocks, not the commit order described in `docs/transactions.md`.
 
 - **The test path mirrors the code path.** `app/lib/validation.py` is tested in
   `tests/unit/lib/test_validation.py`; `app/domain/<domain>/services/_<name>.py`
-  in `tests/integration/<domain>/services/test_<name>_service.py`.
+  in `tests/integration/<domain>/services/test_<name>_service.py`;
+  `app/domain/<domain>/controllers/_<name>.py` in
+  `tests/integration/<domain>/controllers/test_<name>_controller.py`.
 - **Name the file after the module under test**, not after the external service
   it calls.
 - **Every test directory has an `__init__.py`.** Pytest imports test modules by
@@ -114,6 +120,28 @@ def test_exception_to_http_response_not_found() -> None:
   jobs do. Effects registered with `after_commit` or `on_rollback` run only when
   the block exits.
 
+## Routes
+
+Every route has at least one test through HTTP in `tests/integration`: it is
+the only place where the guard, the dependencies, the commit of `uow`, the
+audit entry and the response schema run together. Branches shared by all
+routes, such as the 409 body with `extra.code` or a 400 from validation, are
+tested once, not per route.
+
+- **`client`** is an `AsyncTestClient` opened with `async with`, so the
+  application lifespan runs. Requests are anonymous.
+- **`sign_in(role)`** commits a local user with that role and signs `client` in
+  as them. A module whose routes all need the same user signs in from an
+  `autouse` fixture.
+- **`settings`** points at the test PostgreSQL, Kratos and Hydra. Build another
+  application from a changed copy to put one dependency out of reach:
+  `create_app(settings=replace(settings, hydra=...))`.
+
+`create_app(settings=..., session_verifier=...)` is the only replacement point.
+The session verifier stands in for the Kratos Public API only: the middleware
+still loads the user from PostgreSQL and the guards apply the production
+policy. Never patch a constructed application or a class it uses.
+
 ## Differences from litestar-fullstack
 
 The test suite started from the
@@ -123,8 +151,10 @@ tests and keeps their shape. It differs where they are wrong:
 - **Health returns 503**, not 500, when a dependency is offline: the service is
   unavailable, not broken.
 - **Controller discovery is tested against the real `app.domain`**, not only
-  with mocked modules. Discovery skips modules that fail to import, so only a
-  real run notices a controller that silently disappeared.
+  with mocked modules. Controllers are discovered by `litestar-autowire`
+  instead of a copied discovery package; a broken import fails the start, but a
+  controller outside a `controllers` module would be missed without the test in
+  `tests/unit/server/test_plugins.py`.
 
 ## Further reading
 

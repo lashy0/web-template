@@ -54,3 +54,13 @@ class User(UUIDv7AuditBase):
         nullable=True,
         default=None,
     )
+
+    @property
+    def login(self) -> str:
+        """The Kratos login; ``identity_login`` is its local copy. Read by the API schema."""
+        return self.identity_login
+
+    @property
+    def is_active(self) -> bool:
+        """Whether the Kratos identity is active; read by the API schema."""
+        return self.identity_active

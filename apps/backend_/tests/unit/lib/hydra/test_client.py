@@ -16,23 +16,22 @@ pytestmark = [
 ]
 
 
-def test_credentials() -> None:
+def test_credentials_keep_client_secret() -> None:
     credentials = _credentials(MagicMock(client_id="pak-client", client_secret="secret"))
 
     assert credentials.client.client_id == "pak-client"
     assert credentials.client_secret == "secret"
 
 
-def test_credentials_without_secret() -> None:
+def test_credentials_without_secret_are_unavailable() -> None:
     with pytest.raises(HydraUnavailableError):
         _credentials(MagicMock(client_id="pak-client", client_secret=None))
 
 
-def test_introspection() -> None:
+def test_introspection_without_active_flag_is_inactive() -> None:
     introspection = _introspection(MagicMock(active=None, client_id="pak-client"))
 
     assert introspection.active is False
-    assert introspection.client_id == "pak-client"
 
 
 async def test_sdk_client_not_found() -> None:

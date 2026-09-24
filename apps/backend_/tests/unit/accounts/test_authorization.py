@@ -32,7 +32,9 @@ def test_user_routes_require_permissions() -> None:
 
 
 @pytest.mark.anyio
-async def test_account_routes_require_authentication() -> None:
+@pytest.mark.parametrize("path", ["/users", "/auth/me"])
+async def test_account_routes_require_authentication(path: str) -> None:
     async with AsyncTestClient(create_app()) as client:
-        assert (await client.get("/users")).status_code == 401
-        assert (await client.get("/auth/me")).status_code == 401
+        response = await client.get(path)
+
+    assert response.status_code == 401

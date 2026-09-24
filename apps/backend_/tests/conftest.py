@@ -43,7 +43,6 @@ if TYPE_CHECKING:
 
 
 pytest_plugins = [
-    "tests.data_fixtures",
     "pytest_databases.docker",
     "pytest_databases.docker.postgres",
 ]
@@ -211,11 +210,9 @@ def fx_kratos_service(postgres_service: PostgresService) -> Generator[KratosServ
         os.environ["BACKEND_KRATOS_ADMIN_URL"] = service.admin_url
         os.environ["BACKEND_KRATOS_PUBLIC_URL"] = service.public_url
 
-        import app.config
         from app.config.settings import get_settings
 
         get_settings.cache_clear()
-        importlib.reload(app.config)
 
         yield service
 
@@ -364,13 +361,9 @@ def fx_engine(postgres_service: PostgresService) -> Generator[AsyncEngine]:
 
     os.environ["DATABASE_URL"] = db_url.render_as_string(hide_password=False)
 
-    import importlib
-
-    import app.config
     from app.config.settings import get_settings
 
     get_settings.cache_clear()
-    importlib.reload(app.config)
 
     engine = create_async_engine(
         db_url,
@@ -389,8 +382,8 @@ def fx_engine(postgres_service: PostgresService) -> Generator[AsyncEngine]:
 
 
 @pytest.fixture(name="sessionmaker", scope="session")
-def fx_sessionmaker(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
-    """Create sessionmaker factory bound to the test engine."""
+def fx_sessionmaker(engine: AsyncEngine, db_schema: None) -> async_sessionmaker[AsyncSession]:
+    """Create sessionmaker factory bound to the test engine, with the tables in place."""
     return async_sessionmaker(
         bind=engine,
         expire_on_commit=False,
