@@ -56,11 +56,14 @@ async def test_create_user_returns_created_user(
     kratos_client: KratosClient,
 ) -> None:
     # Kratos identities outlive per-test database cleanup, so logins must be unique.
-    login = f"user-{uuid4().hex[:8]}"
+    # Hyphens break runs of four equal characters, which a login may not contain;
+    # the fixed digit keeps the password valid when the suffix has none.
+    suffix = uuid4().hex[:9]
+    login = f"user-{suffix[:3]}-{suffix[3:6]}-{suffix[6:]}"
 
     response = await client.post(
         "/users",
-        json={"login": login, "name": "Test User", "password": f"Test_User_{login}!", "role": "operator"},
+        json={"login": login, "name": "Test User", "password": f"Test_User_{suffix}_1!", "role": "operator"},
     )
 
     assert response.status_code == 201

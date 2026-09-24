@@ -48,11 +48,13 @@ def user_data() -> UserData:
 
     def _build(*, role: UserRole = UserRole.OPERATOR, is_active: bool = True) -> UserCreate:
         # Kratos identities outlive per-test database cleanup, so logins must be unique.
-        suffix = uuid4().hex[:8]
+        # Hyphens break runs of four equal characters, which a login may not contain;
+        # the fixed digit keeps the password valid when the suffix has none.
+        suffix = uuid4().hex[:9]
         return UserCreate(
-            login=f"user-{suffix}",
+            login=f"user-{suffix[:3]}-{suffix[3:6]}-{suffix[6:]}",
             name="Test User",
-            password=f"Test_User_{suffix}!",
+            password=f"Test_User_{suffix}_1!",
             role=role,
             is_active=is_active,
         )
