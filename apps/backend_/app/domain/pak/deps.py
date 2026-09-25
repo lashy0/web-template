@@ -15,7 +15,6 @@ from app.domain.pak.services import PakDeviceService
 from app.lib.deps import create_service_provider
 from app.lib.exceptions import AuthenticationError
 from app.lib.hydra import HydraClient
-from app.lib.uow import UnitOfWork
 
 provide_pak_devices_service = create_service_provider(
     PakDeviceService,
@@ -47,7 +46,6 @@ async def provide_current_pak(
     request: Request[Any, Any, Any],
     pak_devices_service: NamedDependency[PakDeviceService],
     hydra: NamedDependency[HydraClient],
-    uow: NamedDependency[UnitOfWork],  # noqa: ARG001 - requested so ``last_seen_at`` commits
 ) -> m.PakDevice:
     """Authenticate a machine request by its Hydra bearer token."""
     token = _bearer_token(request)

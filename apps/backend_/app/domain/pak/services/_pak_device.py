@@ -7,6 +7,10 @@ from uuid import UUID
 
 from advanced_alchemy.exceptions import IntegrityError, NotFoundError, RepositoryError
 from advanced_alchemy.extensions.litestar import repository, service
+from sqlalchemy import func
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy.orm.attributes import set_committed_value
 from uuid_utils.compat import uuid7
 
 from app.db import models as m
@@ -34,6 +38,8 @@ class PakDeviceService(service.SQLAlchemyAsyncRepositoryService[m.PakDevice]):
             return await self.get_one_or_none(
                 m.PakDevice.id == pak_id,
                 with_for_update=for_update,
+                # A locked read must replace what an earlier read left in the session.
+                execution_options={"populate_existing": for_update},
             )
 
         async def get_by_code(self, code: str) -> m.PakDevice | None:
@@ -45,8 +51,6 @@ class PakDeviceService(service.SQLAlchemyAsyncRepositoryService[m.PakDevice]):
             )
 
     repository_type = Repo
-
-    _LAST_SEEN_UPDATE_SECONDS = 15
 
     @property
     def _pak_repository(self) -> Repo:
@@ -251,13 +255,32 @@ class PakDeviceService(service.SQLAlchemyAsyncRepositoryService[m.PakDevice]):
         if not pak.is_active or pak.archived_at is not None:
             raise AuthorizationError(detail="PAK device is inactive or archived.")
 
-        now = datetime.now(UTC)
-
-        if pak.last_seen_at is None or (now - pak.last_seen_at).total_seconds() >= self._LAST_SEEN_UPDATE_SECONDS:
-            pak.last_seen_at = now
-            await self.repository.session.flush()
+        await self.record_seen(pak)
 
         return pak
+
+    async def record_seen(self, pak: m.PakDevice) -> None:
+        """Record that the device reached the API now, in a transaction of its own.
+
+        The request's transaction may still roll back; the device was seen
+        either way. Concurrent requests keep the latest time.
+        """
+        engine = self.repository.session.bind
+
+        if not isinstance(engine, AsyncEngine):
+            msg = "Recording PAK presence needs a session bound to an engine."
+            raise TypeError(msg)
+
+        seen = insert(m.PakDevicePresence).values(pak_id=pak.id, last_seen_at=datetime.now(UTC))
+        upsert = seen.on_conflict_do_update(
+            index_elements=[m.PakDevicePresence.pak_id],
+            set_={"last_seen_at": func.greatest(m.PakDevicePresence.last_seen_at, seen.excluded.last_seen_at)},
+        ).returning(m.PakDevicePresence.last_seen_at)
+
+        async with engine.begin() as connection:
+            last_seen_at = (await connection.execute(upsert)).scalar_one()
+
+        set_committed_value(pak, "last_seen_at", last_seen_at)
 
     async def _require(
         self,

@@ -18,7 +18,7 @@ async def test_valid_token_returns_pak() -> None:
     request = MagicMock(headers={"authorization": "Bearer token"})
     service = AsyncMock()
 
-    pak = await provide_current_pak(request, service, MagicMock(), MagicMock())
+    pak = await provide_current_pak(request, service, MagicMock())
 
     assert pak is service.authorize_machine_access_token.return_value
 
@@ -28,7 +28,7 @@ async def test_missing_token_is_unauthorized() -> None:
     service = AsyncMock()
 
     with pytest.raises(NotAuthorizedException):
-        await provide_current_pak(request, service, MagicMock(), MagicMock())
+        await provide_current_pak(request, service, MagicMock())
 
     service.authorize_machine_access_token.assert_not_awaited()
 
@@ -39,7 +39,7 @@ async def test_invalid_token_is_unauthorized() -> None:
     service.authorize_machine_access_token.side_effect = AuthenticationError("PAK access token is invalid.")
 
     with pytest.raises(NotAuthorizedException):
-        await provide_current_pak(request, service, MagicMock(), MagicMock())
+        await provide_current_pak(request, service, MagicMock())
 
 
 async def test_inactive_pak_is_forbidden() -> None:
@@ -48,4 +48,4 @@ async def test_inactive_pak_is_forbidden() -> None:
     service.authorize_machine_access_token.side_effect = AuthorizationError("PAK device is inactive or archived.")
 
     with pytest.raises(AuthorizationError):
-        await provide_current_pak(request, service, MagicMock(), MagicMock())
+        await provide_current_pak(request, service, MagicMock())

@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
 import pytest
+from sqlalchemy import insert, select
 
+from app.db import models as m
 from app.domain.pak.crypto import PakAccessKeyCipher
 from app.domain.pak.exceptions import PakDeviceArchivedError, PakDeviceCodeTakenError
 from app.domain.pak.services import PakDeviceService
@@ -53,6 +56,61 @@ async def test_access_token_authenticates_pak(
 
     assert authenticated.id == pak.id
     assert authenticated.last_seen_at is not None
+
+
+async def test_presence_survives_a_rolled_back_request(
+    session: AsyncSession,
+    hydra_client: HydraClient,
+    pak_service: PakDeviceService,
+    create_pak: CreatePak,
+    issue_access_token: IssueAccessToken,
+) -> None:
+    pak, key = await create_pak("pak-seen-rollback")
+    pak_id = pak.id
+    token = await issue_access_token(pak.oauth_client_id, key)
+
+    with pytest.raises(RuntimeError):
+        async with unit_of_work(session):
+            await pak_service.authorize_machine_access_token(token, hydra=hydra_client)
+
+            raise RuntimeError("request failed")
+
+    presence = select(m.PakDevicePresence.last_seen_at).where(m.PakDevicePresence.pak_id == pak_id)
+    assert await session.scalar(presence) is not None
+
+
+async def test_presence_leaves_device_updated_at(
+    session: AsyncSession,
+    hydra_client: HydraClient,
+    pak_service: PakDeviceService,
+    create_pak: CreatePak,
+    issue_access_token: IssueAccessToken,
+) -> None:
+    pak, key = await create_pak("pak-seen-updated-at")
+    pak_id, updated_at = pak.id, pak.updated_at
+    token = await issue_access_token(pak.oauth_client_id, key)
+
+    async with unit_of_work(session):
+        await pak_service.authorize_machine_access_token(token, hydra=hydra_client)
+
+    session.expire_all()
+    assert (await pak_service.get(pak_id)).updated_at == updated_at
+
+
+async def test_presence_keeps_the_latest_time(
+    session: AsyncSession,
+    pak_service: PakDeviceService,
+    create_pak: CreatePak,
+) -> None:
+    pak, _ = await create_pak("pak-seen-latest")
+    later = datetime.now(UTC) + timedelta(minutes=5)
+
+    async with unit_of_work(session):
+        await session.execute(insert(m.PakDevicePresence).values(pak_id=pak.id, last_seen_at=later))
+
+    await pak_service.record_seen(pak)
+
+    assert pak.last_seen_at == later
 
 
 async def test_deactivated_pak_is_rejected(
