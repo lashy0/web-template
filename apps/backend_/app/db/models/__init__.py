@@ -1,5 +1,6 @@
 from app.db.models._audit_log import AuditLog
 from app.db.models._batch import Batch
+from app.db.models._batch_receipt import BatchReceipt
 from app.db.models._kg_prefix import KgPrefix
 from app.db.models._kg_unit import KgUnit
 from app.db.models._kg_version import KgVersion
@@ -10,6 +11,7 @@ from app.db.models._user import User
 __all__ = [
     "AuditLog",
     "Batch",
+    "BatchReceipt",
     "KgPrefix",
     "KgUnit",
     "KgVersion",

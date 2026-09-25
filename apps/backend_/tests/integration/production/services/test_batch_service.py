@@ -20,16 +20,26 @@ from app.domain.production.exceptions import (
     ProductionOrderArchivedError,
 )
 from app.domain.production.schemas import BatchCreate
-from app.lib.lorawan import DEV_EUI_SERIAL_MAX, ActivationType, DevEuiRangeOverflowError, LoRaWanVersion
+from app.lib.lorawan import (
+    DEV_EUI_SERIAL_MAX,
+    ActivationType,
+    DevEuiRangeOverflowError,
+    LoRaWanVersion,
+)
 from app.lib.uow import unit_of_work
 
 if TYPE_CHECKING:
     from uuid import UUID
 
-    from sqlalchemy.ext.asyncio import AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
     from app.domain.production.services import BatchService
-    from tests.integration.production.conftest import CreateBatch, CreateOrder, CreatePrefix, CreateVersion
+    from tests.integration.production.conftest import (
+        CreateBatch,
+        CreateOrder,
+        CreatePrefix,
+        CreateVersion,
+    )
 
 pytestmark = [
     pytest.mark.anyio,
@@ -60,7 +70,11 @@ def _batch_data(
 async def _age(session: AsyncSession, batch: m.Batch, *, hours: int) -> None:
     async with unit_of_work(session):
         await session.execute(
-            update(m.Batch).where(m.Batch.id == batch.id).values(created_at=datetime.now(UTC) - timedelta(hours=hours))
+            update(m.Batch).where(
+                m.Batch.id == batch.id,
+            ).values(
+                created_at=datetime.now(UTC) - timedelta(hours=hours),
+            )
         )
 
 
@@ -162,7 +176,10 @@ async def test_create_batch_with_archived_version_is_rejected(
 
     with pytest.raises(KgVersionArchivedError):
         async with unit_of_work(session):
-            await batch_service.create_batch(_batch_data(prefix.id, kg_version_id=version.id), created_by_id=None)
+            await batch_service.create_batch(
+                _batch_data(prefix.id, kg_version_id=version.id),
+                created_by_id=None,
+            )
 
 
 async def test_create_batch_for_archived_order_is_rejected(
@@ -217,6 +234,32 @@ async def test_assign_archived_order_is_rejected(
     order = await create_order(archived=True)
 
     with pytest.raises(ProductionOrderArchivedError):
+        async with unit_of_work(session):
+            await batch_service.assign_production_order(batch.id, order.id)
+
+
+async def test_locked_batch_is_reread_after_concurrent_archive(
+    session: AsyncSession,
+    sessionmaker: async_sessionmaker[AsyncSession],
+    batch_service: BatchService,
+    create_batch: CreateBatch,
+    create_order: CreateOrder,
+) -> None:
+    # The session already holds the batch as not archived, as after a read
+    # made before the lock; another transaction archives it in between.
+    batch = await create_batch()
+    order = await create_order()
+
+    async with sessionmaker() as other, other.begin():
+        await other.execute(
+            update(m.Batch).where(
+                m.Batch.id == batch.id,
+            ).values(
+                archived_at=datetime.now(UTC),
+            ),
+        )
+
+    with pytest.raises(BatchArchivedError):
         async with unit_of_work(session):
             await batch_service.assign_production_order(batch.id, order.id)
 
@@ -286,7 +329,11 @@ async def test_delete_batch_with_scrapped_unit_is_rejected(
 
     async with unit_of_work(session):
         await session.execute(
-            update(m.KgUnit).where(m.KgUnit.dev_eui == batch.first_dev_eui).values(state=KgState.SCRAPPED)
+            update(m.KgUnit).where(
+                m.KgUnit.dev_eui == batch.first_dev_eui,
+            ).values(
+                state=KgState.SCRAPPED,
+            )
         )
 
     with pytest.raises(BatchInUseError):

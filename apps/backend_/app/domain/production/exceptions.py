@@ -91,10 +91,31 @@ class BatchEditWindowExpiredError(ApplicationConflictError):
 
 
 class BatchInUseError(ApplicationConflictError):
-    """Production has already used KG units of the batch, so it cannot be deleted (HTTP 409)."""
+    """The batch has receipts or used KG units, so it cannot be deleted (HTTP 409)."""
 
     code = "batch_in_use"
-    detail = "Batch has KG units that are no longer registered; archive it instead."
+    detail = "Batch has receipts or KG units that are no longer registered; archive it instead."
+
+
+class BatchReceiptQuantityExceededError(ApplicationConflictError):
+    """The receipts of a batch would exceed its planned quantity (HTTP 409)."""
+
+    code = "batch_receipt_quantity_exceeded"
+    detail = "Receipts cannot exceed the planned quantity of the batch."
+
+
+class BatchReceiptVoidedError(ApplicationConflictError):
+    """The receipt is voided and cannot be changed (HTTP 409)."""
+
+    code = "batch_receipt_voided"
+    detail = "Voided receipt cannot be changed."
+
+
+class BatchReceiptEditWindowExpiredError(ApplicationConflictError):
+    """The receipt was created too long ago to be edited or voided (HTTP 409)."""
+
+    code = "batch_receipt_edit_window_expired"
+    detail = "Receipt can no longer be edited or voided."
 
 
 __all__ = (
@@ -102,6 +123,9 @@ __all__ = (
     "BatchCompletedError",
     "BatchEditWindowExpiredError",
     "BatchInUseError",
+    "BatchReceiptEditWindowExpiredError",
+    "BatchReceiptQuantityExceededError",
+    "BatchReceiptVoidedError",
     "KgPrefixArchivedError",
     "KgPrefixInUseError",
     "KgPrefixShortCodeTakenError",

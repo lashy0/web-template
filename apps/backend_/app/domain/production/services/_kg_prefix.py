@@ -97,6 +97,8 @@ class KgPrefixService(service.SQLAlchemyAsyncRepositoryService[m.KgPrefix]):
         prefix = await self.get_one_or_none(
             m.KgPrefix.id == prefix_id,
             with_for_update=for_update,
+            # A locked read must replace what an earlier read left in the session.
+            execution_options={"populate_existing": for_update},
         )
 
         if prefix is None:

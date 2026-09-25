@@ -7,8 +7,9 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from app.domain.production.schemas import BatchCreate
+from app.domain.production.schemas import BatchCreate, BatchReceiptCreate
 from app.domain.production.services import (
+    BatchReceiptService,
     BatchService,
     KgPrefixService,
     KgUnitService,
@@ -33,6 +34,7 @@ type CreateOrder = Callable[..., Awaitable[m.ProductionOrder]]
 type CreatePrefix = Callable[..., Awaitable[m.KgPrefix]]
 type CreateVersion = Callable[..., Awaitable[m.KgVersion]]
 type CreateBatch = Callable[..., Awaitable[m.Batch]]
+type CreateReceipt = Callable[..., Awaitable[m.BatchReceipt]]
 
 
 @pytest.fixture
@@ -60,6 +62,13 @@ async def kg_version_service(session: AsyncSession) -> AsyncGenerator[KgVersionS
 async def batch_service(session: AsyncSession) -> AsyncGenerator[BatchService]:
     """Create BatchService instance with the test session."""
     async with BatchService.new(session) as service:
+        yield service
+
+
+@pytest.fixture
+async def batch_receipt_service(session: AsyncSession) -> AsyncGenerator[BatchReceiptService]:
+    """Create BatchReceiptService instance with the test session."""
+    async with BatchReceiptService.new(session) as service:
         yield service
 
 
@@ -158,5 +167,20 @@ def create_batch(
                 batch = await batch_service.set_archived(batch.id, archived=True)
 
         return batch
+
+    return _create
+
+
+@pytest.fixture
+def create_receipt(session: AsyncSession, batch_receipt_service: BatchReceiptService) -> CreateReceipt:
+    """Return a helper that commits a receipt of the batch."""
+
+    async def _create(batch: m.Batch, quantity: int = 1) -> m.BatchReceipt:
+        async with unit_of_work(session):
+            return await batch_receipt_service.create_receipt(
+                batch.id,
+                BatchReceiptCreate(quantity=quantity),
+                created_by_id=None,
+            )
 
     return _create

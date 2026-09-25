@@ -46,13 +46,16 @@ class KgUnitPermission(StrEnum):
 
 
 class BatchPermission(StrEnum):
-    """Capabilities for managing production batches."""
+    """Capabilities for managing production batches and their receipts."""
 
     READ = "batches.read"
     CREATE = "batches.create"
     UPDATE = "batches.update"
     ASSIGN_PRODUCTION_ORDER = "batches.assign_production_order"
     COMPLETE = "batches.complete"
+    CREATE_RECEIPT = "batches.receipts.create"
+    UPDATE_RECEIPT = "batches.receipts.update"
+    VOID_RECEIPT = "batches.receipts.void"
 
     ARCHIVE = "batches.archive"
 

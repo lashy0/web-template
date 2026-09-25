@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from advanced_alchemy.base import UUIDv7AuditBase
-from sqlalchemy import CheckConstraint, Enum, ForeignKey, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import CheckConstraint, Enum, ForeignKey, Integer, String, Text, func, select
+from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 
 from app.db.enums import BatchStatus, enum_values
+from app.db.models._batch_receipt import BatchReceipt
 from app.db.models._kg_prefix import KgPrefix
 from app.db.models._kg_version import KgVersion
 from app.db.models._production_order import ProductionOrder
@@ -129,6 +131,10 @@ class Batch(UUIDv7AuditBase):
     production_order: Mapped[ProductionOrder | None] = relationship(lazy="selectin")
     created_by: Mapped[User | None] = relationship(lazy="selectin")
 
+    if TYPE_CHECKING:
+        received_qty: int
+        """KG units received by the non-voided receipts; mapped below the class."""
+
     __table_args__ = (
         CheckConstraint("planned_qty > 0", name="planned_qty_positive"),
         CheckConstraint("day_plan_qty > 0", name="day_plan_qty_positive"),
@@ -148,3 +154,14 @@ class Batch(UUIDv7AuditBase):
     def last_dev_eui(self) -> str:
         """The last DevEUI of the batch range; read by the API schema."""
         return derive_dev_eui_range(self.kg_prefix.prefix, self.planned_qty, first_serial=self.first_serial)[1]
+
+
+# Assigned after the class so the subquery can reference ``Batch.id``. Only
+# receipts change it, never a flush of the batch itself.
+Batch.received_qty = column_property(  # type: ignore[assignment]
+    select(func.coalesce(func.sum(BatchReceipt.quantity), 0))
+    .where(BatchReceipt.batch_id == Batch.id, BatchReceipt.voided_at.is_(None))
+    .correlate_except(BatchReceipt)
+    .scalar_subquery(),
+    expire_on_flush=False,
+)

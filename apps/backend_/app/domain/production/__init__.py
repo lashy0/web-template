@@ -9,6 +9,7 @@ from app.domain.production.permissions import (
     ProductionOrderPermission,
 )
 from app.domain.production.services import (
+    BatchReceiptService,
     BatchService,
     KgPrefixService,
     KgUnitService,
@@ -18,6 +19,7 @@ from app.domain.production.services import (
 
 __all__ = (
     "BatchPermission",
+    "BatchReceiptService",
     "BatchService",
     "KgPrefixPermission",
     "KgPrefixService",

@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 BATCH_EDIT_WINDOW = timedelta(minutes=60)
 """How long after creation a batch may still be edited or deleted."""
 
-_RESPONSE_RELATIONSHIPS = ("kg_prefix", "kg_version", "production_order", "created_by")
+_RESPONSE_ATTRIBUTES = ("kg_prefix", "kg_version", "production_order", "created_by", "received_qty")
 
 
 class BatchService(service.SQLAlchemyAsyncRepositoryService[m.Batch]):
@@ -137,7 +137,10 @@ class BatchService(service.SQLAlchemyAsyncRepositoryService[m.Batch]):
         return batch
 
     async def delete_batch(self, batch_id: UUID) -> m.Batch:
-        """Delete a batch with its KG units; the allocated DevEUIs stay used."""
+        """Delete a batch with its KG units; the allocated DevEUIs stay used.
+
+        A batch with receipts, even voided ones, is kept for the record.
+        """
         batch = await self._require(batch_id, for_update=True)
         self._ensure_not_archived(batch)
         self._ensure_in_production(batch)
@@ -147,8 +150,9 @@ class BatchService(service.SQLAlchemyAsyncRepositoryService[m.Batch]):
             m.KgUnit.batch_id == batch.id,
             m.KgUnit.state != KgState.REGISTERED,
         )
+        receipts = select(m.BatchReceipt).where(m.BatchReceipt.batch_id == batch.id)
 
-        if await self.repository.session.scalar(select(exists(used_units))):
+        if await self.repository.session.scalar(select(exists(used_units) | exists(receipts))):
             raise BatchInUseError
 
         await self.repository.session.delete(batch)
@@ -220,12 +224,17 @@ class BatchService(service.SQLAlchemyAsyncRepositoryService[m.Batch]):
             raise ProductionOrderArchivedError(detail="Archived production order cannot receive batches.")
 
     async def _with_relationships(self, batch: m.Batch) -> m.Batch:
-        await self.repository.session.refresh(batch, attribute_names=_RESPONSE_RELATIONSHIPS)
+        await self.repository.session.refresh(batch, attribute_names=_RESPONSE_ATTRIBUTES)
 
         return batch
 
     async def _require(self, batch_id: UUID, *, for_update: bool = False) -> m.Batch:
-        batch = await self.get_one_or_none(m.Batch.id == batch_id, with_for_update=for_update)
+        batch = await self.get_one_or_none(
+            m.Batch.id == batch_id,
+            with_for_update=for_update,
+            # A locked read must replace what an earlier read left in the session.
+            execution_options={"populate_existing": for_update},
+        )
 
         if batch is None:
             raise NotFoundError("Batch not found.")

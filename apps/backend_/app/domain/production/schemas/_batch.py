@@ -34,7 +34,9 @@ class BatchProductionOrder(CamelizedBaseStruct):
     name: str
 
 
-class BatchCreator(CamelizedBaseStruct):
+class UserSummary(CamelizedBaseStruct):
+    """The user who created a production record."""
+
     id: UUID
     name: str
 
@@ -44,6 +46,7 @@ class Batch(CamelizedBaseStruct):
     name: str
     description: str | None
     planned_qty: int
+    received_qty: int
     day_plan_qty: int
     status: BatchStatus
     kg_prefix: BatchKgPrefix
@@ -54,7 +57,7 @@ class Batch(CamelizedBaseStruct):
     activation_type: ActivationType
     lorawan_version: LoRaWanVersion
     join_eui: str
-    created_by: BatchCreator | None
+    created_by: UserSummary | None
     completed_at: datetime | None
     archived_at: datetime | None
     created_at: datetime

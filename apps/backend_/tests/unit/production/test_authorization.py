@@ -75,6 +75,18 @@ def test_batch_routes_use_operation_specific_permissions() -> None:
     )
 
 
+def test_batch_receipt_routes_use_operation_specific_permissions() -> None:
+    assert_routes_require(
+        {
+            "ListBatchReceipts": {BatchPermission.READ},
+            "GetBatchReceipt": {BatchPermission.READ},
+            "CreateBatchReceipt": {BatchPermission.CREATE_RECEIPT},
+            "UpdateBatchReceipt": {BatchPermission.UPDATE_RECEIPT},
+            "VoidBatchReceipt": {BatchPermission.VOID_RECEIPT},
+        }
+    )
+
+
 def test_kg_unit_routes_use_operation_specific_permissions() -> None:
     assert_routes_require(
         {

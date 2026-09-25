@@ -94,6 +94,8 @@ class KgVersionService(service.SQLAlchemyAsyncRepositoryService[m.KgVersion]):
         version = await self.get_one_or_none(
             m.KgVersion.id == version_id,
             with_for_update=for_update,
+            # A locked read must replace what an earlier read left in the session.
+            execution_options={"populate_existing": for_update},
         )
 
         if version is None:

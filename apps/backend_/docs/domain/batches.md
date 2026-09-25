@@ -1,4 +1,4 @@
-# Batches and DevEUI allocation
+# Batches, DevEUI allocation and receipts
 
 A batch is a production run of KG units. Creating it allocates a contiguous
 DevEUI range and registers one `KgUnit` per DevEUI in the same transaction.
@@ -46,13 +46,40 @@ activation type, the LoRaWAN version and a random JoinEUI.
 | assign or detach a production order | not archived; the order is not archived |
 | complete | not archived, not completed |
 | archive, restore | always |
-| delete | not archived, not completed, within 60 minutes of creation, every KG unit still registered |
+| delete | not archived, not completed, within 60 minutes of creation, no receipts (voided ones included), every KG unit still registered |
 
 The 60-minute window applies to everyone with the permission. The service
 checks it (`BATCH_EDIT_WINDOW` in `app/domain/production/services/_batch.py`);
 after it closes, edits and deletion answer `batch_edit_window_expired`.
 
+A batch that cannot be deleted answers `batch_in_use`; archive it instead.
+
 Catalog entries referenced by batches cannot be deleted: a used KG version
 answers `kg_version_in_use`, a production order with batches
 `production_order_in_use`. Archive them instead. Foreign keys with
 `ON DELETE RESTRICT` back these checks.
+
+## Receipts
+
+A receipt records how many KG units of a batch were received from production.
+It counts units and names no DevEUIs. Receipts live under their batch at
+`/batches/{batchId}/receipts`, and the batch shows their sum as `receivedQty`.
+
+- **Receipts never exceed the plan.** Non-voided receipts of a batch add up to
+  at most `planned_qty`; a receipt or a correction beyond it answers
+  `batch_receipt_quantity_exceeded` with the quantity still open. Every change
+  locks the batch row first, so concurrent receipts cannot overshoot together.
+- **A receipt is voided, not deleted.** Voiding needs a reason, keeps the
+  receipt in the list (`?voided=true|false` filters it) and stops counting its
+  quantity, which frees it for another receipt.
+
+| Action | Allowed when |
+|---|---|
+| create | batch not archived, not completed; within the planned quantity |
+| edit quantity, comment | batch not archived; receipt not voided; within 60 minutes of the receipt's creation; within the planned quantity |
+| void | batch not archived; receipt not voided; within 60 minutes of the receipt's creation |
+
+As with batches, the window applies to everyone with the permission
+(`RECEIPT_EDIT_WINDOW` in `app/domain/production/services/_batch_receipt.py`)
+and answers `batch_receipt_edit_window_expired` once closed. A voided receipt
+answers `batch_receipt_voided`.

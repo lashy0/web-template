@@ -84,6 +84,8 @@ class ProductionOrderService(service.SQLAlchemyAsyncRepositoryService[m.Producti
         order = await self.get_one_or_none(
             m.ProductionOrder.id == order_id,
             with_for_update=for_update,
+            # A locked read must replace what an earlier read left in the session.
+            execution_options={"populate_existing": for_update},
         )
 
         if order is None:

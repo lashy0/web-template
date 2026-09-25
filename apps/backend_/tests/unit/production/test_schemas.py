@@ -2,6 +2,8 @@ import msgspec
 import pytest
 
 from app.domain.production.schemas import (
+    BatchReceiptUpdate,
+    BatchReceiptVoid,
     BatchUpdate,
     KgPrefixCreate,
     KgPrefixUpdate,
@@ -94,3 +96,13 @@ def test_kg_version_update_accepts_cleared_description() -> None:
 def test_batch_update_requires_a_field() -> None:
     with pytest.raises(msgspec.ValidationError):
         msgspec.convert({}, BatchUpdate)
+
+
+def test_batch_receipt_update_requires_a_field() -> None:
+    with pytest.raises(msgspec.ValidationError):
+        msgspec.convert({}, BatchReceiptUpdate)
+
+
+def test_batch_receipt_void_requires_a_reason() -> None:
+    with pytest.raises(ValidationError):
+        BatchReceiptVoid(reason="   ")
