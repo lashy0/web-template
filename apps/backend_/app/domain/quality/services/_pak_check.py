@@ -4,12 +4,14 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
+import structlog
 from advanced_alchemy.extensions.litestar import repository, service
-from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 
 from app.db import models as m
+
+logger = structlog.get_logger()
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,13 +54,14 @@ class PakCheckService(service.SQLAlchemyAsyncRepositoryService[m.PakCheck]):
         group_id = group.id if group is not None else None
 
         if group is None:
-            logger.bind(
-                event="pak_check.unknown_defect_group",
+            logger.warning(
+                "pak_check.unknown_defect_group",
                 pak_id=str(pak.id),
                 pak_code=pak.code,
                 check_name=name,
+                check_label=label,
                 defect_group_code=defect_group_code,
-            ).warning("PAK reported a check with an unknown or archived defect group")
+            )
 
         check = await self._lock_check(name, label)
 

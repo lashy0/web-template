@@ -26,6 +26,7 @@ from app.lib.exceptions import (
 )
 from app.lib.hydra import HydraClient, provide_hydra_client
 from app.lib.kratos import KratosClient, provide_kratos_client
+from app.lib.log import RequestContextMiddleware, log_request
 from app.lib.uow import UnitOfWork, provide_uow
 from app.server import plugins
 from app.server.authentication import SessionVerifier, create_authentication_middleware
@@ -85,11 +86,15 @@ class ApplicationCore(InitPlugin):
 
         app_config.plugins.extend(
             [
+                plugins.create_logging(settings.log),
                 SQLAlchemyPlugin(config=alchemy),
                 plugins.autowire,
                 plugins.create_task_queue(settings),
             ]
         )
+        # Outermost, so the request ID tags the records of every other middleware.
+        app_config.middleware.insert(0, RequestContextMiddleware())
+        app_config.before_send.append(log_request)
         app_config.middleware.append(
             create_authentication_middleware(
                 settings.kratos,

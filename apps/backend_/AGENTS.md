@@ -7,7 +7,7 @@ Run backend commands from `apps/backend_`.
 Before changing backend behavior, consult the relevant guide in `docs/`:
 
 - `docs/*.md` — how the backend works: authentication, authorization, errors,
-  transactions, background tasks.
+  transactions, background tasks, logging.
 - `docs/domain/*.md` — business rules of a domain area, such as what may be
   changed in a batch and how DevEUIs are allocated. Update the guide together
   with the rule.

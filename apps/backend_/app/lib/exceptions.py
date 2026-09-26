@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, cast
 
+import structlog
 from advanced_alchemy.exceptions import IntegrityError, NotFoundError
 from litestar.exceptions import (
     ClientException,
@@ -21,9 +22,10 @@ from litestar.exceptions.responses import (
     create_exception_response as _create_exception_response,  # pyright: ignore[reportUnknownVariableType]
 )
 from litestar.status_codes import HTTP_409_CONFLICT, HTTP_500_INTERNAL_SERVER_ERROR
-from loguru import logger
 from sqlalchemy.exc import IntegrityError as SQLAlchemyIntegrityError
 from sqlalchemy.exc import SQLAlchemyError
+
+logger = structlog.get_logger()
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Mapping
@@ -184,11 +186,13 @@ def exception_to_http_response(request: Request[Any, Any, Any], exc: Exception) 
     http_exc = _http_exception_type(exc)
 
     if http_exc.status_code >= HTTP_500_INTERNAL_SERVER_ERROR:
-        logger.bind(
+        logger.error(
+            "http.server_error",
             method=request.method,
             path=request.url.path,
             status_code=http_exc.status_code,
-        ).opt(exception=exc).error("Request failed with a server error.")
+            exc_info=exc,
+        )
 
         if request.app.debug:
             return create_debug_response(request, exc)

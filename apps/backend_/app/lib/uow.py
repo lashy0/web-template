@@ -3,12 +3,14 @@ from __future__ import annotations
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
 
+import structlog
 from advanced_alchemy.exceptions import IntegrityError, RepositoryError
 from litestar.di import NamedDependency
-from loguru import logger
 from sqlalchemy.exc import IntegrityError as SQLAlchemyIntegrityError
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
+
+logger = structlog.get_logger()
 
 type Effect = Callable[[], Awaitable[object]]
 
@@ -54,7 +56,7 @@ class UnitOfWork:
             raise RepositoryError(detail="The transaction could not be committed.") from exc
 
         self._on_rollback.clear()
-        await _run_effects(self._drain_after_commit(), "Post-commit effect failed")
+        await _run_effects(self._drain_after_commit(), "uow.after_commit_effect_failed")
 
     async def rollback(self) -> None:
         """Roll back, then run cleanup effects; never raises."""
@@ -63,9 +65,9 @@ class UnitOfWork:
         try:
             await self.session.rollback()
         except Exception:
-            logger.exception("Transaction rollback failed")
+            logger.exception("uow.rollback_failed")
 
-        await _run_effects(self._drain_on_rollback(), "Rollback cleanup failed")
+        await _run_effects(self._drain_on_rollback(), "uow.rollback_effect_failed")
 
     def _drain_after_commit(self) -> list[tuple[str, Effect]]:
         effects, self._after_commit = self._after_commit, []
@@ -76,12 +78,12 @@ class UnitOfWork:
         return effects
 
 
-async def _run_effects(effects: list[tuple[str, Effect]], message: str) -> None:
+async def _run_effects(effects: list[tuple[str, Effect]], event: str) -> None:
     for operation, effect in effects:
         try:
             await effect()
         except Exception:
-            logger.bind(operation=operation).exception(message)
+            logger.exception(event, operation=operation)
 
 
 @asynccontextmanager

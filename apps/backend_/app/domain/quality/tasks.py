@@ -4,13 +4,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from loguru import logger
+import structlog
 
 from app.domain.quality.services import VerificationSessionService
 from app.lib.uow import unit_of_work
 
 if TYPE_CHECKING:
     from app.lib.worker import WorkerContext
+
+logger = structlog.get_logger()
 
 EXPIRE_BATCH_SIZE = 100
 """Sessions closed per transaction, so one run never holds many row locks."""
@@ -39,9 +41,7 @@ async def expire_stale_verification_sessions(ctx: WorkerContext) -> int:
             break
 
     if total:
-        logger.bind(event="verification.sessions_expired", count=total).info(
-            "Closed stale verification sessions as incomplete"
-        )
+        logger.info("verification.sessions_expired", count=total)
 
     return total
 
