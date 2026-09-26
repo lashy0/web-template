@@ -7,7 +7,7 @@ Run backend commands from `apps/backend_`.
 Before changing backend behavior, consult the relevant guide in `docs/`:
 
 - `docs/*.md` — how the backend works: authentication, authorization, errors,
-  transactions.
+  transactions, background tasks.
 - `docs/domain/*.md` — business rules of a domain area, such as what may be
   changed in a batch and how DevEUIs are allocated. Update the guide together
   with the rule.
@@ -26,6 +26,8 @@ Before writing or changing tests, read `tests/README.md`.
 - `uv run ruff format --check .` — check formatting without changing files.
 - `uv run mypy .` and `uv run basedpyright` — type checks.
 - `uv run app --help` — show available Litestar CLI commands.
+- `uv run app workers run` — run the background task worker; needs Redis
+  (see `docs/background-tasks.md`).
 
 To apply Ruff fixes, use `uv run ruff check . --fix` and `uv run ruff format .`;
 these commands modify files.

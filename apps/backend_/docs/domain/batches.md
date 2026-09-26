@@ -25,9 +25,11 @@ six-hex-digit serial, so a prefix holds serials `000001` to `ffffff`.
 ## KG units
 
 `/kg/units` lists the units of all batches (filter by `batchIdIn`, `stateIn`,
-search by DevEUI or short ID) and addresses one unit by its DevEUI in any case.
-The routes are read-only: a unit is `registered` or `scrapped`, and only
-production processes change it; users cannot edit or delete units. The
+`otkStatusIn`, search by DevEUI or short ID) and addresses one unit by its
+DevEUI in any case. The routes are read-only: a unit is `registered` or
+`scrapped`, and only production processes change it; users cannot edit or
+delete units. `otkStatus` and `lastVerificationAt` come from verification on
+OTK-line PAKs; see [verification](verification.md). The
 activation type and LoRaWAN version shown with a unit are its batch's: every
 unit of a batch is provisioned the same way, so they are stored once.
 
@@ -46,7 +48,7 @@ activation type, the LoRaWAN version and a random JoinEUI.
 | assign or detach a production order | not archived; the order is not archived |
 | complete | not archived, not completed |
 | archive, restore | always |
-| delete | not archived, not completed, within 60 minutes of creation, no receipts (voided ones included), every KG unit still registered |
+| delete | not archived, not completed, within 60 minutes of creation, no receipts (voided ones included), no verification sessions, every KG unit still registered |
 
 The 60-minute window applies to everyone with the permission. The service
 checks it (`BATCH_EDIT_WINDOW` in `app/domain/production/services/_batch.py`);
