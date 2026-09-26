@@ -28,7 +28,13 @@ if TYPE_CHECKING:
 BATCH_EDIT_WINDOW = timedelta(minutes=60)
 """How long after creation a batch may still be edited or deleted."""
 
-_RESPONSE_ATTRIBUTES = ("kg_prefix", "kg_version", "production_order", "created_by", "received_qty")
+_RESPONSE_ATTRIBUTES = (
+    "kg_prefix",
+    "kg_version",
+    "production_order",
+    "created_by",
+    "received_qty",
+)
 
 
 class BatchService(service.SQLAlchemyAsyncRepositoryService[m.Batch]):
@@ -139,7 +145,8 @@ class BatchService(service.SQLAlchemyAsyncRepositoryService[m.Batch]):
     async def delete_batch(self, batch_id: UUID) -> m.Batch:
         """Delete a batch with its KG units; the allocated DevEUIs stay used.
 
-        A batch with receipts, even voided ones, is kept for the record.
+        A batch with receipts, even voided ones, or with verified KG units is
+        kept for the record.
         """
         batch = await self._require(batch_id, for_update=True)
         self._ensure_not_archived(batch)
@@ -151,8 +158,15 @@ class BatchService(service.SQLAlchemyAsyncRepositoryService[m.Batch]):
             m.KgUnit.state != KgState.REGISTERED,
         )
         receipts = select(m.BatchReceipt).where(m.BatchReceipt.batch_id == batch.id)
+        verifications = select(
+            m.VerificationSession
+        ).where(m.VerificationSession.batch_id == batch.id)
 
-        if await self.repository.session.scalar(select(exists(used_units) | exists(receipts))):
+        if await self.repository.session.scalar(
+            select(
+                exists(used_units) | exists(receipts) | exists(verifications)
+            )
+        ):
             raise BatchInUseError
 
         await self.repository.session.delete(batch)
@@ -214,7 +228,9 @@ class BatchService(service.SQLAlchemyAsyncRepositoryService[m.Batch]):
     async def _ensure_assignable_order(self, order_id: UUID) -> None:
         # A shared lock keeps the order from being archived or deleted before the batch commits.
         order: m.ProductionOrder | None = await self.repository.session.scalar(
-            select(m.ProductionOrder).where(m.ProductionOrder.id == order_id).with_for_update(read=True)
+            select(m.ProductionOrder)
+            .where(m.ProductionOrder.id == order_id)
+            .with_for_update(read=True)
         )
 
         if order is None:

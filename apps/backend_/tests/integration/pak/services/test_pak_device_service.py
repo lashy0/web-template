@@ -9,12 +9,20 @@ import pytest
 from sqlalchemy import insert, select
 
 from app.db import models as m
+from app.db.enums import VerificationSessionStatus
 from app.domain.pak.crypto import PakAccessKeyCipher
-from app.domain.pak.exceptions import PakDeviceArchivedError, PakDeviceCodeTakenError
+from app.domain.pak.exceptions import (
+    PakDeviceArchivedError,
+    PakDeviceCodeTakenError,
+    PakDeviceInUseError,
+)
 from app.domain.pak.services import PakDeviceService
+from app.domain.production.schemas import BatchCreate
+from app.domain.production.services import BatchService, KgPrefixService
 from app.lib.exceptions import AuthenticationError
 from app.lib.hydra import HydraClient
 from app.lib.hydra.exceptions import HydraClientNotFoundError
+from app.lib.lorawan import ActivationType, LoRaWanVersion
 from app.lib.uow import unit_of_work
 
 if TYPE_CHECKING:
@@ -248,3 +256,49 @@ async def test_delete_pak_removes_hydra_client(
 
     with pytest.raises(HydraClientNotFoundError):
         await hydra_client.get_client(pak.oauth_client_id)
+
+
+async def test_delete_pak_with_verification_history_is_rejected(
+    session: AsyncSession,
+    hydra_client: HydraClient,
+    pak_service: PakDeviceService,
+    create_pak: CreatePak,
+) -> None:
+    pak, _ = await create_pak("pak-verified")
+    now = datetime.now(UTC)
+
+    async with (
+        unit_of_work(session),
+        KgPrefixService.new(session) as prefixes,
+        BatchService.new(session) as batches,
+    ):
+        prefix = await prefixes.create_prefix({"prefix": "a1b2c3d4e5", "short_code": "ab1"})
+        batch = await batches.create_batch(
+            BatchCreate(
+                name="Batch",
+                kg_prefix_id=prefix.id,
+                planned_qty=1,
+                day_plan_qty=1,
+                activation_type=ActivationType.OTAA,
+                lorawan_version=LoRaWanVersion.V1_0,
+            ),
+            created_by_id=None,
+        )
+        session.add(
+            m.VerificationSession(
+                dev_eui=batch.first_dev_eui,
+                batch_id=batch.id,
+                pak_id=pak.id,
+                pak_kind=pak.kind,
+                slot_no=1,
+                firmware_version="1.0.0",
+                total_steps=1,
+                status=VerificationSessionStatus.RUNNING,
+                started_at=now,
+                last_activity_at=now,
+            )
+        )
+
+    with pytest.raises(PakDeviceInUseError):
+        async with unit_of_work(session) as uow:
+            await pak_service.delete_pak(pak.id, hydra=hydra_client, uow=uow)

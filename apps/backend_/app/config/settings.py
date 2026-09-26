@@ -9,6 +9,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from app.config.database import DatabaseSettings
 from app.config.hydra import HydraSettings
 from app.config.kratos import KratosSettings
+from app.config.queue import QueueSettings
+from app.config.redis import RedisSettings
+from app.config.verification import VerificationSettings
 
 
 class AppSettings(BaseSettings):
@@ -50,6 +53,9 @@ class Settings:
     db: DatabaseSettings = field(default_factory=DatabaseSettings)
     hydra: HydraSettings = field(default_factory=HydraSettings)
     kratos: KratosSettings = field(default_factory=KratosSettings)
+    redis: RedisSettings = field(default_factory=RedisSettings)
+    queue: QueueSettings = field(default_factory=QueueSettings)
+    verification: VerificationSettings = field(default_factory=VerificationSettings)
 
 
 @lru_cache

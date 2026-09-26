@@ -6,14 +6,21 @@ user otk_app_admin reset on #__ADMIN_PASSWORD_HASH__ ~* &* +@all
 # Application runtime: only this application's Redis keys and channels.
 # The entrypoint joins these continuation lines into Redis's required single
 # user directive before starting the server.
-user otk_app_runtime reset on #__RUNTIME_PASSWORD_HASH__ ~otk-app:* &otk-app:* -@all \
-  +ping +client|setinfo \
-  +get +set +del +unlink +exists \
+#
+# The SAQ task queue of backend_ is named after the application prefix, so its
+# keys are saq:otk-app:* and saq:job:otk-app:*. SAQ keeps job abort markers
+# under saq:abort:* without the queue name.
+user otk_app_runtime reset on #__RUNTIME_PASSWORD_HASH__ \
+  ~otk-app:* &otk-app:* \
+  ~saq:otk-app:* ~saq:job:otk-app:* ~saq:abort:* &saq:job:otk-app:* \
+  -@all \
+  +ping +client|setinfo +info \
+  +get +set +setex +mget +del +unlink +exists \
   +expire +pexpire +ttl +pttl \
-  +brpop +lpush +llen \
+  +brpop +blmove +lpush +rpush +llen +lrange +lrem \
   +sadd +srem +smembers \
   +hset +hget +hdel +hgetall \
-  +zadd +zrem +zrangebyscore +zrevrangebyscore +zcard \
+  +zadd +zrem +zscore +zrange +zrangebyscore +zrevrangebyscore +zremrangebyscore +zcard \
   +multi +exec +watch +unwatch \
   +script|load +evalsha \
-  +publish +subscribe +unsubscribe
+  +publish +subscribe +unsubscribe +psubscribe +punsubscribe

@@ -7,7 +7,7 @@ from uuid import UUID
 
 from advanced_alchemy.exceptions import IntegrityError, NotFoundError, RepositoryError
 from advanced_alchemy.extensions.litestar import repository, service
-from sqlalchemy import func
+from sqlalchemy import exists, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncEngine
 from sqlalchemy.orm.attributes import set_committed_value
@@ -15,7 +15,11 @@ from uuid_utils.compat import uuid7
 
 from app.db import models as m
 from app.domain.pak.crypto import PakAccessKeyCipher
-from app.domain.pak.exceptions import PakDeviceArchivedError, PakDeviceCodeTakenError
+from app.domain.pak.exceptions import (
+    PakDeviceArchivedError,
+    PakDeviceCodeTakenError,
+    PakDeviceInUseError,
+)
 from app.lib.exceptions import AuthenticationError, AuthorizationError
 from app.lib.hydra import HydraClient
 from app.lib.uow import UnitOfWork
@@ -226,6 +230,13 @@ class PakDeviceService(service.SQLAlchemyAsyncRepositoryService[m.PakDevice]):
         uow: UnitOfWork,
     ) -> m.PakDevice:
         pak = await self._require(pak_id, for_update=True)
+
+        if await self.repository.session.scalar(
+            select(
+                exists().where(m.VerificationSession.pak_id == pak.id)
+            )
+        ):
+            raise PakDeviceInUseError
 
         await self.repository.session.delete(pak)
         await self.repository.session.flush()

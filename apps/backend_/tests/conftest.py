@@ -16,6 +16,9 @@ os.environ.update(
     {
         "LITESTAR_DEBUG": "False",
         "DATABASE_URL": "postgresql+asyncpg://test:test@localhost:5432/test",
+        # The task queue connects only when a job is enqueued; tests run task functions directly.
+        "REDIS_URL": "redis://localhost:6379/0",
+        "BACKEND_WORKERS_IN_SERVER": "False",
         "BACKEND_KRATOS_PUBLIC_URL": "http://kratos.test:4433",
         "BACKEND_KRATOS_ADMIN_URL": "http://kratos.test:4434",
         "BACKEND_HYDRA_PUBLIC_URL": "http://hydra.test:4444",

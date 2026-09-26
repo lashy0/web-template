@@ -48,6 +48,8 @@ def test_archivable_lists_accept_archived_filter() -> None:
 
     assert operations_with_filter == {
         "ListBatches",
+        "ListDefectGroups",
+        "ListDefectTypes",
         "ListKgPrefixes",
         "ListKgVersions",
         "ListPakDevices",

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from uuid import UUID
 
 from advanced_alchemy.base import DefaultBase
@@ -7,7 +8,7 @@ from advanced_alchemy.mixins import AuditColumns
 from sqlalchemy import CheckConstraint, Enum, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.enums import KgState, enum_values
+from app.db.enums import KgOtkStatus, KgState, enum_values
 from app.db.models._batch import Batch
 from app.lib.lorawan import ActivationType, LoRaWanVersion
 
@@ -53,9 +54,32 @@ class KgUnit(DefaultBase, AuditColumns):
         default=KgState.REGISTERED,
     )
 
+    otk_status: Mapped[KgOtkStatus] = mapped_column(
+        Enum(
+            KgOtkStatus,
+            name="kg_otk_status",
+            native_enum=False,
+            create_constraint=True,
+            validate_strings=True,
+            values_callable=enum_values,
+        ),
+        nullable=False,
+        default=KgOtkStatus.NOT_VERIFIED,
+        server_default=KgOtkStatus.NOT_VERIFIED.value,
+        index=True,
+    )
+    """Set by verification sessions on OTK-line PAKs that pass or fail; the others leave it."""
+
+    last_verification_at: Mapped[datetime | None] = mapped_column(
+        nullable=True,
+    )
+    """When the verification that set ``otk_status`` completed."""
+
     batch: Mapped[Batch] = relationship(lazy="selectin")
 
-    __table_args__ = (CheckConstraint("dev_eui ~ '^[0-9a-f]{16}$'", name="dev_eui_format"),)
+    __table_args__ = (
+        CheckConstraint("dev_eui ~ '^[0-9a-f]{16}$'", name="dev_eui_format"),
+    )
 
     @property
     def activation_type(self) -> ActivationType:

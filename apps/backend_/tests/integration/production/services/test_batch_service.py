@@ -9,7 +9,7 @@ import pytest
 from sqlalchemy import func, select, update
 
 from app.db import models as m
-from app.db.enums import BatchStatus, KgState
+from app.db.enums import BatchStatus, KgState, PakDeviceKind, VerificationSessionStatus
 from app.domain.production.exceptions import (
     BatchArchivedError,
     BatchCompletedError,
@@ -333,6 +333,43 @@ async def test_delete_batch_with_scrapped_unit_is_rejected(
                 m.KgUnit.dev_eui == batch.first_dev_eui,
             ).values(
                 state=KgState.SCRAPPED,
+            )
+        )
+
+    with pytest.raises(BatchInUseError):
+        async with unit_of_work(session):
+            await batch_service.delete_batch(batch.id)
+
+
+async def test_delete_batch_with_verified_unit_is_rejected(
+    session: AsyncSession,
+    batch_service: BatchService,
+    create_batch: CreateBatch,
+) -> None:
+    batch = await create_batch()
+    now = datetime.now(UTC)
+
+    async with unit_of_work(session):
+        pak = m.PakDevice(
+            code="pak-batch-delete",
+            kind=PakDeviceKind.OTK_LINE,
+            oauth_client_id="pak-batch-delete",
+            encrypted_access_key="unused",
+        )
+        session.add(pak)
+        await session.flush()
+        session.add(
+            m.VerificationSession(
+                dev_eui=batch.first_dev_eui,
+                batch_id=batch.id,
+                pak_id=pak.id,
+                pak_kind=pak.kind,
+                slot_no=1,
+                firmware_version="1.0.0",
+                total_steps=1,
+                status=VerificationSessionStatus.RUNNING,
+                started_at=now,
+                last_activity_at=now,
             )
         )
 

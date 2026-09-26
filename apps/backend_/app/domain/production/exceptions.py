@@ -91,10 +91,10 @@ class BatchEditWindowExpiredError(ApplicationConflictError):
 
 
 class BatchInUseError(ApplicationConflictError):
-    """The batch has receipts or used KG units, so it cannot be deleted (HTTP 409)."""
+    """The batch has receipts, verified or used KG units, so it cannot be deleted (HTTP 409)."""
 
     code = "batch_in_use"
-    detail = "Batch has receipts or KG units that are no longer registered; archive it instead."
+    detail = "Batch has receipts, verification history or KG units that are no longer registered; archive it instead."
 
 
 class BatchReceiptQuantityExceededError(ApplicationConflictError):

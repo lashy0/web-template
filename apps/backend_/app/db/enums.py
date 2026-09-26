@@ -29,3 +29,27 @@ class KgState(StrEnum):
 
     REGISTERED = "registered"
     SCRAPPED = "scrapped"
+
+
+class KgOtkStatus(StrEnum):
+    """Outcome of the last completed verification of a KG unit on an OTK-line PAK."""
+
+    NOT_VERIFIED = "not_verified"
+    PASSED = "passed"
+    FAILED = "failed"
+
+
+class VerificationSessionStatus(StrEnum):
+    RUNNING = "running"
+    PASSED = "passed"
+    FAILED = "failed"
+    ABORTED = "aborted"
+    INCOMPLETE = "incomplete"
+    """Closed by the system: the PAK stopped reporting or moved on."""
+
+
+class VerificationStepStatus(StrEnum):
+    RUNNING = "running"
+    PASSED = "passed"
+    FAILED = "failed"
+    ABORTED = "aborted"

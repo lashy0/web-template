@@ -15,6 +15,7 @@ from app.config import (
     HydraSettings,
     KratosSettings,
     Settings,
+    VerificationSettings,
     get_settings,
 )
 from app.db import models as m
@@ -86,6 +87,7 @@ class ApplicationCore(InitPlugin):
             [
                 SQLAlchemyPlugin(config=alchemy),
                 plugins.autowire,
+                plugins.create_task_queue(settings),
             ]
         )
         app_config.middleware.append(
@@ -104,6 +106,7 @@ class ApplicationCore(InitPlugin):
                 "HydraClient": HydraClient,
                 "KratosClient": KratosClient,
                 "UnitOfWork": UnitOfWork,
+                "VerificationSettings": VerificationSettings,
                 "m": m,
             }
         )
@@ -117,6 +120,9 @@ class ApplicationCore(InitPlugin):
         def provide_hydra_settings() -> HydraSettings:
             return settings.hydra
 
+        def provide_verification_settings() -> VerificationSettings:
+            return settings.verification
+
         app_config.dependencies.update(
             {
                 "settings": Provide(
@@ -129,6 +135,10 @@ class ApplicationCore(InitPlugin):
                 ),
                 "hydra_settings": Provide(
                     provide_hydra_settings,
+                    sync_to_thread=False,
+                ),
+                "verification_settings": Provide(
+                    provide_verification_settings,
                     sync_to_thread=False,
                 ),
                 "hydra": Provide(

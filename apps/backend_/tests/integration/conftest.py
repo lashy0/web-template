@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Protocol
 from uuid import uuid4
 
 import pytest
+from advanced_alchemy.extensions.litestar import SQLAlchemyAsyncConfig, SQLAlchemyPlugin
 from litestar.testing import AsyncTestClient
 
 from app.config import Settings, get_settings
@@ -103,6 +104,14 @@ async def fx_client(app: Litestar, db_cleanup: None) -> AsyncIterator[AsyncTestC
     """HTTP client running the application lifespan; requests are anonymous until ``sign_in``."""
     async with AsyncTestClient(app) as client:
         yield client
+
+    # Advanced Alchemy 1.11 renames the engine state key of every config after
+    # the first in a process, and its lifespan then skips ``dispose()``. Without
+    # this, each application of the test process keeps pooled connections open
+    # until the test database runs out of them.
+    for config in app.plugins.get(SQLAlchemyPlugin).config:
+        if isinstance(config, SQLAlchemyAsyncConfig):
+            await config.get_engine().dispose()
 
 
 @pytest.fixture(name="sign_in")

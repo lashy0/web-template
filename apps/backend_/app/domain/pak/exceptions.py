@@ -17,4 +17,15 @@ class PakDeviceCodeTakenError(ApplicationConflictError):
     detail = "PAK device code is already registered."
 
 
-__all__ = ("PakDeviceArchivedError", "PakDeviceCodeTakenError")
+class PakDeviceInUseError(ApplicationConflictError):
+    """The PAK device ran verification sessions, so it cannot be deleted (HTTP 409)."""
+
+    code = "pak_in_use"
+    detail = "PAK device has verification history; archive it instead."
+
+
+__all__ = (
+    "PakDeviceArchivedError",
+    "PakDeviceCodeTakenError",
+    "PakDeviceInUseError",
+)

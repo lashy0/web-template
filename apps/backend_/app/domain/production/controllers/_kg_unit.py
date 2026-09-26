@@ -10,7 +10,7 @@ from litestar import Controller, get
 from litestar.di import NamedDependency
 from litestar.params import Parameter, SkipValidation
 
-from app.db.enums import KgState
+from app.db.enums import KgOtkStatus, KgState
 from app.domain.production.permissions import KgUnitPermission
 from app.domain.production.schemas import KgUnit
 from app.domain.production.services import KgUnitService
@@ -47,6 +47,7 @@ class KgUnitController(Controller):
             "in_fields": [
                 FieldNameType(name="batch_id", type_hint=UUID),
                 FieldNameType(name="state", type_hint=KgState),
+                FieldNameType(name="otk_status", type_hint=KgOtkStatus),
             ],
         },
     )
