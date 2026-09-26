@@ -6,7 +6,6 @@ dependencies = [
     "advanced-alchemy[uuid]>=1.11.0,<2.0.0",
     "alembic[tz]>=1.20.0,<2.0.0",
     "litestar[standard]>=2.24.0,<3.0.0",
-    "loguru>=0.7.3",
     "psycopg[binary,pool]>=3.3.5,<4.0.0",
     "pydantic>=2.13.5,<3.0.0",
     "pydantic-settings>=2.15.0,<3.0.0",
@@ -15,8 +14,9 @@ dependencies = [
     "ory-kratos-client==26.2.0",
     "cryptography>=46.0.5,<47.0.0",
     "litestar-autowire==0.2.0",
-    "redis>=5.2,<8",
+    "redis>=8.1,<9",
     "litestar-saq[hiredis]>=0.8.0",
+    "structlog>=26.1.0",
 ]
 
 [project.scripts]

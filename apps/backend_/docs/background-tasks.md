@@ -42,7 +42,14 @@ keys under `saq:otk-app:*` and `saq:job:otk-app:*`; job abort markers go to
 (`infrastructure/database/redis/users.acl.template`) may use only these keys,
 the `otk-app:*` namespace, and the commands SAQ needs. When a SAQ upgrade or a
 new feature is denied by Redis (`NOPERM`), check `ACL LOG` as the admin user
-and extend the template.
+and extend the template. Redis renders the ACL from the template when the
+container starts, so restart it after a change; the data volume is kept.
+
+The backend uses redis-py 8, which opens every connection with `HELLO 3` and
+talks RESP3; the template allows `HELLO` for that. SAQ 0.26 declares
+`redis<8` only for its `saq[redis]` extra, which the backend does not install
+(it depends on `litestar-saq[hiredis]`); the queue, the scheduled task and
+the worker were checked against redis-py 8.1.
 
 The production `volatile-ttl` eviction policy is safe for the queue: only
 finished jobs and short locks carry a TTL; waiting jobs and the queue
