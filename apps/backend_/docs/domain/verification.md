@@ -29,6 +29,7 @@ A KG unit and a PAK slot each have at most one `running` session.
 |---|---|
 | the unit is unknown | `verification_kg_not_found` |
 | the unit is scrapped | `verification_kg_scrapped` |
+| the unit is packed and the PAK is an OTK-line PAK | `verification_kg_packed`; an engineering PAK may verify it |
 | the unit's batch is archived | `verification_batch_archived`; a completed batch may be verified |
 | the unit already runs in the same slot | that session is resumed |
 | the unit runs in another slot, reported within the last 60 minutes | `verification_session_already_running` |
@@ -93,8 +94,8 @@ incomplete sessions, are history only. The PAK's kind is copied into the
 session when it opens, so changing the PAK later does not change the meaning
 of its sessions.
 
-Not enforced yet: a packed KG unit must not pass OTK on an OTK-line PAK. The
-rule arrives with packing.
+Packing needs `otkStatus` `passed` and no running OTK-line session; see
+[packing](packing.md).
 
 ## Locks and deletion
 

@@ -29,10 +29,10 @@ def upgrade() -> None:
         sa.Column("sa_orm_sentinel", sa.Integer(), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
-        sa.CheckConstraint("quantity > 0", name="ck_batch_receipts_quantity_positive"),
+        sa.CheckConstraint("quantity > 0", name=op.f("ck_batch_receipts_quantity_positive")),
         sa.CheckConstraint(
             "(voided_at IS NULL) = (void_reason IS NULL)",
-            name="ck_batch_receipts_void_reason_with_voided_at",
+            name=op.f("ck_batch_receipts_void_reason_with_voided_at"),
         ),
         sa.ForeignKeyConstraint(
             ["batch_id"],

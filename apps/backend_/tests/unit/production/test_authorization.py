@@ -1,12 +1,15 @@
 import pytest
 
+from app.db.enums import UserRole
 from app.domain.production.permissions import (
     BatchPermission,
     KgPrefixPermission,
     KgUnitPermission,
     KgVersionPermission,
+    PackingPermission,
     ProductionOrderPermission,
 )
+from app.server.authorization import create_authorization_policy
 from tests.unit.route_permissions import assert_routes_require
 
 pytestmark = [
@@ -85,6 +88,31 @@ def test_batch_receipt_routes_use_operation_specific_permissions() -> None:
             "VoidBatchReceipt": {BatchPermission.VOID_RECEIPT},
         }
     )
+
+
+def test_packing_routes_require_packing_pack() -> None:
+    assert_routes_require(
+        {
+            "FindPackingUnit": {PackingPermission.PACK},
+            "PackKgUnit": {PackingPermission.PACK},
+        }
+    )
+
+
+@pytest.mark.parametrize(
+    ("role", "granted"),
+    [
+        (UserRole.ADMINISTRATOR, True),
+        (UserRole.MANAGER, False),
+        (UserRole.ENGINEER, False),
+        (UserRole.PACKER, True),
+        (UserRole.OPERATOR, False),
+    ],
+)
+def test_roles_get_packing_pack(role: UserRole, granted: bool) -> None:
+    permissions = create_authorization_policy().permissions_for_role(role)
+
+    assert (PackingPermission.PACK in permissions) is granted
 
 
 def test_kg_unit_routes_use_operation_specific_permissions() -> None:

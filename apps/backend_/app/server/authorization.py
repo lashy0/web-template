@@ -8,6 +8,7 @@ from app.domain.production.permissions import (
     KgPrefixPermission,
     KgUnitPermission,
     KgVersionPermission,
+    PackingPermission,
     ProductionOrderPermission,
 )
 from app.domain.quality.permissions import DefectPermission, VerificationPermission
@@ -26,6 +27,7 @@ def create_authorization_policy() -> PermissionPolicy:
                 *KgVersionPermission,
                 *BatchPermission,
                 *KgUnitPermission,
+                *PackingPermission,
                 *DefectPermission,
                 *VerificationPermission,
             },
@@ -43,7 +45,9 @@ def create_authorization_policy() -> PermissionPolicy:
                 DefectPermission.READ,
                 VerificationPermission.READ,
             },
-            UserRole.PACKER: set(),
+            UserRole.PACKER: {
+                PackingPermission.PACK,
+            },
             UserRole.OPERATOR: set(),
         }
     )

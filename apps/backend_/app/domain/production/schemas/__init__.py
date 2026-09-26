@@ -28,6 +28,11 @@ from app.domain.production.schemas._kg_version import (
     KgVersionCreate,
     KgVersionUpdate,
 )
+from app.domain.production.schemas._packing import (
+    PackingBlocker,
+    PackingUnit,
+    PackingUnitBatch,
+)
 from app.domain.production.schemas._production_order import (
     ProductionOrder,
     ProductionOrderCreate,
@@ -55,6 +60,9 @@ __all__ = (
     "KgVersion",
     "KgVersionCreate",
     "KgVersionUpdate",
+    "PackingBlocker",
+    "PackingUnit",
+    "PackingUnitBatch",
     "ProductionOrder",
     "ProductionOrderCreate",
     "ProductionOrderUpdate",

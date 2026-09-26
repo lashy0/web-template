@@ -26,10 +26,12 @@ six-hex-digit serial, so a prefix holds serials `000001` to `ffffff`.
 
 `/kg/units` lists the units of all batches (filter by `batchIdIn`, `stateIn`,
 `otkStatusIn`, search by DevEUI or short ID) and addresses one unit by its
-DevEUI in any case. The routes are read-only: a unit is `registered` or
-`scrapped`, and only production processes change it; users cannot edit or
-delete units. `otkStatus` and `lastVerificationAt` come from verification on
-OTK-line PAKs; see [verification](verification.md). The
+DevEUI in any case. The routes are read-only: a unit is `registered`,
+`packed` or `scrapped`, and only production processes change it; users cannot
+edit or delete units. `otkStatus` and `lastVerificationAt` come from
+verification on OTK-line PAKs; see [verification](verification.md).
+`packedAt` and `packedBy` come from [packing](packing.md), and the batch
+counts its packed units as `packedQty`. The
 activation type and LoRaWAN version shown with a unit are its batch's: every
 unit of a batch is provisioned the same way, so they are stored once.
 

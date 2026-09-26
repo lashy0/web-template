@@ -19,6 +19,7 @@ from app.db.enums import (
 from app.domain.quality.exceptions import (
     VerificationBatchArchivedError,
     VerificationKgNotFoundError,
+    VerificationKgPackedError,
     VerificationKgScrappedError,
     VerificationSessionAlreadyRunningError,
     VerificationSessionIncompleteError,
@@ -74,6 +75,11 @@ class VerificationSessionService(service.SQLAlchemyAsyncRepositoryService[m.Veri
         PAK has moved on.
         """
         kg = await self._lock_verifiable_kg(data.dev_eui)
+
+        # Packing is final; an engineering PAK may still examine a packed unit.
+        if kg.state is KgState.PACKED and pak.kind is PakDeviceKind.OTK_LINE:
+            raise VerificationKgPackedError
+
         await self._lock_pak(pak.id)
         now = datetime.now(UTC)
 
@@ -327,7 +333,12 @@ class VerificationSessionService(service.SQLAlchemyAsyncRepositoryService[m.Veri
 
         return len(stale)
 
-    async def _close_incomplete(self, sessions: list[m.VerificationSession], *, now: datetime) -> None:
+    async def _close_incomplete(
+        self,
+        sessions: list[m.VerificationSession],
+        *,
+        now: datetime,
+    ) -> None:
         """Close sessions the PAK abandoned; ``last_activity_at`` keeps the PAK's last report."""
         if not sessions:
             return
@@ -431,7 +442,11 @@ class VerificationSessionService(service.SQLAlchemyAsyncRepositoryService[m.Veri
 
         return item
 
-    async def _lock_running_session(self, pak: m.PakDevice, session_id: UUID) -> m.VerificationSession:
+    async def _lock_running_session(
+        self,
+        pak: m.PakDevice,
+        session_id: UUID,
+    ) -> m.VerificationSession:
         item = await self._lock_session(pak, session_id)
 
         if item.status is not VerificationSessionStatus.RUNNING:

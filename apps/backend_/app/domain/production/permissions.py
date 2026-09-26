@@ -45,6 +45,12 @@ class KgUnitPermission(StrEnum):
     READ = "kg_units.read"
 
 
+class PackingPermission(StrEnum):
+    """Capabilities of the packing workstation."""
+
+    PACK = "packing.pack"
+
+
 class BatchPermission(StrEnum):
     """Capabilities for managing production batches and their receipts."""
 
@@ -67,5 +73,6 @@ __all__ = (
     "KgPrefixPermission",
     "KgUnitPermission",
     "KgVersionPermission",
+    "PackingPermission",
     "ProductionOrderPermission",
 )

@@ -93,11 +93,11 @@ def upgrade() -> None:
         sa.Column("sa_orm_sentinel", sa.Integer(), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
-        sa.CheckConstraint("slot_no > 0", name="ck_verification_sessions_slot_no_positive"),
-        sa.CheckConstraint("total_steps > 0", name="ck_verification_sessions_total_steps_positive"),
+        sa.CheckConstraint("slot_no > 0", name=op.f("ck_verification_sessions_slot_no_positive")),
+        sa.CheckConstraint("total_steps > 0", name=op.f("ck_verification_sessions_total_steps_positive")),
         sa.CheckConstraint(
             "(status = 'running') = (completed_at IS NULL)",
-            name="ck_verification_sessions_completed_at_when_finished",
+            name=op.f("ck_verification_sessions_completed_at_when_finished"),
         ),
         sa.ForeignKeyConstraint(
             ["dev_eui"],
@@ -176,14 +176,14 @@ def upgrade() -> None:
         sa.Column("sa_orm_sentinel", sa.Integer(), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
-        sa.CheckConstraint("step_no > 0", name="ck_verification_steps_step_no_positive"),
+        sa.CheckConstraint("step_no > 0", name=op.f("ck_verification_steps_step_no_positive")),
         sa.CheckConstraint(
             "measurement_min IS NULL OR measurement_max IS NULL OR measurement_min <= measurement_max",
-            name="ck_verification_steps_measurement_range",
+            name=op.f("ck_verification_steps_measurement_range"),
         ),
         sa.CheckConstraint(
             "(status = 'running') = (completed_at IS NULL)",
-            name="ck_verification_steps_completed_at_when_finished",
+            name=op.f("ck_verification_steps_completed_at_when_finished"),
         ),
         sa.ForeignKeyConstraint(
             ["session_id"],

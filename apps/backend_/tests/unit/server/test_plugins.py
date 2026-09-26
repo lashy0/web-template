@@ -34,6 +34,7 @@ def test_autowire_registers_every_domain_controller() -> None:
         "KgUnitController",
         "KgVersionController",
         "MachineVerificationController",
+        "PackingController",
         "PakCheckController",
         "PakDeviceController",
         "ProductionOrderController",

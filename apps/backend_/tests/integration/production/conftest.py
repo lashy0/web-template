@@ -14,6 +14,7 @@ from app.domain.production.services import (
     KgPrefixService,
     KgUnitService,
     KgVersionService,
+    PackingService,
     ProductionOrderService,
 )
 from app.lib.lorawan import ActivationType, LoRaWanVersion
@@ -80,7 +81,17 @@ async def kg_unit_service(session: AsyncSession) -> AsyncGenerator[KgUnitService
 
 
 @pytest.fixture
-def create_order(session: AsyncSession, production_order_service: ProductionOrderService) -> CreateOrder:
+async def packing_service(session: AsyncSession) -> AsyncGenerator[PackingService]:
+    """Create PackingService instance with the test session."""
+    async with PackingService.new(session) as service:
+        yield service
+
+
+@pytest.fixture
+def create_order(
+    session: AsyncSession,
+    production_order_service: ProductionOrderService,
+) -> CreateOrder:
     """Return a helper that commits a production order, archived when requested."""
 
     async def _create(name: str = "Order", *, archived: bool = False) -> m.ProductionOrder:

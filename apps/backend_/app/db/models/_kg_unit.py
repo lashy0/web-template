@@ -5,11 +5,12 @@ from uuid import UUID
 
 from advanced_alchemy.base import DefaultBase
 from advanced_alchemy.mixins import AuditColumns
-from sqlalchemy import CheckConstraint, Enum, ForeignKey, String
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import CheckConstraint, Enum, ForeignKey, Index, String, func, select, text
+from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 
 from app.db.enums import KgOtkStatus, KgState, enum_values
 from app.db.models._batch import Batch
+from app.db.models._user import User
 from app.lib.lorawan import ActivationType, LoRaWanVersion
 
 
@@ -75,10 +76,25 @@ class KgUnit(DefaultBase, AuditColumns):
     )
     """When the verification that set ``otk_status`` completed."""
 
+    packed_at: Mapped[datetime | None] = mapped_column(
+        nullable=True,
+    )
+    """Set together with the ``packed`` state and never cleared."""
+
+    packed_by_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("user_account.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
     batch: Mapped[Batch] = relationship(lazy="selectin")
+    packed_by: Mapped[User | None] = relationship(lazy="selectin")
 
     __table_args__ = (
         CheckConstraint("dev_eui ~ '^[0-9a-f]{16}$'", name="dev_eui_format"),
+        CheckConstraint("(state = 'packed') = (packed_at IS NOT NULL)", name="packed_at_with_packed_state"),
+        # Keeps the packed count of a batch proportional to its packed units.
+        Index("ix_kg_units_packed_batch_id", "batch_id", postgresql_where=text("state = 'packed'")),
     )
 
     @property
@@ -90,3 +106,14 @@ class KgUnit(DefaultBase, AuditColumns):
     def lorawan_version(self) -> LoRaWanVersion:
         """The LoRaWAN version of the batch; read by the API schema."""
         return self.batch.lorawan_version
+
+
+# Assigned here because ``Batch`` cannot import ``KgUnit``. Only packing
+# changes it, never a flush of the batch itself.
+Batch.packed_qty = column_property(  # type: ignore[assignment]
+    select(func.count())
+    .where(KgUnit.batch_id == Batch.id, KgUnit.state == KgState.PACKED)
+    .correlate_except(KgUnit)
+    .scalar_subquery(),
+    expire_on_flush=False,
+)

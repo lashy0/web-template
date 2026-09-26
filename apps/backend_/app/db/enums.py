@@ -25,9 +25,13 @@ class BatchStatus(StrEnum):
 
 
 class KgState(StrEnum):
-    """Lifecycle of a KG unit; verification results are tracked separately."""
+    """Lifecycle of a KG unit; verification results are tracked separately.
+
+    A unit starts ``registered``; packing makes it ``packed`` for good.
+    """
 
     REGISTERED = "registered"
+    PACKED = "packed"
     SCRAPPED = "scrapped"
 
 

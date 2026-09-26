@@ -47,6 +47,7 @@ class Batch(CamelizedBaseStruct):
     description: str | None
     planned_qty: int
     received_qty: int
+    packed_qty: int
     day_plan_qty: int
     status: BatchStatus
     kg_prefix: BatchKgPrefix

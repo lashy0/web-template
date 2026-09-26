@@ -59,6 +59,13 @@ class VerificationKgScrappedError(ApplicationConflictError):
     detail = "Scrapped KG unit cannot be verified."
 
 
+class VerificationKgPackedError(ApplicationConflictError):
+    """The KG unit is packed, so an OTK-line PAK cannot verify it (HTTP 409)."""
+
+    code = "verification_kg_packed"
+    detail = "Packed KG unit cannot be verified on an OTK-line PAK."
+
+
 class VerificationBatchArchivedError(ApplicationConflictError):
     """The batch of the KG unit is archived, so the unit cannot be verified (HTTP 409)."""
 
@@ -138,6 +145,7 @@ __all__ = (
     "DefectTypeCodeTakenError",
     "VerificationBatchArchivedError",
     "VerificationKgNotFoundError",
+    "VerificationKgPackedError",
     "VerificationKgScrappedError",
     "VerificationSessionAlreadyRunningError",
     "VerificationSessionIncompleteError",

@@ -24,7 +24,7 @@ def upgrade() -> None:
         sa.Column("next_serial", sa.Integer(), server_default="1", nullable=False),
     )
     op.create_check_constraint(
-        "ck_kg_prefixes_next_serial_range",
+        op.f("ck_kg_prefixes_next_serial_range"),
         "kg_prefixes",
         f"next_serial BETWEEN 1 AND {DEV_EUI_SERIAL_MAX + 1}",
     )
@@ -79,13 +79,13 @@ def upgrade() -> None:
         sa.Column("sa_orm_sentinel", sa.Integer(), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
-        sa.CheckConstraint("planned_qty > 0", name="ck_batches_planned_qty_positive"),
-        sa.CheckConstraint("day_plan_qty > 0", name="ck_batches_day_plan_qty_positive"),
+        sa.CheckConstraint("planned_qty > 0", name=op.f("ck_batches_planned_qty_positive")),
+        sa.CheckConstraint("day_plan_qty > 0", name=op.f("ck_batches_day_plan_qty_positive")),
         sa.CheckConstraint(
             f"first_serial >= 1 AND first_serial + planned_qty - 1 <= {DEV_EUI_SERIAL_MAX}",
-            name="ck_batches_serial_range",
+            name=op.f("ck_batches_serial_range"),
         ),
-        sa.CheckConstraint("join_eui ~ '^[0-9a-f]{16}$'", name="ck_batches_join_eui_format"),
+        sa.CheckConstraint("join_eui ~ '^[0-9a-f]{16}$'", name=op.f("ck_batches_join_eui_format")),
         sa.ForeignKeyConstraint(
             ["kg_prefix_id"],
             ["kg_prefixes.id"],
@@ -126,7 +126,7 @@ def upgrade() -> None:
         sa.Column("state", kg_state, nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
-        sa.CheckConstraint("dev_eui ~ '^[0-9a-f]{16}$'", name="ck_kg_units_dev_eui_format"),
+        sa.CheckConstraint("dev_eui ~ '^[0-9a-f]{16}$'", name=op.f("ck_kg_units_dev_eui_format")),
         sa.ForeignKeyConstraint(
             ["batch_id"],
             ["batches.id"],
@@ -148,5 +148,5 @@ def downgrade() -> None:
     op.drop_index("ix_batches_kg_version_id", table_name="batches")
     op.drop_index("ix_batches_kg_prefix_id", table_name="batches")
     op.drop_table("batches")
-    op.drop_constraint("ck_kg_prefixes_next_serial_range", "kg_prefixes", type_="check")
+    op.drop_constraint(op.f("ck_kg_prefixes_next_serial_range"), "kg_prefixes", type_="check")
     op.drop_column("kg_prefixes", "next_serial")

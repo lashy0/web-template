@@ -20,6 +20,7 @@ from app.db.enums import (
 from app.domain.quality.exceptions import (
     VerificationBatchArchivedError,
     VerificationKgNotFoundError,
+    VerificationKgPackedError,
     VerificationKgScrappedError,
     VerificationSessionAlreadyRunningError,
     VerificationSessionIncompleteError,
@@ -181,6 +182,47 @@ async def test_open_session_for_scrapped_kg_is_rejected(
 
     with pytest.raises(VerificationKgScrappedError):
         await _open_session(session, verification_service, pak, batch.first_dev_eui)
+
+
+async def test_open_session_for_packed_kg_on_otk_line_is_rejected(
+    session: AsyncSession,
+    verification_service: VerificationSessionService,
+    create_batch: CreateBatch,
+    create_pak: CreatePak,
+) -> None:
+    batch = await create_batch()
+    pak = await create_pak(PakDeviceKind.OTK_LINE)
+
+    async with unit_of_work(session):
+        await session.execute(
+            update(m.KgUnit)
+            .where(m.KgUnit.dev_eui == batch.first_dev_eui)
+            .values(state=KgState.PACKED, packed_at=datetime.now(UTC)),
+        )
+
+    with pytest.raises(VerificationKgPackedError):
+        await _open_session(session, verification_service, pak, batch.first_dev_eui)
+
+
+async def test_open_session_for_packed_kg_on_engineering_pak_starts_it(
+    session: AsyncSession,
+    verification_service: VerificationSessionService,
+    create_batch: CreateBatch,
+    create_pak: CreatePak,
+) -> None:
+    batch = await create_batch()
+    pak = await create_pak(PakDeviceKind.ENGINEERING)
+
+    async with unit_of_work(session):
+        await session.execute(
+            update(m.KgUnit)
+            .where(m.KgUnit.dev_eui == batch.first_dev_eui)
+            .values(state=KgState.PACKED, packed_at=datetime.now(UTC)),
+        )
+
+    item = await _open_session(session, verification_service, pak, batch.first_dev_eui)
+
+    assert item.status is VerificationSessionStatus.RUNNING
 
 
 async def test_open_session_for_kg_of_archived_batch_is_rejected(

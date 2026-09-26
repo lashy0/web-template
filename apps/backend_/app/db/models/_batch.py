@@ -134,6 +134,8 @@ class Batch(UUIDv7AuditBase):
     if TYPE_CHECKING:
         received_qty: int
         """KG units received by the non-voided receipts; mapped below the class."""
+        packed_qty: int
+        """KG units packed; mapped in ``_kg_unit``."""
 
     __table_args__ = (
         CheckConstraint("planned_qty > 0", name="planned_qty_positive"),
