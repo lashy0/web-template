@@ -1,4 +1,4 @@
-name: web-database
+name: otk-app-database
 
 x-default-logging: &default-logging
   driver: local
@@ -18,8 +18,8 @@ services:
       POSTGRES_DB: postgres
       POSTGRES_USER: postgres_admin
       POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?POSTGRES_ADMIN_PASSWORD is required}
-      POSTGRES_MIGRATOR_PASSWORD: ${POSTGRES_MIGRATOR_PASSWORD:?POSTGRES_MIGRATOR_PASSWORD is required}
-      POSTGRES_RUNTIME_PASSWORD: ${POSTGRES_RUNTIME_PASSWORD:?POSTGRES_RUNTIME_PASSWORD is required}
+      BACKEND_POSTGRES_MIGRATOR_PASSWORD: ${BACKEND_POSTGRES_MIGRATOR_PASSWORD:?BACKEND_POSTGRES_MIGRATOR_PASSWORD is required}
+      BACKEND_POSTGRES_RUNTIME_PASSWORD: ${BACKEND_POSTGRES_RUNTIME_PASSWORD:?BACKEND_POSTGRES_RUNTIME_PASSWORD is required}
       KRATOS_POSTGRES_MIGRATOR_PASSWORD: ${KRATOS_POSTGRES_MIGRATOR_PASSWORD:?KRATOS_POSTGRES_MIGRATOR_PASSWORD is required}
       KRATOS_POSTGRES_RUNTIME_PASSWORD: ${KRATOS_POSTGRES_RUNTIME_PASSWORD:?KRATOS_POSTGRES_RUNTIME_PASSWORD is required}
       HYDRA_POSTGRES_MIGRATOR_PASSWORD: ${HYDRA_POSTGRES_MIGRATOR_PASSWORD:?HYDRA_POSTGRES_MIGRATOR_PASSWORD is required}
@@ -27,12 +27,12 @@ services:
     command: ["postgres", "-c", "max_connections=100"]
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./postgres/init.sh:/docker-entrypoint-initdb.d/10-web-database-init.sh:ro
-      - ./postgres/web-app/init.sql:/usr/local/share/web-database/web-app/init.sql:ro
-      - ./postgres/kratos/init.sql:/usr/local/share/web-database/kratos/init.sql:ro
-      - ./postgres/hydra/init.sql:/usr/local/share/web-database/hydra/init.sql:ro
+      - ./postgres/init.sh:/docker-entrypoint-initdb.d/10-otk-app-database-init.sh:ro
+      - ./postgres/otk-app/init.sql:/usr/local/share/otk-app-database/otk-app/init.sql:ro
+      - ./postgres/kratos/init.sql:/usr/local/share/otk-app-database/kratos/init.sql:ro
+      - ./postgres/hydra/init.sql:/usr/local/share/otk-app-database/hydra/init.sql:ro
     networks:
-      - web-database
+      - otk-app-database
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres_admin -d postgres"]
       interval: 30s
@@ -50,19 +50,19 @@ services:
     environment:
       REDIS_ADMIN_PASSWORD: ${REDIS_ADMIN_PASSWORD:?REDIS_ADMIN_PASSWORD is required}
       REDIS_RUNTIME_PASSWORD: ${REDIS_RUNTIME_PASSWORD:?REDIS_RUNTIME_PASSWORD is required}
-    entrypoint: ["bash", "/usr/local/bin/web-database-redis-entrypoint.sh"]
+    entrypoint: ["bash", "/usr/local/bin/otk-app-database-redis-entrypoint.sh"]
     command: ["--appendonly", "yes"]
     volumes:
       - redis-data:/data
-      - ./redis/entrypoint.sh:/usr/local/bin/web-database-redis-entrypoint.sh:ro
-      - ./redis/users.acl.template:/usr/local/share/web-database/users.acl.template:ro
+      - ./redis/entrypoint.sh:/usr/local/bin/otk-app-database-redis-entrypoint.sh:ro
+      - ./redis/users.acl.template:/usr/local/share/otk-app-database/users.acl.template:ro
     networks:
-      - web-database
+      - otk-app-database
     healthcheck:
       test:
         [
           "CMD-SHELL",
-          "REDISCLI_AUTH=\"$${REDIS_ADMIN_PASSWORD}\" redis-cli --user web_app_admin ping | grep -q PONG",
+          "REDISCLI_AUTH=\"$${REDIS_ADMIN_PASSWORD}\" redis-cli --user otk_app_admin ping | grep -q PONG",
         ]
       interval: 30s
       timeout: 10s
@@ -75,6 +75,6 @@ volumes:
   redis-data:
 
 networks:
-  web-database:
-    name: web-database
+  otk-app-database:
+    name: otk-app-database
     external: true

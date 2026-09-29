@@ -46,10 +46,12 @@ export function KgVersionActionsMenu({ version }: Readonly<{ version: KgVersion 
             <EyeIcon />
             Подробнее
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setEditOpen(true)}>
-            <PencilIcon />
-            Редактировать
-          </DropdownMenuItem>
+          {version.archivedAt ? null : (
+            <DropdownMenuItem onClick={() => setEditOpen(true)}>
+              <PencilIcon />
+              Изменить
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem onClick={() => setArchiveOpen(true)}>
             {version.archivedAt ? <RotateCcwIcon /> : <ArchiveIcon />}
             {version.archivedAt ? 'Восстановить' : 'Архивировать'}

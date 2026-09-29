@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { archiveKgPrefixMutation, restoreKgPrefixMutation } from '@web-app/api-client'
 
 import { Button } from '@web-app/ui/components/button'
 import {
@@ -11,7 +12,7 @@ import {
 } from '@web-app/ui/components/dialog'
 import { Spinner } from '@web-app/ui/components/spinner'
 
-import { updateKgPrefixArchived, type KgPrefix } from '@/features/kg/kg-prefixes-api'
+import { invalidateKgPrefixQueries, type KgPrefix } from '@/features/kg/kg-prefixes-api'
 import useCustomToast from '@/hooks/useCustomToast'
 
 export function ArchiveKgPrefix({
@@ -24,14 +25,11 @@ export function ArchiveKgPrefix({
   const restore = prefix.archivedAt !== null
   const action = restore ? 'Восстановить' : 'Архивировать'
   const mutation = useMutation({
-    mutationFn: () => updateKgPrefixArchived(prefix.prefix, !restore),
+    ...(restore ? restoreKgPrefixMutation() : archiveKgPrefixMutation()),
     onError: () =>
       showErrorToast(`Не удалось ${action.toLowerCase()} префикс`, 'Попробуйте ещё раз.'),
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['kg', 'prefixes'] }),
-        queryClient.invalidateQueries({ queryKey: ['audit'] }),
-      ])
+      await invalidateKgPrefixQueries(queryClient)
       onOpenChange(false)
       showSuccessToast(
         restore ? 'Префикс восстановлен' : 'Префикс архивирован',
@@ -60,7 +58,10 @@ export function ArchiveKgPrefix({
           >
             Отмена
           </Button>
-          <Button disabled={mutation.isPending} onClick={() => mutation.mutate()}>
+          <Button
+            disabled={mutation.isPending}
+            onClick={() => mutation.mutate({ path: { prefix_id: prefix.id } })}
+          >
             {mutation.isPending ? <Spinner data-icon="inline-start" /> : null}
             {mutation.isPending ? `${action}…` : action}
           </Button>

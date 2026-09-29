@@ -1,6 +1,8 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { useEffect, useMemo, useState } from 'react'
+import { listDefectTypesOptions } from '@web-app/api-client'
+import { useMemo } from 'react'
+import { z } from 'zod'
 
 import { Tabs, TabsList, TabsTrigger } from '@web-app/ui/components/tabs'
 
@@ -9,18 +11,28 @@ import { DefectTypeFilters } from '@/components/Defects/Types/DefectTypeFilters'
 import PendingDefectTypes from '@/components/Defects/Types/PendingDefectTypes'
 import { createDefectTypeColumns } from '@/components/Defects/Types/columns'
 import { DataLoadError } from '@/components/Common/DataLoadError'
+import { ListEmptyState } from '@/components/Common/ListEmptyState'
+import { DataTable } from '@/components/Common/DataTable'
+import { type DefectSort } from '@/features/defects/defects-api'
 import {
-  DataTable,
-  type DataTablePaginationState,
-  type DataTableSorting,
-  type PageSize,
-} from '@/components/Common/DataTable'
-import { Empty } from '@/routes/_layout/admin/defects/groups'
-import { listDefectTypes, type DefectSort, type SortOrder } from '@/features/defects/defects-api'
-import { listEnum, listOrder, listPage, listPageSize, listQuery } from '@/lib/list-search'
-import { z } from 'zod'
+  listEnum,
+  listOrder,
+  listPage,
+  listPageSize,
+  listQuery,
+  pageQuery,
+  paginationFromSearch,
+  searchFromPagination,
+  searchFromSorting,
+  sortingFromSearch,
+  sortQuery,
+  useSearchInput,
+  type ListPageSearch,
+  type ListSortDefault,
+  type ListSortSearch,
+} from '@/lib/list-search'
 
-const defectTableSorts = ['archived_at', 'code', 'name'] as const
+const defectSorts = ['archived_at', 'code', 'name'] as const satisfies readonly DefectSort[]
 const groupIdSchema = z.uuid()
 
 export const Route = createFileRoute('/_layout/admin/defects/types')({
@@ -29,71 +41,52 @@ export const Route = createFileRoute('/_layout/admin/defects/types')({
   pendingComponent: PendingDefectTypes,
 })
 
+type DefectTypeSearch = ListPageSearch &
+  ListSortSearch<DefectSort> &
+  Readonly<{ archived?: true; group?: string; q?: string }>
+
+function validateDefectTypeSearch(search: Record<string, unknown>): DefectTypeSearch {
+  return {
+    archived: search.archived === true ? true : undefined,
+    group: groupIdSchema.safeParse(search.group).data,
+    order: listOrder(search.order),
+    page: listPage(search.page),
+    pageSize: listPageSize(search.pageSize),
+    q: listQuery(search.q),
+    sort: listEnum(defectSorts, search.sort),
+  }
+}
+
+function defaultSort(archived: boolean): ListSortDefault<DefectSort> {
+  return archived ? { desc: true, id: 'archived_at' } : { desc: false, id: 'code' }
+}
+
 function DefectTypes() {
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
   const archived = search.archived ?? false
   const groupId = search.group
-  const pagination: DataTablePaginationState = {
-    pageIndex: (search.page ?? 1) - 1,
-    pageSize: search.pageSize ?? (25 as PageSize),
-  }
-  const sorting = sortingFromSearch(search, archived)
-  const [queryInput, setQueryInput] = useState(search.q ?? '')
-
-  useEffect(() => {
-    setQueryInput(search.q ?? '')
-  }, [search.q])
-
-  useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      const query = queryInput.trim()
-      if (query !== (search.q ?? '')) {
-        navigate({
-          replace: true,
-          search: (previous) => ({ ...previous, page: undefined, q: query || undefined }),
-        })
-      }
-    }, 300)
-    return () => window.clearTimeout(timeout)
-  }, [navigate, queryInput, search.q])
-
-  const setArchived = (nextArchived: boolean) => {
-    navigate({
-      search: (previous) => ({
-        ...previous,
-        archived: nextArchived ? true : undefined,
-        order: undefined,
-        page: undefined,
-        sort: undefined,
-      }),
-    })
-  }
-  const setGroupId = (nextGroupId: string | undefined) => {
-    navigate({ search: (previous) => ({ ...previous, group: nextGroupId, page: undefined }) })
-  }
-
-  const params = {
-    archived,
-    groupId,
-    order: sorting[0]?.desc ? 'desc' : ('asc' as SortOrder),
-    page: pagination.pageIndex + 1,
-    pageSize: pagination.pageSize,
-    query: search.q,
-    sort: sortFor(sorting[0]?.id, archived),
-  }
-  const result = useQuery({
-    queryFn: () => listDefectTypes(params),
-    queryKey: ['defects', 'types', params],
-    placeholderData: keepPreviousData,
+  const pagination = paginationFromSearch(search)
+  const sorting = sortingFromSearch(search, defaultSort(archived))
+  const [queryInput, setQueryInput] = useSearchInput(search.q, (q) => {
+    navigate({ replace: true, search: (previous) => ({ ...previous, page: undefined, q }) })
   })
   const columns = useMemo(() => createDefectTypeColumns(archived), [archived])
-  const resetList = (nextArchived: boolean) => {
-    setArchived(nextArchived)
-  }
-  const changeGroup = (value: string) => {
-    setGroupId(value === 'all' ? undefined : value)
-  }
+
+  const result = useQuery({
+    ...listDefectTypesOptions({
+      query: {
+        ...pageQuery(pagination),
+        ...sortQuery(defectSorts, sorting, defaultSort(archived)),
+        archived,
+        groupIdIn: groupId ? [groupId] : undefined,
+        searchIgnoreCase: true,
+        searchString: search.q,
+      },
+    }),
+    placeholderData: keepPreviousData,
+  })
+  const filtered = Boolean(search.q || groupId)
 
   return (
     <section className="mx-auto w-full max-w-[82.5rem] px-4 py-8 sm:px-8 lg:px-12">
@@ -103,7 +96,17 @@ function DefectTypes() {
       </div>
       <Tabs
         className="mt-5"
-        onValueChange={(value) => resetList(value === 'archived')}
+        onValueChange={(value) => {
+          navigate({
+            search: (previous) => ({
+              ...previous,
+              archived: value === 'archived' ? true : undefined,
+              order: undefined,
+              page: undefined,
+              sort: undefined,
+            }),
+          })
+        }}
         value={archived ? 'archived' : 'current'}
       >
         <TabsList>
@@ -114,7 +117,15 @@ function DefectTypes() {
       <div className="mt-4">
         <DefectTypeFilters
           groupId={groupId}
-          onGroupChange={changeGroup}
+          onGroupChange={(value) => {
+            navigate({
+              search: (previous) => ({
+                ...previous,
+                group: value === 'all' ? undefined : value,
+                page: undefined,
+              }),
+            })
+          }}
           onQueryChange={setQueryInput}
           query={queryInput}
         />
@@ -127,7 +138,16 @@ function DefectTypes() {
             <PendingDefectTypes />
           )
         ) : result.data.items.length === 0 ? (
-          <Empty archived={archived} filtered={Boolean(search.q || groupId)} item="типов" />
+          <ListEmptyState
+            description={
+              filtered
+                ? 'Попробуйте изменить параметры поиска.'
+                : archived
+                  ? 'Архивированные типы появятся здесь.'
+                  : 'Добавьте тип, чтобы он появился в списке.'
+            }
+            title={filtered ? 'Ничего не найдено' : archived ? 'Архив пуст' : 'Типов пока нет'}
+          />
         ) : (
           <DataTable
             columns={columns}
@@ -135,18 +155,14 @@ function DefectTypes() {
             loading={result.isFetching}
             onPaginationChange={(next) => {
               navigate({
-                search: (previous) => ({
-                  ...previous,
-                  page: next.pageIndex === 0 ? undefined : next.pageIndex + 1,
-                  pageSize: next.pageSize === 25 ? undefined : (next.pageSize as PageSize),
-                }),
+                search: (previous) => ({ ...previous, ...searchFromPagination(next) }),
               })
             }}
             onSortingChange={(next) => {
               navigate({
                 search: (previous) => ({
                   ...previous,
-                  ...searchForSorting(next, archived),
+                  ...searchFromSorting(defectSorts, next, defaultSort(archived)),
                   page: undefined,
                 }),
               })
@@ -159,53 +175,4 @@ function DefectTypes() {
       </div>
     </section>
   )
-}
-
-function sortFor(id: string | undefined, archived: boolean): DefectSort {
-  return listEnum(defectTableSorts, id) ?? (archived ? 'archived_at' : 'code')
-}
-
-export function validateDefectTypeSearch(search: Record<string, unknown>): DefectTypeSearch {
-  return {
-    archived: search.archived === true ? true : undefined,
-    group: groupIdSchema.safeParse(search.group).data,
-    order: listOrder(search.order),
-    page: listPage(search.page),
-    pageSize: listPageSize(search.pageSize),
-    q: listQuery(search.q),
-    sort: listEnum(defectTableSorts, search.sort),
-  }
-}
-
-type DefectTypeSearch = Readonly<{
-  archived?: true
-  group?: string
-  order?: SortOrder
-  page?: number
-  pageSize?: PageSize
-  q?: string
-  sort?: DefectTableSort
-}>
-
-type DefectTableSort = (typeof defectTableSorts)[number]
-
-function sortingFromSearch(search: DefectTypeSearch, archived: boolean): DataTableSorting {
-  return [
-    {
-      desc: search.order ? search.order === 'desc' : archived,
-      id: search.sort ?? (archived ? 'archived_at' : 'code'),
-    },
-  ]
-}
-
-function searchForSorting(sorting: DataTableSorting, archived: boolean) {
-  const [current] = sorting
-  const sort = listEnum(defectTableSorts, current?.id) ?? (archived ? 'archived_at' : 'code')
-  const desc = current?.desc ?? archived
-  const defaultSort = archived ? 'archived_at' : 'code'
-
-  return {
-    order: desc === archived && sort === defaultSort ? undefined : desc ? 'desc' : 'asc',
-    sort: sort === defaultSort ? undefined : sort,
-  } as const
 }

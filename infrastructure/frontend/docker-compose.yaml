@@ -1,4 +1,4 @@
-name: web-frontend
+name: otk-app-frontend
 
 x-default-logging: &default-logging
   driver: local
@@ -7,7 +7,7 @@ x-default-logging: &default-logging
     max-file: "3"
 
 x-frontend-image: &frontend-image
-  image: "web-app-frontend:${FRONTEND_TAG:-dev}"
+  image: "otk-app-frontend:${FRONTEND_TAG:-dev}"
   build:
     context: ../../apps/frontend
     dockerfile: Dockerfile
@@ -21,6 +21,17 @@ services:
     <<: *frontend-image
     logging: *default-logging
     init: true
+    networks:
+      - traefik-public
+    labels:
+      traefik.enable: "true"
+      traefik.constraint-label: traefik-public
+      traefik.docker.network: traefik-public
+      # Everything on the host that /api and /.ory do not claim.
+      traefik.http.routers.frontend.rule: "Host(`${APP_HOST:?APP_HOST is required}`)"
+      traefik.http.routers.frontend.entrypoints: http
+      traefik.http.routers.frontend.priority: "1"
+      traefik.http.routers.frontend.service: frontend
 
 networks:
   traefik-public:

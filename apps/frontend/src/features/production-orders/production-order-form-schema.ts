@@ -1,10 +1,9 @@
+import { zProductionOrderCreate } from '@web-app/api-client'
 import { z } from 'zod'
 
-const name = z
-  .string()
-  .trim()
-  .min(1, 'Укажите название.')
-  .max(128, 'Название не должно превышать 128 символов.')
-const description = z.string().trim().max(2000, 'Описание не должно превышать 2000 символов.')
+import { optionalText, trimmed } from '@/lib/validation'
 
-export const productionOrderFormSchema = z.object({ description, name })
+export const productionOrderFormSchema = z.object({
+  description: optionalText(zProductionOrderCreate.shape.description),
+  name: trimmed(zProductionOrderCreate.shape.name),
+})

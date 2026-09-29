@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { deleteDefectGroupMutation } from '@web-app/api-client'
 import { TriangleAlertIcon } from 'lucide-react'
 import { useState } from 'react'
 
@@ -15,9 +16,8 @@ import {
 import { Spinner } from '@web-app/ui/components/spinner'
 
 import {
-  defectErrorCode,
-  defectErrorMessage,
-  deleteDefectGroup,
+  invalidateDefectQueries,
+  isDefectGroupInUseError,
   type DefectGroup,
 } from '@/features/defects/defects-api'
 import useCustomToast from '@/hooks/useCustomToast'
@@ -37,22 +37,16 @@ export function DeleteDefectGroup({
   const queryClient = useQueryClient()
   const { showErrorToast, showSuccessToast } = useCustomToast()
   const mutation = useMutation({
-    mutationFn: () => deleteDefectGroup(group.id),
+    ...deleteDefectGroupMutation(),
     onError: (error) => {
-      if (defectErrorCode(error) === 'defect_group_cannot_be_deleted') {
+      if (isDefectGroupInUseError(error)) {
         setBlockedByTypes(true)
         return
       }
-      showErrorToast(
-        'Не удалось удалить группу',
-        defectErrorMessage(error) ?? 'Попробуйте ещё раз.',
-      )
+      showErrorToast('Не удалось удалить группу', 'Попробуйте ещё раз.')
     },
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['defects'] }),
-        queryClient.invalidateQueries({ queryKey: ['audit'] }),
-      ])
+      await invalidateDefectQueries(queryClient)
       closeDialog(true)
       onSuccess()
       showSuccessToast('Группа удалена', `Группа «${group.code}» удалена навсегда.`)
@@ -86,7 +80,7 @@ export function DeleteDefectGroup({
               </Button>
               <Button
                 disabled={mutation.isPending}
-                onClick={() => mutation.mutate()}
+                onClick={() => mutation.mutate({ path: { group_id: group.id } })}
                 variant="destructive"
               >
                 {mutation.isPending && <Spinner data-icon="inline-start" />}
@@ -110,7 +104,7 @@ function DeleteWarning({
   const message =
     group.typesCount > 0
       ? `В группе «${group.code}» ${typesMessage(group.typesCount)}. Сначала удалите ${typePronoun(group.typesCount)}.`
-      : 'В группе есть типы. Сначала удалите их.'
+      : 'Группа используется в типах дефектов, проверках ПАК или результатах проверок. Архивируйте её.'
 
   return (
     <>
@@ -128,7 +122,10 @@ function DeleteWarning({
         <Button
           render={
             <Link
-              search={{ archived: group.activeTypesCount === 0 ? true : undefined, group: group.id }}
+              search={{
+                archived: group.activeTypesCount === 0 ? true : undefined,
+                group: group.id,
+              }}
               to="/admin/defects/types"
             />
           }

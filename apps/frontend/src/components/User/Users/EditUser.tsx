@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { updateUser, updateUserRole } from '@web-app/api-client'
 import { useEffect } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 
@@ -25,14 +26,14 @@ import {
 import { Spinner } from '@web-app/ui/components/spinner'
 
 import {
-  isLoginAlreadyExistsError,
+  invalidateUserQueries,
+  isLoginTakenError,
   roleLabels,
   roleOptions,
-  updateUser,
   type Role,
   type User,
 } from '@/features/users/users-api'
-import { editUserSchema } from '@/features/users/user-form-schema'
+import { editUserSchema, userFormMessages } from '@/features/users/user-form-schema'
 import useCustomToast from '@/hooks/useCustomToast'
 
 type EditForm = {
@@ -43,7 +44,7 @@ type EditForm = {
 
 function toEditForm(user: User): EditForm {
   return {
-    login: user.login ?? '',
+    login: user.login,
     name: user.name,
     role: user.role,
   }
@@ -64,7 +65,7 @@ export function EditUser({
   const form = useForm<EditForm>({
     defaultValues: toEditForm(user),
     mode: 'onChange',
-    resolver: zodResolver(editUserSchema),
+    resolver: zodResolver(editUserSchema, { error: userFormMessages }),
   })
   const { showErrorToast, showSuccessToast } = useCustomToast()
 
@@ -75,18 +76,31 @@ export function EditUser({
   }, [form, open, user])
 
   const mutation = useMutation({
-    mutationFn: (nextForm: EditForm) => updateUser(user.id, nextForm),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['users'] }),
-        queryClient.invalidateQueries({ queryKey: ['audit'] }),
-      ])
+    // The role has its own endpoint and permission.
+    mutationFn: async ({ login, name, role }: EditForm) => {
+      const path = { user_id: user.id }
+      if (login !== user.login || name !== user.name) {
+        await updateUser({
+          body: {
+            login: login !== user.login ? login : undefined,
+            name: name !== user.name ? name : undefined,
+          },
+          path,
+          throwOnError: true,
+        })
+      }
+      if (role !== user.role) {
+        await updateUserRole({ body: { role }, path, throwOnError: true })
+      }
+    },
+    onSettled: () => invalidateUserQueries(queryClient),
+    onSuccess: () => {
       closeDialog(true)
       onSuccess()
       showSuccessToast('Пользователь изменён', `Данные «${user.name}» сохранены.`)
     },
     onError: (error) => {
-      if (isLoginAlreadyExistsError(error)) {
+      if (isLoginTakenError(error)) {
         form.setError(
           'login',
           { message: 'Этот логин уже занят. Выберите другой.', type: 'server' },

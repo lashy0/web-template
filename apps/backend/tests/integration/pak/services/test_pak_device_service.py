@@ -1,0 +1,304 @@
+"""PAK device service integration tests against PostgreSQL and Hydra."""
+
+from __future__ import annotations
+
+from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING
+
+import pytest
+from sqlalchemy import insert, select
+
+from app.db import models as m
+from app.db.enums import VerificationSessionStatus
+from app.domain.pak.crypto import PakAccessKeyCipher
+from app.domain.pak.exceptions import (
+    PakDeviceArchivedError,
+    PakDeviceCodeTakenError,
+    PakDeviceInUseError,
+)
+from app.domain.pak.services import PakDeviceService
+from app.domain.production.schemas import BatchCreate
+from app.domain.production.services import BatchService, KgPrefixService
+from app.lib.exceptions import AuthenticationError
+from app.lib.hydra import HydraClient
+from app.lib.hydra.exceptions import HydraClientNotFoundError
+from app.lib.lorawan import ActivationType, LoRaWanVersion
+from app.lib.uow import unit_of_work
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    from tests.integration.pak.conftest import CreatePak, IssueAccessToken
+
+pytestmark = [
+    pytest.mark.anyio,
+    pytest.mark.integration,
+    pytest.mark.services,
+    pytest.mark.security,
+]
+
+
+async def test_create_pak_provisions_hydra_client(
+    hydra_client: HydraClient,
+    pak_cipher: PakAccessKeyCipher,
+    create_pak: CreatePak,
+) -> None:
+    pak, key = await create_pak("pak-create")
+
+    assert (await hydra_client.get_client(pak.oauth_client_id)).client_id == pak.oauth_client_id
+    assert pak_cipher.decrypt(pak.encrypted_access_key) == key
+
+
+async def test_access_token_authenticates_pak(
+    session: AsyncSession,
+    hydra_client: HydraClient,
+    pak_service: PakDeviceService,
+    create_pak: CreatePak,
+    issue_access_token: IssueAccessToken,
+) -> None:
+    pak, key = await create_pak("pak-auth")
+    token = await issue_access_token(pak.oauth_client_id, key)
+
+    async with unit_of_work(session):
+        authenticated = await pak_service.authorize_machine_access_token(token, hydra=hydra_client)
+
+    assert authenticated.id == pak.id
+    assert authenticated.last_seen_at is not None
+
+
+async def test_presence_survives_a_rolled_back_request(
+    session: AsyncSession,
+    hydra_client: HydraClient,
+    pak_service: PakDeviceService,
+    create_pak: CreatePak,
+    issue_access_token: IssueAccessToken,
+) -> None:
+    pak, key = await create_pak("pak-seen-rollback")
+    pak_id = pak.id
+    token = await issue_access_token(pak.oauth_client_id, key)
+
+    with pytest.raises(RuntimeError):
+        async with unit_of_work(session):
+            await pak_service.authorize_machine_access_token(token, hydra=hydra_client)
+
+            raise RuntimeError("request failed")
+
+    presence = select(m.PakDevicePresence.last_seen_at).where(m.PakDevicePresence.pak_id == pak_id)
+    assert await session.scalar(presence) is not None
+
+
+async def test_presence_leaves_device_updated_at(
+    session: AsyncSession,
+    hydra_client: HydraClient,
+    pak_service: PakDeviceService,
+    create_pak: CreatePak,
+    issue_access_token: IssueAccessToken,
+) -> None:
+    pak, key = await create_pak("pak-seen-updated-at")
+    pak_id, updated_at = pak.id, pak.updated_at
+    token = await issue_access_token(pak.oauth_client_id, key)
+
+    async with unit_of_work(session):
+        await pak_service.authorize_machine_access_token(token, hydra=hydra_client)
+
+    session.expire_all()
+    assert (await pak_service.get(pak_id)).updated_at == updated_at
+
+
+async def test_presence_keeps_the_latest_time(
+    session: AsyncSession,
+    pak_service: PakDeviceService,
+    create_pak: CreatePak,
+) -> None:
+    pak, _ = await create_pak("pak-seen-latest")
+    later = datetime.now(UTC) + timedelta(minutes=5)
+
+    async with unit_of_work(session):
+        await session.execute(insert(m.PakDevicePresence).values(pak_id=pak.id, last_seen_at=later))
+
+    await pak_service.record_seen(pak)
+
+    assert pak.last_seen_at == later
+
+
+async def test_deactivated_pak_is_rejected(
+    session: AsyncSession,
+    hydra_client: HydraClient,
+    pak_service: PakDeviceService,
+    create_pak: CreatePak,
+    issue_access_token: IssueAccessToken,
+) -> None:
+    pak, key = await create_pak("pak-deactivate")
+    token = await issue_access_token(pak.oauth_client_id, key)
+
+    async with unit_of_work(session) as uow:
+        await pak_service.set_active(pak.id, is_active=False, hydra=hydra_client, uow=uow)
+
+    assert (await hydra_client.introspect_access_token(token)).active is False
+
+    with pytest.raises(AuthenticationError):
+        await pak_service.authorize_machine_access_token(token, hydra=hydra_client)
+
+
+async def test_reactivated_pak_authenticates_again(
+    session: AsyncSession,
+    hydra_client: HydraClient,
+    pak_service: PakDeviceService,
+    create_pak: CreatePak,
+    issue_access_token: IssueAccessToken,
+) -> None:
+    pak, key = await create_pak("pak-reactivate")
+
+    async with unit_of_work(session) as uow:
+        await pak_service.set_active(
+            pak.id,
+            is_active=False,
+            hydra=hydra_client,
+            uow=uow,
+        )
+    async with unit_of_work(session) as uow:
+        await pak_service.set_active(
+            pak.id,
+            is_active=True,
+            hydra=hydra_client,
+            uow=uow,
+        )
+
+    token = await issue_access_token(pak.oauth_client_id, key)
+    assert (await pak_service.authorize_machine_access_token(token, hydra=hydra_client)).id == pak.id
+
+
+async def test_rotate_access_key_revokes_previous_token(
+    session: AsyncSession,
+    hydra_client: HydraClient,
+    pak_service: PakDeviceService,
+    pak_cipher: PakAccessKeyCipher,
+    create_pak: CreatePak,
+    issue_access_token: IssueAccessToken,
+) -> None:
+    pak, key = await create_pak("pak-rotate")
+    old_token = await issue_access_token(pak.oauth_client_id, key)
+
+    async with unit_of_work(session) as uow:
+        _, new_key = await pak_service.rotate_access_key(
+            pak.id,
+            hydra=hydra_client,
+            cipher=pak_cipher,
+            uow=uow,
+        )
+
+    assert new_key != key
+    assert await pak_service.get_access_key(pak.id, cipher=pak_cipher) == new_key
+    assert (await hydra_client.introspect_access_token(old_token)).active is False
+
+    new_token = await issue_access_token(pak.oauth_client_id, new_key)
+    assert (await pak_service.authorize_machine_access_token(new_token, hydra=hydra_client)).id == pak.id
+
+
+async def test_archived_pak_is_rejected(
+    session: AsyncSession,
+    hydra_client: HydraClient,
+    pak_service: PakDeviceService,
+    create_pak: CreatePak,
+    issue_access_token: IssueAccessToken,
+) -> None:
+    pak, key = await create_pak("pak-archive")
+    token = await issue_access_token(pak.oauth_client_id, key)
+
+    async with unit_of_work(session) as uow:
+        await pak_service.set_archived(pak.id, archived=True, hydra=hydra_client, uow=uow)
+
+    assert (await hydra_client.introspect_access_token(token)).active is False
+
+    with pytest.raises(AuthenticationError):
+        await pak_service.authorize_machine_access_token(token, hydra=hydra_client)
+
+
+async def test_create_pak_with_taken_code_is_rejected(create_pak: CreatePak) -> None:
+    await create_pak("pak-taken")
+
+    with pytest.raises(PakDeviceCodeTakenError):
+        await create_pak("pak-taken")
+
+
+async def test_update_archived_pak_is_rejected(
+    session: AsyncSession,
+    hydra_client: HydraClient,
+    pak_service: PakDeviceService,
+    create_pak: CreatePak,
+) -> None:
+    pak, _ = await create_pak("pak-archived-update")
+
+    async with unit_of_work(session) as uow:
+        await pak_service.set_archived(
+            pak.id,
+            archived=True,
+            hydra=hydra_client,
+            uow=uow,
+        )
+
+    with pytest.raises(PakDeviceArchivedError):
+        await pak_service.update_pak(pak.id, {"code": "pak-renamed"})
+
+
+async def test_delete_pak_removes_hydra_client(
+    session: AsyncSession,
+    hydra_client: HydraClient,
+    pak_service: PakDeviceService,
+    create_pak: CreatePak,
+) -> None:
+    pak, _ = await create_pak("pak-delete")
+
+    async with unit_of_work(session) as uow:
+        await pak_service.delete_pak(pak.id, hydra=hydra_client, uow=uow)
+
+    assert await pak_service.get_by_id(pak.id) is None
+
+    with pytest.raises(HydraClientNotFoundError):
+        await hydra_client.get_client(pak.oauth_client_id)
+
+
+async def test_delete_pak_with_verification_history_is_rejected(
+    session: AsyncSession,
+    hydra_client: HydraClient,
+    pak_service: PakDeviceService,
+    create_pak: CreatePak,
+) -> None:
+    pak, _ = await create_pak("pak-verified")
+    now = datetime.now(UTC)
+
+    async with (
+        unit_of_work(session),
+        KgPrefixService.new(session) as prefixes,
+        BatchService.new(session) as batches,
+    ):
+        prefix = await prefixes.create_prefix({"prefix": "a1b2c3d4e5", "short_code": "ab1"})
+        batch = await batches.create_batch(
+            BatchCreate(
+                name="Batch",
+                kg_prefix_id=prefix.id,
+                planned_qty=1,
+                day_plan_qty=1,
+                activation_type=ActivationType.OTAA,
+                lorawan_version=LoRaWanVersion.V1_0,
+            ),
+            created_by_id=None,
+        )
+        session.add(
+            m.VerificationSession(
+                dev_eui=batch.first_dev_eui,
+                batch_id=batch.id,
+                pak_id=pak.id,
+                pak_kind=pak.kind,
+                slot_no=1,
+                firmware_version="1.0.0",
+                total_steps=1,
+                status=VerificationSessionStatus.RUNNING,
+                started_at=now,
+                last_activity_at=now,
+            )
+        )
+
+    with pytest.raises(PakDeviceInUseError):
+        async with unit_of_work(session) as uow:
+            await pak_service.delete_pak(pak.id, hydra=hydra_client, uow=uow)

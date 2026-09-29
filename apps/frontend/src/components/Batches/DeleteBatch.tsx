@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { deleteBatchMutation } from '@web-app/api-client'
 import { TriangleAlertIcon } from 'lucide-react'
 import { useState } from 'react'
 
@@ -14,10 +15,9 @@ import {
 import { Spinner } from '@web-app/ui/components/spinner'
 
 import {
-  batchErrorCode,
-  batchErrorMessage,
-  batchQueryKeys,
-  deleteBatch,
+  invalidateBatchQueries,
+  isBatchEditWindowExpiredError,
+  isBatchInUseError,
   type Batch,
 } from '@/features/batches/batches-api'
 import useCustomToast from '@/hooks/useCustomToast'
@@ -37,16 +37,21 @@ export function DeleteBatch({
   const queryClient = useQueryClient()
   const { showErrorToast, showSuccessToast } = useCustomToast()
   const mutation = useMutation({
-    mutationFn: () => deleteBatch(batch.id),
+    ...deleteBatchMutation(),
     onError: (error) => {
-      if (batchErrorCode(error) === 'batch_cannot_be_deleted') {
+      if (isBatchInUseError(error)) {
         setBlockedByProductionActivity(true)
         return
       }
-      showErrorToast('Не удалось удалить партию', batchErrorMessage(error) ?? 'Попробуйте ещё раз.')
+      showErrorToast(
+        'Не удалось удалить партию',
+        isBatchEditWindowExpiredError(error)
+          ? 'Партию можно удалить только в течение часа после создания. Архивируйте её.'
+          : 'Попробуйте ещё раз.',
+      )
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: batchQueryKeys.all })
+      await invalidateBatchQueries(queryClient)
       onOpenChange(false)
       onSuccess()
       showSuccessToast('Партия удалена', `Партия «${batch.name}» удалена навсегда.`)
@@ -58,7 +63,7 @@ export function DeleteBatch({
     onOpenChange(false)
   }
 
-  const hasProductionActivity = !batch.canDelete || blockedByProductionActivity
+  const hasProductionActivity = blockedByProductionActivity
 
   return (
     <Dialog onOpenChange={(nextOpen) => (nextOpen ? onOpenChange(true) : close())} open={open}>
@@ -79,7 +84,7 @@ export function DeleteBatch({
               </Button>
               <Button
                 disabled={mutation.isPending}
-                onClick={() => mutation.mutate()}
+                onClick={() => mutation.mutate({ path: { batch_id: batch.id } })}
                 variant="destructive"
               >
                 {mutation.isPending ? <Spinner data-icon="inline-start" /> : null}
@@ -108,7 +113,8 @@ function DeleteWarning({
           Нельзя удалить партию
         </DialogTitle>
         <DialogDescription>
-          В партии «{batch.name}» есть производственные операции.
+          По партии «{batch.name}» уже были приёмки, отгрузки, проверки или упаковка. Архивируйте
+          её, чтобы скрыть из списка.
         </DialogDescription>
       </DialogHeader>
       <DialogFooter>

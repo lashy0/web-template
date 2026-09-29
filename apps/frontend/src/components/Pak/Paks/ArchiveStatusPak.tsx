@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { archivePakDeviceMutation, restorePakDeviceMutation } from '@web-app/api-client'
 
 import { Button } from '@web-app/ui/components/button'
 import {
@@ -11,7 +12,7 @@ import {
 } from '@web-app/ui/components/dialog'
 import { Spinner } from '@web-app/ui/components/spinner'
 
-import { updatePakArchived, type Pak } from '@/features/paks/paks-api'
+import { invalidatePakQueries, type Pak } from '@/features/paks/paks-api'
 import { pakCodeForMessage } from '@/features/paks/pak-format'
 import useCustomToast from '@/hooks/useCustomToast'
 
@@ -32,13 +33,10 @@ export function ArchiveStatusPak({
   const action = restore ? 'Восстановить' : 'Архивировать'
   const pendingAction = restore ? 'Восстановление…' : 'Архивация…'
   const mutation = useMutation({
-    mutationFn: () => updatePakArchived(pak.id, !restore),
+    ...(restore ? restorePakDeviceMutation() : archivePakDeviceMutation()),
     onError: () => showErrorToast(`Не удалось ${action.toLowerCase()} ПАК`, 'Попробуйте ещё раз.'),
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['paks'] }),
-        queryClient.invalidateQueries({ queryKey: ['audit'] }),
-      ])
+      await invalidatePakQueries(queryClient)
       closeDialog(true)
       onSuccess()
       showSuccessToast(
@@ -72,7 +70,10 @@ export function ArchiveStatusPak({
           <Button disabled={mutation.isPending} onClick={() => closeDialog()} variant="outline">
             Отмена
           </Button>
-          <Button disabled={mutation.isPending} onClick={() => mutation.mutate()}>
+          <Button
+            disabled={mutation.isPending}
+            onClick={() => mutation.mutate({ path: { pak_id: pak.id } })}
+          >
             {mutation.isPending && <Spinner data-icon="inline-start" />}
             {mutation.isPending ? pendingAction : action}
           </Button>

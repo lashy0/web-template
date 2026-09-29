@@ -7,4433 +7,6094 @@ export type ClientOptions = {
 /**
  * ActivationType
  */
-export type ActivationType = 'otaa' | 'abp';
+export const ActivationType = { OTAA: 'otaa', ABP: 'abp' } as const;
 
 /**
- * AddBatchShipmentItemRequest
+ * ActivationType
  */
-export type AddBatchShipmentItemRequest = {
-    /**
-     * Dev Eui
-     */
-    dev_eui: string;
-};
+export type ActivationType = typeof ActivationType[keyof typeof ActivationType];
 
 /**
- * AssignProductionOrderRequest
+ * AuditLogEntry
  */
-export type AssignProductionOrderRequest = {
-    /**
-     * Production Order Id
-     */
-    production_order_id: string | null;
-};
-
-/**
- * AuditEventResponse
- */
-export type AuditEventResponse = {
-    /**
-     * Action
-     */
+export type AuditLogEntry = {
+    id: string;
     action: string;
-    /**
-     * Actor Display Name
-     */
-    actor_display_name: string | null;
-    /**
-     * Actor Id
-     */
-    actor_id: string | null;
-    /**
-     * Actor Identifier
-     */
-    actor_identifier: string | null;
-    /**
-     * Actor Type
-     */
-    actor_type: string;
-    /**
-     * Created At
-     */
-    created_at: string;
-    /**
-     * Entity Display Name
-     */
-    entity_display_name: string | null;
-    /**
-     * Entity Id
-     */
-    entity_id: string | null;
-    /**
-     * Entity Identifier
-     */
-    entity_identifier: string | null;
-    /**
-     * Entity Type
-     */
-    entity_type: string;
-    /**
-     * Id
-     */
-    id: string;
-    /**
-     * New Data
-     */
-    new_data: {
+    createdAt: string;
+    actorId: string | null;
+    actorLogin: string | null;
+    targetType: string | null;
+    targetId: string | null;
+    targetLabel: string | null;
+    details: {
         [key: string]: unknown;
     } | null;
-    /**
-     * Old Data
-     */
-    old_data: {
-        [key: string]: unknown;
-    } | null;
+    ipAddress: string | null;
+    userAgent: string | null;
 };
 
 /**
- * AuditListResponse
+ * AuditLogEntryPage
  */
-export type AuditListResponse = {
-    /**
-     * Items
-     */
-    items: Array<AuditEventResponse>;
-    /**
-     * Page
-     */
-    page: number;
-    /**
-     * Page Size
-     */
-    page_size: number;
-    /**
-     * Total
-     */
+export type AuditLogEntryPage = {
+    items: Array<AuditLogEntry>;
+    limit: number;
+    offset: number;
     total: number;
 };
 
 /**
- * AuthState
+ * Batch
  */
-export type AuthState = 'active' | 'inactive';
-
-/**
- * BatchKeyGenerationStatus
- */
-export type BatchKeyGenerationStatus = 'CREATING' | 'GENERATING' | 'READY' | 'FAILED' | 'CANCELLING';
-
-/**
- * BatchListResponse
- */
-export type BatchListResponse = {
-    /**
-     * Items
-     */
-    items: Array<BatchResponse>;
-    /**
-     * Page
-     */
-    page: number;
-    /**
-     * Page Size
-     */
-    page_size: number;
-    /**
-     * Total
-     */
-    total: number;
-};
-
-/**
- * BatchLoRaWanConfigResponse
- */
-export type BatchLoRaWanConfigResponse = {
-    activation_type: ActivationType;
-    /**
-     * Join Eui
-     */
-    join_eui: string;
-    lorawan_version: LoRaWanVersion;
-};
-
-/**
- * BatchReceiptListResponse
- */
-export type BatchReceiptListResponse = {
-    /**
-     * Items
-     */
-    items: Array<BatchReceiptResponse>;
-    /**
-     * Total
-     */
-    total: number;
-};
-
-/**
- * BatchReceiptResponse
- */
-export type BatchReceiptResponse = {
-    /**
-     * Batch Id
-     */
-    batch_id: string;
-    /**
-     * Comment
-     */
-    comment: string | null;
-    /**
-     * Created At
-     */
-    created_at: string;
-    created_by_user: UserSummaryResponse | null;
-    /**
-     * Created By User Id
-     */
-    created_by_user_id: string | null;
-    /**
-     * Id
-     */
+export type Batch = {
     id: string;
-    /**
-     * Quantity
-     */
-    quantity: number;
-    /**
-     * Updated At
-     */
-    updated_at: string;
-    /**
-     * Void Reason
-     */
-    void_reason: string | null;
-    /**
-     * Voided At
-     */
-    voided_at: string | null;
-};
-
-/**
- * BatchResponse
- */
-export type BatchResponse = {
-    /**
-     * Archived At
-     */
-    archived_at: string | null;
-    /**
-     * Can Delete
-     */
-    can_delete: boolean;
-    /**
-     * Completed At
-     */
-    completed_at: string | null;
-    /**
-     * Created At
-     */
-    created_at: string;
-    created_by_user: UserSummaryResponse | null;
-    /**
-     * Created By User Id
-     */
-    created_by_user_id: string | null;
-    /**
-     * Day Plan Qty
-     */
-    day_plan_qty: number;
-    /**
-     * Description
-     */
-    description: string | null;
-    dev_eui_prefix: KgDevEuiPrefixSummaryResponse;
-    /**
-     * Id
-     */
-    id: string;
-    kg_version: KgVersionSummaryResponse | null;
-    lorawan_config: BatchLoRaWanConfigResponse | null;
-    /**
-     * Name
-     */
     name: string;
-    /**
-     * Planned Qty
-     */
-    planned_qty: number;
-    /**
-     * Preparation Error Code
-     */
-    preparation_error_code: string | null;
-    /**
-     * Preparation Progress
-     */
-    preparation_progress: number;
-    preparation_status: BatchKeyGenerationStatus;
-    production_order?: ProductionOrderSummaryResponse | null;
-    /**
-     * Production Order Id
-     */
-    production_order_id?: string | null;
+    description: string | null;
+    plannedQty: number;
+    receivedQty: number;
+    packedQty: number;
+    shippedQty: number;
+    dayPlanQty: number;
     status: BatchStatus;
-    /**
-     * Updated At
-     */
-    updated_at: string;
+    kgPrefix: BatchKgPrefix;
+    firstDevEui: string;
+    lastDevEui: string;
+    kgVersion: BatchKgVersion | null;
+    productionOrder: BatchProductionOrder | null;
+    activationType: ActivationType;
+    lorawanVersion: LoRaWanVersion;
+    joinEui: string;
+    createdBy: UserSummary | null;
+    completedAt: string | null;
+    archivedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
 };
 
 /**
- * BatchShipmentItemResponse
+ * BatchCreate
  */
-export type BatchShipmentItemResponse = {
+export type BatchCreate = {
+    name: string;
+    kgPrefixId: string;
     /**
-     * Created At
+     * Number of KG units in the batch.
      */
-    created_at: string;
+    plannedQty: number;
     /**
-     * Kg Dev Eui
+     * Planned KG units per day.
      */
-    kg_dev_eui: string;
-    /**
-     * Shipment Id
-     */
-    shipment_id: string;
+    dayPlanQty: number;
+    activationType: ActivationType;
+    lorawanVersion: LoRaWanVersion;
+    description?: string | null;
+    kgVersionId?: string | null;
+    productionOrderId?: string | null;
 };
 
 /**
- * BatchShipmentListResponse
+ * BatchKgPrefix
  */
-export type BatchShipmentListResponse = {
-    /**
-     * Items
-     */
-    items: Array<BatchShipmentResponse>;
-    /**
-     * Total
-     */
+export type BatchKgPrefix = {
+    id: string;
+    prefix: string;
+    shortCode: string;
+    name: string | null;
+};
+
+/**
+ * BatchKgVersion
+ */
+export type BatchKgVersion = {
+    id: string;
+    code: string;
+    name: string;
+};
+
+/**
+ * BatchPage
+ */
+export type BatchPage = {
+    items: Array<Batch>;
+    limit: number;
+    offset: number;
     total: number;
 };
 
 /**
- * BatchShipmentResponse
+ * BatchProductionOrder
  */
-export type BatchShipmentResponse = {
-    /**
-     * Batch Id
-     */
-    batch_id: string;
-    /**
-     * Comment
-     */
-    comment: string | null;
-    /**
-     * Completed At
-     */
-    completed_at: string | null;
-    /**
-     * Created At
-     */
-    created_at: string;
-    created_by_user: UserSummaryResponse | null;
-    /**
-     * Created By User Id
-     */
-    created_by_user_id: string | null;
-    /**
-     * Id
-     */
+export type BatchProductionOrder = {
     id: string;
+    name: string;
+};
+
+/**
+ * BatchProductionOrderAssignment
+ */
+export type BatchProductionOrderAssignment = {
+    productionOrderId: string | null;
+};
+
+/**
+ * BatchReceipt
+ */
+export type BatchReceipt = {
+    id: string;
+    batchId: string;
+    quantity: number;
+    comment: string | null;
+    createdBy: UserSummary | null;
+    voidedAt: string | null;
+    voidReason: string | null;
+    createdAt: string;
+    updatedAt: string;
+};
+
+/**
+ * BatchReceiptCreate
+ */
+export type BatchReceiptCreate = {
     /**
-     * Quantity
+     * Number of KG units received.
      */
     quantity: number;
+    comment?: string | null;
+};
+
+/**
+ * BatchReceiptPage
+ */
+export type BatchReceiptPage = {
+    items: Array<BatchReceipt>;
+    limit: number;
+    offset: number;
+    total: number;
+};
+
+/**
+ * BatchReceiptUpdate
+ */
+export type BatchReceiptUpdate = {
     /**
-     * Updated At
+     * Number of KG units received.
      */
-    updated_at: string;
+    quantity?: number;
+    comment?: string | null;
+};
+
+/**
+ * BatchReceiptVoid
+ */
+export type BatchReceiptVoid = {
+    reason: string;
+};
+
+/**
+ * BatchShipment
+ */
+export type BatchShipment = {
+    id: string;
+    batchId: string;
+    number: number;
+    status: BatchShipmentStatus;
+    recipient: string | null;
+    waybillNumber: string | null;
+    comment: string | null;
+    quantity: number;
+    createdBy: UserSummary | null;
+    completedAt: string | null;
+    voidedAt: string | null;
+    voidReason: string | null;
+    createdAt: string;
+    updatedAt: string;
+};
+
+/**
+ * BatchShipmentCreate
+ */
+export type BatchShipmentCreate = {
+    recipient?: string | null;
+    waybillNumber?: string | null;
+    comment?: string | null;
+};
+
+/**
+ * BatchShipmentItem
+ */
+export type BatchShipmentItem = {
+    devEui: string;
+    shortId: string;
+    createdAt: string;
+};
+
+/**
+ * BatchShipmentItemPage
+ */
+export type BatchShipmentItemPage = {
+    items: Array<BatchShipmentItem>;
+    limit: number;
+    offset: number;
+    total: number;
+};
+
+/**
+ * BatchShipmentPage
+ */
+export type BatchShipmentPage = {
+    items: Array<BatchShipment>;
+    limit: number;
+    offset: number;
+    total: number;
+};
+
+/**
+ * BatchShipmentStatus
+ */
+export const BatchShipmentStatus = {
+    OPEN: 'open',
+    COMPLETED: 'completed',
+    VOIDED: 'voided'
+} as const;
+
+/**
+ * BatchShipmentStatus
+ */
+export type BatchShipmentStatus = typeof BatchShipmentStatus[keyof typeof BatchShipmentStatus];
+
+/**
+ * BatchShipmentUnitRejected
+ */
+export type BatchShipmentUnitRejected = {
+    code: string;
+    reason: BatchShipmentUnitRejection;
+};
+
+/**
+ * BatchShipmentUnitRejection
+ *
+ * Why a KG unit was not added to a shipment.
+ */
+export const BatchShipmentUnitRejection = {
+    BATCH_SHIPMENT_KG_NOT_FOUND: 'batch_shipment_kg_not_found',
+    BATCH_SHIPMENT_KG_OTHER_BATCH: 'batch_shipment_kg_other_batch',
+    BATCH_SHIPMENT_KG_ALREADY_ADDED: 'batch_shipment_kg_already_added',
+    BATCH_SHIPMENT_KG_IN_OTHER_SHIPMENT: 'batch_shipment_kg_in_other_shipment',
+    BATCH_SHIPMENT_KG_NOT_PACKED: 'batch_shipment_kg_not_packed'
+} as const;
+
+/**
+ * BatchShipmentUnitRejection
+ *
+ * Why a KG unit was not added to a shipment.
+ */
+export type BatchShipmentUnitRejection = typeof BatchShipmentUnitRejection[keyof typeof BatchShipmentUnitRejection];
+
+/**
+ * BatchShipmentUnitsAdd
+ */
+export type BatchShipmentUnitsAdd = {
     /**
-     * Void Reason
+     * DevEUIs or short IDs as scanned, in any case.
      */
-    void_reason: string | null;
-    /**
-     * Voided At
-     */
-    voided_at: string | null;
+    codes: Array<string>;
+};
+
+/**
+ * BatchShipmentUnitsAdded
+ */
+export type BatchShipmentUnitsAdded = {
+    added: Array<string>;
+    rejected: Array<BatchShipmentUnitRejected>;
+    shipment: BatchShipment;
+};
+
+/**
+ * BatchShipmentUpdate
+ */
+export type BatchShipmentUpdate = {
+    recipient?: string | null;
+    waybillNumber?: string | null;
+    comment?: string | null;
+};
+
+/**
+ * BatchShipmentVoid
+ */
+export type BatchShipmentVoid = {
+    reason: string;
 };
 
 /**
  * BatchStatus
  */
-export type BatchStatus = 'IN_PRODUCTION' | 'COMPLETED';
+export const BatchStatus = { IN_PRODUCTION: 'in_production', COMPLETED: 'completed' } as const;
 
 /**
- * CreateBatchLoRaWanConfigRequest
+ * BatchStatus
  */
-export type CreateBatchLoRaWanConfigRequest = {
-    activation_type: ActivationType;
-    lorawan_version: LoRaWanVersion;
-};
+export type BatchStatus = typeof BatchStatus[keyof typeof BatchStatus];
 
 /**
- * CreateBatchReceiptRequest
+ * BatchUpdate
  */
-export type CreateBatchReceiptRequest = {
-    /**
-     * Comment
-     */
-    comment?: string | null;
-    /**
-     * Quantity
-     */
-    quantity: number;
-};
-
-/**
- * CreateBatchRequest
- */
-export type CreateBatchRequest = {
-    /**
-     * Day Plan Qty
-     */
-    day_plan_qty: number;
-    /**
-     * Description
-     */
+export type BatchUpdate = {
+    name?: string;
     description?: string | null;
     /**
-     * Dev Eui Prefix
+     * Planned KG units per day.
      */
-    dev_eui_prefix: string;
-    /**
-     * Kg Version Id
-     */
-    kg_version_id?: string | null;
-    lorawan_config: CreateBatchLoRaWanConfigRequest;
-    /**
-     * Name
-     */
-    name: string;
-    /**
-     * Planned Qty
-     */
-    planned_qty: number;
-    /**
-     * Production Order Id
-     */
-    production_order_id?: string | null;
+    dayPlanQty?: number;
 };
 
 /**
- * CreateBatchShipmentRequest
+ * DefectGroup
  */
-export type CreateBatchShipmentRequest = {
-    /**
-     * Comment
-     */
-    comment?: string | null;
-};
-
-/**
- * CreateDefectGroupRequest
- */
-export type CreateDefectGroupRequest = {
-    /**
-     * Code
-     */
+export type DefectGroup = {
+    id: string;
     code: string;
-    /**
-     * Description
-     */
+    name: string;
+    description: string | null;
+    typesCount: number;
+    activeTypesCount: number;
+    archivedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+};
+
+/**
+ * DefectGroupCreate
+ */
+export type DefectGroupCreate = {
+    code: string;
+    name: string;
     description?: string | null;
-    /**
-     * Name
-     */
-    name: string;
 };
 
 /**
- * CreateDefectTypeRequest
+ * DefectGroupPage
  */
-export type CreateDefectTypeRequest = {
-    /**
-     * Code
-     */
+export type DefectGroupPage = {
+    items: Array<DefectGroup>;
+    limit: number;
+    offset: number;
+    total: number;
+};
+
+/**
+ * DefectGroupUpdate
+ */
+export type DefectGroupUpdate = {
+    name?: string;
+    description?: string | null;
+};
+
+/**
+ * DefectType
+ */
+export type DefectType = {
+    id: string;
+    group: DefectTypeGroup;
     code: string;
-    /**
-     * Description
-     */
+    name: string;
     description: string;
-    /**
-     * Engineer Action
-     */
-    engineer_action?: string | null;
-    /**
-     * Group Id
-     */
-    group_id: string;
-    /**
-     * Name
-     */
-    name: string;
-    /**
-     * Possible Cause
-     */
-    possible_cause?: string | null;
+    possibleCause: string | null;
+    engineerAction: string | null;
+    archivedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
 };
 
 /**
- * CreateKgDevEuiPrefixRequest
+ * DefectTypeCreate
  */
-export type CreateKgDevEuiPrefixRequest = {
+export type DefectTypeCreate = {
+    groupId: string;
+    code: string;
+    name: string;
+    description: string;
+    possibleCause?: string | null;
+    engineerAction?: string | null;
+};
+
+/**
+ * DefectTypeGroup
+ */
+export type DefectTypeGroup = {
+    id: string;
+    code: string;
+    name: string;
+    archivedAt: string | null;
+};
+
+/**
+ * DefectTypePage
+ */
+export type DefectTypePage = {
+    items: Array<DefectType>;
+    limit: number;
+    offset: number;
+    total: number;
+};
+
+/**
+ * DefectTypeUpdate
+ */
+export type DefectTypeUpdate = {
+    name?: string;
+    description?: string;
+    possibleCause?: string | null;
+    engineerAction?: string | null;
+};
+
+/**
+ * DevEuiRange
+ */
+export type DevEuiRange = {
+    firstDevEui: string;
+    lastDevEui: string;
+};
+
+/**
+ * ErrorExtra
+ */
+export type ErrorExtra = {
+    code: string;
+};
+
+/**
+ * ErrorResponse
+ */
+export type ErrorResponse = {
+    status_code: number;
+    detail: string;
+    extra?: ErrorExtra | null;
+};
+
+/**
+ * KgOtkStatus
+ *
+ * Outcome of the last completed verification of a KG unit on an OTK-line PAK.
+ */
+export const KgOtkStatus = {
+    NOT_VERIFIED: 'not_verified',
+    PASSED: 'passed',
+    FAILED: 'failed'
+} as const;
+
+/**
+ * KgOtkStatus
+ *
+ * Outcome of the last completed verification of a KG unit on an OTK-line PAK.
+ */
+export type KgOtkStatus = typeof KgOtkStatus[keyof typeof KgOtkStatus];
+
+/**
+ * KgPrefix
+ */
+export type KgPrefix = {
+    id: string;
+    prefix: string;
+    shortCode: string;
+    name: string | null;
+    availableQty: number;
+    archivedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+};
+
+/**
+ * KgPrefixCreate
+ */
+export type KgPrefixCreate = {
     /**
-     * Name
+     * Five bytes in hex.
      */
+    prefix: string;
+    shortCode: string;
     name?: string | null;
-    /**
-     * Prefix
-     */
-    prefix: string;
-    /**
-     * Short Code
-     */
-    short_code: string;
 };
 
 /**
- * CreateKgVersionRequest
+ * KgPrefixPage
  */
-export type CreateKgVersionRequest = {
-    /**
-     * Code
-     */
-    code: string;
-    /**
-     * Description
-     */
-    description?: string | null;
-    /**
-     * Name
-     */
-    name: string;
-};
-
-/**
- * CreatePakDeviceRequest
- */
-export type CreatePakDeviceRequest = {
-    /**
-     * Active
-     */
-    active?: boolean;
-    /**
-     * Code
-     */
-    code: string;
-    kind: PakDeviceKind;
-};
-
-/**
- * CreatePakDeviceResponse
- */
-export type CreatePakDeviceResponse = {
-    /**
-     * Access Key
-     */
-    access_key: string;
-    device: PakDeviceResponse;
-};
-
-/**
- * CreateProductionOrderRequest
- */
-export type CreateProductionOrderRequest = {
-    /**
-     * Description
-     */
-    description?: string | null;
-    /**
-     * Name
-     */
-    name: string;
-};
-
-/**
- * CreateUserRequest
- */
-export type CreateUserRequest = {
-    /**
-     * Active
-     */
-    active: boolean;
-    /**
-     * Login
-     */
-    login: string;
-    /**
-     * Name
-     */
-    name: string;
-    /**
-     * Password
-     */
-    password: string;
-    role: Role;
-};
-
-/**
- * DefectGroupListItemResponse
- */
-export type DefectGroupListItemResponse = {
-    /**
-     * Active Types Count
-     */
-    active_types_count: number;
-    /**
-     * Archived At
-     */
-    archived_at: string | null;
-    /**
-     * Code
-     */
-    code: string;
-    /**
-     * Created At
-     */
-    created_at: string;
-    /**
-     * Description
-     */
-    description: string | null;
-    /**
-     * Id
-     */
-    id: string;
-    /**
-     * Name
-     */
-    name: string;
-    /**
-     * Types Count
-     */
-    types_count: number;
-    /**
-     * Updated At
-     */
-    updated_at: string;
-};
-
-/**
- * DefectGroupListResponse
- */
-export type DefectGroupListResponse = {
-    /**
-     * Items
-     */
-    items: Array<DefectGroupListItemResponse>;
-    /**
-     * Page
-     */
-    page: number;
-    /**
-     * Page Size
-     */
-    page_size: number;
-    /**
-     * Total
-     */
+export type KgPrefixPage = {
+    items: Array<KgPrefix>;
+    limit: number;
+    offset: number;
     total: number;
 };
 
 /**
- * DefectGroupResponse
+ * KgPrefixUpdate
  */
-export type DefectGroupResponse = {
-    /**
-     * Active Types Count
-     */
-    active_types_count: number;
-    /**
-     * Archived At
-     */
-    archived_at: string | null;
-    /**
-     * Code
-     */
-    code: string;
-    /**
-     * Created At
-     */
-    created_at: string;
-    /**
-     * Description
-     */
-    description: string | null;
-    /**
-     * Id
-     */
-    id: string;
-    /**
-     * Name
-     */
-    name: string;
-    /**
-     * Types Count
-     */
-    types_count: number;
-    /**
-     * Updated At
-     */
-    updated_at: string;
-};
-
-/**
- * DefectGroupSummaryResponse
- */
-export type DefectGroupSummaryResponse = {
-    /**
-     * Archived At
-     */
-    archived_at: string | null;
-    /**
-     * Code
-     */
-    code: string;
-    /**
-     * Id
-     */
-    id: string;
-    /**
-     * Name
-     */
-    name: string;
-};
-
-/**
- * DefectTypeListResponse
- */
-export type DefectTypeListResponse = {
-    /**
-     * Items
-     */
-    items: Array<DefectTypeResponse>;
-    /**
-     * Page
-     */
-    page: number;
-    /**
-     * Page Size
-     */
-    page_size: number;
-    /**
-     * Total
-     */
-    total: number;
-};
-
-/**
- * DefectTypeResponse
- */
-export type DefectTypeResponse = {
-    /**
-     * Archived At
-     */
-    archived_at: string | null;
-    /**
-     * Code
-     */
-    code: string;
-    /**
-     * Created At
-     */
-    created_at: string;
-    /**
-     * Description
-     */
-    description: string;
-    /**
-     * Engineer Action
-     */
-    engineer_action: string | null;
-    group: DefectGroupSummaryResponse;
-    /**
-     * Group Id
-     */
-    group_id: string;
-    /**
-     * Id
-     */
-    id: string;
-    /**
-     * Name
-     */
-    name: string;
-    /**
-     * Possible Cause
-     */
-    possible_cause: string | null;
-    /**
-     * Updated At
-     */
-    updated_at: string;
-};
-
-/**
- * DevEuiRangePreviewResponse
- */
-export type DevEuiRangePreviewResponse = {
-    /**
-     * First Dev Eui
-     */
-    first_dev_eui: string;
-    /**
-     * Last Dev Eui
-     */
-    last_dev_eui: string;
-};
-
-/**
- * HTTPValidationError
- */
-export type HttpValidationError = {
-    /**
-     * Detail
-     */
-    detail?: Array<ValidationError>;
-};
-
-/**
- * KgBatchListItemResponse
- */
-export type KgBatchListItemResponse = {
-    current_state: KgCurrentState;
-    /**
-     * Dev Eui
-     */
-    dev_eui: string;
-    /**
-     * Firmware Version
-     */
-    firmware_version: string | null;
-    /**
-     * Last Verification At
-     */
-    last_verification_at: string | null;
-};
-
-/**
- * KgBatchListResponse
- */
-export type KgBatchListResponse = {
-    /**
-     * Items
-     */
-    items: Array<KgBatchListItemResponse>;
-    /**
-     * Page
-     */
-    page: number;
-    /**
-     * Page Size
-     */
-    page_size: number;
-    /**
-     * Total
-     */
-    total: number;
-};
-
-/**
- * KgBatchSummaryResponse
- */
-export type KgBatchSummaryResponse = {
-    /**
-     * Id
-     */
-    id: string;
-    /**
-     * Name
-     */
-    name: string;
-};
-
-/**
- * KgCurrentState
- */
-export type KgCurrentState = 'REGISTERED' | 'ON_OTK' | 'OTK_PASSED' | 'OTK_FAILED' | 'OTK_ABORTED' | 'OTK_INCOMPLETE' | 'IN_REPAIR' | 'PACKED' | 'SHIPPED' | 'SCRAPPED';
-
-/**
- * KgDevEuiPrefixListResponse
- */
-export type KgDevEuiPrefixListResponse = {
-    /**
-     * Items
-     */
-    items: Array<KgDevEuiPrefixResponse>;
-    /**
-     * Page
-     */
-    page: number;
-    /**
-     * Page Size
-     */
-    page_size: number;
-    /**
-     * Total
-     */
-    total: number;
-};
-
-/**
- * KgDevEuiPrefixResponse
- */
-export type KgDevEuiPrefixResponse = {
-    /**
-     * Archived At
-     */
-    archived_at: string | null;
-    /**
-     * Batch Count
-     */
-    batch_count: number;
-    /**
-     * Created At
-     */
-    created_at: string;
-    /**
-     * Name
-     */
-    name: string | null;
-    /**
-     * Prefix
-     */
-    prefix: string;
-    /**
-     * Short Code
-     */
-    short_code: string;
-};
-
-/**
- * KgDevEuiPrefixSummaryResponse
- */
-export type KgDevEuiPrefixSummaryResponse = {
-    /**
-     * Name
-     */
-    name: string | null;
-    /**
-     * Prefix
-     */
-    prefix: string;
-    /**
-     * Short Code
-     */
-    short_code: string;
-};
-
-/**
- * KgListResponse
- */
-export type KgListResponse = {
-    /**
-     * Items
-     */
-    items: Array<KgResponse>;
-    /**
-     * Page
-     */
-    page: number;
-    /**
-     * Page Size
-     */
-    page_size: number;
-    /**
-     * Total
-     */
-    total: number;
-};
-
-/**
- * KgResponse
- */
-export type KgResponse = {
-    batch: KgBatchSummaryResponse;
-    /**
-     * Batch Id
-     */
-    batch_id: string;
-    /**
-     * Created At
-     */
-    created_at: string;
-    current_state: KgCurrentState;
-    /**
-     * Dev Eui
-     */
-    dev_eui: string;
-    /**
-     * Short Id
-     */
-    short_id: string;
-    state: KgState;
-    /**
-     * Updated At
-     */
-    updated_at: string;
+export type KgPrefixUpdate = {
+    name?: string | null;
 };
 
 /**
  * KgState
+ *
+ * Lifecycle of a KG unit; verification results are tracked separately.
+ *
+ * A unit starts ``registered``; packing makes it ``packed`` for good. A
+ * completed shipment makes it ``shipped``, and voiding that shipment returns
+ * it to ``packed``.
+ *
  */
-export type KgState = 'REGISTERED' | 'SCRAPPED';
+export const KgState = {
+    REGISTERED: 'registered',
+    PACKED: 'packed',
+    SHIPPED: 'shipped',
+    SCRAPPED: 'scrapped'
+} as const;
 
 /**
- * KgVersionListResponse
+ * KgState
+ *
+ * Lifecycle of a KG unit; verification results are tracked separately.
+ *
+ * A unit starts ``registered``; packing makes it ``packed`` for good. A
+ * completed shipment makes it ``shipped``, and voiding that shipment returns
+ * it to ``packed``.
+ *
  */
-export type KgVersionListResponse = {
-    /**
-     * Items
-     */
-    items: Array<KgVersionResponse>;
-    /**
-     * Page
-     */
-    page: number;
-    /**
-     * Page Size
-     */
-    page_size: number;
-    /**
-     * Total
-     */
+export type KgState = typeof KgState[keyof typeof KgState];
+
+/**
+ * KgUnit
+ */
+export type KgUnit = {
+    devEui: string;
+    shortId: string;
+    state: KgState;
+    otkStatus: KgOtkStatus;
+    lastVerificationAt: string | null;
+    packedAt: string | null;
+    packedBy: UserSummary | null;
+    activationType: ActivationType;
+    lorawanVersion: LoRaWanVersion;
+    batch: KgUnitBatch;
+    createdAt: string;
+    updatedAt: string;
+};
+
+/**
+ * KgUnitBatch
+ */
+export type KgUnitBatch = {
+    id: string;
+    name: string;
+};
+
+/**
+ * KgUnitPage
+ */
+export type KgUnitPage = {
+    items: Array<KgUnit>;
+    limit: number;
+    offset: number;
     total: number;
 };
 
 /**
- * KgVersionResponse
+ * KgVersion
  */
-export type KgVersionResponse = {
-    /**
-     * Archived At
-     */
-    archived_at: string | null;
-    /**
-     * Batch Count
-     */
-    batch_count: number;
-    /**
-     * Code
-     */
-    code: string;
-    /**
-     * Created At
-     */
-    created_at: string;
-    /**
-     * Description
-     */
-    description: string | null;
-    /**
-     * Id
-     */
+export type KgVersion = {
     id: string;
-    /**
-     * Name
-     */
+    code: string;
     name: string;
-    /**
-     * Updated At
-     */
-    updated_at: string;
+    description: string | null;
+    archivedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
 };
 
 /**
- * KgVersionSummaryResponse
+ * KgVersionCreate
  */
-export type KgVersionSummaryResponse = {
-    /**
-     * Code
-     */
+export type KgVersionCreate = {
     code: string;
-    /**
-     * Id
-     */
-    id: string;
-    /**
-     * Name
-     */
     name: string;
+    description?: string | null;
+};
+
+/**
+ * KgVersionPage
+ */
+export type KgVersionPage = {
+    items: Array<KgVersion>;
+    limit: number;
+    offset: number;
+    total: number;
+};
+
+/**
+ * KgVersionUpdate
+ */
+export type KgVersionUpdate = {
+    name?: string;
+    description?: string | null;
 };
 
 /**
  * LoRaWanVersion
  */
-export type LoRaWanVersion = '1.0' | '1.1';
+export const LoRaWanVersion = { '1_0': '1.0', '1_1': '1.1' } as const;
 
 /**
- * PakAccessKeyResponse
+ * LoRaWanVersion
  */
-export type PakAccessKeyResponse = {
-    /**
-     * Access Key
-     */
-    access_key: string;
+export type LoRaWanVersion = typeof LoRaWanVersion[keyof typeof LoRaWanVersion];
+
+/**
+ * PackingBlocker
+ *
+ * Why a KG unit cannot be packed; each value is the error code packing answers with.
+ */
+export const PackingBlocker = {
+    PACKING_KG_ALREADY_PACKED: 'packing_kg_already_packed',
+    PACKING_KG_SCRAPPED: 'packing_kg_scrapped',
+    PACKING_BATCH_ARCHIVED: 'packing_batch_archived',
+    PACKING_OTK_IN_PROGRESS: 'packing_otk_in_progress',
+    PACKING_OTK_NOT_PASSED: 'packing_otk_not_passed'
+} as const;
+
+/**
+ * PackingBlocker
+ *
+ * Why a KG unit cannot be packed; each value is the error code packing answers with.
+ */
+export type PackingBlocker = typeof PackingBlocker[keyof typeof PackingBlocker];
+
+/**
+ * PackingUnit
+ */
+export type PackingUnit = {
+    devEui: string;
+    shortId: string;
+    state: KgState;
+    otkStatus: KgOtkStatus;
+    lastVerificationAt: string | null;
+    packedAt: string | null;
+    batch: PackingUnitBatch;
+    canPack: boolean;
+    blockedBy: PackingBlocker | null;
+};
+
+/**
+ * PackingUnitBatch
+ */
+export type PackingUnitBatch = {
+    id: string;
+    name: string;
+    joinEui: string;
+};
+
+/**
+ * PakAccessKey
+ */
+export type PakAccessKey = {
+    accessKey: string;
+};
+
+/**
+ * PakCheck
+ */
+export type PakCheck = {
+    id: string;
+    name: string;
+    label: string;
+    defectGroupCode: string;
+    defectGroup: PakCheckDefectGroup | null;
+    misconfigured: boolean;
+    lastSeenAt: string;
+    createdAt: string;
+    updatedAt: string;
+};
+
+/**
+ * PakCheckDefectGroup
+ */
+export type PakCheckDefectGroup = {
+    id: string;
+    code: string;
+    name: string;
+    archivedAt: string | null;
+};
+
+/**
+ * PakCheckPage
+ */
+export type PakCheckPage = {
+    items: Array<PakCheck>;
+    limit: number;
+    offset: number;
+    total: number;
+};
+
+/**
+ * PakDevice
+ */
+export type PakDevice = {
+    id: string;
+    code: string;
+    kind: PakDeviceKind;
+    oauthClientId: string;
+    isActive: boolean;
+    lastSeenAt: string | null;
+    archivedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+};
+
+/**
+ * PakDeviceCreate
+ */
+export type PakDeviceCreate = {
+    code: string;
+    kind: PakDeviceKind;
+    isActive?: boolean;
 };
 
 /**
  * PakDeviceKind
  */
-export type PakDeviceKind = 'engineering' | 'otk_line';
+export const PakDeviceKind = { ENGINEERING: 'engineering', OTK_LINE: 'otk_line' } as const;
 
 /**
- * PakDeviceListResponse
+ * PakDeviceKind
  */
-export type PakDeviceListResponse = {
-    /**
-     * Items
-     */
-    items: Array<PakDeviceResponse>;
-    /**
-     * Page
-     */
-    page: number;
-    /**
-     * Page Size
-     */
-    page_size: number;
-    /**
-     * Total
-     */
+export type PakDeviceKind = typeof PakDeviceKind[keyof typeof PakDeviceKind];
+
+/**
+ * PakDevicePage
+ */
+export type PakDevicePage = {
+    items: Array<PakDevice>;
+    limit: number;
+    offset: number;
     total: number;
 };
 
 /**
- * PakDeviceResponse
+ * PakDeviceProvisioned
  */
-export type PakDeviceResponse = {
-    /**
-     * Archived At
-     */
-    archived_at: string | null;
-    /**
-     * Code
-     */
-    code: string;
-    /**
-     * Id
-     */
+export type PakDeviceProvisioned = {
+    device: PakDevice;
+    accessKey: string;
+};
+
+/**
+ * PakDeviceUpdate
+ */
+export type PakDeviceUpdate = {
+    code?: string;
+    kind?: PakDeviceKind;
+};
+
+/**
+ * ProductionOrder
+ */
+export type ProductionOrder = {
     id: string;
-    kind: PakDeviceKind;
-    /**
-     * Last Seen At
-     */
-    last_seen_at: string | null;
-    /**
-     * Oauth Client Id
-     */
-    oauth_client_id: string;
-    status: PakStatus;
-};
-
-/**
- * PakDeviceSummaryResponse
- */
-export type PakDeviceSummaryResponse = {
-    /**
-     * Code
-     */
-    code: string;
-    /**
-     * Id
-     */
-    id: string;
-    kind: PakDeviceKind;
-};
-
-/**
- * PakStatus
- */
-export type PakStatus = 'active' | 'inactive';
-
-/**
- * PakTestListResponse
- */
-export type PakTestListResponse = {
-    /**
-     * Items
-     */
-    items: Array<PakTestResponse>;
-    /**
-     * Page
-     */
-    page: number;
-    /**
-     * Page Size
-     */
-    page_size: number;
-    /**
-     * Total
-     */
-    total: number;
-};
-
-/**
- * PakTestResponse
- */
-export type PakTestResponse = {
-    /**
-     * Created At
-     */
-    created_at: string;
-    defect_group: DefectGroupSummaryResponse;
-    /**
-     * Defect Group Id
-     */
-    defect_group_id: string;
-    /**
-     * Id
-     */
-    id: string;
-    /**
-     * Last Seen At
-     */
-    last_seen_at: string;
-    /**
-     * Test Label
-     */
-    test_label: string;
-    /**
-     * Test Name
-     */
-    test_name: string;
-    /**
-     * Updated At
-     */
-    updated_at: string;
-};
-
-/**
- * ProductionOrderListResponse
- */
-export type ProductionOrderListResponse = {
-    /**
-     * Items
-     */
-    items: Array<ProductionOrderResponse>;
-    /**
-     * Page
-     */
-    page: number;
-    /**
-     * Page Size
-     */
-    page_size: number;
-    /**
-     * Total
-     */
-    total: number;
-};
-
-/**
- * ProductionOrderResponse
- */
-export type ProductionOrderResponse = {
-    /**
-     * Archived At
-     */
-    archived_at: string | null;
-    /**
-     * Batches Count
-     */
-    batches_count: number;
-    /**
-     * Created At
-     */
-    created_at: string;
-    /**
-     * Description
-     */
+    name: string;
     description: string | null;
-    /**
-     * Id
-     */
-    id: string;
-    /**
-     * Name
-     */
+    batchesCount: number;
+    totalPlannedQty: number;
+    archivedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+};
+
+/**
+ * ProductionOrderCreate
+ */
+export type ProductionOrderCreate = {
     name: string;
-    /**
-     * Total Planned Qty
-     */
-    total_planned_qty: number;
-    /**
-     * Updated At
-     */
-    updated_at: string;
+    description?: string | null;
 };
 
 /**
- * ProductionOrderSummaryResponse
+ * ProductionOrderPage
  */
-export type ProductionOrderSummaryResponse = {
-    /**
-     * Archived At
-     */
-    archived_at: string | null;
-    /**
-     * Id
-     */
+export type ProductionOrderPage = {
+    items: Array<ProductionOrder>;
+    limit: number;
+    offset: number;
+    total: number;
+};
+
+/**
+ * ProductionOrderUpdate
+ */
+export type ProductionOrderUpdate = {
+    name?: string;
+    description?: string | null;
+};
+
+/**
+ * ProfileUpdate
+ */
+export type ProfileUpdate = {
+    name?: string;
+};
+
+/**
+ * User
+ */
+export type User = {
     id: string;
-    /**
-     * Name
-     */
+    identityId: string;
+    login: string;
     name: string;
+    role: UserRole;
+    isActive: boolean;
+    archivedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
 };
 
 /**
- * Role
+ * UserCreate
  */
-export type Role = 'administrator' | 'manager' | 'engineer' | 'packer' | 'operator';
-
-/**
- * UpdateActiveRequest
- */
-export type UpdateActiveRequest = {
-    /**
-     * Active
-     */
-    active: boolean;
+export type UserCreate = {
+    login: string;
+    name: string;
+    role: UserRole;
+    password: string;
+    isActive?: boolean;
 };
 
 /**
- * UpdateArchivedRequest
+ * UserPage
  */
-export type UpdateArchivedRequest = {
-    /**
-     * Archived
-     */
-    archived: boolean;
+export type UserPage = {
+    items: Array<User>;
+    limit: number;
+    offset: number;
+    total: number;
 };
 
 /**
- * UpdateBatchArchivedRequest
+ * UserPasswordUpdate
  */
-export type UpdateBatchArchivedRequest = {
-    /**
-     * Archived
-     */
-    archived: boolean;
-};
-
-/**
- * UpdateBatchReceiptRequest
- */
-export type UpdateBatchReceiptRequest = {
-    /**
-     * Comment
-     */
-    comment?: string | null;
-    /**
-     * Quantity
-     */
-    quantity?: number | null;
-};
-
-/**
- * UpdateBatchRequest
- */
-export type UpdateBatchRequest = {
-    /**
-     * Day Plan Qty
-     */
-    day_plan_qty?: number | null;
-    /**
-     * Description
-     */
-    description?: string | null;
-    /**
-     * Name
-     */
-    name?: string | null;
-};
-
-/**
- * UpdateBatchShipmentRequest
- */
-export type UpdateBatchShipmentRequest = {
-    /**
-     * Comment
-     */
-    comment?: string | null;
-};
-
-/**
- * UpdateDefectGroupArchivedRequest
- */
-export type UpdateDefectGroupArchivedRequest = {
-    /**
-     * Archived
-     */
-    archived: boolean;
-};
-
-/**
- * UpdateDefectGroupRequest
- */
-export type UpdateDefectGroupRequest = {
-    /**
-     * Description
-     */
-    description?: string | null;
-    /**
-     * Name
-     */
-    name?: string | null;
-};
-
-/**
- * UpdateDefectTypeArchivedRequest
- */
-export type UpdateDefectTypeArchivedRequest = {
-    /**
-     * Archived
-     */
-    archived: boolean;
-};
-
-/**
- * UpdateDefectTypeRequest
- */
-export type UpdateDefectTypeRequest = {
-    /**
-     * Description
-     */
-    description?: string | null;
-    /**
-     * Engineer Action
-     */
-    engineer_action?: string | null;
-    /**
-     * Name
-     */
-    name?: string | null;
-    /**
-     * Possible Cause
-     */
-    possible_cause?: string | null;
-};
-
-/**
- * UpdateKgDevEuiPrefixArchivedRequest
- */
-export type UpdateKgDevEuiPrefixArchivedRequest = {
-    /**
-     * Archived
-     */
-    archived: boolean;
-};
-
-/**
- * UpdateKgDevEuiPrefixRequest
- */
-export type UpdateKgDevEuiPrefixRequest = {
-    /**
-     * Name
-     */
-    name?: string | null;
-};
-
-/**
- * UpdateKgVersionArchivedRequest
- */
-export type UpdateKgVersionArchivedRequest = {
-    /**
-     * Archived
-     */
-    archived: boolean;
-};
-
-/**
- * UpdateKgVersionRequest
- */
-export type UpdateKgVersionRequest = {
-    /**
-     * Description
-     */
-    description?: string | null;
-    /**
-     * Name
-     */
-    name?: string | null;
-};
-
-/**
- * UpdatePakDeviceRequest
- */
-export type UpdatePakDeviceRequest = {
-    /**
-     * Code
-     */
-    code?: string | null;
-    kind?: PakDeviceKind | null;
-};
-
-/**
- * UpdatePasswordRequest
- */
-export type UpdatePasswordRequest = {
-    /**
-     * Password
-     */
+export type UserPasswordUpdate = {
     password: string;
 };
 
 /**
- * UpdateProductionOrderArchivedRequest
+ * UserRole
  */
-export type UpdateProductionOrderArchivedRequest = {
-    /**
-     * Archived
-     */
-    archived: boolean;
+export const UserRole = {
+    ADMINISTRATOR: 'administrator',
+    MANAGER: 'manager',
+    ENGINEER: 'engineer',
+    PACKER: 'packer',
+    OPERATOR: 'operator'
+} as const;
+
+/**
+ * UserRole
+ */
+export type UserRole = typeof UserRole[keyof typeof UserRole];
+
+/**
+ * UserRoleUpdate
+ */
+export type UserRoleUpdate = {
+    role: UserRole;
 };
 
 /**
- * UpdateProductionOrderRequest
+ * UserSummary
  */
-export type UpdateProductionOrderRequest = {
-    /**
-     * Description
-     */
-    description?: string | null;
-    /**
-     * Name
-     */
-    name?: string | null;
-};
-
-/**
- * UpdateUserRequest
- */
-export type UpdateUserRequest = {
-    /**
-     * Login
-     */
-    login?: string | null;
-    /**
-     * Name
-     */
-    name?: string | null;
-    role?: Role | null;
-};
-
-/**
- * UserListResponse
- */
-export type UserListResponse = {
-    /**
-     * Items
-     */
-    items: Array<UserResponse>;
-    /**
-     * Page
-     */
-    page: number;
-    /**
-     * Page Size
-     */
-    page_size: number;
-    /**
-     * Total
-     */
-    total: number;
-};
-
-/**
- * UserResponse
- */
-export type UserResponse = {
-    /**
-     * Archived At
-     */
-    archived_at: string | null;
-    auth_state: AuthState;
-    /**
-     * Auth State Synced At
-     */
-    auth_state_synced_at: string | null;
-    /**
-     * Id
-     */
+export type UserSummary = {
     id: string;
-    /**
-     * Identity Id
-     */
-    identity_id: string;
-    /**
-     * Is System
-     */
-    is_system: boolean;
-    /**
-     * Login
-     */
-    login: string | null;
-    /**
-     * Name
-     */
-    name: string;
-    role: Role;
-};
-
-/**
- * UserSummaryResponse
- */
-export type UserSummaryResponse = {
-    /**
-     * Id
-     */
-    id: string;
-    /**
-     * Name
-     */
     name: string;
 };
 
 /**
- * ValidationError
+ * UserUpdate
  */
-export type ValidationError = {
-    /**
-     * Context
-     */
-    ctx?: {
-        [key: string]: unknown;
-    };
-    /**
-     * Input
-     */
-    input?: unknown;
-    /**
-     * Location
-     */
-    loc: Array<string | number>;
-    /**
-     * Message
-     */
-    msg: string;
-    /**
-     * Error Type
-     */
-    type: string;
+export type UserUpdate = {
+    login?: string;
+    name?: string;
 };
 
 /**
- * VerificationSessionDetailResponse
+ * VerificationSession
  */
-export type VerificationSessionDetailResponse = {
-    /**
-     * Completed At
-     */
-    completed_at: string | null;
-    /**
-     * Created At
-     */
-    created_at: string;
-    /**
-     * Firmware Version
-     */
-    firmware_version: string;
-    /**
-     * Id
-     */
+export type VerificationSession = {
     id: string;
-    /**
-     * Kg Dev Eui
-     */
-    kg_dev_eui: string;
-    /**
-     * Last Activity At
-     */
-    last_activity_at: string;
-    pak: PakDeviceSummaryResponse;
-    /**
-     * Pak Id
-     */
-    pak_id: string;
-    /**
-     * Slot No
-     */
-    slot_no: number;
-    /**
-     * Started At
-     */
-    started_at: string;
+    devEui: string;
+    batchId: string;
+    pak: VerificationSessionPak;
+    pakKind: PakDeviceKind;
+    slotNo: number;
+    firmwareVersion: string;
+    totalSteps: number;
     status: VerificationSessionStatus;
-    /**
-     * Steps
-     */
-    steps: Array<VerificationStepResponse>;
-    /**
-     * Total Steps
-     */
-    total_steps: number;
-    /**
-     * Updated At
-     */
-    updated_at: string;
+    startedAt: string;
+    lastActivityAt: string;
+    completedAt: string | null;
 };
 
 /**
- * VerificationSessionListResponse
+ * VerificationSessionDetail
  */
-export type VerificationSessionListResponse = {
-    /**
-     * Items
-     */
-    items: Array<VerificationSessionResponse>;
-    /**
-     * Page
-     */
-    page: number;
-    /**
-     * Page Size
-     */
-    page_size: number;
-    /**
-     * Total
-     */
+export type VerificationSessionDetail = {
+    id: string;
+    devEui: string;
+    batchId: string;
+    pak: VerificationSessionPak;
+    pakKind: PakDeviceKind;
+    slotNo: number;
+    firmwareVersion: string;
+    totalSteps: number;
+    status: VerificationSessionStatus;
+    startedAt: string;
+    lastActivityAt: string;
+    completedAt: string | null;
+    steps: Array<VerificationStep>;
+};
+
+/**
+ * VerificationSessionPage
+ */
+export type VerificationSessionPage = {
+    items: Array<VerificationSession>;
+    limit: number;
+    offset: number;
     total: number;
 };
 
 /**
- * VerificationSessionResponse
+ * VerificationSessionPak
  */
-export type VerificationSessionResponse = {
-    /**
-     * Completed At
-     */
-    completed_at: string | null;
-    /**
-     * Created At
-     */
-    created_at: string;
-    /**
-     * Firmware Version
-     */
-    firmware_version: string;
-    /**
-     * Id
-     */
+export type VerificationSessionPak = {
     id: string;
-    /**
-     * Kg Dev Eui
-     */
-    kg_dev_eui: string;
-    /**
-     * Last Activity At
-     */
-    last_activity_at: string;
-    pak: PakDeviceSummaryResponse;
-    /**
-     * Pak Id
-     */
-    pak_id: string;
-    /**
-     * Slot No
-     */
-    slot_no: number;
-    /**
-     * Started At
-     */
-    started_at: string;
-    status: VerificationSessionStatus;
-    /**
-     * Total Steps
-     */
-    total_steps: number;
-    /**
-     * Updated At
-     */
-    updated_at: string;
+    code: string;
 };
 
 /**
  * VerificationSessionStatus
  */
-export type VerificationSessionStatus = 'RUNNING' | 'PASSED' | 'FAILED' | 'ABORTED' | 'INCOMPLETE';
+export const VerificationSessionStatus = {
+    RUNNING: 'running',
+    PASSED: 'passed',
+    FAILED: 'failed',
+    ABORTED: 'aborted',
+    INCOMPLETE: 'incomplete'
+} as const;
 
 /**
- * VerificationStepResponse
+ * VerificationSessionStatus
  */
-export type VerificationStepResponse = {
-    /**
-     * Completed At
-     */
-    completed_at: string | null;
-    /**
-     * Created At
-     */
-    created_at: string;
-    /**
-     * Defect Group Id
-     */
-    defect_group_id: string;
-    /**
-     * Error Group Code
-     */
-    error_group_code: string;
-    /**
-     * Id
-     */
+export type VerificationSessionStatus = typeof VerificationSessionStatus[keyof typeof VerificationSessionStatus];
+
+/**
+ * VerificationStep
+ */
+export type VerificationStep = {
     id: string;
-    /**
-     * Measurement Max Value
-     */
-    measurement_max_value: number | null;
-    /**
-     * Measurement Min Value
-     */
-    measurement_min_value: number | null;
-    /**
-     * Measurement Unit
-     */
-    measurement_unit: string | null;
-    /**
-     * Measurement Value
-     */
-    measurement_value: number | null;
-    /**
-     * Pak Test Id
-     */
-    pak_test_id: string;
-    /**
-     * Session Id
-     */
-    session_id: string;
-    /**
-     * Started At
-     */
-    started_at: string;
+    stepNo: number;
+    checkId: string;
+    checkName: string;
+    checkLabel: string;
+    defectGroupCode: string;
+    defectGroupId: string | null;
     status: VerificationStepStatus;
-    /**
-     * Step No
-     */
-    step_no: number;
-    /**
-     * Test Label
-     */
-    test_label: string;
-    /**
-     * Test Name
-     */
-    test_name: string;
-    /**
-     * Updated At
-     */
-    updated_at: string;
+    measurementValue: number | null;
+    measurementMin: number | null;
+    measurementMax: number | null;
+    measurementUnit: string | null;
+    startedAt: string;
+    completedAt: string | null;
 };
 
 /**
  * VerificationStepStatus
  */
-export type VerificationStepStatus = 'RUNNING' | 'PASSED' | 'FAILED' | 'ABORTED';
+export const VerificationStepStatus = {
+    RUNNING: 'running',
+    PASSED: 'passed',
+    FAILED: 'failed',
+    ABORTED: 'aborted'
+} as const;
 
 /**
- * VoidBatchReceiptRequest
+ * VerificationStepStatus
  */
-export type VoidBatchReceiptRequest = {
-    /**
-     * Reason
-     */
-    reason: string;
-};
+export type VerificationStepStatus = typeof VerificationStepStatus[keyof typeof VerificationStepStatus];
 
-/**
- * VoidBatchShipmentRequest
- */
-export type VoidBatchShipmentRequest = {
-    /**
-     * Reason
-     */
-    reason: string;
-};
-
-export type AuditListAuditEventsData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Entity Type
-         */
-        entity_type?: Array<string> | null;
-        /**
-         * Created From
-         */
-        created_from?: string | null;
-        /**
-         * Created To
-         */
-        created_to?: string | null;
-        /**
-         * Page
-         */
-        page?: number;
-        /**
-         * Page Size
-         */
-        page_size?: number;
-        /**
-         * Sort
-         */
-        sort?: 'created_at' | 'actor_display_name';
-        /**
-         * Order
-         */
-        order?: 'asc' | 'desc';
-    };
-    url: '/audit';
-};
-
-export type AuditListAuditEventsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type AuditListAuditEventsError = AuditListAuditEventsErrors[keyof AuditListAuditEventsErrors];
-
-export type AuditListAuditEventsResponses = {
-    /**
-     * Successful Response
-     */
-    200: AuditListResponse;
-};
-
-export type AuditListAuditEventsResponse = AuditListAuditEventsResponses[keyof AuditListAuditEventsResponses];
-
-export type AuthMeData = {
+export type GetProfileData = {
     body?: never;
     path?: never;
     query?: never;
-    url: '/auth/me';
+    url: '/api/auth/me';
 };
 
-export type AuthMeResponses = {
+export type GetProfileErrors = {
     /**
-     * Successful Response
+     * Authentication is missing or invalid.
      */
-    200: UserResponse;
+    401: ErrorResponse;
 };
 
-export type AuthMeResponse = AuthMeResponses[keyof AuthMeResponses];
+export type GetProfileError = GetProfileErrors[keyof GetProfileErrors];
 
-export type BatchCreateBatchData = {
-    body: CreateBatchRequest;
+export type GetProfileResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: User;
+};
+
+export type GetProfileResponse = GetProfileResponses[keyof GetProfileResponses];
+
+export type UpdateProfileData = {
+    body: ProfileUpdate;
     path?: never;
     query?: never;
-    url: '/batches';
+    url: '/api/auth/me';
 };
 
-export type BatchCreateBatchErrors = {
+export type UpdateProfileErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type BatchCreateBatchError = BatchCreateBatchErrors[keyof BatchCreateBatchErrors];
-
-export type BatchCreateBatchResponses = {
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
     /**
-     * Successful Response
+     * Authentication is missing or invalid.
      */
-    201: BatchResponse;
+    401: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
 };
 
-export type BatchCreateBatchResponse = BatchCreateBatchResponses[keyof BatchCreateBatchResponses];
+export type UpdateProfileError = UpdateProfileErrors[keyof UpdateProfileErrors];
 
-export type BatchListBatchesData = {
+export type UpdateProfileResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: User;
+};
+
+export type UpdateProfileResponse = UpdateProfileResponses[keyof UpdateProfileResponses];
+
+export type ActivateUserData = {
+    body?: never;
+    path: {
+        /**
+         * User ID
+         *
+         * The user to act on.
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/users/{user_id}/activate';
+};
+
+export type ActivateUserErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
+    /**
+     * An identity provider required by the request is unavailable.
+     */
+    503: ErrorResponse;
+};
+
+export type ActivateUserError = ActivateUserErrors[keyof ActivateUserErrors];
+
+export type ActivateUserResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: User;
+};
+
+export type ActivateUserResponse = ActivateUserResponses[keyof ActivateUserResponses];
+
+export type ArchiveUserData = {
+    body?: never;
+    path: {
+        /**
+         * User ID
+         *
+         * The user to act on.
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/users/{user_id}/archive';
+};
+
+export type ArchiveUserErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
+};
+
+export type ArchiveUserError = ArchiveUserErrors[keyof ArchiveUserErrors];
+
+export type ArchiveUserResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: User;
+};
+
+export type ArchiveUserResponse = ArchiveUserResponses[keyof ArchiveUserResponses];
+
+export type ListUsersData = {
     body?: never;
     path?: never;
     query?: {
+        ids?: Array<string> | null;
+        createdBefore?: string | null;
+        createdAfter?: string | null;
+        updatedBefore?: string | null;
+        updatedAfter?: string | null;
         /**
-         * Q
+         * Field to search
          */
-        q?: string | null;
+        searchString?: string | null;
         /**
-         * Status
+         * Search should be case sensitive
          */
-        status?: BatchStatus | null;
+        searchIgnoreCase?: boolean | null;
+        currentPage?: number;
+        pageSize?: number;
         /**
-         * Archived
+         * Order by field
          */
-        archived?: boolean;
+        orderBy?: string | null;
         /**
-         * Page
+         * Field to search
          */
-        page?: number;
+        sortOrder?: 'asc' | 'desc' | null;
+        roleIn?: Array<UserRole> | null;
         /**
-         * Page Size
+         * Only archived (true) or only current (false) items; all when omitted.
          */
-        page_size?: number;
+        archived?: boolean | null;
         /**
-         * Sort
+         * Only active (true) or only inactive (false) items; all when omitted.
          */
-        sort?: 'name' | 'planned_qty' | 'day_plan_qty' | 'status' | 'created_at' | 'updated_at' | 'completed_at' | 'archived_at';
-        /**
-         * Order
-         */
-        order?: 'asc' | 'desc';
-        /**
-         * Production Order Id
-         */
-        production_order_id?: string | null;
-        /**
-         * Without Production Order
-         */
-        without_production_order?: boolean;
+        active?: boolean | null;
     };
-    url: '/batches/';
+    url: '/api/users';
 };
 
-export type BatchListBatchesErrors = {
+export type ListUsersErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type BatchListBatchesError = BatchListBatchesErrors[keyof BatchListBatchesErrors];
-
-export type BatchListBatchesResponses = {
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
     /**
-     * Successful Response
+     * Authentication is missing or invalid.
      */
-    200: BatchListResponse;
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
 };
 
-export type BatchListBatchesResponse = BatchListBatchesResponses[keyof BatchListBatchesResponses];
+export type ListUsersError = ListUsersErrors[keyof ListUsersErrors];
 
-export type BatchPreviewDevEuiRangeData = {
+export type ListUsersResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: UserPage;
+};
+
+export type ListUsersResponse = ListUsersResponses[keyof ListUsersResponses];
+
+export type CreateUserData = {
+    body: UserCreate;
+    path?: never;
+    query?: never;
+    url: '/api/users';
+};
+
+export type CreateUserErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
+    /**
+     * An identity provider required by the request is unavailable.
+     */
+    503: ErrorResponse;
+};
+
+export type CreateUserError = CreateUserErrors[keyof CreateUserErrors];
+
+export type CreateUserResponses = {
+    /**
+     * Document created, URL follows
+     */
+    201: User;
+};
+
+export type CreateUserResponse = CreateUserResponses[keyof CreateUserResponses];
+
+export type DeactivateUserData = {
+    body?: never;
+    path: {
+        /**
+         * User ID
+         *
+         * The user to act on.
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/users/{user_id}/deactivate';
+};
+
+export type DeactivateUserErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
+};
+
+export type DeactivateUserError = DeactivateUserErrors[keyof DeactivateUserErrors];
+
+export type DeactivateUserResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: User;
+};
+
+export type DeactivateUserResponse = DeactivateUserResponses[keyof DeactivateUserResponses];
+
+export type DeleteUserData = {
+    body?: never;
+    path: {
+        /**
+         * User ID
+         *
+         * The user to act on.
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/users/{user_id}';
+};
+
+export type DeleteUserErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
+};
+
+export type DeleteUserError = DeleteUserErrors[keyof DeleteUserErrors];
+
+export type DeleteUserResponses = {
+    /**
+     * Request fulfilled, nothing follows
+     */
+    204: void;
+};
+
+export type DeleteUserResponse = DeleteUserResponses[keyof DeleteUserResponses];
+
+export type GetUserData = {
+    body?: never;
+    path: {
+        /**
+         * User ID
+         *
+         * The user to act on.
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/users/{user_id}';
+};
+
+export type GetUserErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+};
+
+export type GetUserError = GetUserErrors[keyof GetUserErrors];
+
+export type GetUserResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: User;
+};
+
+export type GetUserResponse = GetUserResponses[keyof GetUserResponses];
+
+export type UpdateUserData = {
+    body: UserUpdate;
+    path: {
+        /**
+         * User ID
+         *
+         * The user to act on.
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/users/{user_id}';
+};
+
+export type UpdateUserErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
+    /**
+     * An identity provider required by the request is unavailable.
+     */
+    503: ErrorResponse;
+};
+
+export type UpdateUserError = UpdateUserErrors[keyof UpdateUserErrors];
+
+export type UpdateUserResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: User;
+};
+
+export type UpdateUserResponse = UpdateUserResponses[keyof UpdateUserResponses];
+
+export type RestoreUserData = {
+    body?: never;
+    path: {
+        /**
+         * User ID
+         *
+         * The user to act on.
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/users/{user_id}/restore';
+};
+
+export type RestoreUserErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+};
+
+export type RestoreUserError = RestoreUserErrors[keyof RestoreUserErrors];
+
+export type RestoreUserResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: User;
+};
+
+export type RestoreUserResponse = RestoreUserResponses[keyof RestoreUserResponses];
+
+export type UpdateUserPasswordData = {
+    body: UserPasswordUpdate;
+    path: {
+        /**
+         * User ID
+         *
+         * The user to act on.
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/users/{user_id}/password';
+};
+
+export type UpdateUserPasswordErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
+    /**
+     * An identity provider required by the request is unavailable.
+     */
+    503: ErrorResponse;
+};
+
+export type UpdateUserPasswordError = UpdateUserPasswordErrors[keyof UpdateUserPasswordErrors];
+
+export type UpdateUserPasswordResponses = {
+    /**
+     * Request fulfilled, nothing follows
+     */
+    204: void;
+};
+
+export type UpdateUserPasswordResponse = UpdateUserPasswordResponses[keyof UpdateUserPasswordResponses];
+
+export type UpdateUserRoleData = {
+    body: UserRoleUpdate;
+    path: {
+        /**
+         * User ID
+         *
+         * The user to act on.
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/users/{user_id}/role';
+};
+
+export type UpdateUserRoleErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
+};
+
+export type UpdateUserRoleError = UpdateUserRoleErrors[keyof UpdateUserRoleErrors];
+
+export type UpdateUserRoleResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: User;
+};
+
+export type UpdateUserRoleResponse = UpdateUserRoleResponses[keyof UpdateUserRoleResponses];
+
+export type ListAuditEntriesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        createdBefore?: string | null;
+        createdAfter?: string | null;
+        currentPage?: number;
+        pageSize?: number;
+        /**
+         * Order by field
+         */
+        orderBy?: string | null;
+        /**
+         * Field to search
+         */
+        sortOrder?: 'asc' | 'desc' | null;
+        targetTypeIn?: Array<string> | null;
+        actorIdIn?: Array<string> | null;
+        targetIdIn?: Array<string> | null;
+    };
+    url: '/api/audit';
+};
+
+export type ListAuditEntriesErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+};
+
+export type ListAuditEntriesError = ListAuditEntriesErrors[keyof ListAuditEntriesErrors];
+
+export type ListAuditEntriesResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: AuditLogEntryPage;
+};
+
+export type ListAuditEntriesResponse = ListAuditEntriesResponses[keyof ListAuditEntriesResponses];
+
+export type ActivatePakDeviceData = {
+    body?: never;
+    path: {
+        /**
+         * PAK ID
+         *
+         * The PAK device to act on.
+         */
+        pak_id: string;
+    };
+    query?: never;
+    url: '/api/paks/{pak_id}/activate';
+};
+
+export type ActivatePakDeviceErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
+};
+
+export type ActivatePakDeviceError = ActivatePakDeviceErrors[keyof ActivatePakDeviceErrors];
+
+export type ActivatePakDeviceResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: PakDevice;
+};
+
+export type ActivatePakDeviceResponse = ActivatePakDeviceResponses[keyof ActivatePakDeviceResponses];
+
+export type ArchivePakDeviceData = {
+    body?: never;
+    path: {
+        /**
+         * PAK ID
+         *
+         * The PAK device to act on.
+         */
+        pak_id: string;
+    };
+    query?: never;
+    url: '/api/paks/{pak_id}/archive';
+};
+
+export type ArchivePakDeviceErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+};
+
+export type ArchivePakDeviceError = ArchivePakDeviceErrors[keyof ArchivePakDeviceErrors];
+
+export type ArchivePakDeviceResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: PakDevice;
+};
+
+export type ArchivePakDeviceResponse = ArchivePakDeviceResponses[keyof ArchivePakDeviceResponses];
+
+export type ListPakDevicesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        ids?: Array<string> | null;
+        createdBefore?: string | null;
+        createdAfter?: string | null;
+        updatedBefore?: string | null;
+        updatedAfter?: string | null;
+        /**
+         * Field to search
+         */
+        searchString?: string | null;
+        /**
+         * Search should be case sensitive
+         */
+        searchIgnoreCase?: boolean | null;
+        currentPage?: number;
+        pageSize?: number;
+        /**
+         * Order by field
+         */
+        orderBy?: string | null;
+        /**
+         * Field to search
+         */
+        sortOrder?: 'asc' | 'desc' | null;
+        kindIn?: Array<PakDeviceKind> | null;
+        /**
+         * Only archived (true) or only current (false) items; all when omitted.
+         */
+        archived?: boolean | null;
+        /**
+         * Only active (true) or only inactive (false) items; all when omitted.
+         */
+        active?: boolean | null;
+    };
+    url: '/api/paks';
+};
+
+export type ListPakDevicesErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+};
+
+export type ListPakDevicesError = ListPakDevicesErrors[keyof ListPakDevicesErrors];
+
+export type ListPakDevicesResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: PakDevicePage;
+};
+
+export type ListPakDevicesResponse = ListPakDevicesResponses[keyof ListPakDevicesResponses];
+
+export type CreatePakDeviceData = {
+    body: PakDeviceCreate;
+    path?: never;
+    query?: never;
+    url: '/api/paks';
+};
+
+export type CreatePakDeviceErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
+    /**
+     * An identity provider required by the request is unavailable.
+     */
+    503: ErrorResponse;
+};
+
+export type CreatePakDeviceError = CreatePakDeviceErrors[keyof CreatePakDeviceErrors];
+
+export type CreatePakDeviceResponses = {
+    /**
+     * Document created, URL follows
+     */
+    201: PakDeviceProvisioned;
+};
+
+export type CreatePakDeviceResponse = CreatePakDeviceResponses[keyof CreatePakDeviceResponses];
+
+export type DeactivatePakDeviceData = {
+    body?: never;
+    path: {
+        /**
+         * PAK ID
+         *
+         * The PAK device to act on.
+         */
+        pak_id: string;
+    };
+    query?: never;
+    url: '/api/paks/{pak_id}/deactivate';
+};
+
+export type DeactivatePakDeviceErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
+};
+
+export type DeactivatePakDeviceError = DeactivatePakDeviceErrors[keyof DeactivatePakDeviceErrors];
+
+export type DeactivatePakDeviceResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: PakDevice;
+};
+
+export type DeactivatePakDeviceResponse = DeactivatePakDeviceResponses[keyof DeactivatePakDeviceResponses];
+
+export type DeletePakDeviceData = {
+    body?: never;
+    path: {
+        /**
+         * PAK ID
+         *
+         * The PAK device to act on.
+         */
+        pak_id: string;
+    };
+    query?: never;
+    url: '/api/paks/{pak_id}';
+};
+
+export type DeletePakDeviceErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+};
+
+export type DeletePakDeviceError = DeletePakDeviceErrors[keyof DeletePakDeviceErrors];
+
+export type DeletePakDeviceResponses = {
+    /**
+     * Request fulfilled, nothing follows
+     */
+    204: void;
+};
+
+export type DeletePakDeviceResponse = DeletePakDeviceResponses[keyof DeletePakDeviceResponses];
+
+export type GetPakDeviceData = {
+    body?: never;
+    path: {
+        /**
+         * PAK ID
+         *
+         * The PAK device to act on.
+         */
+        pak_id: string;
+    };
+    query?: never;
+    url: '/api/paks/{pak_id}';
+};
+
+export type GetPakDeviceErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+};
+
+export type GetPakDeviceError = GetPakDeviceErrors[keyof GetPakDeviceErrors];
+
+export type GetPakDeviceResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: PakDevice;
+};
+
+export type GetPakDeviceResponse = GetPakDeviceResponses[keyof GetPakDeviceResponses];
+
+export type UpdatePakDeviceData = {
+    body: PakDeviceUpdate;
+    path: {
+        /**
+         * PAK ID
+         *
+         * The PAK device to act on.
+         */
+        pak_id: string;
+    };
+    query?: never;
+    url: '/api/paks/{pak_id}';
+};
+
+export type UpdatePakDeviceErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
+};
+
+export type UpdatePakDeviceError = UpdatePakDeviceErrors[keyof UpdatePakDeviceErrors];
+
+export type UpdatePakDeviceResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: PakDevice;
+};
+
+export type UpdatePakDeviceResponse = UpdatePakDeviceResponses[keyof UpdatePakDeviceResponses];
+
+export type GetPakAccessKeyData = {
+    body?: never;
+    path: {
+        /**
+         * PAK ID
+         *
+         * The PAK device to act on.
+         */
+        pak_id: string;
+    };
+    query?: never;
+    url: '/api/paks/{pak_id}/access-key';
+};
+
+export type GetPakAccessKeyErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+};
+
+export type GetPakAccessKeyError = GetPakAccessKeyErrors[keyof GetPakAccessKeyErrors];
+
+export type GetPakAccessKeyResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: PakAccessKey;
+};
+
+export type GetPakAccessKeyResponse = GetPakAccessKeyResponses[keyof GetPakAccessKeyResponses];
+
+export type RestorePakDeviceData = {
+    body?: never;
+    path: {
+        /**
+         * PAK ID
+         *
+         * The PAK device to act on.
+         */
+        pak_id: string;
+    };
+    query?: never;
+    url: '/api/paks/{pak_id}/restore';
+};
+
+export type RestorePakDeviceErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+};
+
+export type RestorePakDeviceError = RestorePakDeviceErrors[keyof RestorePakDeviceErrors];
+
+export type RestorePakDeviceResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: PakDevice;
+};
+
+export type RestorePakDeviceResponse = RestorePakDeviceResponses[keyof RestorePakDeviceResponses];
+
+export type RotatePakAccessKeyData = {
+    body?: never;
+    path: {
+        /**
+         * PAK ID
+         *
+         * The PAK device to act on.
+         */
+        pak_id: string;
+    };
+    query?: never;
+    url: '/api/paks/{pak_id}/access-key/rotate';
+};
+
+export type RotatePakAccessKeyErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
+    /**
+     * An identity provider required by the request is unavailable.
+     */
+    503: ErrorResponse;
+};
+
+export type RotatePakAccessKeyError = RotatePakAccessKeyErrors[keyof RotatePakAccessKeyErrors];
+
+export type RotatePakAccessKeyResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: PakAccessKey;
+};
+
+export type RotatePakAccessKeyResponse = RotatePakAccessKeyResponses[keyof RotatePakAccessKeyResponses];
+
+export type ArchiveBatchData = {
+    body?: never;
+    path: {
+        /**
+         * Batch ID
+         *
+         * The batch to act on.
+         */
+        batch_id: string;
+    };
+    query?: never;
+    url: '/api/batches/{batch_id}/archive';
+};
+
+export type ArchiveBatchErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+};
+
+export type ArchiveBatchError = ArchiveBatchErrors[keyof ArchiveBatchErrors];
+
+export type ArchiveBatchResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: Batch;
+};
+
+export type ArchiveBatchResponse = ArchiveBatchResponses[keyof ArchiveBatchResponses];
+
+export type AssignBatchProductionOrderData = {
+    body: BatchProductionOrderAssignment;
+    path: {
+        /**
+         * Batch ID
+         *
+         * The batch to act on.
+         */
+        batch_id: string;
+    };
+    query?: never;
+    url: '/api/batches/{batch_id}/production-order';
+};
+
+export type AssignBatchProductionOrderErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
+};
+
+export type AssignBatchProductionOrderError = AssignBatchProductionOrderErrors[keyof AssignBatchProductionOrderErrors];
+
+export type AssignBatchProductionOrderResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: Batch;
+};
+
+export type AssignBatchProductionOrderResponse = AssignBatchProductionOrderResponses[keyof AssignBatchProductionOrderResponses];
+
+export type CompleteBatchData = {
+    body?: never;
+    path: {
+        /**
+         * Batch ID
+         *
+         * The batch to act on.
+         */
+        batch_id: string;
+    };
+    query?: never;
+    url: '/api/batches/{batch_id}/complete';
+};
+
+export type CompleteBatchErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
+};
+
+export type CompleteBatchError = CompleteBatchErrors[keyof CompleteBatchErrors];
+
+export type CompleteBatchResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: Batch;
+};
+
+export type CompleteBatchResponse = CompleteBatchResponses[keyof CompleteBatchResponses];
+
+export type ListBatchesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        ids?: Array<string> | null;
+        createdBefore?: string | null;
+        createdAfter?: string | null;
+        updatedBefore?: string | null;
+        updatedAfter?: string | null;
+        /**
+         * Field to search
+         */
+        searchString?: string | null;
+        /**
+         * Search should be case sensitive
+         */
+        searchIgnoreCase?: boolean | null;
+        currentPage?: number;
+        pageSize?: number;
+        /**
+         * Order by field
+         */
+        orderBy?: string | null;
+        /**
+         * Field to search
+         */
+        sortOrder?: 'asc' | 'desc' | null;
+        statusIn?: Array<BatchStatus> | null;
+        productionOrderIdIn?: Array<string> | null;
+        /**
+         * Only archived (true) or only current (false) items; all when omitted.
+         */
+        archived?: boolean | null;
+        /**
+         * Only batches with (true) or without (false) a production order; all when omitted.
+         */
+        hasProductionOrder?: boolean | null;
+    };
+    url: '/api/batches';
+};
+
+export type ListBatchesErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+};
+
+export type ListBatchesError = ListBatchesErrors[keyof ListBatchesErrors];
+
+export type ListBatchesResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: BatchPage;
+};
+
+export type ListBatchesResponse = ListBatchesResponses[keyof ListBatchesResponses];
+
+export type CreateBatchData = {
+    body: BatchCreate;
+    path?: never;
+    query?: never;
+    url: '/api/batches';
+};
+
+export type CreateBatchErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
+};
+
+export type CreateBatchError = CreateBatchErrors[keyof CreateBatchErrors];
+
+export type CreateBatchResponses = {
+    /**
+     * Document created, URL follows
+     */
+    201: Batch;
+};
+
+export type CreateBatchResponse = CreateBatchResponses[keyof CreateBatchResponses];
+
+export type DeleteBatchData = {
+    body?: never;
+    path: {
+        /**
+         * Batch ID
+         *
+         * The batch to act on.
+         */
+        batch_id: string;
+    };
+    query?: never;
+    url: '/api/batches/{batch_id}';
+};
+
+export type DeleteBatchErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
+};
+
+export type DeleteBatchError = DeleteBatchErrors[keyof DeleteBatchErrors];
+
+export type DeleteBatchResponses = {
+    /**
+     * Request fulfilled, nothing follows
+     */
+    204: void;
+};
+
+export type DeleteBatchResponse = DeleteBatchResponses[keyof DeleteBatchResponses];
+
+export type GetBatchData = {
+    body?: never;
+    path: {
+        /**
+         * Batch ID
+         *
+         * The batch to act on.
+         */
+        batch_id: string;
+    };
+    query?: never;
+    url: '/api/batches/{batch_id}';
+};
+
+export type GetBatchErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+};
+
+export type GetBatchError = GetBatchErrors[keyof GetBatchErrors];
+
+export type GetBatchResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: Batch;
+};
+
+export type GetBatchResponse = GetBatchResponses[keyof GetBatchResponses];
+
+export type UpdateBatchData = {
+    body: BatchUpdate;
+    path: {
+        /**
+         * Batch ID
+         *
+         * The batch to act on.
+         */
+        batch_id: string;
+    };
+    query?: never;
+    url: '/api/batches/{batch_id}';
+};
+
+export type UpdateBatchErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
+};
+
+export type UpdateBatchError = UpdateBatchErrors[keyof UpdateBatchErrors];
+
+export type UpdateBatchResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: Batch;
+};
+
+export type UpdateBatchResponse = UpdateBatchResponses[keyof UpdateBatchResponses];
+
+export type PreviewBatchDevEuiRangeData = {
     body?: never;
     path?: never;
     query: {
         /**
-         * Dev Eui Prefix
+         * The prefix to allocate from.
          */
-        dev_eui_prefix: string;
-        /**
-         * Planned Qty
-         */
-        planned_qty: number;
+        kgPrefixId: string;
+        plannedQty: number;
     };
-    url: '/batches/dev-eui-range-preview';
+    url: '/api/batches/dev-eui-range-preview';
 };
 
-export type BatchPreviewDevEuiRangeErrors = {
+export type PreviewBatchDevEuiRangeErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type BatchPreviewDevEuiRangeError = BatchPreviewDevEuiRangeErrors[keyof BatchPreviewDevEuiRangeErrors];
-
-export type BatchPreviewDevEuiRangeResponses = {
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
     /**
-     * Successful Response
+     * Authentication is missing or invalid.
      */
-    200: DevEuiRangePreviewResponse;
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
 };
 
-export type BatchPreviewDevEuiRangeResponse = BatchPreviewDevEuiRangeResponses[keyof BatchPreviewDevEuiRangeResponses];
+export type PreviewBatchDevEuiRangeError = PreviewBatchDevEuiRangeErrors[keyof PreviewBatchDevEuiRangeErrors];
 
-export type BatchDeleteBatchData = {
+export type PreviewBatchDevEuiRangeResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: DevEuiRange;
+};
+
+export type PreviewBatchDevEuiRangeResponse = PreviewBatchDevEuiRangeResponses[keyof PreviewBatchDevEuiRangeResponses];
+
+export type RestoreBatchData = {
     body?: never;
     path: {
         /**
-         * Batch Id
+         * Batch ID
+         *
+         * The batch to act on.
          */
         batch_id: string;
     };
     query?: never;
-    url: '/batches/{batch_id}';
+    url: '/api/batches/{batch_id}/restore';
 };
 
-export type BatchDeleteBatchErrors = {
+export type RestoreBatchErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type BatchDeleteBatchError = BatchDeleteBatchErrors[keyof BatchDeleteBatchErrors];
-
-export type BatchDeleteBatchResponses = {
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
     /**
-     * Successful Response
+     * Authentication is missing or invalid.
      */
-    204: void;
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
 };
 
-export type BatchDeleteBatchResponse = BatchDeleteBatchResponses[keyof BatchDeleteBatchResponses];
+export type RestoreBatchError = RestoreBatchErrors[keyof RestoreBatchErrors];
 
-export type BatchGetBatchData = {
+export type RestoreBatchResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: Batch;
+};
+
+export type RestoreBatchResponse = RestoreBatchResponses[keyof RestoreBatchResponses];
+
+export type ListBatchReceiptsData = {
     body?: never;
     path: {
         /**
-         * Batch Id
-         */
-        batch_id: string;
-    };
-    query?: never;
-    url: '/batches/{batch_id}';
-};
-
-export type BatchGetBatchErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type BatchGetBatchError = BatchGetBatchErrors[keyof BatchGetBatchErrors];
-
-export type BatchGetBatchResponses = {
-    /**
-     * Successful Response
-     */
-    200: BatchResponse;
-};
-
-export type BatchGetBatchResponse = BatchGetBatchResponses[keyof BatchGetBatchResponses];
-
-export type BatchUpdateBatchData = {
-    body: UpdateBatchRequest;
-    path: {
-        /**
-         * Batch Id
-         */
-        batch_id: string;
-    };
-    query?: never;
-    url: '/batches/{batch_id}';
-};
-
-export type BatchUpdateBatchErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type BatchUpdateBatchError = BatchUpdateBatchErrors[keyof BatchUpdateBatchErrors];
-
-export type BatchUpdateBatchResponses = {
-    /**
-     * Successful Response
-     */
-    200: BatchResponse;
-};
-
-export type BatchUpdateBatchResponse = BatchUpdateBatchResponses[keyof BatchUpdateBatchResponses];
-
-export type BatchUpdateBatchArchivedData = {
-    body: UpdateBatchArchivedRequest;
-    path: {
-        /**
-         * Batch Id
-         */
-        batch_id: string;
-    };
-    query?: never;
-    url: '/batches/{batch_id}/archived';
-};
-
-export type BatchUpdateBatchArchivedErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type BatchUpdateBatchArchivedError = BatchUpdateBatchArchivedErrors[keyof BatchUpdateBatchArchivedErrors];
-
-export type BatchUpdateBatchArchivedResponses = {
-    /**
-     * Successful Response
-     */
-    200: BatchResponse;
-};
-
-export type BatchUpdateBatchArchivedResponse = BatchUpdateBatchArchivedResponses[keyof BatchUpdateBatchArchivedResponses];
-
-export type BatchCompleteBatchData = {
-    body?: never;
-    path: {
-        /**
-         * Batch Id
-         */
-        batch_id: string;
-    };
-    query?: never;
-    url: '/batches/{batch_id}/complete';
-};
-
-export type BatchCompleteBatchErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type BatchCompleteBatchError = BatchCompleteBatchErrors[keyof BatchCompleteBatchErrors];
-
-export type BatchCompleteBatchResponses = {
-    /**
-     * Successful Response
-     */
-    200: BatchResponse;
-};
-
-export type BatchCompleteBatchResponse = BatchCompleteBatchResponses[keyof BatchCompleteBatchResponses];
-
-export type BatchRetryBatchPreparationData = {
-    body?: never;
-    path: {
-        /**
-         * Batch Id
-         */
-        batch_id: string;
-    };
-    query?: never;
-    url: '/batches/{batch_id}/preparation/retry';
-};
-
-export type BatchRetryBatchPreparationErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type BatchRetryBatchPreparationError = BatchRetryBatchPreparationErrors[keyof BatchRetryBatchPreparationErrors];
-
-export type BatchRetryBatchPreparationResponses = {
-    /**
-     * Successful Response
-     */
-    200: BatchResponse;
-};
-
-export type BatchRetryBatchPreparationResponse = BatchRetryBatchPreparationResponses[keyof BatchRetryBatchPreparationResponses];
-
-export type BatchAssignProductionOrderData = {
-    body: AssignProductionOrderRequest;
-    path: {
-        /**
-         * Batch Id
-         */
-        batch_id: string;
-    };
-    query?: never;
-    url: '/batches/{batch_id}/production-order';
-};
-
-export type BatchAssignProductionOrderErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type BatchAssignProductionOrderError = BatchAssignProductionOrderErrors[keyof BatchAssignProductionOrderErrors];
-
-export type BatchAssignProductionOrderResponses = {
-    /**
-     * Successful Response
-     */
-    200: BatchResponse;
-};
-
-export type BatchAssignProductionOrderResponse = BatchAssignProductionOrderResponses[keyof BatchAssignProductionOrderResponses];
-
-export type BatchListBatchReceiptsData = {
-    body?: never;
-    path: {
-        /**
-         * Batch Id
+         * Batch ID
+         *
+         * The batch the receipts belong to.
          */
         batch_id: string;
     };
     query?: {
+        createdBefore?: string | null;
+        createdAfter?: string | null;
+        currentPage?: number;
+        pageSize?: number;
         /**
-         * Include Voided
+         * Order by field
          */
-        include_voided?: boolean;
+        orderBy?: string | null;
+        /**
+         * Field to search
+         */
+        sortOrder?: 'asc' | 'desc' | null;
+        /**
+         * Only voided (true) or only valid (false) receipts; all when omitted.
+         */
+        voided?: boolean | null;
     };
-    url: '/batches/{batch_id}/receipts';
+    url: '/api/batches/{batch_id}/receipts';
 };
 
-export type BatchListBatchReceiptsErrors = {
+export type ListBatchReceiptsErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type BatchListBatchReceiptsError = BatchListBatchReceiptsErrors[keyof BatchListBatchReceiptsErrors];
-
-export type BatchListBatchReceiptsResponses = {
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
     /**
-     * Successful Response
+     * Authentication is missing or invalid.
      */
-    200: BatchReceiptListResponse;
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
 };
 
-export type BatchListBatchReceiptsResponse = BatchListBatchReceiptsResponses[keyof BatchListBatchReceiptsResponses];
+export type ListBatchReceiptsError = ListBatchReceiptsErrors[keyof ListBatchReceiptsErrors];
 
-export type BatchCreateBatchReceiptData = {
-    body: CreateBatchReceiptRequest;
+export type ListBatchReceiptsResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: BatchReceiptPage;
+};
+
+export type ListBatchReceiptsResponse = ListBatchReceiptsResponses[keyof ListBatchReceiptsResponses];
+
+export type CreateBatchReceiptData = {
+    body: BatchReceiptCreate;
     path: {
         /**
-         * Batch Id
+         * Batch ID
+         *
+         * The batch the receipts belong to.
          */
         batch_id: string;
     };
     query?: never;
-    url: '/batches/{batch_id}/receipts';
+    url: '/api/batches/{batch_id}/receipts';
 };
 
-export type BatchCreateBatchReceiptErrors = {
+export type CreateBatchReceiptErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type BatchCreateBatchReceiptError = BatchCreateBatchReceiptErrors[keyof BatchCreateBatchReceiptErrors];
-
-export type BatchCreateBatchReceiptResponses = {
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
     /**
-     * Successful Response
+     * Authentication is missing or invalid.
      */
-    201: BatchReceiptResponse;
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
 };
 
-export type BatchCreateBatchReceiptResponse = BatchCreateBatchReceiptResponses[keyof BatchCreateBatchReceiptResponses];
+export type CreateBatchReceiptError = CreateBatchReceiptErrors[keyof CreateBatchReceiptErrors];
 
-export type BatchUpdateBatchReceiptData = {
-    body: UpdateBatchReceiptRequest;
+export type CreateBatchReceiptResponses = {
+    /**
+     * Document created, URL follows
+     */
+    201: BatchReceipt;
+};
+
+export type CreateBatchReceiptResponse = CreateBatchReceiptResponses[keyof CreateBatchReceiptResponses];
+
+export type GetBatchReceiptData = {
+    body?: never;
     path: {
         /**
-         * Batch Id
+         * Batch ID
+         *
+         * The batch the receipts belong to.
          */
         batch_id: string;
         /**
-         * Receipt Id
+         * Receipt ID
+         *
+         * The receipt to act on.
          */
         receipt_id: string;
     };
     query?: never;
-    url: '/batches/{batch_id}/receipts/{receipt_id}';
+    url: '/api/batches/{batch_id}/receipts/{receipt_id}';
 };
 
-export type BatchUpdateBatchReceiptErrors = {
+export type GetBatchReceiptErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type BatchUpdateBatchReceiptError = BatchUpdateBatchReceiptErrors[keyof BatchUpdateBatchReceiptErrors];
-
-export type BatchUpdateBatchReceiptResponses = {
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
     /**
-     * Successful Response
+     * Authentication is missing or invalid.
      */
-    200: BatchReceiptResponse;
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
 };
 
-export type BatchUpdateBatchReceiptResponse = BatchUpdateBatchReceiptResponses[keyof BatchUpdateBatchReceiptResponses];
+export type GetBatchReceiptError = GetBatchReceiptErrors[keyof GetBatchReceiptErrors];
 
-export type BatchVoidBatchReceiptData = {
-    body: VoidBatchReceiptRequest;
+export type GetBatchReceiptResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: BatchReceipt;
+};
+
+export type GetBatchReceiptResponse = GetBatchReceiptResponses[keyof GetBatchReceiptResponses];
+
+export type UpdateBatchReceiptData = {
+    body: BatchReceiptUpdate;
     path: {
         /**
-         * Batch Id
+         * Batch ID
+         *
+         * The batch the receipts belong to.
          */
         batch_id: string;
         /**
-         * Receipt Id
+         * Receipt ID
+         *
+         * The receipt to act on.
          */
         receipt_id: string;
     };
     query?: never;
-    url: '/batches/{batch_id}/receipts/{receipt_id}/void';
+    url: '/api/batches/{batch_id}/receipts/{receipt_id}';
 };
 
-export type BatchVoidBatchReceiptErrors = {
+export type UpdateBatchReceiptErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type BatchVoidBatchReceiptError = BatchVoidBatchReceiptErrors[keyof BatchVoidBatchReceiptErrors];
-
-export type BatchVoidBatchReceiptResponses = {
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
     /**
-     * Successful Response
+     * Authentication is missing or invalid.
      */
-    200: BatchReceiptResponse;
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
 };
 
-export type BatchVoidBatchReceiptResponse = BatchVoidBatchReceiptResponses[keyof BatchVoidBatchReceiptResponses];
+export type UpdateBatchReceiptError = UpdateBatchReceiptErrors[keyof UpdateBatchReceiptErrors];
 
-export type BatchListBatchShipmentsData = {
+export type UpdateBatchReceiptResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: BatchReceipt;
+};
+
+export type UpdateBatchReceiptResponse = UpdateBatchReceiptResponses[keyof UpdateBatchReceiptResponses];
+
+export type VoidBatchReceiptData = {
+    body: BatchReceiptVoid;
+    path: {
+        /**
+         * Batch ID
+         *
+         * The batch the receipts belong to.
+         */
+        batch_id: string;
+        /**
+         * Receipt ID
+         *
+         * The receipt to act on.
+         */
+        receipt_id: string;
+    };
+    query?: never;
+    url: '/api/batches/{batch_id}/receipts/{receipt_id}/void';
+};
+
+export type VoidBatchReceiptErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
+};
+
+export type VoidBatchReceiptError = VoidBatchReceiptErrors[keyof VoidBatchReceiptErrors];
+
+export type VoidBatchReceiptResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: BatchReceipt;
+};
+
+export type VoidBatchReceiptResponse = VoidBatchReceiptResponses[keyof VoidBatchReceiptResponses];
+
+export type CompleteBatchShipmentData = {
     body?: never;
     path: {
         /**
-         * Batch Id
+         * Batch ID
+         *
+         * The batch the shipments belong to.
+         */
+        batch_id: string;
+        /**
+         * Shipment ID
+         *
+         * The shipment to act on.
+         */
+        shipment_id: string;
+    };
+    query?: never;
+    url: '/api/batches/{batch_id}/shipments/{shipment_id}/complete';
+};
+
+export type CompleteBatchShipmentErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
+};
+
+export type CompleteBatchShipmentError = CompleteBatchShipmentErrors[keyof CompleteBatchShipmentErrors];
+
+export type CompleteBatchShipmentResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: BatchShipment;
+};
+
+export type CompleteBatchShipmentResponse = CompleteBatchShipmentResponses[keyof CompleteBatchShipmentResponses];
+
+export type ListBatchShipmentsData = {
+    body?: never;
+    path: {
+        /**
+         * Batch ID
+         *
+         * The batch the shipments belong to.
          */
         batch_id: string;
     };
     query?: {
+        createdBefore?: string | null;
+        createdAfter?: string | null;
         /**
-         * Include Voided
+         * Field to search
          */
-        include_voided?: boolean;
+        searchString?: string | null;
+        /**
+         * Search should be case sensitive
+         */
+        searchIgnoreCase?: boolean | null;
+        currentPage?: number;
+        pageSize?: number;
+        /**
+         * Order by field
+         */
+        orderBy?: string | null;
+        /**
+         * Field to search
+         */
+        sortOrder?: 'asc' | 'desc' | null;
+        statusIn?: Array<BatchShipmentStatus> | null;
     };
-    url: '/batches/{batch_id}/shipments';
+    url: '/api/batches/{batch_id}/shipments';
 };
 
-export type BatchListBatchShipmentsErrors = {
+export type ListBatchShipmentsErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type BatchListBatchShipmentsError = BatchListBatchShipmentsErrors[keyof BatchListBatchShipmentsErrors];
-
-export type BatchListBatchShipmentsResponses = {
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
     /**
-     * Successful Response
+     * Authentication is missing or invalid.
      */
-    200: BatchShipmentListResponse;
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
 };
 
-export type BatchListBatchShipmentsResponse = BatchListBatchShipmentsResponses[keyof BatchListBatchShipmentsResponses];
+export type ListBatchShipmentsError = ListBatchShipmentsErrors[keyof ListBatchShipmentsErrors];
 
-export type BatchCreateBatchShipmentData = {
-    body: CreateBatchShipmentRequest;
+export type ListBatchShipmentsResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: BatchShipmentPage;
+};
+
+export type ListBatchShipmentsResponse = ListBatchShipmentsResponses[keyof ListBatchShipmentsResponses];
+
+export type CreateBatchShipmentData = {
+    body: BatchShipmentCreate;
     path: {
         /**
-         * Batch Id
+         * Batch ID
+         *
+         * The batch the shipments belong to.
          */
         batch_id: string;
     };
     query?: never;
-    url: '/batches/{batch_id}/shipments';
+    url: '/api/batches/{batch_id}/shipments';
 };
 
-export type BatchCreateBatchShipmentErrors = {
+export type CreateBatchShipmentErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type BatchCreateBatchShipmentError = BatchCreateBatchShipmentErrors[keyof BatchCreateBatchShipmentErrors];
-
-export type BatchCreateBatchShipmentResponses = {
-    /**
-     * Successful Response
-     */
-    201: BatchShipmentResponse;
-};
-
-export type BatchCreateBatchShipmentResponse = BatchCreateBatchShipmentResponses[keyof BatchCreateBatchShipmentResponses];
-
-export type BatchUpdateBatchShipmentData = {
-    body: UpdateBatchShipmentRequest;
-    path: {
-        /**
-         * Batch Id
-         */
-        batch_id: string;
-        /**
-         * Shipment Id
-         */
-        shipment_id: string;
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
     };
-    query?: never;
-    url: '/batches/{batch_id}/shipments/{shipment_id}';
-};
-
-export type BatchUpdateBatchShipmentErrors = {
     /**
-     * Validation Error
+     * Authentication is missing or invalid.
      */
-    422: HttpValidationError;
-};
-
-export type BatchUpdateBatchShipmentError = BatchUpdateBatchShipmentErrors[keyof BatchUpdateBatchShipmentErrors];
-
-export type BatchUpdateBatchShipmentResponses = {
+    401: ErrorResponse;
     /**
-     * Successful Response
+     * The authenticated user lacks the required permission or may not act on this target.
      */
-    200: BatchShipmentResponse;
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
 };
 
-export type BatchUpdateBatchShipmentResponse = BatchUpdateBatchShipmentResponses[keyof BatchUpdateBatchShipmentResponses];
+export type CreateBatchShipmentError = CreateBatchShipmentErrors[keyof CreateBatchShipmentErrors];
 
-export type BatchCompleteBatchShipmentData = {
+export type CreateBatchShipmentResponses = {
+    /**
+     * Document created, URL follows
+     */
+    201: BatchShipment;
+};
+
+export type CreateBatchShipmentResponse = CreateBatchShipmentResponses[keyof CreateBatchShipmentResponses];
+
+export type GetBatchShipmentData = {
     body?: never;
     path: {
         /**
-         * Batch Id
+         * Batch ID
+         *
+         * The batch the shipments belong to.
          */
         batch_id: string;
         /**
-         * Shipment Id
+         * Shipment ID
+         *
+         * The shipment to act on.
          */
         shipment_id: string;
     };
     query?: never;
-    url: '/batches/{batch_id}/shipments/{shipment_id}/complete';
+    url: '/api/batches/{batch_id}/shipments/{shipment_id}';
 };
 
-export type BatchCompleteBatchShipmentErrors = {
+export type GetBatchShipmentErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type BatchCompleteBatchShipmentError = BatchCompleteBatchShipmentErrors[keyof BatchCompleteBatchShipmentErrors];
-
-export type BatchCompleteBatchShipmentResponses = {
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
     /**
-     * Successful Response
+     * Authentication is missing or invalid.
      */
-    200: BatchShipmentResponse;
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
 };
 
-export type BatchCompleteBatchShipmentResponse = BatchCompleteBatchShipmentResponses[keyof BatchCompleteBatchShipmentResponses];
+export type GetBatchShipmentError = GetBatchShipmentErrors[keyof GetBatchShipmentErrors];
 
-export type BatchListBatchShipmentItemsData = {
+export type GetBatchShipmentResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: BatchShipment;
+};
+
+export type GetBatchShipmentResponse = GetBatchShipmentResponses[keyof GetBatchShipmentResponses];
+
+export type UpdateBatchShipmentData = {
+    body: BatchShipmentUpdate;
+    path: {
+        /**
+         * Batch ID
+         *
+         * The batch the shipments belong to.
+         */
+        batch_id: string;
+        /**
+         * Shipment ID
+         *
+         * The shipment to act on.
+         */
+        shipment_id: string;
+    };
+    query?: never;
+    url: '/api/batches/{batch_id}/shipments/{shipment_id}';
+};
+
+export type UpdateBatchShipmentErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
+};
+
+export type UpdateBatchShipmentError = UpdateBatchShipmentErrors[keyof UpdateBatchShipmentErrors];
+
+export type UpdateBatchShipmentResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: BatchShipment;
+};
+
+export type UpdateBatchShipmentResponse = UpdateBatchShipmentResponses[keyof UpdateBatchShipmentResponses];
+
+export type VoidBatchShipmentData = {
+    body: BatchShipmentVoid;
+    path: {
+        /**
+         * Batch ID
+         *
+         * The batch the shipments belong to.
+         */
+        batch_id: string;
+        /**
+         * Shipment ID
+         *
+         * The shipment to act on.
+         */
+        shipment_id: string;
+    };
+    query?: never;
+    url: '/api/batches/{batch_id}/shipments/{shipment_id}/void';
+};
+
+export type VoidBatchShipmentErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
+};
+
+export type VoidBatchShipmentError = VoidBatchShipmentErrors[keyof VoidBatchShipmentErrors];
+
+export type VoidBatchShipmentResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: BatchShipment;
+};
+
+export type VoidBatchShipmentResponse = VoidBatchShipmentResponses[keyof VoidBatchShipmentResponses];
+
+export type AddPackedBatchShipmentUnitsData = {
     body?: never;
     path: {
         /**
-         * Batch Id
+         * Batch ID
+         *
+         * The batch of the shipment.
          */
         batch_id: string;
         /**
-         * Shipment Id
+         * Shipment ID
+         *
+         * The shipment the units belong to.
          */
         shipment_id: string;
     };
     query?: never;
-    url: '/batches/{batch_id}/shipments/{shipment_id}/items';
+    url: '/api/batches/{batch_id}/shipments/{shipment_id}/items/packed';
 };
 
-export type BatchListBatchShipmentItemsErrors = {
+export type AddPackedBatchShipmentUnitsErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type BatchListBatchShipmentItemsError = BatchListBatchShipmentItemsErrors[keyof BatchListBatchShipmentItemsErrors];
-
-export type BatchListBatchShipmentItemsResponses = {
-    /**
-     * Response Batch-List Batch Shipment Items
-     *
-     * Successful Response
-     */
-    200: Array<BatchShipmentItemResponse>;
-};
-
-export type BatchListBatchShipmentItemsResponse = BatchListBatchShipmentItemsResponses[keyof BatchListBatchShipmentItemsResponses];
-
-export type BatchAddBatchShipmentItemData = {
-    body: AddBatchShipmentItemRequest;
-    path: {
-        /**
-         * Batch Id
-         */
-        batch_id: string;
-        /**
-         * Shipment Id
-         */
-        shipment_id: string;
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
     };
-    query?: never;
-    url: '/batches/{batch_id}/shipments/{shipment_id}/items';
-};
-
-export type BatchAddBatchShipmentItemErrors = {
     /**
-     * Validation Error
+     * Authentication is missing or invalid.
      */
-    422: HttpValidationError;
-};
-
-export type BatchAddBatchShipmentItemError = BatchAddBatchShipmentItemErrors[keyof BatchAddBatchShipmentItemErrors];
-
-export type BatchAddBatchShipmentItemResponses = {
+    401: ErrorResponse;
     /**
-     * Successful Response
+     * The authenticated user lacks the required permission or may not act on this target.
      */
-    201: BatchShipmentItemResponse;
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
 };
 
-export type BatchAddBatchShipmentItemResponse = BatchAddBatchShipmentItemResponses[keyof BatchAddBatchShipmentItemResponses];
+export type AddPackedBatchShipmentUnitsError = AddPackedBatchShipmentUnitsErrors[keyof AddPackedBatchShipmentUnitsErrors];
 
-export type BatchRemoveBatchShipmentItemData = {
+export type AddPackedBatchShipmentUnitsResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: BatchShipment;
+};
+
+export type AddPackedBatchShipmentUnitsResponse = AddPackedBatchShipmentUnitsResponses[keyof AddPackedBatchShipmentUnitsResponses];
+
+export type ListBatchShipmentItemsData = {
     body?: never;
     path: {
         /**
-         * Batch Id
+         * Batch ID
+         *
+         * The batch of the shipment.
          */
         batch_id: string;
         /**
-         * Shipment Id
+         * Shipment ID
+         *
+         * The shipment the units belong to.
+         */
+        shipment_id: string;
+    };
+    query?: {
+        /**
+         * Field to search
+         */
+        searchString?: string | null;
+        /**
+         * Search should be case sensitive
+         */
+        searchIgnoreCase?: boolean | null;
+        currentPage?: number;
+        pageSize?: number;
+        /**
+         * Order by field
+         */
+        orderBy?: string | null;
+        /**
+         * Field to search
+         */
+        sortOrder?: 'asc' | 'desc' | null;
+    };
+    url: '/api/batches/{batch_id}/shipments/{shipment_id}/items';
+};
+
+export type ListBatchShipmentItemsErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+};
+
+export type ListBatchShipmentItemsError = ListBatchShipmentItemsErrors[keyof ListBatchShipmentItemsErrors];
+
+export type ListBatchShipmentItemsResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: BatchShipmentItemPage;
+};
+
+export type ListBatchShipmentItemsResponse = ListBatchShipmentItemsResponses[keyof ListBatchShipmentItemsResponses];
+
+export type AddBatchShipmentUnitsData = {
+    body: BatchShipmentUnitsAdd;
+    path: {
+        /**
+         * Batch ID
+         *
+         * The batch of the shipment.
+         */
+        batch_id: string;
+        /**
+         * Shipment ID
+         *
+         * The shipment the units belong to.
+         */
+        shipment_id: string;
+    };
+    query?: never;
+    url: '/api/batches/{batch_id}/shipments/{shipment_id}/items';
+};
+
+export type AddBatchShipmentUnitsErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
+};
+
+export type AddBatchShipmentUnitsError = AddBatchShipmentUnitsErrors[keyof AddBatchShipmentUnitsErrors];
+
+export type AddBatchShipmentUnitsResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: BatchShipmentUnitsAdded;
+};
+
+export type AddBatchShipmentUnitsResponse = AddBatchShipmentUnitsResponses[keyof AddBatchShipmentUnitsResponses];
+
+export type RemoveBatchShipmentUnitData = {
+    body?: never;
+    path: {
+        /**
+         * Batch ID
+         *
+         * The batch of the shipment.
+         */
+        batch_id: string;
+        /**
+         * Shipment ID
+         *
+         * The shipment the units belong to.
          */
         shipment_id: string;
         /**
-         * Dev Eui
+         * DevEUI
+         *
+         * The KG unit: 16 hexadecimal characters, any case.
          */
         dev_eui: string;
     };
     query?: never;
-    url: '/batches/{batch_id}/shipments/{shipment_id}/items/{dev_eui}';
+    url: '/api/batches/{batch_id}/shipments/{shipment_id}/items/{dev_eui}';
 };
 
-export type BatchRemoveBatchShipmentItemErrors = {
+export type RemoveBatchShipmentUnitErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
 };
 
-export type BatchRemoveBatchShipmentItemError = BatchRemoveBatchShipmentItemErrors[keyof BatchRemoveBatchShipmentItemErrors];
+export type RemoveBatchShipmentUnitError = RemoveBatchShipmentUnitErrors[keyof RemoveBatchShipmentUnitErrors];
 
-export type BatchRemoveBatchShipmentItemResponses = {
+export type RemoveBatchShipmentUnitResponses = {
     /**
-     * Successful Response
+     * Request fulfilled, nothing follows
      */
     204: void;
 };
 
-export type BatchRemoveBatchShipmentItemResponse = BatchRemoveBatchShipmentItemResponses[keyof BatchRemoveBatchShipmentItemResponses];
+export type RemoveBatchShipmentUnitResponse = RemoveBatchShipmentUnitResponses[keyof RemoveBatchShipmentUnitResponses];
 
-export type BatchVoidBatchShipmentData = {
-    body: VoidBatchShipmentRequest;
+export type ArchiveKgPrefixData = {
+    body?: never;
     path: {
         /**
-         * Batch Id
+         * DevEUI prefix ID
+         *
+         * The DevEUI prefix to act on.
          */
-        batch_id: string;
-        /**
-         * Shipment Id
-         */
-        shipment_id: string;
+        prefix_id: string;
     };
     query?: never;
-    url: '/batches/{batch_id}/shipments/{shipment_id}/void';
+    url: '/api/kg/prefixes/{prefix_id}/archive';
 };
 
-export type BatchVoidBatchShipmentErrors = {
+export type ArchiveKgPrefixErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type BatchVoidBatchShipmentError = BatchVoidBatchShipmentErrors[keyof BatchVoidBatchShipmentErrors];
-
-export type BatchVoidBatchShipmentResponses = {
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
     /**
-     * Successful Response
+     * Authentication is missing or invalid.
      */
-    200: BatchShipmentResponse;
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
 };
 
-export type BatchVoidBatchShipmentResponse = BatchVoidBatchShipmentResponses[keyof BatchVoidBatchShipmentResponses];
+export type ArchiveKgPrefixError = ArchiveKgPrefixErrors[keyof ArchiveKgPrefixErrors];
 
-export type DefectsListDefectGroupsData = {
+export type ArchiveKgPrefixResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: KgPrefix;
+};
+
+export type ArchiveKgPrefixResponse = ArchiveKgPrefixResponses[keyof ArchiveKgPrefixResponses];
+
+export type ListKgPrefixesData = {
     body?: never;
     path?: never;
     query?: {
+        ids?: Array<string> | null;
+        createdBefore?: string | null;
+        createdAfter?: string | null;
+        updatedBefore?: string | null;
+        updatedAfter?: string | null;
         /**
-         * Q
+         * Field to search
          */
-        q?: string | null;
+        searchString?: string | null;
         /**
-         * Archived
+         * Search should be case sensitive
          */
-        archived?: boolean;
+        searchIgnoreCase?: boolean | null;
+        currentPage?: number;
+        pageSize?: number;
         /**
-         * Page
+         * Order by field
          */
-        page?: number;
+        orderBy?: string | null;
         /**
-         * Page Size
+         * Field to search
          */
-        page_size?: number;
+        sortOrder?: 'asc' | 'desc' | null;
         /**
-         * Sort
+         * Only archived (true) or only current (false) items; all when omitted.
          */
-        sort?: 'code' | 'name' | 'created_at' | 'updated_at' | 'archived_at';
-        /**
-         * Order
-         */
-        order?: 'asc' | 'desc';
+        archived?: boolean | null;
     };
-    url: '/defects/groups';
+    url: '/api/kg/prefixes';
 };
 
-export type DefectsListDefectGroupsErrors = {
+export type ListKgPrefixesErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type DefectsListDefectGroupsError = DefectsListDefectGroupsErrors[keyof DefectsListDefectGroupsErrors];
-
-export type DefectsListDefectGroupsResponses = {
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
     /**
-     * Successful Response
+     * Authentication is missing or invalid.
      */
-    200: DefectGroupListResponse;
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
 };
 
-export type DefectsListDefectGroupsResponse = DefectsListDefectGroupsResponses[keyof DefectsListDefectGroupsResponses];
+export type ListKgPrefixesError = ListKgPrefixesErrors[keyof ListKgPrefixesErrors];
 
-export type DefectsCreateDefectGroupData = {
-    body: CreateDefectGroupRequest;
+export type ListKgPrefixesResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: KgPrefixPage;
+};
+
+export type ListKgPrefixesResponse = ListKgPrefixesResponses[keyof ListKgPrefixesResponses];
+
+export type CreateKgPrefixData = {
+    body: KgPrefixCreate;
     path?: never;
     query?: never;
-    url: '/defects/groups';
+    url: '/api/kg/prefixes';
 };
 
-export type DefectsCreateDefectGroupErrors = {
+export type CreateKgPrefixErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type DefectsCreateDefectGroupError = DefectsCreateDefectGroupErrors[keyof DefectsCreateDefectGroupErrors];
-
-export type DefectsCreateDefectGroupResponses = {
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
     /**
-     * Successful Response
+     * Authentication is missing or invalid.
      */
-    201: DefectGroupResponse;
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
 };
 
-export type DefectsCreateDefectGroupResponse = DefectsCreateDefectGroupResponses[keyof DefectsCreateDefectGroupResponses];
+export type CreateKgPrefixError = CreateKgPrefixErrors[keyof CreateKgPrefixErrors];
 
-export type DefectsDeleteDefectGroupData = {
+export type CreateKgPrefixResponses = {
+    /**
+     * Document created, URL follows
+     */
+    201: KgPrefix;
+};
+
+export type CreateKgPrefixResponse = CreateKgPrefixResponses[keyof CreateKgPrefixResponses];
+
+export type DeleteKgPrefixData = {
     body?: never;
     path: {
         /**
-         * Group Id
+         * DevEUI prefix ID
+         *
+         * The DevEUI prefix to act on.
          */
-        group_id: string;
+        prefix_id: string;
     };
     query?: never;
-    url: '/defects/groups/{group_id}';
+    url: '/api/kg/prefixes/{prefix_id}';
 };
 
-export type DefectsDeleteDefectGroupErrors = {
+export type DeleteKgPrefixErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
 };
 
-export type DefectsDeleteDefectGroupError = DefectsDeleteDefectGroupErrors[keyof DefectsDeleteDefectGroupErrors];
+export type DeleteKgPrefixError = DeleteKgPrefixErrors[keyof DeleteKgPrefixErrors];
 
-export type DefectsDeleteDefectGroupResponses = {
+export type DeleteKgPrefixResponses = {
     /**
-     * Successful Response
+     * Request fulfilled, nothing follows
      */
     204: void;
 };
 
-export type DefectsDeleteDefectGroupResponse = DefectsDeleteDefectGroupResponses[keyof DefectsDeleteDefectGroupResponses];
+export type DeleteKgPrefixResponse = DeleteKgPrefixResponses[keyof DeleteKgPrefixResponses];
 
-export type DefectsGetDefectGroupData = {
+export type GetKgPrefixData = {
     body?: never;
     path: {
         /**
-         * Group Id
+         * DevEUI prefix ID
+         *
+         * The DevEUI prefix to act on.
          */
-        group_id: string;
+        prefix_id: string;
     };
     query?: never;
-    url: '/defects/groups/{group_id}';
+    url: '/api/kg/prefixes/{prefix_id}';
 };
 
-export type DefectsGetDefectGroupErrors = {
+export type GetKgPrefixErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type DefectsGetDefectGroupError = DefectsGetDefectGroupErrors[keyof DefectsGetDefectGroupErrors];
-
-export type DefectsGetDefectGroupResponses = {
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
     /**
-     * Successful Response
+     * Authentication is missing or invalid.
      */
-    200: DefectGroupResponse;
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
 };
 
-export type DefectsGetDefectGroupResponse = DefectsGetDefectGroupResponses[keyof DefectsGetDefectGroupResponses];
+export type GetKgPrefixError = GetKgPrefixErrors[keyof GetKgPrefixErrors];
 
-export type DefectsUpdateDefectGroupData = {
-    body: UpdateDefectGroupRequest;
+export type GetKgPrefixResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: KgPrefix;
+};
+
+export type GetKgPrefixResponse = GetKgPrefixResponses[keyof GetKgPrefixResponses];
+
+export type UpdateKgPrefixData = {
+    body: KgPrefixUpdate;
     path: {
         /**
-         * Group Id
+         * DevEUI prefix ID
+         *
+         * The DevEUI prefix to act on.
          */
-        group_id: string;
+        prefix_id: string;
     };
     query?: never;
-    url: '/defects/groups/{group_id}';
+    url: '/api/kg/prefixes/{prefix_id}';
 };
 
-export type DefectsUpdateDefectGroupErrors = {
+export type UpdateKgPrefixErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type DefectsUpdateDefectGroupError = DefectsUpdateDefectGroupErrors[keyof DefectsUpdateDefectGroupErrors];
-
-export type DefectsUpdateDefectGroupResponses = {
-    /**
-     * Successful Response
-     */
-    200: DefectGroupResponse;
-};
-
-export type DefectsUpdateDefectGroupResponse = DefectsUpdateDefectGroupResponses[keyof DefectsUpdateDefectGroupResponses];
-
-export type DefectsUpdateDefectGroupArchivedData = {
-    body: UpdateDefectGroupArchivedRequest;
-    path: {
-        /**
-         * Group Id
-         */
-        group_id: string;
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
     };
-    query?: never;
-    url: '/defects/groups/{group_id}/archived';
-};
-
-export type DefectsUpdateDefectGroupArchivedErrors = {
     /**
-     * Validation Error
+     * Authentication is missing or invalid.
      */
-    422: HttpValidationError;
-};
-
-export type DefectsUpdateDefectGroupArchivedError = DefectsUpdateDefectGroupArchivedErrors[keyof DefectsUpdateDefectGroupArchivedErrors];
-
-export type DefectsUpdateDefectGroupArchivedResponses = {
+    401: ErrorResponse;
     /**
-     * Successful Response
+     * The authenticated user lacks the required permission or may not act on this target.
      */
-    200: DefectGroupResponse;
-};
-
-export type DefectsUpdateDefectGroupArchivedResponse = DefectsUpdateDefectGroupArchivedResponses[keyof DefectsUpdateDefectGroupArchivedResponses];
-
-export type DefectsListDefectTypesData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Q
-         */
-        q?: string | null;
-        /**
-         * Group Id
-         */
-        group_id?: string | null;
-        /**
-         * Archived
-         */
-        archived?: boolean;
-        /**
-         * Page
-         */
-        page?: number;
-        /**
-         * Page Size
-         */
-        page_size?: number;
-        /**
-         * Sort
-         */
-        sort?: 'code' | 'name' | 'created_at' | 'updated_at' | 'archived_at';
-        /**
-         * Order
-         */
-        order?: 'asc' | 'desc';
-    };
-    url: '/defects/types';
-};
-
-export type DefectsListDefectTypesErrors = {
+    403: ErrorResponse;
     /**
-     * Validation Error
+     * The resource does not exist.
      */
-    422: HttpValidationError;
-};
-
-export type DefectsListDefectTypesError = DefectsListDefectTypesErrors[keyof DefectsListDefectTypesErrors];
-
-export type DefectsListDefectTypesResponses = {
+    404: ErrorResponse;
     /**
-     * Successful Response
+     * The request conflicts with the current state of the resource.
      */
-    200: DefectTypeListResponse;
+    409: ErrorResponse;
 };
 
-export type DefectsListDefectTypesResponse = DefectsListDefectTypesResponses[keyof DefectsListDefectTypesResponses];
+export type UpdateKgPrefixError = UpdateKgPrefixErrors[keyof UpdateKgPrefixErrors];
 
-export type DefectsCreateDefectTypeData = {
-    body: CreateDefectTypeRequest;
-    path?: never;
-    query?: never;
-    url: '/defects/types';
-};
-
-export type DefectsCreateDefectTypeErrors = {
+export type UpdateKgPrefixResponses = {
     /**
-     * Validation Error
+     * Request fulfilled, document follows
      */
-    422: HttpValidationError;
+    200: KgPrefix;
 };
 
-export type DefectsCreateDefectTypeError = DefectsCreateDefectTypeErrors[keyof DefectsCreateDefectTypeErrors];
+export type UpdateKgPrefixResponse = UpdateKgPrefixResponses[keyof UpdateKgPrefixResponses];
 
-export type DefectsCreateDefectTypeResponses = {
-    /**
-     * Successful Response
-     */
-    201: DefectTypeResponse;
-};
-
-export type DefectsCreateDefectTypeResponse = DefectsCreateDefectTypeResponses[keyof DefectsCreateDefectTypeResponses];
-
-export type DefectsDeleteDefectTypeData = {
+export type RestoreKgPrefixData = {
     body?: never;
     path: {
         /**
-         * Defect Type Id
+         * DevEUI prefix ID
+         *
+         * The DevEUI prefix to act on.
          */
-        defect_type_id: string;
+        prefix_id: string;
     };
     query?: never;
-    url: '/defects/types/{defect_type_id}';
+    url: '/api/kg/prefixes/{prefix_id}/restore';
 };
 
-export type DefectsDeleteDefectTypeErrors = {
+export type RestoreKgPrefixErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type DefectsDeleteDefectTypeError = DefectsDeleteDefectTypeErrors[keyof DefectsDeleteDefectTypeErrors];
-
-export type DefectsDeleteDefectTypeResponses = {
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
     /**
-     * Successful Response
+     * Authentication is missing or invalid.
      */
-    204: void;
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
 };
 
-export type DefectsDeleteDefectTypeResponse = DefectsDeleteDefectTypeResponses[keyof DefectsDeleteDefectTypeResponses];
+export type RestoreKgPrefixError = RestoreKgPrefixErrors[keyof RestoreKgPrefixErrors];
 
-export type DefectsGetDefectTypeData = {
+export type RestoreKgPrefixResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: KgPrefix;
+};
+
+export type RestoreKgPrefixResponse = RestoreKgPrefixResponses[keyof RestoreKgPrefixResponses];
+
+export type GetKgUnitData = {
     body?: never;
     path: {
         /**
-         * Defect Type Id
-         */
-        defect_type_id: string;
-    };
-    query?: never;
-    url: '/defects/types/{defect_type_id}';
-};
-
-export type DefectsGetDefectTypeErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DefectsGetDefectTypeError = DefectsGetDefectTypeErrors[keyof DefectsGetDefectTypeErrors];
-
-export type DefectsGetDefectTypeResponses = {
-    /**
-     * Successful Response
-     */
-    200: DefectTypeResponse;
-};
-
-export type DefectsGetDefectTypeResponse = DefectsGetDefectTypeResponses[keyof DefectsGetDefectTypeResponses];
-
-export type DefectsUpdateDefectTypeData = {
-    body: UpdateDefectTypeRequest;
-    path: {
-        /**
-         * Defect Type Id
-         */
-        defect_type_id: string;
-    };
-    query?: never;
-    url: '/defects/types/{defect_type_id}';
-};
-
-export type DefectsUpdateDefectTypeErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DefectsUpdateDefectTypeError = DefectsUpdateDefectTypeErrors[keyof DefectsUpdateDefectTypeErrors];
-
-export type DefectsUpdateDefectTypeResponses = {
-    /**
-     * Successful Response
-     */
-    200: DefectTypeResponse;
-};
-
-export type DefectsUpdateDefectTypeResponse = DefectsUpdateDefectTypeResponses[keyof DefectsUpdateDefectTypeResponses];
-
-export type DefectsUpdateDefectTypeArchivedData = {
-    body: UpdateDefectTypeArchivedRequest;
-    path: {
-        /**
-         * Defect Type Id
-         */
-        defect_type_id: string;
-    };
-    query?: never;
-    url: '/defects/types/{defect_type_id}/archived';
-};
-
-export type DefectsUpdateDefectTypeArchivedErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DefectsUpdateDefectTypeArchivedError = DefectsUpdateDefectTypeArchivedErrors[keyof DefectsUpdateDefectTypeArchivedErrors];
-
-export type DefectsUpdateDefectTypeArchivedResponses = {
-    /**
-     * Successful Response
-     */
-    200: DefectTypeResponse;
-};
-
-export type DefectsUpdateDefectTypeArchivedResponse = DefectsUpdateDefectTypeArchivedResponses[keyof DefectsUpdateDefectTypeArchivedResponses];
-
-export type KgListKgData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Q
-         */
-        q?: string | null;
-        /**
-         * Batch Id
-         */
-        batch_id?: string | null;
-        /**
-         * Current State
-         */
-        current_state?: KgCurrentState | null;
-        /**
-         * Page
-         */
-        page?: number;
-        /**
-         * Page Size
-         */
-        page_size?: number;
-        /**
-         * Sort
-         */
-        sort?: 'dev_eui' | 'batch_id' | 'current_state' | 'created_at' | 'updated_at';
-        /**
-         * Order
-         */
-        order?: 'asc' | 'desc';
-    };
-    url: '/kg';
-};
-
-export type KgListKgErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type KgListKgError = KgListKgErrors[keyof KgListKgErrors];
-
-export type KgListKgResponses = {
-    /**
-     * Successful Response
-     */
-    200: KgListResponse;
-};
-
-export type KgListKgResponse = KgListKgResponses[keyof KgListKgResponses];
-
-export type KgListKgByBatchData = {
-    body?: never;
-    path: {
-        /**
-         * Batch Id
-         */
-        batch_id: string;
-    };
-    query?: {
-        /**
-         * Q
-         */
-        q?: string | null;
-        /**
-         * Current State
-         */
-        current_state?: KgCurrentState | null;
-        /**
-         * Page
-         */
-        page?: number;
-        /**
-         * Page Size
-         */
-        page_size?: number;
-    };
-    url: '/kg/batch/{batch_id}';
-};
-
-export type KgListKgByBatchErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type KgListKgByBatchError = KgListKgByBatchErrors[keyof KgListKgByBatchErrors];
-
-export type KgListKgByBatchResponses = {
-    /**
-     * Successful Response
-     */
-    200: KgBatchListResponse;
-};
-
-export type KgListKgByBatchResponse = KgListKgByBatchResponses[keyof KgListKgByBatchResponses];
-
-export type KgListDevEuiPrefixesData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Q
-         */
-        q?: string | null;
-        /**
-         * Archived
-         */
-        archived?: boolean;
-        /**
-         * Page
-         */
-        page?: number;
-        /**
-         * Page Size
-         */
-        page_size?: number;
-        /**
-         * Sort
-         */
-        sort?: 'prefix' | 'name' | 'short_code' | 'created_at' | 'archived_at';
-        /**
-         * Order
-         */
-        order?: 'asc' | 'desc';
-    };
-    url: '/kg/dev-eui-prefixes';
-};
-
-export type KgListDevEuiPrefixesErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type KgListDevEuiPrefixesError = KgListDevEuiPrefixesErrors[keyof KgListDevEuiPrefixesErrors];
-
-export type KgListDevEuiPrefixesResponses = {
-    /**
-     * Successful Response
-     */
-    200: KgDevEuiPrefixListResponse;
-};
-
-export type KgListDevEuiPrefixesResponse = KgListDevEuiPrefixesResponses[keyof KgListDevEuiPrefixesResponses];
-
-export type KgCreateDevEuiPrefixData = {
-    body: CreateKgDevEuiPrefixRequest;
-    path?: never;
-    query?: never;
-    url: '/kg/dev-eui-prefixes';
-};
-
-export type KgCreateDevEuiPrefixErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type KgCreateDevEuiPrefixError = KgCreateDevEuiPrefixErrors[keyof KgCreateDevEuiPrefixErrors];
-
-export type KgCreateDevEuiPrefixResponses = {
-    /**
-     * Successful Response
-     */
-    201: KgDevEuiPrefixResponse;
-};
-
-export type KgCreateDevEuiPrefixResponse = KgCreateDevEuiPrefixResponses[keyof KgCreateDevEuiPrefixResponses];
-
-export type KgDeleteDevEuiPrefixData = {
-    body?: never;
-    path: {
-        /**
-         * Prefix
-         */
-        prefix: string;
-    };
-    query?: never;
-    url: '/kg/dev-eui-prefixes/{prefix}';
-};
-
-export type KgDeleteDevEuiPrefixErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type KgDeleteDevEuiPrefixError = KgDeleteDevEuiPrefixErrors[keyof KgDeleteDevEuiPrefixErrors];
-
-export type KgDeleteDevEuiPrefixResponses = {
-    /**
-     * Successful Response
-     */
-    204: void;
-};
-
-export type KgDeleteDevEuiPrefixResponse = KgDeleteDevEuiPrefixResponses[keyof KgDeleteDevEuiPrefixResponses];
-
-export type KgUpdateDevEuiPrefixData = {
-    body: UpdateKgDevEuiPrefixRequest;
-    path: {
-        /**
-         * Prefix
-         */
-        prefix: string;
-    };
-    query?: never;
-    url: '/kg/dev-eui-prefixes/{prefix}';
-};
-
-export type KgUpdateDevEuiPrefixErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type KgUpdateDevEuiPrefixError = KgUpdateDevEuiPrefixErrors[keyof KgUpdateDevEuiPrefixErrors];
-
-export type KgUpdateDevEuiPrefixResponses = {
-    /**
-     * Successful Response
-     */
-    200: KgDevEuiPrefixResponse;
-};
-
-export type KgUpdateDevEuiPrefixResponse = KgUpdateDevEuiPrefixResponses[keyof KgUpdateDevEuiPrefixResponses];
-
-export type KgUpdateDevEuiPrefixArchivedData = {
-    body: UpdateKgDevEuiPrefixArchivedRequest;
-    path: {
-        /**
-         * Prefix
-         */
-        prefix: string;
-    };
-    query?: never;
-    url: '/kg/dev-eui-prefixes/{prefix}/archived';
-};
-
-export type KgUpdateDevEuiPrefixArchivedErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type KgUpdateDevEuiPrefixArchivedError = KgUpdateDevEuiPrefixArchivedErrors[keyof KgUpdateDevEuiPrefixArchivedErrors];
-
-export type KgUpdateDevEuiPrefixArchivedResponses = {
-    /**
-     * Successful Response
-     */
-    200: KgDevEuiPrefixResponse;
-};
-
-export type KgUpdateDevEuiPrefixArchivedResponse = KgUpdateDevEuiPrefixArchivedResponses[keyof KgUpdateDevEuiPrefixArchivedResponses];
-
-export type KgListKgVersionsData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Q
-         */
-        q?: string | null;
-        /**
-         * Archived
-         */
-        archived?: boolean;
-        /**
-         * Page
-         */
-        page?: number;
-        /**
-         * Page Size
-         */
-        page_size?: number;
-        /**
-         * Sort By
-         */
-        sort_by?: 'code' | 'name' | 'description' | 'created_at' | 'updated_at' | 'archived_at';
-        /**
-         * Sort Order
-         */
-        sort_order?: 'asc' | 'desc';
-    };
-    url: '/kg/versions';
-};
-
-export type KgListKgVersionsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type KgListKgVersionsError = KgListKgVersionsErrors[keyof KgListKgVersionsErrors];
-
-export type KgListKgVersionsResponses = {
-    /**
-     * Successful Response
-     */
-    200: KgVersionListResponse;
-};
-
-export type KgListKgVersionsResponse = KgListKgVersionsResponses[keyof KgListKgVersionsResponses];
-
-export type KgCreateKgVersionData = {
-    body: CreateKgVersionRequest;
-    path?: never;
-    query?: never;
-    url: '/kg/versions';
-};
-
-export type KgCreateKgVersionErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type KgCreateKgVersionError = KgCreateKgVersionErrors[keyof KgCreateKgVersionErrors];
-
-export type KgCreateKgVersionResponses = {
-    /**
-     * Successful Response
-     */
-    201: KgVersionResponse;
-};
-
-export type KgCreateKgVersionResponse = KgCreateKgVersionResponses[keyof KgCreateKgVersionResponses];
-
-export type KgDeleteKgVersionData = {
-    body?: never;
-    path: {
-        /**
-         * Version Id
-         */
-        version_id: string;
-    };
-    query?: never;
-    url: '/kg/versions/{version_id}';
-};
-
-export type KgDeleteKgVersionErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type KgDeleteKgVersionError = KgDeleteKgVersionErrors[keyof KgDeleteKgVersionErrors];
-
-export type KgDeleteKgVersionResponses = {
-    /**
-     * Successful Response
-     */
-    204: void;
-};
-
-export type KgDeleteKgVersionResponse = KgDeleteKgVersionResponses[keyof KgDeleteKgVersionResponses];
-
-export type KgUpdateKgVersionData = {
-    body: UpdateKgVersionRequest;
-    path: {
-        /**
-         * Version Id
-         */
-        version_id: string;
-    };
-    query?: never;
-    url: '/kg/versions/{version_id}';
-};
-
-export type KgUpdateKgVersionErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type KgUpdateKgVersionError = KgUpdateKgVersionErrors[keyof KgUpdateKgVersionErrors];
-
-export type KgUpdateKgVersionResponses = {
-    /**
-     * Successful Response
-     */
-    200: KgVersionResponse;
-};
-
-export type KgUpdateKgVersionResponse = KgUpdateKgVersionResponses[keyof KgUpdateKgVersionResponses];
-
-export type KgUpdateKgVersionArchivedData = {
-    body: UpdateKgVersionArchivedRequest;
-    path: {
-        /**
-         * Version Id
-         */
-        version_id: string;
-    };
-    query?: never;
-    url: '/kg/versions/{version_id}/archived';
-};
-
-export type KgUpdateKgVersionArchivedErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type KgUpdateKgVersionArchivedError = KgUpdateKgVersionArchivedErrors[keyof KgUpdateKgVersionArchivedErrors];
-
-export type KgUpdateKgVersionArchivedResponses = {
-    /**
-     * Successful Response
-     */
-    200: KgVersionResponse;
-};
-
-export type KgUpdateKgVersionArchivedResponse = KgUpdateKgVersionArchivedResponses[keyof KgUpdateKgVersionArchivedResponses];
-
-export type KgGetKgData = {
-    body?: never;
-    path: {
-        /**
-         * Dev Eui
+         * DevEUI
+         *
+         * The KG unit: 16 hexadecimal characters, any case.
          */
         dev_eui: string;
     };
     query?: never;
-    url: '/kg/{dev_eui}';
+    url: '/api/kg/units/{dev_eui}';
 };
 
-export type KgGetKgErrors = {
+export type GetKgUnitErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type KgGetKgError = KgGetKgErrors[keyof KgGetKgErrors];
-
-export type KgGetKgResponses = {
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
     /**
-     * Successful Response
+     * Authentication is missing or invalid.
      */
-    200: KgResponse;
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
 };
 
-export type KgGetKgResponse = KgGetKgResponses[keyof KgGetKgResponses];
+export type GetKgUnitError = GetKgUnitErrors[keyof GetKgUnitErrors];
 
-export type PakListPakData = {
+export type GetKgUnitResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: KgUnit;
+};
+
+export type GetKgUnitResponse = GetKgUnitResponses[keyof GetKgUnitResponses];
+
+export type ListKgUnitsData = {
     body?: never;
     path?: never;
     query?: {
         /**
-         * Q
+         * Field to search
          */
-        q?: string | null;
+        searchString?: string | null;
         /**
-         * Kind
+         * Search should be case sensitive
          */
-        kind?: PakDeviceKind | null;
+        searchIgnoreCase?: boolean | null;
+        currentPage?: number;
+        pageSize?: number;
         /**
-         * Status
+         * Order by field
          */
-        status?: PakStatus | null;
+        orderBy?: string | null;
         /**
-         * Archived
+         * Field to search
          */
-        archived?: boolean;
-        /**
-         * Page
-         */
-        page?: number;
-        /**
-         * Page Size
-         */
-        page_size?: number;
-        /**
-         * Sort
-         */
-        sort?: 'code' | 'kind' | 'created_at' | 'last_seen_at' | 'archived_at';
-        /**
-         * Order
-         */
-        order?: 'asc' | 'desc';
+        sortOrder?: 'asc' | 'desc' | null;
+        batchIdIn?: Array<string> | null;
+        stateIn?: Array<KgState> | null;
+        otkStatusIn?: Array<KgOtkStatus> | null;
     };
-    url: '/pak';
+    url: '/api/kg/units';
 };
 
-export type PakListPakErrors = {
+export type ListKgUnitsErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type PakListPakError = PakListPakErrors[keyof PakListPakErrors];
-
-export type PakListPakResponses = {
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
     /**
-     * Successful Response
+     * Authentication is missing or invalid.
      */
-    200: PakDeviceListResponse;
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
 };
 
-export type PakListPakResponse = PakListPakResponses[keyof PakListPakResponses];
+export type ListKgUnitsError = ListKgUnitsErrors[keyof ListKgUnitsErrors];
 
-export type PakCreatePakData = {
-    body: CreatePakDeviceRequest;
-    path?: never;
+export type ListKgUnitsResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: KgUnitPage;
+};
+
+export type ListKgUnitsResponse = ListKgUnitsResponses[keyof ListKgUnitsResponses];
+
+export type ArchiveKgVersionData = {
+    body?: never;
+    path: {
+        /**
+         * KG version ID
+         *
+         * The KG version to act on.
+         */
+        version_id: string;
+    };
     query?: never;
-    url: '/pak';
+    url: '/api/kg/versions/{version_id}/archive';
 };
 
-export type PakCreatePakErrors = {
+export type ArchiveKgVersionErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type PakCreatePakError = PakCreatePakErrors[keyof PakCreatePakErrors];
-
-export type PakCreatePakResponses = {
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
     /**
-     * Successful Response
+     * Authentication is missing or invalid.
      */
-    201: CreatePakDeviceResponse;
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
 };
 
-export type PakCreatePakResponse = PakCreatePakResponses[keyof PakCreatePakResponses];
+export type ArchiveKgVersionError = ArchiveKgVersionErrors[keyof ArchiveKgVersionErrors];
 
-export type PakListPakTestsData = {
+export type ArchiveKgVersionResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: KgVersion;
+};
+
+export type ArchiveKgVersionResponse = ArchiveKgVersionResponses[keyof ArchiveKgVersionResponses];
+
+export type ListKgVersionsData = {
     body?: never;
     path?: never;
     query?: {
+        ids?: Array<string> | null;
+        createdBefore?: string | null;
+        createdAfter?: string | null;
+        updatedBefore?: string | null;
+        updatedAfter?: string | null;
         /**
-         * Q
+         * Field to search
          */
-        q?: string | null;
+        searchString?: string | null;
         /**
-         * Defect Group Id
+         * Search should be case sensitive
          */
-        defect_group_id?: string | null;
+        searchIgnoreCase?: boolean | null;
+        currentPage?: number;
+        pageSize?: number;
         /**
-         * Page
+         * Order by field
          */
-        page?: number;
+        orderBy?: string | null;
         /**
-         * Page Size
+         * Field to search
          */
-        page_size?: number;
+        sortOrder?: 'asc' | 'desc' | null;
         /**
-         * Sort
+         * Only archived (true) or only current (false) items; all when omitted.
          */
-        sort?: 'test_name' | 'test_label' | 'last_seen_at' | 'created_at' | 'updated_at';
-        /**
-         * Order
-         */
-        order?: 'asc' | 'desc';
+        archived?: boolean | null;
     };
-    url: '/pak/tests';
+    url: '/api/kg/versions';
 };
 
-export type PakListPakTestsErrors = {
+export type ListKgVersionsErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type PakListPakTestsError = PakListPakTestsErrors[keyof PakListPakTestsErrors];
-
-export type PakListPakTestsResponses = {
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
     /**
-     * Successful Response
+     * Authentication is missing or invalid.
      */
-    200: PakTestListResponse;
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
 };
 
-export type PakListPakTestsResponse = PakListPakTestsResponses[keyof PakListPakTestsResponses];
+export type ListKgVersionsError = ListKgVersionsErrors[keyof ListKgVersionsErrors];
 
-export type PakGetPakTestData = {
+export type ListKgVersionsResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: KgVersionPage;
+};
+
+export type ListKgVersionsResponse = ListKgVersionsResponses[keyof ListKgVersionsResponses];
+
+export type CreateKgVersionData = {
+    body: KgVersionCreate;
+    path?: never;
+    query?: never;
+    url: '/api/kg/versions';
+};
+
+export type CreateKgVersionErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
+};
+
+export type CreateKgVersionError = CreateKgVersionErrors[keyof CreateKgVersionErrors];
+
+export type CreateKgVersionResponses = {
+    /**
+     * Document created, URL follows
+     */
+    201: KgVersion;
+};
+
+export type CreateKgVersionResponse = CreateKgVersionResponses[keyof CreateKgVersionResponses];
+
+export type DeleteKgVersionData = {
     body?: never;
     path: {
         /**
-         * Test Id
+         * KG version ID
+         *
+         * The KG version to act on.
          */
-        test_id: string;
+        version_id: string;
     };
     query?: never;
-    url: '/pak/tests/{test_id}';
+    url: '/api/kg/versions/{version_id}';
 };
 
-export type PakGetPakTestErrors = {
+export type DeleteKgVersionErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type PakGetPakTestError = PakGetPakTestErrors[keyof PakGetPakTestErrors];
-
-export type PakGetPakTestResponses = {
-    /**
-     * Successful Response
-     */
-    200: PakTestResponse;
-};
-
-export type PakGetPakTestResponse = PakGetPakTestResponses[keyof PakGetPakTestResponses];
-
-export type PakDeletePakData = {
-    body?: never;
-    path: {
-        /**
-         * Pak Id
-         */
-        pak_id: string;
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
     };
-    query?: never;
-    url: '/pak/{pak_id}';
-};
-
-export type PakDeletePakErrors = {
     /**
-     * Validation Error
+     * Authentication is missing or invalid.
      */
-    422: HttpValidationError;
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
 };
 
-export type PakDeletePakError = PakDeletePakErrors[keyof PakDeletePakErrors];
+export type DeleteKgVersionError = DeleteKgVersionErrors[keyof DeleteKgVersionErrors];
 
-export type PakDeletePakResponses = {
+export type DeleteKgVersionResponses = {
     /**
-     * Successful Response
+     * Request fulfilled, nothing follows
      */
     204: void;
 };
 
-export type PakDeletePakResponse = PakDeletePakResponses[keyof PakDeletePakResponses];
+export type DeleteKgVersionResponse = DeleteKgVersionResponses[keyof DeleteKgVersionResponses];
 
-export type PakGetPakData = {
+export type GetKgVersionData = {
     body?: never;
     path: {
         /**
-         * Pak Id
+         * KG version ID
+         *
+         * The KG version to act on.
          */
-        pak_id: string;
+        version_id: string;
     };
     query?: never;
-    url: '/pak/{pak_id}';
+    url: '/api/kg/versions/{version_id}';
 };
 
-export type PakGetPakErrors = {
+export type GetKgVersionErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type PakGetPakError = PakGetPakErrors[keyof PakGetPakErrors];
-
-export type PakGetPakResponses = {
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
     /**
-     * Successful Response
+     * Authentication is missing or invalid.
      */
-    200: PakDeviceResponse;
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
 };
 
-export type PakGetPakResponse = PakGetPakResponses[keyof PakGetPakResponses];
+export type GetKgVersionError = GetKgVersionErrors[keyof GetKgVersionErrors];
 
-export type PakUpdatePakData = {
-    body: UpdatePakDeviceRequest;
+export type GetKgVersionResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: KgVersion;
+};
+
+export type GetKgVersionResponse = GetKgVersionResponses[keyof GetKgVersionResponses];
+
+export type UpdateKgVersionData = {
+    body: KgVersionUpdate;
     path: {
         /**
-         * Pak Id
+         * KG version ID
+         *
+         * The KG version to act on.
          */
-        pak_id: string;
+        version_id: string;
     };
     query?: never;
-    url: '/pak/{pak_id}';
+    url: '/api/kg/versions/{version_id}';
 };
 
-export type PakUpdatePakErrors = {
+export type UpdateKgVersionErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type PakUpdatePakError = PakUpdatePakErrors[keyof PakUpdatePakErrors];
-
-export type PakUpdatePakResponses = {
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
     /**
-     * Successful Response
+     * Authentication is missing or invalid.
      */
-    200: PakDeviceResponse;
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
 };
 
-export type PakUpdatePakResponse = PakUpdatePakResponses[keyof PakUpdatePakResponses];
+export type UpdateKgVersionError = UpdateKgVersionErrors[keyof UpdateKgVersionErrors];
 
-export type PakGetAccessKeyData = {
+export type UpdateKgVersionResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: KgVersion;
+};
+
+export type UpdateKgVersionResponse = UpdateKgVersionResponses[keyof UpdateKgVersionResponses];
+
+export type RestoreKgVersionData = {
     body?: never;
     path: {
         /**
-         * Pak Id
+         * KG version ID
+         *
+         * The KG version to act on.
          */
-        pak_id: string;
+        version_id: string;
     };
     query?: never;
-    url: '/pak/{pak_id}/access-key';
+    url: '/api/kg/versions/{version_id}/restore';
 };
 
-export type PakGetAccessKeyErrors = {
+export type RestoreKgVersionErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type PakGetAccessKeyError = PakGetAccessKeyErrors[keyof PakGetAccessKeyErrors];
-
-export type PakGetAccessKeyResponses = {
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
     /**
-     * Successful Response
+     * Authentication is missing or invalid.
      */
-    200: PakAccessKeyResponse;
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
 };
 
-export type PakGetAccessKeyResponse = PakGetAccessKeyResponses[keyof PakGetAccessKeyResponses];
+export type RestoreKgVersionError = RestoreKgVersionErrors[keyof RestoreKgVersionErrors];
 
-export type PakRotateAccessKeyData = {
+export type RestoreKgVersionResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: KgVersion;
+};
+
+export type RestoreKgVersionResponse = RestoreKgVersionResponses[keyof RestoreKgVersionResponses];
+
+export type FindPackingUnitData = {
     body?: never;
     path: {
         /**
-         * Pak Id
+         * DevEUI or short ID
+         *
+         * As scanned from the unit, in any case.
          */
-        pak_id: string;
+        code: string;
     };
     query?: never;
-    url: '/pak/{pak_id}/access-key/rotate';
+    url: '/api/packing/units/{code}';
 };
 
-export type PakRotateAccessKeyErrors = {
+export type FindPackingUnitErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type PakRotateAccessKeyError = PakRotateAccessKeyErrors[keyof PakRotateAccessKeyErrors];
-
-export type PakRotateAccessKeyResponses = {
-    /**
-     * Successful Response
-     */
-    200: PakAccessKeyResponse;
-};
-
-export type PakRotateAccessKeyResponse = PakRotateAccessKeyResponses[keyof PakRotateAccessKeyResponses];
-
-export type PakUpdateActiveData = {
-    body: UpdateActiveRequest;
-    path: {
-        /**
-         * Pak Id
-         */
-        pak_id: string;
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
     };
-    query?: never;
-    url: '/pak/{pak_id}/active';
-};
-
-export type PakUpdateActiveErrors = {
     /**
-     * Validation Error
+     * Authentication is missing or invalid.
      */
-    422: HttpValidationError;
-};
-
-export type PakUpdateActiveError = PakUpdateActiveErrors[keyof PakUpdateActiveErrors];
-
-export type PakUpdateActiveResponses = {
+    401: ErrorResponse;
     /**
-     * Successful Response
+     * The authenticated user lacks the required permission or may not act on this target.
      */
-    200: PakDeviceResponse;
-};
-
-export type PakUpdateActiveResponse = PakUpdateActiveResponses[keyof PakUpdateActiveResponses];
-
-export type PakUpdateArchivedData = {
-    body: UpdateArchivedRequest;
-    path: {
-        /**
-         * Pak Id
-         */
-        pak_id: string;
-    };
-    query?: never;
-    url: '/pak/{pak_id}/archived';
-};
-
-export type PakUpdateArchivedErrors = {
+    403: ErrorResponse;
     /**
-     * Validation Error
+     * The resource does not exist.
      */
-    422: HttpValidationError;
+    404: ErrorResponse;
 };
 
-export type PakUpdateArchivedError = PakUpdateArchivedErrors[keyof PakUpdateArchivedErrors];
+export type FindPackingUnitError = FindPackingUnitErrors[keyof FindPackingUnitErrors];
 
-export type PakUpdateArchivedResponses = {
+export type FindPackingUnitResponses = {
     /**
-     * Successful Response
+     * Request fulfilled, document follows
      */
-    200: PakDeviceResponse;
+    200: PackingUnit;
 };
 
-export type PakUpdateArchivedResponse = PakUpdateArchivedResponses[keyof PakUpdateArchivedResponses];
+export type FindPackingUnitResponse = FindPackingUnitResponses[keyof FindPackingUnitResponses];
 
-export type ProductionOrderCreateOrderData = {
-    body: CreateProductionOrderRequest;
-    path?: never;
-    query?: never;
-    url: '/production-orders';
-};
-
-export type ProductionOrderCreateOrderErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type ProductionOrderCreateOrderError = ProductionOrderCreateOrderErrors[keyof ProductionOrderCreateOrderErrors];
-
-export type ProductionOrderCreateOrderResponses = {
-    /**
-     * Successful Response
-     */
-    201: ProductionOrderResponse;
-};
-
-export type ProductionOrderCreateOrderResponse = ProductionOrderCreateOrderResponses[keyof ProductionOrderCreateOrderResponses];
-
-export type ProductionOrderListOrdersData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Q
-         */
-        q?: string | null;
-        /**
-         * Archived
-         */
-        archived?: boolean;
-        /**
-         * Page
-         */
-        page?: number;
-        /**
-         * Page Size
-         */
-        page_size?: number;
-        /**
-         * Sort
-         */
-        sort?: 'name' | 'created_at' | 'updated_at' | 'archived_at' | 'batches_count' | 'total_planned_qty';
-        /**
-         * Order
-         */
-        order?: 'asc' | 'desc';
-    };
-    url: '/production-orders/';
-};
-
-export type ProductionOrderListOrdersErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type ProductionOrderListOrdersError = ProductionOrderListOrdersErrors[keyof ProductionOrderListOrdersErrors];
-
-export type ProductionOrderListOrdersResponses = {
-    /**
-     * Successful Response
-     */
-    200: ProductionOrderListResponse;
-};
-
-export type ProductionOrderListOrdersResponse = ProductionOrderListOrdersResponses[keyof ProductionOrderListOrdersResponses];
-
-export type ProductionOrderDeleteOrderData = {
+export type PackKgUnitData = {
     body?: never;
     path: {
         /**
-         * Order Id
+         * DevEUI
+         *
+         * The KG unit: 16 hexadecimal characters, any case.
+         */
+        dev_eui: string;
+    };
+    query?: never;
+    url: '/api/packing/units/{dev_eui}/pack';
+};
+
+export type PackKgUnitErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
+};
+
+export type PackKgUnitError = PackKgUnitErrors[keyof PackKgUnitErrors];
+
+export type PackKgUnitResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: PackingUnit;
+};
+
+export type PackKgUnitResponse = PackKgUnitResponses[keyof PackKgUnitResponses];
+
+export type ArchiveProductionOrderData = {
+    body?: never;
+    path: {
+        /**
+         * Production order ID
+         *
+         * The production order to act on.
          */
         order_id: string;
     };
     query?: never;
-    url: '/production-orders/{order_id}';
+    url: '/api/production-orders/{order_id}/archive';
 };
 
-export type ProductionOrderDeleteOrderErrors = {
+export type ArchiveProductionOrderErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
 };
 
-export type ProductionOrderDeleteOrderError = ProductionOrderDeleteOrderErrors[keyof ProductionOrderDeleteOrderErrors];
+export type ArchiveProductionOrderError = ArchiveProductionOrderErrors[keyof ArchiveProductionOrderErrors];
 
-export type ProductionOrderDeleteOrderResponses = {
+export type ArchiveProductionOrderResponses = {
     /**
-     * Successful Response
+     * Request fulfilled, document follows
+     */
+    200: ProductionOrder;
+};
+
+export type ArchiveProductionOrderResponse = ArchiveProductionOrderResponses[keyof ArchiveProductionOrderResponses];
+
+export type ListProductionOrdersData = {
+    body?: never;
+    path?: never;
+    query?: {
+        ids?: Array<string> | null;
+        createdBefore?: string | null;
+        createdAfter?: string | null;
+        updatedBefore?: string | null;
+        updatedAfter?: string | null;
+        /**
+         * Field to search
+         */
+        searchString?: string | null;
+        /**
+         * Search should be case sensitive
+         */
+        searchIgnoreCase?: boolean | null;
+        currentPage?: number;
+        pageSize?: number;
+        /**
+         * Order by field
+         */
+        orderBy?: string | null;
+        /**
+         * Field to search
+         */
+        sortOrder?: 'asc' | 'desc' | null;
+        /**
+         * Only archived (true) or only current (false) items; all when omitted.
+         */
+        archived?: boolean | null;
+    };
+    url: '/api/production-orders';
+};
+
+export type ListProductionOrdersErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+};
+
+export type ListProductionOrdersError = ListProductionOrdersErrors[keyof ListProductionOrdersErrors];
+
+export type ListProductionOrdersResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: ProductionOrderPage;
+};
+
+export type ListProductionOrdersResponse = ListProductionOrdersResponses[keyof ListProductionOrdersResponses];
+
+export type CreateProductionOrderData = {
+    body: ProductionOrderCreate;
+    path?: never;
+    query?: never;
+    url: '/api/production-orders';
+};
+
+export type CreateProductionOrderErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+};
+
+export type CreateProductionOrderError = CreateProductionOrderErrors[keyof CreateProductionOrderErrors];
+
+export type CreateProductionOrderResponses = {
+    /**
+     * Document created, URL follows
+     */
+    201: ProductionOrder;
+};
+
+export type CreateProductionOrderResponse = CreateProductionOrderResponses[keyof CreateProductionOrderResponses];
+
+export type DeleteProductionOrderData = {
+    body?: never;
+    path: {
+        /**
+         * Production order ID
+         *
+         * The production order to act on.
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/api/production-orders/{order_id}';
+};
+
+export type DeleteProductionOrderErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
+};
+
+export type DeleteProductionOrderError = DeleteProductionOrderErrors[keyof DeleteProductionOrderErrors];
+
+export type DeleteProductionOrderResponses = {
+    /**
+     * Request fulfilled, nothing follows
      */
     204: void;
 };
 
-export type ProductionOrderDeleteOrderResponse = ProductionOrderDeleteOrderResponses[keyof ProductionOrderDeleteOrderResponses];
+export type DeleteProductionOrderResponse = DeleteProductionOrderResponses[keyof DeleteProductionOrderResponses];
 
-export type ProductionOrderGetOrderData = {
+export type GetProductionOrderData = {
     body?: never;
     path: {
         /**
-         * Order Id
+         * Production order ID
+         *
+         * The production order to act on.
          */
         order_id: string;
     };
     query?: never;
-    url: '/production-orders/{order_id}';
+    url: '/api/production-orders/{order_id}';
 };
 
-export type ProductionOrderGetOrderErrors = {
+export type GetProductionOrderErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type ProductionOrderGetOrderError = ProductionOrderGetOrderErrors[keyof ProductionOrderGetOrderErrors];
-
-export type ProductionOrderGetOrderResponses = {
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
     /**
-     * Successful Response
+     * Authentication is missing or invalid.
      */
-    200: ProductionOrderResponse;
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
 };
 
-export type ProductionOrderGetOrderResponse = ProductionOrderGetOrderResponses[keyof ProductionOrderGetOrderResponses];
+export type GetProductionOrderError = GetProductionOrderErrors[keyof GetProductionOrderErrors];
 
-export type ProductionOrderUpdateOrderData = {
-    body: UpdateProductionOrderRequest;
+export type GetProductionOrderResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: ProductionOrder;
+};
+
+export type GetProductionOrderResponse = GetProductionOrderResponses[keyof GetProductionOrderResponses];
+
+export type UpdateProductionOrderData = {
+    body: ProductionOrderUpdate;
     path: {
         /**
-         * Order Id
+         * Production order ID
+         *
+         * The production order to act on.
          */
         order_id: string;
     };
     query?: never;
-    url: '/production-orders/{order_id}';
+    url: '/api/production-orders/{order_id}';
 };
 
-export type ProductionOrderUpdateOrderErrors = {
+export type UpdateProductionOrderErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type ProductionOrderUpdateOrderError = ProductionOrderUpdateOrderErrors[keyof ProductionOrderUpdateOrderErrors];
-
-export type ProductionOrderUpdateOrderResponses = {
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
     /**
-     * Successful Response
+     * Authentication is missing or invalid.
      */
-    200: ProductionOrderResponse;
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
 };
 
-export type ProductionOrderUpdateOrderResponse = ProductionOrderUpdateOrderResponses[keyof ProductionOrderUpdateOrderResponses];
+export type UpdateProductionOrderError = UpdateProductionOrderErrors[keyof UpdateProductionOrderErrors];
 
-export type ProductionOrderArchiveOrderData = {
-    body: UpdateProductionOrderArchivedRequest;
+export type UpdateProductionOrderResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: ProductionOrder;
+};
+
+export type UpdateProductionOrderResponse = UpdateProductionOrderResponses[keyof UpdateProductionOrderResponses];
+
+export type RestoreProductionOrderData = {
+    body?: never;
     path: {
         /**
-         * Order Id
+         * Production order ID
+         *
+         * The production order to act on.
          */
         order_id: string;
     };
     query?: never;
-    url: '/production-orders/{order_id}/archived';
+    url: '/api/production-orders/{order_id}/restore';
 };
 
-export type ProductionOrderArchiveOrderErrors = {
+export type RestoreProductionOrderErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type ProductionOrderArchiveOrderError = ProductionOrderArchiveOrderErrors[keyof ProductionOrderArchiveOrderErrors];
-
-export type ProductionOrderArchiveOrderResponses = {
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
     /**
-     * Successful Response
+     * Authentication is missing or invalid.
      */
-    200: ProductionOrderResponse;
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
 };
 
-export type ProductionOrderArchiveOrderResponse = ProductionOrderArchiveOrderResponses[keyof ProductionOrderArchiveOrderResponses];
+export type RestoreProductionOrderError = RestoreProductionOrderErrors[keyof RestoreProductionOrderErrors];
 
-export type UsersListUsersData = {
+export type RestoreProductionOrderResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: ProductionOrder;
+};
+
+export type RestoreProductionOrderResponse = RestoreProductionOrderResponses[keyof RestoreProductionOrderResponses];
+
+export type ArchiveDefectGroupData = {
+    body?: never;
+    path: {
+        /**
+         * Defect group ID
+         *
+         * The defect group to act on.
+         */
+        group_id: string;
+    };
+    query?: never;
+    url: '/api/defects/groups/{group_id}/archive';
+};
+
+export type ArchiveDefectGroupErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
+};
+
+export type ArchiveDefectGroupError = ArchiveDefectGroupErrors[keyof ArchiveDefectGroupErrors];
+
+export type ArchiveDefectGroupResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: DefectGroup;
+};
+
+export type ArchiveDefectGroupResponse = ArchiveDefectGroupResponses[keyof ArchiveDefectGroupResponses];
+
+export type ListDefectGroupsData = {
     body?: never;
     path?: never;
     query?: {
+        ids?: Array<string> | null;
+        createdBefore?: string | null;
+        createdAfter?: string | null;
+        updatedBefore?: string | null;
+        updatedAfter?: string | null;
         /**
-         * Q
+         * Field to search
          */
-        q?: string | null;
+        searchString?: string | null;
         /**
-         * Role
+         * Search should be case sensitive
          */
-        role?: Role | null;
+        searchIgnoreCase?: boolean | null;
+        currentPage?: number;
+        pageSize?: number;
         /**
-         * Auth State
+         * Order by field
          */
-        auth_state?: AuthState | null;
+        orderBy?: string | null;
         /**
-         * Archived
+         * Field to search
          */
-        archived?: boolean;
+        sortOrder?: 'asc' | 'desc' | null;
         /**
-         * Page
+         * Only archived (true) or only current (false) items; all when omitted.
          */
-        page?: number;
-        /**
-         * Page Size
-         */
-        page_size?: number;
-        /**
-         * Sort
-         */
-        sort?: 'name' | 'login' | 'created_at' | 'archived_at';
-        /**
-         * Order
-         */
-        order?: 'asc' | 'desc';
+        archived?: boolean | null;
     };
-    url: '/users';
+    url: '/api/defects/groups';
 };
 
-export type UsersListUsersErrors = {
+export type ListDefectGroupsErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type UsersListUsersError = UsersListUsersErrors[keyof UsersListUsersErrors];
-
-export type UsersListUsersResponses = {
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
     /**
-     * Successful Response
+     * Authentication is missing or invalid.
      */
-    200: UserListResponse;
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
 };
 
-export type UsersListUsersResponse = UsersListUsersResponses[keyof UsersListUsersResponses];
+export type ListDefectGroupsError = ListDefectGroupsErrors[keyof ListDefectGroupsErrors];
 
-export type UsersCreateUserData = {
-    body: CreateUserRequest;
+export type ListDefectGroupsResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: DefectGroupPage;
+};
+
+export type ListDefectGroupsResponse = ListDefectGroupsResponses[keyof ListDefectGroupsResponses];
+
+export type CreateDefectGroupData = {
+    body: DefectGroupCreate;
     path?: never;
     query?: never;
-    url: '/users';
+    url: '/api/defects/groups';
 };
 
-export type UsersCreateUserErrors = {
+export type CreateDefectGroupErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type UsersCreateUserError = UsersCreateUserErrors[keyof UsersCreateUserErrors];
-
-export type UsersCreateUserResponses = {
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
     /**
-     * Successful Response
+     * Authentication is missing or invalid.
      */
-    201: UserResponse;
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
 };
 
-export type UsersCreateUserResponse = UsersCreateUserResponses[keyof UsersCreateUserResponses];
+export type CreateDefectGroupError = CreateDefectGroupErrors[keyof CreateDefectGroupErrors];
 
-export type UsersDeleteUserData = {
+export type CreateDefectGroupResponses = {
+    /**
+     * Document created, URL follows
+     */
+    201: DefectGroup;
+};
+
+export type CreateDefectGroupResponse = CreateDefectGroupResponses[keyof CreateDefectGroupResponses];
+
+export type DeleteDefectGroupData = {
     body?: never;
     path: {
         /**
-         * User Id
+         * Defect group ID
+         *
+         * The defect group to act on.
          */
-        user_id: string;
+        group_id: string;
     };
     query?: never;
-    url: '/users/{user_id}';
+    url: '/api/defects/groups/{group_id}';
 };
 
-export type UsersDeleteUserErrors = {
+export type DeleteDefectGroupErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
 };
 
-export type UsersDeleteUserError = UsersDeleteUserErrors[keyof UsersDeleteUserErrors];
+export type DeleteDefectGroupError = DeleteDefectGroupErrors[keyof DeleteDefectGroupErrors];
 
-export type UsersDeleteUserResponses = {
+export type DeleteDefectGroupResponses = {
     /**
-     * Successful Response
+     * Request fulfilled, nothing follows
      */
     204: void;
 };
 
-export type UsersDeleteUserResponse = UsersDeleteUserResponses[keyof UsersDeleteUserResponses];
+export type DeleteDefectGroupResponse = DeleteDefectGroupResponses[keyof DeleteDefectGroupResponses];
 
-export type UsersGetUserData = {
+export type GetDefectGroupData = {
     body?: never;
     path: {
         /**
-         * User Id
+         * Defect group ID
+         *
+         * The defect group to act on.
          */
-        user_id: string;
+        group_id: string;
     };
     query?: never;
-    url: '/users/{user_id}';
+    url: '/api/defects/groups/{group_id}';
 };
 
-export type UsersGetUserErrors = {
+export type GetDefectGroupErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type UsersGetUserError = UsersGetUserErrors[keyof UsersGetUserErrors];
-
-export type UsersGetUserResponses = {
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
     /**
-     * Successful Response
+     * Authentication is missing or invalid.
      */
-    200: UserResponse;
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
 };
 
-export type UsersGetUserResponse = UsersGetUserResponses[keyof UsersGetUserResponses];
+export type GetDefectGroupError = GetDefectGroupErrors[keyof GetDefectGroupErrors];
 
-export type UsersUpdateUserData = {
-    body: UpdateUserRequest;
+export type GetDefectGroupResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: DefectGroup;
+};
+
+export type GetDefectGroupResponse = GetDefectGroupResponses[keyof GetDefectGroupResponses];
+
+export type UpdateDefectGroupData = {
+    body: DefectGroupUpdate;
     path: {
         /**
-         * User Id
+         * Defect group ID
+         *
+         * The defect group to act on.
          */
-        user_id: string;
+        group_id: string;
     };
     query?: never;
-    url: '/users/{user_id}';
+    url: '/api/defects/groups/{group_id}';
 };
 
-export type UsersUpdateUserErrors = {
+export type UpdateDefectGroupErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type UsersUpdateUserError = UsersUpdateUserErrors[keyof UsersUpdateUserErrors];
-
-export type UsersUpdateUserResponses = {
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
     /**
-     * Successful Response
+     * Authentication is missing or invalid.
      */
-    200: UserResponse;
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
 };
 
-export type UsersUpdateUserResponse = UsersUpdateUserResponses[keyof UsersUpdateUserResponses];
+export type UpdateDefectGroupError = UpdateDefectGroupErrors[keyof UpdateDefectGroupErrors];
 
-export type UsersUpdateActiveData = {
-    body: UpdateActiveRequest;
+export type UpdateDefectGroupResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: DefectGroup;
+};
+
+export type UpdateDefectGroupResponse = UpdateDefectGroupResponses[keyof UpdateDefectGroupResponses];
+
+export type RestoreDefectGroupData = {
+    body?: never;
     path: {
         /**
-         * User Id
+         * Defect group ID
+         *
+         * The defect group to act on.
          */
-        user_id: string;
+        group_id: string;
     };
     query?: never;
-    url: '/users/{user_id}/active';
+    url: '/api/defects/groups/{group_id}/restore';
 };
 
-export type UsersUpdateActiveErrors = {
+export type RestoreDefectGroupErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type UsersUpdateActiveError = UsersUpdateActiveErrors[keyof UsersUpdateActiveErrors];
-
-export type UsersUpdateActiveResponses = {
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
     /**
-     * Successful Response
+     * Authentication is missing or invalid.
      */
-    200: UserResponse;
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
 };
 
-export type UsersUpdateActiveResponse = UsersUpdateActiveResponses[keyof UsersUpdateActiveResponses];
+export type RestoreDefectGroupError = RestoreDefectGroupErrors[keyof RestoreDefectGroupErrors];
 
-export type UsersUpdateArchivedData = {
-    body: UpdateArchivedRequest;
+export type RestoreDefectGroupResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: DefectGroup;
+};
+
+export type RestoreDefectGroupResponse = RestoreDefectGroupResponses[keyof RestoreDefectGroupResponses];
+
+export type ArchiveDefectTypeData = {
+    body?: never;
     path: {
         /**
-         * User Id
+         * Defect type ID
+         *
+         * The defect type to act on.
          */
-        user_id: string;
+        type_id: string;
     };
     query?: never;
-    url: '/users/{user_id}/archived';
+    url: '/api/defects/types/{type_id}/archive';
 };
 
-export type UsersUpdateArchivedErrors = {
+export type ArchiveDefectTypeErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type UsersUpdateArchivedError = UsersUpdateArchivedErrors[keyof UsersUpdateArchivedErrors];
-
-export type UsersUpdateArchivedResponses = {
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
     /**
-     * Successful Response
+     * Authentication is missing or invalid.
      */
-    200: UserResponse;
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
 };
 
-export type UsersUpdateArchivedResponse = UsersUpdateArchivedResponses[keyof UsersUpdateArchivedResponses];
+export type ArchiveDefectTypeError = ArchiveDefectTypeErrors[keyof ArchiveDefectTypeErrors];
 
-export type UsersUpdatePasswordData = {
-    body: UpdatePasswordRequest;
+export type ArchiveDefectTypeResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: DefectType;
+};
+
+export type ArchiveDefectTypeResponse = ArchiveDefectTypeResponses[keyof ArchiveDefectTypeResponses];
+
+export type ListDefectTypesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        ids?: Array<string> | null;
+        createdBefore?: string | null;
+        createdAfter?: string | null;
+        updatedBefore?: string | null;
+        updatedAfter?: string | null;
+        /**
+         * Field to search
+         */
+        searchString?: string | null;
+        /**
+         * Search should be case sensitive
+         */
+        searchIgnoreCase?: boolean | null;
+        currentPage?: number;
+        pageSize?: number;
+        /**
+         * Order by field
+         */
+        orderBy?: string | null;
+        /**
+         * Field to search
+         */
+        sortOrder?: 'asc' | 'desc' | null;
+        groupIdIn?: Array<string> | null;
+        /**
+         * Only archived (true) or only current (false) items; all when omitted.
+         */
+        archived?: boolean | null;
+    };
+    url: '/api/defects/types';
+};
+
+export type ListDefectTypesErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+};
+
+export type ListDefectTypesError = ListDefectTypesErrors[keyof ListDefectTypesErrors];
+
+export type ListDefectTypesResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: DefectTypePage;
+};
+
+export type ListDefectTypesResponse = ListDefectTypesResponses[keyof ListDefectTypesResponses];
+
+export type CreateDefectTypeData = {
+    body: DefectTypeCreate;
+    path?: never;
+    query?: never;
+    url: '/api/defects/types';
+};
+
+export type CreateDefectTypeErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
+};
+
+export type CreateDefectTypeError = CreateDefectTypeErrors[keyof CreateDefectTypeErrors];
+
+export type CreateDefectTypeResponses = {
+    /**
+     * Document created, URL follows
+     */
+    201: DefectType;
+};
+
+export type CreateDefectTypeResponse = CreateDefectTypeResponses[keyof CreateDefectTypeResponses];
+
+export type DeleteDefectTypeData = {
+    body?: never;
     path: {
         /**
-         * User Id
+         * Defect type ID
+         *
+         * The defect type to act on.
          */
-        user_id: string;
+        type_id: string;
     };
     query?: never;
-    url: '/users/{user_id}/password';
+    url: '/api/defects/types/{type_id}';
 };
 
-export type UsersUpdatePasswordErrors = {
+export type DeleteDefectTypeErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
 };
 
-export type UsersUpdatePasswordError = UsersUpdatePasswordErrors[keyof UsersUpdatePasswordErrors];
+export type DeleteDefectTypeError = DeleteDefectTypeErrors[keyof DeleteDefectTypeErrors];
 
-export type UsersUpdatePasswordResponses = {
+export type DeleteDefectTypeResponses = {
     /**
-     * Successful Response
+     * Request fulfilled, nothing follows
      */
     204: void;
 };
 
-export type UsersUpdatePasswordResponse = UsersUpdatePasswordResponses[keyof UsersUpdatePasswordResponses];
+export type DeleteDefectTypeResponse = DeleteDefectTypeResponses[keyof DeleteDefectTypeResponses];
 
-export type VerificationListSessionsData = {
-    body?: never;
-    path?: never;
-    query?: {
-        /**
-         * Q
-         */
-        q?: string | null;
-        /**
-         * Pak Id
-         */
-        pak_id?: string | null;
-        /**
-         * Status
-         */
-        status?: VerificationSessionStatus | null;
-        /**
-         * Page
-         */
-        page?: number;
-        /**
-         * Page Size
-         */
-        page_size?: number;
-        /**
-         * Sort
-         */
-        sort?: 'kg_dev_eui' | 'status' | 'started_at' | 'completed_at' | 'created_at' | 'updated_at';
-        /**
-         * Order
-         */
-        order?: 'asc' | 'desc';
-    };
-    url: '/verification/sessions';
-};
-
-export type VerificationListSessionsErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type VerificationListSessionsError = VerificationListSessionsErrors[keyof VerificationListSessionsErrors];
-
-export type VerificationListSessionsResponses = {
-    /**
-     * Successful Response
-     */
-    200: VerificationSessionListResponse;
-};
-
-export type VerificationListSessionsResponse = VerificationListSessionsResponses[keyof VerificationListSessionsResponses];
-
-export type VerificationGetSessionData = {
+export type GetDefectTypeData = {
     body?: never;
     path: {
         /**
-         * Session Id
+         * Defect type ID
+         *
+         * The defect type to act on.
+         */
+        type_id: string;
+    };
+    query?: never;
+    url: '/api/defects/types/{type_id}';
+};
+
+export type GetDefectTypeErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+};
+
+export type GetDefectTypeError = GetDefectTypeErrors[keyof GetDefectTypeErrors];
+
+export type GetDefectTypeResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: DefectType;
+};
+
+export type GetDefectTypeResponse = GetDefectTypeResponses[keyof GetDefectTypeResponses];
+
+export type UpdateDefectTypeData = {
+    body: DefectTypeUpdate;
+    path: {
+        /**
+         * Defect type ID
+         *
+         * The defect type to act on.
+         */
+        type_id: string;
+    };
+    query?: never;
+    url: '/api/defects/types/{type_id}';
+};
+
+export type UpdateDefectTypeErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
+};
+
+export type UpdateDefectTypeError = UpdateDefectTypeErrors[keyof UpdateDefectTypeErrors];
+
+export type UpdateDefectTypeResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: DefectType;
+};
+
+export type UpdateDefectTypeResponse = UpdateDefectTypeResponses[keyof UpdateDefectTypeResponses];
+
+export type RestoreDefectTypeData = {
+    body?: never;
+    path: {
+        /**
+         * Defect type ID
+         *
+         * The defect type to act on.
+         */
+        type_id: string;
+    };
+    query?: never;
+    url: '/api/defects/types/{type_id}/restore';
+};
+
+export type RestoreDefectTypeErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+    /**
+     * The request conflicts with the current state of the resource.
+     */
+    409: ErrorResponse;
+};
+
+export type RestoreDefectTypeError = RestoreDefectTypeErrors[keyof RestoreDefectTypeErrors];
+
+export type RestoreDefectTypeResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: DefectType;
+};
+
+export type RestoreDefectTypeResponse = RestoreDefectTypeResponses[keyof RestoreDefectTypeResponses];
+
+export type GetPakCheckData = {
+    body?: never;
+    path: {
+        /**
+         * PAK check ID
+         *
+         * The check to read.
+         */
+        check_id: string;
+    };
+    query?: never;
+    url: '/api/verification/checks/{check_id}';
+};
+
+export type GetPakCheckErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
+};
+
+export type GetPakCheckError = GetPakCheckErrors[keyof GetPakCheckErrors];
+
+export type GetPakCheckResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: PakCheck;
+};
+
+export type GetPakCheckResponse = GetPakCheckResponses[keyof GetPakCheckResponses];
+
+export type ListPakChecksData = {
+    body?: never;
+    path?: never;
+    query?: {
+        ids?: Array<string> | null;
+        createdBefore?: string | null;
+        createdAfter?: string | null;
+        updatedBefore?: string | null;
+        updatedAfter?: string | null;
+        /**
+         * Field to search
+         */
+        searchString?: string | null;
+        /**
+         * Search should be case sensitive
+         */
+        searchIgnoreCase?: boolean | null;
+        currentPage?: number;
+        pageSize?: number;
+        /**
+         * Order by field
+         */
+        orderBy?: string | null;
+        /**
+         * Field to search
+         */
+        sortOrder?: 'asc' | 'desc' | null;
+        defectGroupIdIn?: Array<string> | null;
+        /**
+         * Only checks without (true) or with (false) an active defect group.
+         */
+        misconfigured?: boolean | null;
+    };
+    url: '/api/verification/checks';
+};
+
+export type ListPakChecksErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+};
+
+export type ListPakChecksError = ListPakChecksErrors[keyof ListPakChecksErrors];
+
+export type ListPakChecksResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: PakCheckPage;
+};
+
+export type ListPakChecksResponse = ListPakChecksResponses[keyof ListPakChecksResponses];
+
+export type GetVerificationSessionData = {
+    body?: never;
+    path: {
+        /**
+         * Verification session ID
+         *
+         * The session to read.
          */
         session_id: string;
     };
     query?: never;
-    url: '/verification/sessions/{session_id}';
+    url: '/api/verification/sessions/{session_id}';
 };
 
-export type VerificationGetSessionErrors = {
+export type GetVerificationSessionErrors = {
     /**
-     * Validation Error
+     * Validation Exception
      */
-    422: HttpValidationError;
-};
-
-export type VerificationGetSessionError = VerificationGetSessionErrors[keyof VerificationGetSessionErrors];
-
-export type VerificationGetSessionResponses = {
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
     /**
-     * Successful Response
+     * Authentication is missing or invalid.
      */
-    200: VerificationSessionDetailResponse;
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource does not exist.
+     */
+    404: ErrorResponse;
 };
 
-export type VerificationGetSessionResponse = VerificationGetSessionResponses[keyof VerificationGetSessionResponses];
+export type GetVerificationSessionError = GetVerificationSessionErrors[keyof GetVerificationSessionErrors];
+
+export type GetVerificationSessionResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: VerificationSessionDetail;
+};
+
+export type GetVerificationSessionResponse = GetVerificationSessionResponses[keyof GetVerificationSessionResponses];
+
+export type ListVerificationSessionsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        ids?: Array<string> | null;
+        createdBefore?: string | null;
+        createdAfter?: string | null;
+        updatedBefore?: string | null;
+        updatedAfter?: string | null;
+        /**
+         * Field to search
+         */
+        searchString?: string | null;
+        /**
+         * Search should be case sensitive
+         */
+        searchIgnoreCase?: boolean | null;
+        currentPage?: number;
+        pageSize?: number;
+        /**
+         * Order by field
+         */
+        orderBy?: string | null;
+        /**
+         * Field to search
+         */
+        sortOrder?: 'asc' | 'desc' | null;
+        pakIdIn?: Array<string> | null;
+        batchIdIn?: Array<string> | null;
+        statusIn?: Array<VerificationSessionStatus> | null;
+        pakKindIn?: Array<PakDeviceKind> | null;
+    };
+    url: '/api/verification/sessions';
+};
+
+export type ListVerificationSessionsErrors = {
+    /**
+     * Validation Exception
+     */
+    400: {
+        status_code: number;
+        detail: string;
+        extra?: null | {
+            [key: string]: unknown;
+        } | Array<unknown>;
+    };
+    /**
+     * Authentication is missing or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The authenticated user lacks the required permission or may not act on this target.
+     */
+    403: ErrorResponse;
+};
+
+export type ListVerificationSessionsError = ListVerificationSessionsErrors[keyof ListVerificationSessionsErrors];
+
+export type ListVerificationSessionsResponses = {
+    /**
+     * Request fulfilled, document follows
+     */
+    200: VerificationSessionPage;
+};
+
+export type ListVerificationSessionsResponse = ListVerificationSessionsResponses[keyof ListVerificationSessionsResponses];

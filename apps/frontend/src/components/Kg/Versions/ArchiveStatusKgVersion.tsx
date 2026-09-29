@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { archiveKgVersionMutation, restoreKgVersionMutation } from '@web-app/api-client'
 
 import { Button } from '@web-app/ui/components/button'
 import {
@@ -11,11 +12,7 @@ import {
 } from '@web-app/ui/components/dialog'
 import { Spinner } from '@web-app/ui/components/spinner'
 
-import {
-  kgVersionErrorMessage,
-  updateKgVersionArchived,
-  type KgVersion,
-} from '@/features/kg/kg-versions-api'
+import { invalidateKgVersionQueries, type KgVersion } from '@/features/kg/kg-versions-api'
 import useCustomToast from '@/hooks/useCustomToast'
 
 export function ArchiveStatusKgVersion({
@@ -35,17 +32,11 @@ export function ArchiveStatusKgVersion({
   const action = restore ? 'Восстановить' : 'Архивировать'
   const pendingAction = restore ? 'Восстановление…' : 'Архивация…'
   const mutation = useMutation({
-    mutationFn: () => updateKgVersionArchived(version.id, !restore),
-    onError: (error) =>
-      showErrorToast(
-        `Не удалось ${action.toLowerCase()} версию КГ`,
-        kgVersionErrorMessage(error) ?? 'Попробуйте ещё раз.',
-      ),
+    ...(restore ? restoreKgVersionMutation() : archiveKgVersionMutation()),
+    onError: () =>
+      showErrorToast(`Не удалось ${action.toLowerCase()} версию КГ`, 'Попробуйте ещё раз.'),
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['kg', 'versions'] }),
-        queryClient.invalidateQueries({ queryKey: ['audit'] }),
-      ])
+      await invalidateKgVersionQueries(queryClient)
       close(true)
       onSuccess()
       showSuccessToast(
@@ -77,7 +68,10 @@ export function ArchiveStatusKgVersion({
           <Button disabled={mutation.isPending} onClick={() => close()} variant="outline">
             Отмена
           </Button>
-          <Button disabled={mutation.isPending} onClick={() => mutation.mutate()}>
+          <Button
+            disabled={mutation.isPending}
+            onClick={() => mutation.mutate({ path: { version_id: version.id } })}
+          >
             {mutation.isPending ? <Spinner data-icon="inline-start" /> : null}
             {mutation.isPending ? pendingAction : action}
           </Button>

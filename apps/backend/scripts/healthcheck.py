@@ -1,20 +1,29 @@
-import os
+"""Container liveness: the API process answers its health endpoint.
+
+``/api/health`` answers 503 while PostgreSQL, Kratos or Hydra is down. That
+is readiness of the dependencies, not of this process, so 503 counts as alive
+here; otherwise an Ory outage would mark the API unhealthy and Traefik would
+stop routing to it.
+"""
+
 import sys
 import urllib.error
 import urllib.request
 
-API_PREFIX = (os.getenv("BACKEND_API_PREFIX") or "").rstrip("/")
-HEALTHCHECK_PATH = os.getenv("HEALTHCHECK_PATH") or "/health/live"
-HEALTHCHECK_URL = f"http://127.0.0.1:8000{API_PREFIX}{HEALTHCHECK_PATH}"
+HEALTHCHECK_URL = "http://127.0.0.1:8000/api/health"
+ALIVE_STATUSES = {200, 503}
 
 
 def main() -> None:
     try:
         with urllib.request.urlopen(HEALTHCHECK_URL, timeout=5) as response:
-            if response.status != 200:
-                raise RuntimeError(f"Unexpected status code: {response.status}")
+            status = response.status
+    except urllib.error.HTTPError as error:
+        status = error.code
+    except (urllib.error.URLError, TimeoutError):
+        sys.exit(1)
 
-    except (urllib.error.URLError, TimeoutError, RuntimeError):
+    if status not in ALIVE_STATUSES:
         sys.exit(1)
 
 

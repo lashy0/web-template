@@ -1,7 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { updateDefectGroup } from '@web-app/api-client'
 import { useEffect } from 'react'
 import { Controller, useForm } from 'react-hook-form'
+import type { z } from 'zod'
 
 import { Button } from '@web-app/ui/components/button'
 import {
@@ -22,15 +24,12 @@ import {
 } from '@web-app/ui/components/input-group'
 import { Spinner } from '@web-app/ui/components/spinner'
 
-import {
-  defectErrorMessage,
-  updateDefectGroup,
-  type DefectGroup,
-} from '@/features/defects/defects-api'
+import { invalidateDefectQueries, type DefectGroup } from '@/features/defects/defects-api'
 import { updateDefectGroupSchema } from '@/features/defects/defect-form-schema'
 import useCustomToast from '@/hooks/useCustomToast'
+import { changedFields, hasChanges } from '@/lib/changes'
 
-type EditDefectGroupForm = Readonly<{ description: string; name: string }>
+type EditDefectGroupForm = z.input<typeof updateDefectGroupSchema>
 const textLimit = 2000
 function toForm(group: DefectGroup): EditDefectGroupForm {
   return { description: group.description ?? '', name: group.name }
@@ -48,7 +47,7 @@ export function EditDefectGroup({
   group: DefectGroup
 }>) {
   const queryClient = useQueryClient()
-  const form = useForm<EditDefectGroupForm>({
+  const form = useForm<EditDefectGroupForm, unknown, z.output<typeof updateDefectGroupSchema>>({
     defaultValues: toForm(group),
     mode: 'onChange',
     resolver: zodResolver(updateDefectGroupSchema),
@@ -58,25 +57,20 @@ export function EditDefectGroup({
     if (open) form.reset(toForm(group))
   }, [form, group, open])
   const mutation = useMutation({
-    mutationFn: (data: EditDefectGroupForm) =>
-      updateDefectGroup(group.id, {
-        description: data.description.trim() || null,
-        name: data.name,
-      }),
+    mutationFn: async (data: z.output<typeof updateDefectGroupSchema>) => {
+      const body = changedFields(group, data)
+      if (hasChanges(body)) {
+        await updateDefectGroup({ body, path: { group_id: group.id }, throwOnError: true })
+      }
+    },
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['defects'] }),
-        queryClient.invalidateQueries({ queryKey: ['audit'] }),
-      ])
+      await invalidateDefectQueries(queryClient)
       close(true)
       onSuccess()
       showSuccessToast('Группа изменена', `Данные «${group.code}» сохранены.`)
     },
-    onError: (error) =>
-      showErrorToast(
-        'Не удалось изменить группу',
-        defectErrorMessage(error) ?? 'Проверьте данные и попробуйте ещё раз.',
-      ),
+    onError: () =>
+      showErrorToast('Не удалось изменить группу', 'Проверьте данные и попробуйте ещё раз.'),
   })
   function close(force = false) {
     if (!mutation.isPending || force) onOpenChange(false)

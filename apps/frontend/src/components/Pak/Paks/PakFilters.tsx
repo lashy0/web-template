@@ -15,15 +15,11 @@ import {
   SelectValue,
 } from '@web-app/ui/components/select'
 
-import {
-  pakKindFilterOptions,
-  pakStatusFilterOptions,
-  type PakKind,
-  type PakStatus,
-} from '@/features/paks/paks-api'
+import { pakKindFilterOptions, type PakKind } from '@/features/paks/paks-api'
+import { activityFilterOptions, type Activity } from '@/lib/activity'
 
 type KindFilter = PakKind | 'all'
-type StatusFilter = PakStatus | 'all'
+type StatusFilter = Activity | 'all'
 
 export function PakFilters({
   archived,
@@ -43,7 +39,7 @@ export function PakFilters({
   status: StatusFilter
 }>) {
   const kindLabel = pakKindFilterOptions.find((item) => item.value === kind)?.label
-  const statusLabel = pakStatusFilterOptions.find((item) => item.value === status)?.label
+  const statusLabel = activityFilterOptions.find((item) => item.value === status)?.label
 
   return (
     <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
@@ -91,7 +87,7 @@ export function PakFilters({
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                {pakStatusFilterOptions.map((item) => (
+                {activityFilterOptions.map((item) => (
                   <SelectItem key={item.value} value={item.value}>
                     {item.label}
                   </SelectItem>

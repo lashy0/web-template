@@ -20,14 +20,7 @@ export function createKgVersionColumns(archived: boolean): readonly DataTableCol
       sortDescFirst: false,
     },
   ]
-  if (!archived) {
-    columns.push({
-      accessorKey: 'batchCount',
-      cell: ({ row }) => row.original.batchCount,
-      enableSorting: false,
-      header: 'В партиях',
-    })
-  } else {
+  if (archived) {
     columns.push({
       accessorFn: (row) => row.archivedAt,
       cell: ({ row }) =>

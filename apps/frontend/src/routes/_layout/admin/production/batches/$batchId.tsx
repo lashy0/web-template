@@ -1,7 +1,10 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { CircleAlertIcon, RotateCwIcon } from 'lucide-react'
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { getBatchOptions, listKgUnitsOptions, type Batch } from '@web-app/api-client'
+import type { ReactNode } from 'react'
+
+import { Alert, AlertDescription, AlertTitle } from '@web-app/ui/components/alert'
+import { Badge } from '@web-app/ui/components/badge'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -9,31 +12,17 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@web-app/ui/components/breadcrumb'
-import { Alert, AlertDescription, AlertTitle } from '@web-app/ui/components/alert'
 import { Button } from '@web-app/ui/components/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@web-app/ui/components/empty'
 import { Skeleton } from '@web-app/ui/components/skeleton'
-import { Spinner } from '@web-app/ui/components/spinner'
 
-import { type DataTablePaginationState } from '@/components/Common/DataTable'
 import { KgUnitFilters } from '@/components/Kg/Unit/KgUnitFilters'
-import { PendingKgUnits } from '@/components/Kg/Unit/PendingKgUnits'
 import { KgUnitTable } from '@/components/Kg/Unit/KgUnitTable'
-import {
-  batchQueryKeys,
-  batchPreparationErrorMessage,
-  getBatch,
-  retryBatchPreparation,
-  type Batch,
-} from '@/features/batches/batches-api'
-import { useBatchPreparationRealtime } from '@/features/batches/use-batch-preparation-realtime'
-import {
-  kgCurrentStates,
-  kgQueryKeys,
-  listKgByBatch,
-  type KgCurrentState,
-} from '@/features/kg/kg-api'
-import { listEnum, listPage, listQuery } from '@/lib/list-search'
+import { PendingKgUnits } from '@/components/Kg/Unit/PendingKgUnits'
+import { batchStatusLabels } from '@/features/batches/batches-api'
+import { kgOtkStatuses, kgStates } from '@/features/kg/kg-api'
+import { formatDevEui, formatDevEuiPrefix } from '@/features/kg/kg-prefix-format'
+import { listEnum, listPage, listQuery, useSearchInput } from '@/lib/list-search'
 
 const KG_PAGE_SIZE = 10
 
@@ -43,16 +32,18 @@ export const Route = createFileRoute('/_layout/admin/production/batches/$batchId
 })
 
 type BatchPageSearch = Readonly<{
+  otk?: (typeof kgOtkStatuses)[number]
   page?: number
   q?: string
-  unitStatus?: KgCurrentState
+  state?: (typeof kgStates)[number]
 }>
 
 function validateBatchPageSearch(search: Record<string, unknown>): BatchPageSearch {
   return {
+    otk: listEnum(kgOtkStatuses, search.otk),
     page: listPage(search.page),
     q: listQuery(search.q),
-    unitStatus: listEnum(kgCurrentStates, search.unitStatus),
+    state: listEnum(kgStates, search.state),
   }
 }
 
@@ -60,133 +51,91 @@ function BatchPage() {
   const { batchId } = Route.useParams()
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
-  const queryClient = useQueryClient()
-  const status = search.unitStatus ?? 'all'
-  const [queryInput, setQueryInput] = useState(search.q ?? '')
-  const pagination: DataTablePaginationState = {
-    pageIndex: (search.page ?? 1) - 1,
-    pageSize: KG_PAGE_SIZE,
-  }
-  const batch = useQuery({
-    queryFn: () => getBatch(batchId),
-    queryKey: ['batches', 'detail', batchId],
-    refetchInterval: (query) => (query.state.data?.preparationStatus === 'READY' ? false : 3_000),
+  const state = search.state ?? 'all'
+  const otkStatus = search.otk ?? 'all'
+  const pagination = { pageIndex: (search.page ?? 1) - 1, pageSize: KG_PAGE_SIZE }
+  const [queryInput, setQueryInput] = useSearchInput(search.q, (q) => {
+    navigate({ replace: true, search: (previous) => ({ ...previous, page: undefined, q }) })
   })
-  const refreshBatch = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: batchQueryKeys.detail(batchId) })
-  }, [batchId, queryClient])
-  useBatchPreparationRealtime(batchId, refreshBatch)
-  useEffect(() => setQueryInput(search.q ?? ''), [search.q])
-  useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      const query = queryInput.trim()
-      if (query !== (search.q ?? '')) {
-        navigate({
-          replace: true,
-          search: (previous) => ({ ...previous, page: undefined, q: query || undefined }),
-        })
-      }
-    }, 300)
-    return () => window.clearTimeout(timeout)
-  }, [navigate, queryInput, search.q])
-  const kg = useQuery({
-    enabled: batch.data?.preparationStatus === 'READY',
-    placeholderData: keepPreviousData,
-    queryFn: () =>
-      listKgByBatch({
-        batchId,
-        page: pagination.pageIndex + 1,
-        pageSize: pagination.pageSize,
-        query: search.q,
-        currentState: status === 'all' ? undefined : status,
-      }),
-    queryKey: kgQueryKeys.batch({
-      batchId,
-      page: pagination.pageIndex + 1,
-      pageSize: pagination.pageSize,
-      query: search.q,
-      status,
+
+  const batch = useQuery(getBatchOptions({ path: { batch_id: batchId } }))
+  const units = useQuery({
+    ...listKgUnitsOptions({
+      query: {
+        batchIdIn: [batchId],
+        currentPage: pagination.pageIndex + 1,
+        otkStatusIn: otkStatus !== 'all' ? [otkStatus] : undefined,
+        pageSize: KG_PAGE_SIZE,
+        searchIgnoreCase: true,
+        searchString: search.q,
+        stateIn: state !== 'all' ? [state] : undefined,
+      },
     }),
+    placeholderData: keepPreviousData,
   })
 
   if (batch.isPending) return <PendingBatchPage />
 
-  if (batch.isError || !batch.data) {
+  if (batch.isError) {
     return (
       <PageLayout>
-        <Alert variant="destructive">
-          <AlertTitle>Не удалось загрузить партию</AlertTitle>
-          <AlertDescription>Проверьте подключение к серверу и повторите попытку.</AlertDescription>
-        </Alert>
-        <Button className="mt-4" onClick={() => void batch.refetch()} variant="outline">
-          Повторить
-        </Button>
-      </PageLayout>
-    )
-  }
-
-  if (batch.data.preparationStatus !== 'READY') {
-    return (
-      <PageLayout batchName={batch.data.name}>
-        <BatchPreparation batch={batch.data} onRetry={refreshBatch} />
-      </PageLayout>
-    )
-  }
-
-  if (kg.isPending) return <PendingBatchPage />
-
-  if (kg.isError || !kg.data) {
-    return (
-      <PageLayout batchName={batch.data.name}>
-        <Alert variant="destructive">
-          <AlertTitle>Не удалось загрузить КГ</AlertTitle>
-          <AlertDescription>Проверьте подключение к серверу и повторите попытку.</AlertDescription>
-        </Alert>
-        <Button className="mt-4" onClick={() => void kg.refetch()} variant="outline">
-          Повторить
-        </Button>
+        <LoadError onRetry={() => void batch.refetch()} title="Не удалось загрузить партию" />
       </PageLayout>
     )
   }
 
   return (
     <PageLayout batchName={batch.data.name}>
-      <div className="flex flex-col gap-1">
-        <h1 className="text-3xl font-semibold tracking-tight">{batch.data.name}</h1>
-      </div>
-      <div className="mt-5">
+      <BatchSummary batch={batch.data} />
+      <div className="mt-8">
         <KgUnitFilters
+          onOtkStatusChange={(value) => {
+            navigate({
+              search: (previous) => ({
+                ...previous,
+                otk: value === 'all' ? undefined : value,
+                page: undefined,
+              }),
+            })
+          }}
           onQueryChange={setQueryInput}
-          onStatusChange={(value) =>
+          onStateChange={(value) => {
             navigate({
               search: (previous) => ({
                 ...previous,
                 page: undefined,
-                unitStatus: value === 'all' ? undefined : value,
+                state: value === 'all' ? undefined : value,
               }),
             })
-          }
+          }}
+          otkStatus={otkStatus}
           query={queryInput}
-          status={status}
+          state={state}
         />
       </div>
       <div className="mt-4">
-        {kg.data.total === 0 ? (
-          <EmptyKg hasFilters={Boolean(search.q) || status !== 'all'} />
+        {!units.data ? (
+          units.isError ? (
+            <LoadError onRetry={() => void units.refetch()} title="Не удалось загрузить КГ" />
+          ) : (
+            <PendingKgUnits />
+          )
+        ) : units.data.total === 0 ? (
+          <EmptyKg hasFilters={Boolean(search.q) || state !== 'all' || otkStatus !== 'all'} />
         ) : (
           <KgUnitTable
-            items={kg.data.items}
-            loading={kg.isFetching}
-            onPaginationChange={(next) =>
+            items={units.data.items}
+            loading={units.isFetching}
+            onPaginationChange={(next) => {
               navigate({
                 search: (previous) => ({
                   ...previous,
                   page: next.pageIndex === 0 ? undefined : next.pageIndex + 1,
                 }),
               })
-            }
+            }}
             pagination={pagination}
-            total={kg.data.total}
+            total={units.data.total}
           />
         )}
       </div>
@@ -194,55 +143,54 @@ function BatchPage() {
   )
 }
 
-function BatchPreparation({
-  batch,
-  onRetry,
-}: Readonly<{
-  batch: Batch
-  onRetry: () => void
-}>) {
-  const retry = useMutation({
-    mutationFn: () => retryBatchPreparation(batch.id),
-    onSuccess: () => onRetry(),
-  })
-
-  if (batch.preparationStatus === 'FAILED') {
-    return (
-      <div className="flex min-h-80 flex-col items-center justify-center gap-4 text-center">
-        <Alert className="max-w-xl text-left" variant="destructive">
-          <CircleAlertIcon />
-          <AlertTitle>Не удалось подготовить партию</AlertTitle>
-          <AlertDescription>{batchPreparationErrorMessage(batch.preparationErrorCode)}</AlertDescription>
-        </Alert>
-        <div className="flex gap-2">
-          <Button disabled={retry.isPending} onClick={() => retry.mutate()}>
-            {retry.isPending ? (
-              <Spinner data-icon="inline-start" />
-            ) : (
-              <RotateCwIcon data-icon="inline-start" />
-            )}
-            Повторить подготовку
-          </Button>
-          <Button render={<Link to="/admin/production/batches" />} variant="outline">
-            К списку партий
-          </Button>
-        </div>
-      </div>
-    )
-  }
-
-  const message =
-    batch.preparationStatus === 'CANCELLING'
-      ? `Отмена подготовки партии: ${batch.preparationProgress}%`
-      : `Подготовка партии: ${batch.preparationProgress}%`
-
+function BatchSummary({ batch }: Readonly<{ batch: Batch }>) {
   return (
-    <div aria-live="polite" className="flex min-h-80 items-center justify-center text-center">
-      <p className="flex items-center gap-2 text-lg font-medium">
-        <Spinner aria-hidden="true" className="size-5" />
-        {message}
-      </p>
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-wrap items-center gap-3">
+        <h1 className="text-3xl font-semibold tracking-tight">{batch.name}</h1>
+        <Badge variant="secondary">{batchStatusLabels[batch.status]}</Badge>
+        {batch.archivedAt ? <Badge variant="outline">В архиве</Badge> : null}
+      </div>
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm sm:grid-cols-4">
+        <Detail label="План">{batch.plannedQty.toLocaleString('ru-RU')}</Detail>
+        <Detail label="Принято">{batch.receivedQty.toLocaleString('ru-RU')}</Detail>
+        <Detail label="Упаковано">{batch.packedQty.toLocaleString('ru-RU')}</Detail>
+        <Detail label="Отгружено">{batch.shippedQty.toLocaleString('ru-RU')}</Detail>
+        <Detail label="Производственный заказ">{batch.productionOrder?.name ?? '—'}</Detail>
+        <Detail label="Версия КГ">{batch.kgVersion?.code ?? '—'}</Detail>
+        <Detail label="DevEUI-префикс">
+          <code>{formatDevEuiPrefix(batch.kgPrefix.prefix)}</code>
+        </Detail>
+        <Detail label="Диапазон DevEUI">
+          <code className="text-xs">
+            {formatDevEui(batch.firstDevEui)} — {formatDevEui(batch.lastDevEui)}
+          </code>
+        </Detail>
+      </dl>
     </div>
+  )
+}
+
+function Detail({ children, label }: Readonly<{ children: ReactNode; label: string }>) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="mt-1 truncate font-medium">{children}</dd>
+    </div>
+  )
+}
+
+function LoadError({ onRetry, title }: Readonly<{ onRetry: () => void; title: string }>) {
+  return (
+    <>
+      <Alert variant="destructive">
+        <AlertTitle>{title}</AlertTitle>
+        <AlertDescription>Проверьте подключение к серверу и повторите попытку.</AlertDescription>
+      </Alert>
+      <Button className="mt-4" onClick={onRetry} variant="outline">
+        Повторить
+      </Button>
+    </>
   )
 }
 
@@ -277,11 +225,11 @@ function EmptyKg({ hasFilters }: Readonly<{ hasFilters: boolean }>) {
   return (
     <Empty>
       <EmptyHeader>
-        <EmptyTitle>{hasFilters ? 'Ничего не найдено' : 'В партии пока нет КГ'}</EmptyTitle>
+        <EmptyTitle>{hasFilters ? 'Ничего не найдено' : 'В партии нет КГ'}</EmptyTitle>
         <EmptyDescription>
           {hasFilters
             ? 'Попробуйте изменить параметры поиска.'
-            : 'Устройства появятся здесь после создания.'}
+            : 'КГ партии регистрируются при её создании.'}
         </EmptyDescription>
       </EmptyHeader>
     </Empty>

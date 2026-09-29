@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { deleteUserMutation } from '@web-app/api-client'
 
 import { Button } from '@web-app/ui/components/button'
 import {
@@ -11,7 +12,7 @@ import {
 } from '@web-app/ui/components/dialog'
 import { Spinner } from '@web-app/ui/components/spinner'
 
-import { deleteUser, type User } from '@/features/users/users-api'
+import { invalidateUserQueries, type User } from '@/features/users/users-api'
 import useCustomToast from '@/hooks/useCustomToast'
 
 export function DeleteUser({
@@ -28,12 +29,9 @@ export function DeleteUser({
   const queryClient = useQueryClient()
   const { showErrorToast, showSuccessToast } = useCustomToast()
   const mutation = useMutation({
-    mutationFn: () => deleteUser(user.id),
+    ...deleteUserMutation(),
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['users'] }),
-        queryClient.invalidateQueries({ queryKey: ['audit'] }),
-      ])
+      await invalidateUserQueries(queryClient)
       closeDialog(true)
       onSuccess()
       showSuccessToast('Пользователь удалён', `Учётная запись «${user.name}» удалена навсегда.`)
@@ -64,7 +62,7 @@ export function DeleteUser({
           </Button>
           <Button
             disabled={mutation.isPending}
-            onClick={() => mutation.mutate()}
+            onClick={() => mutation.mutate({ path: { user_id: user.id } })}
             variant="destructive"
           >
             {mutation.isPending && <Spinner data-icon="inline-start" />}

@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { deletePakDeviceMutation } from '@web-app/api-client'
 
 import { Button } from '@web-app/ui/components/button'
 import {
@@ -11,7 +12,7 @@ import {
 } from '@web-app/ui/components/dialog'
 import { Spinner } from '@web-app/ui/components/spinner'
 
-import { deletePak, type Pak } from '@/features/paks/paks-api'
+import { invalidatePakQueries, isPakInUseError, type Pak } from '@/features/paks/paks-api'
 import { pakCodeForMessage } from '@/features/paks/pak-format'
 import useCustomToast from '@/hooks/useCustomToast'
 
@@ -29,13 +30,16 @@ export function DeletePak({
   const queryClient = useQueryClient()
   const { showErrorToast, showSuccessToast } = useCustomToast()
   const mutation = useMutation({
-    mutationFn: () => deletePak(pak.id),
-    onError: () => showErrorToast('Не удалось удалить ПАК', 'Попробуйте ещё раз.'),
+    ...deletePakDeviceMutation(),
+    onError: (error) =>
+      isPakInUseError(error)
+        ? showErrorToast(
+            'ПАК нельзя удалить',
+            'ПАК уже проводил проверки. Архивируйте его, чтобы скрыть из списка.',
+          )
+        : showErrorToast('Не удалось удалить ПАК', 'Попробуйте ещё раз.'),
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['paks'] }),
-        queryClient.invalidateQueries({ queryKey: ['audit'] }),
-      ])
+      await invalidatePakQueries(queryClient)
       closeDialog(true)
       onSuccess()
       showSuccessToast('ПАК удалён', `ПАК «${pakCodeForMessage(pak.code)}» удалён навсегда.`)
@@ -62,7 +66,7 @@ export function DeletePak({
           </Button>
           <Button
             disabled={mutation.isPending}
-            onClick={() => mutation.mutate()}
+            onClick={() => mutation.mutate({ path: { pak_id: pak.id } })}
             variant="destructive"
           >
             {mutation.isPending && <Spinner data-icon="inline-start" />}

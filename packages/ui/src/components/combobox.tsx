@@ -23,7 +23,12 @@ function ComboboxValue(props: ComboboxPrimitive.Value.Props) {
 }
 
 function ComboboxIcon({ className, ...props }: ComboboxPrimitive.Icon.Props) {
-  return <ComboboxPrimitive.Icon className={cn('shrink-0 text-muted-foreground', className)} {...props} />
+  return (
+    <ComboboxPrimitive.Icon
+      className={cn('shrink-0 text-muted-foreground', className)}
+      {...props}
+    />
+  )
 }
 
 function ComboboxInput({ className, ...props }: ComboboxPrimitive.Input.Props) {
@@ -69,7 +74,9 @@ function ComboboxContent({
 }
 
 function ComboboxList({ className, ...props }: ComboboxPrimitive.List.Props) {
-  return <ComboboxPrimitive.List className={cn('max-h-64 overflow-y-auto p-1', className)} {...props} />
+  return (
+    <ComboboxPrimitive.List className={cn('max-h-64 overflow-y-auto p-1', className)} {...props} />
+  )
 }
 
 function ComboboxItem({ className, ...props }: ComboboxPrimitive.Item.Props) {

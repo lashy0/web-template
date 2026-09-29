@@ -22,10 +22,11 @@ export function createDefectTypeColumns(archived: boolean): readonly DataTableCo
       cell: ({ row }) => (
         <HoverCard>
           <HoverCardTrigger
-            aria-label={`Показать описание типа «${row.original.name}»`}
             className="cursor-help rounded-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring"
             delay={250}
-            render={<button type="button" />}
+            render={
+              <button aria-label={`Показать описание типа «${row.original.name}»`} type="button" />
+            }
           >
             {row.original.name}
           </HoverCardTrigger>

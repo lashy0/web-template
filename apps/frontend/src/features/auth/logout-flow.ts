@@ -1,13 +1,6 @@
-import { Configuration, FrontendApi } from '@ory/client-fetch'
-
-const frontend = new FrontendApi(
-  new Configuration({
-    basePath: window.location.origin,
-    credentials: 'include',
-  }),
-)
+import { kratosFrontend } from '@/features/auth/kratos'
 
 export async function createBrowserLogoutUrl(): Promise<string> {
-  const flow = await frontend.createBrowserLogoutFlow()
+  const flow = await kratosFrontend.createBrowserLogoutFlow()
   return flow.logout_url
 }

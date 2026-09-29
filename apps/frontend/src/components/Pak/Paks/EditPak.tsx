@@ -1,7 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { updatePakDevice } from '@web-app/api-client'
 import { useEffect } from 'react'
 import { Controller, useForm } from 'react-hook-form'
+import type { z } from 'zod'
 
 import { Button } from '@web-app/ui/components/button'
 import {
@@ -25,18 +27,19 @@ import {
 import { Spinner } from '@web-app/ui/components/spinner'
 
 import {
-  isPakAlreadyExistsError,
+  invalidatePakQueries,
+  isPakCodeTakenError,
   pakKindLabels,
   pakKindOptions,
-  updatePak,
   type Pak,
   type PakKind,
 } from '@/features/paks/paks-api'
 import { pakCodeForMessage } from '@/features/paks/pak-format'
-import { editPakSchema } from '@/features/paks/pak-form-schema'
+import { editPakSchema, pakFormMessages } from '@/features/paks/pak-form-schema'
 import useCustomToast from '@/hooks/useCustomToast'
+import { changedFields, hasChanges } from '@/lib/changes'
 
-type EditPakForm = Readonly<{ code: string; kind: PakKind }>
+type EditPakForm = z.infer<typeof editPakSchema>
 
 function toForm(pak: Pak): EditPakForm {
   return { code: pak.code, kind: pak.kind }
@@ -57,7 +60,7 @@ export function EditPak({
   const form = useForm<EditPakForm>({
     defaultValues: toForm(pak),
     mode: 'onChange',
-    resolver: zodResolver(editPakSchema),
+    resolver: zodResolver(editPakSchema, { error: pakFormMessages }),
   })
   const { showErrorToast, showSuccessToast } = useCustomToast()
 
@@ -66,18 +69,20 @@ export function EditPak({
   }, [form, open, pak])
 
   const mutation = useMutation({
-    mutationFn: (data: EditPakForm) => updatePak(pak.id, data),
+    mutationFn: async (data: EditPakForm) => {
+      const body = changedFields(toForm(pak), data)
+      if (hasChanges(body)) {
+        await updatePakDevice({ body, path: { pak_id: pak.id }, throwOnError: true })
+      }
+    },
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['paks'] }),
-        queryClient.invalidateQueries({ queryKey: ['audit'] }),
-      ])
+      await invalidatePakQueries(queryClient)
       close(true)
       onSuccess()
       showSuccessToast('ПАК изменён', `Данные «${pakCodeForMessage(pak.code)}» сохранены.`)
     },
     onError: (error) => {
-      if (isPakAlreadyExistsError(error)) {
+      if (isPakCodeTakenError(error)) {
         form.setError(
           'code',
           { message: 'ПАК с таким кодом уже существует.', type: 'server' },

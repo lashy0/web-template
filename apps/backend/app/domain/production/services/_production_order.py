@@ -1,0 +1,98 @@
+from __future__ import annotations
+
+from datetime import UTC, datetime
+from uuid import UUID
+
+from advanced_alchemy.exceptions import NotFoundError
+from advanced_alchemy.extensions.litestar import repository, service
+from sqlalchemy import exists, select
+
+from app.db import models as m
+from app.domain.production.exceptions import (
+    ProductionOrderArchivedError,
+    ProductionOrderInUseError,
+)
+
+_BATCH_COUNTS = ("batches_count", "total_planned_qty")
+
+
+class ProductionOrderService(service.SQLAlchemyAsyncRepositoryService[m.ProductionOrder]):
+    """Application service for production orders."""
+
+    class Repo(repository.SQLAlchemyAsyncRepository[m.ProductionOrder]):
+        """Production order SQLAlchemy repository."""
+
+        model_type = m.ProductionOrder
+
+    repository_type = Repo
+
+    async def create_order(self, data: dict[str, object]) -> m.ProductionOrder:
+        order = await self.create(data, auto_commit=False)
+
+        # A new order has no batches, but the counts are still unloaded.
+        await self.repository.session.refresh(order, attribute_names=_BATCH_COUNTS)
+
+        return order
+
+    async def update_order(
+        self,
+        order_id: UUID,
+        data: dict[str, object],
+    ) -> m.ProductionOrder:
+        order = await self._require(order_id, for_update=True)
+
+        if order.archived_at is not None:
+            raise ProductionOrderArchivedError
+
+        return await self.update(
+            data,
+            item_id=order_id,
+            auto_commit=False,
+        )
+
+    async def set_archived(
+        self,
+        order_id: UUID,
+        *,
+        archived: bool,
+    ) -> m.ProductionOrder:
+        """Archive or restore an order; repeating the request keeps the original archive time."""
+        order = await self._require(order_id, for_update=True)
+
+        if archived and order.archived_at is None:
+            order.archived_at = datetime.now(UTC)
+        elif not archived:
+            order.archived_at = None
+
+        await self.repository.session.flush()
+
+        return order
+
+    async def delete_order(self, order_id: UUID) -> m.ProductionOrder:
+        order = await self._require(order_id, for_update=True)
+
+        if await self.repository.session.scalar(select(exists().where(m.Batch.production_order_id == order.id))):
+            raise ProductionOrderInUseError
+
+        await self.repository.session.delete(order)
+        await self.repository.session.flush()
+
+        return order
+
+    async def _require(
+        self,
+        order_id: UUID,
+        *,
+        for_update: bool = False,
+    ) -> m.ProductionOrder:
+        order = await self.get_one_or_none(
+            m.ProductionOrder.id == order_id,
+            with_for_update=for_update,
+            # A locked read must replace what an earlier read left in the session.
+            execution_options={"populate_existing": for_update},
+        )
+
+        if order is None:
+            raise NotFoundError("Production order not found.")
+
+        return order

@@ -9,7 +9,7 @@ import {
   type SelectOptionsState,
 } from './types'
 
-import type { DevEuiRangePreview } from '@/features/batches/batches-api'
+import type { DevEuiRange } from '@web-app/api-client'
 
 export function BatchConfigurationStep({
   control,
@@ -23,7 +23,7 @@ export function BatchConfigurationStep({
   control: BatchFormControl
   plannedQty: number
   prefixes: SelectOptionsState
-  range: DevEuiRangePreview | undefined
+  range: DevEuiRange | undefined
   rangeLoading: boolean
   selectedPrefix: string
   versions: SelectOptionsState
@@ -36,7 +36,7 @@ export function BatchConfigurationStep({
           id="new-batch-prefix"
           {...prefixes}
           label="DevEUI-префикс"
-          name="devEuiPrefix"
+          name="kgPrefixId"
           placeholder="Выберите префикс"
         />
         <SelectField

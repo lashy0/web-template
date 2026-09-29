@@ -1,7 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { updateProductionOrder } from '@web-app/api-client'
 import { useEffect, useMemo } from 'react'
 import { Controller, useForm } from 'react-hook-form'
+import type { z } from 'zod'
 
 import {
   Dialog,
@@ -22,15 +24,14 @@ import {
 import { Spinner } from '@web-app/ui/components/spinner'
 
 import {
-  productionOrderErrorMessage,
-  productionOrderQueryKeys,
-  updateProductionOrder,
+  invalidateProductionOrderQueries,
   type ProductionOrder,
 } from '@/features/production-orders/production-order-api'
 import { productionOrderFormSchema } from '@/features/production-orders/production-order-form-schema'
 import useCustomToast from '@/hooks/useCustomToast'
+import { changedFields, hasChanges } from '@/lib/changes'
 
-type EditProductionOrderForm = Readonly<{ description: string; name: string }>
+type EditProductionOrderForm = z.input<typeof productionOrderFormSchema>
 
 const textLimit = 2000
 
@@ -48,18 +49,19 @@ export function EditProductionOrder({
   const queryClient = useQueryClient()
   const { showErrorToast, showSuccessToast } = useCustomToast()
   const mutation = useMutation({
-    mutationFn: (values: EditProductionOrderForm) =>
-      updateProductionOrder(order.id, {
-        description: values.description.trim() || null,
-        name: values.name.trim(),
-      }),
-    onError: (error) =>
+    mutationFn: async (data: z.output<typeof productionOrderFormSchema>) => {
+      const body = changedFields(order, data)
+      if (hasChanges(body)) {
+        await updateProductionOrder({ body, path: { order_id: order.id }, throwOnError: true })
+      }
+    },
+    onError: () =>
       showErrorToast(
         'Не удалось изменить производственный заказ',
-        productionOrderErrorMessage(error) ?? 'Проверьте данные и попробуйте ещё раз.',
+        'Проверьте данные и попробуйте ещё раз.',
       ),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: productionOrderQueryKeys.all })
+      await invalidateProductionOrderQueries(queryClient)
       onOpenChange(false)
       onSuccess()
       showSuccessToast('Производственный заказ изменён')
@@ -69,7 +71,11 @@ export function EditProductionOrder({
     () => ({ description: order.description ?? '', name: order.name }),
     [order.description, order.name],
   )
-  const form = useForm<EditProductionOrderForm>({
+  const form = useForm<
+    EditProductionOrderForm,
+    unknown,
+    z.output<typeof productionOrderFormSchema>
+  >({
     defaultValues: initialValues,
     mode: 'onBlur',
     reValidateMode: 'onBlur',

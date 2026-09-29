@@ -2,6 +2,7 @@ services:
   traefik:
     ports:
       - "80:80"
+      - "127.0.0.1:8080:8080"
     command:
       - "--api.dashboard=true"
       - "--api.insecure=false"

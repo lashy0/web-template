@@ -3,6 +3,8 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      # The dashboard is reachable only on the server's local-network address.
+      - "${TRAEFIK_DASHBOARD_ADDRESS:?TRAEFIK_DASHBOARD_ADDRESS is required}:8080:8080"
     command:
       - "--api.dashboard=true"
       - "--api.insecure=false"
@@ -25,10 +27,6 @@ services:
       - "--accesslog.format=json"
     volumes:
       - traefik-acme:/letsencrypt
-    labels:
-      traefik.http.routers.dashboard.entrypoints: https
-      traefik.http.routers.dashboard.tls: "true"
-      traefik.http.routers.dashboard.tls.certresolver: letsencrypt
 
 volumes:
   traefik-acme:

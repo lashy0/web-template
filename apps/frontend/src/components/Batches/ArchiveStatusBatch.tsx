@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { archiveBatchMutation, restoreBatchMutation } from '@web-app/api-client'
 
 import { Button } from '@web-app/ui/components/button'
 import {
@@ -11,12 +12,7 @@ import {
 } from '@web-app/ui/components/dialog'
 import { Spinner } from '@web-app/ui/components/spinner'
 
-import {
-  batchErrorMessage,
-  batchQueryKeys,
-  updateBatchArchived,
-  type Batch,
-} from '@/features/batches/batches-api'
+import { invalidateBatchQueries, type Batch } from '@/features/batches/batches-api'
 import useCustomToast from '@/hooks/useCustomToast'
 
 export function ArchiveStatusBatch({
@@ -35,14 +31,11 @@ export function ArchiveStatusBatch({
   const restore = batch.archivedAt !== null
   const action = restore ? 'Восстановить' : 'Архивировать'
   const mutation = useMutation({
-    mutationFn: () => updateBatchArchived(batch.id, !restore),
-    onError: (error) =>
-      showErrorToast(
-        `Не удалось ${action.toLowerCase()} партию`,
-        batchErrorMessage(error) ?? 'Попробуйте ещё раз.',
-      ),
+    ...(restore ? restoreBatchMutation() : archiveBatchMutation()),
+    onError: () =>
+      showErrorToast(`Не удалось ${action.toLowerCase()} партию`, 'Попробуйте ещё раз.'),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: batchQueryKeys.all })
+      await invalidateBatchQueries(queryClient)
       onOpenChange(false)
       onSuccess()
       showSuccessToast(
@@ -71,7 +64,10 @@ export function ArchiveStatusBatch({
           <Button disabled={mutation.isPending} onClick={close} variant="outline">
             Отмена
           </Button>
-          <Button disabled={mutation.isPending} onClick={() => mutation.mutate()}>
+          <Button
+            disabled={mutation.isPending}
+            onClick={() => mutation.mutate({ path: { batch_id: batch.id } })}
+          >
             {mutation.isPending ? <Spinner data-icon="inline-start" /> : null}
             {mutation.isPending ? `${action}…` : action}
           </Button>

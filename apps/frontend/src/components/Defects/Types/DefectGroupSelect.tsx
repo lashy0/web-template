@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { getDefectGroupOptions, listDefectGroupsOptions } from '@web-app/api-client'
 import { ChevronDownIcon, SearchIcon, XIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
@@ -16,7 +17,6 @@ import { InputGroup, InputGroupAddon, InputGroupButton } from '@web-app/ui/compo
 import { cn } from '@web-app/ui/lib/utils'
 
 import { defectGroupLabel } from '@/features/defects/defect-format'
-import { getDefectGroup, listDefectGroups } from '@/features/defects/defects-api'
 
 const allGroupsValue = '__all_defect_groups__'
 
@@ -43,14 +43,19 @@ export function DefectGroupSelect({
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
   const selectedGroup = useQuery({
+    ...getDefectGroupOptions({ path: { group_id: value ?? '' } }),
     enabled: Boolean(value),
-    queryFn: () => getDefectGroup(value!),
-    queryKey: ['defects', 'group', value],
   })
   const groups = useQuery({
+    ...listDefectGroupsOptions({
+      query: {
+        archived: false,
+        pageSize: 100,
+        searchIgnoreCase: true,
+        searchString: debouncedQuery || undefined,
+      },
+    }),
     enabled: open,
-    queryFn: () => listDefectGroups({ page: 1, pageSize: 100, query: debouncedQuery || undefined }),
-    queryKey: ['defects', 'groups', 'select', debouncedQuery],
   })
 
   useEffect(() => {
@@ -90,7 +95,9 @@ export function DefectGroupSelect({
         aria-label={ariaLabel ?? selectedLabel}
         disabled={disabled}
         id={id}
-        render={<Button className={cn('justify-between font-normal', className)} variant="outline" />}
+        render={
+          <Button className={cn('justify-between font-normal', className)} variant="outline" />
+        }
       >
         <span className="min-w-0 flex-1 truncate text-left">
           <ComboboxValue>{selectedLabel}</ComboboxValue>

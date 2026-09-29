@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { deleteKgPrefixMutation } from '@web-app/api-client'
 import { TriangleAlertIcon } from 'lucide-react'
 import { useState } from 'react'
 
@@ -14,9 +15,8 @@ import {
 import { Spinner } from '@web-app/ui/components/spinner'
 
 import {
-  deleteKgPrefix,
-  kgPrefixErrorCode,
-  kgPrefixErrorMessage,
+  invalidateKgPrefixQueries,
+  isKgPrefixInUseError,
   type KgPrefix,
 } from '@/features/kg/kg-prefixes-api'
 import useCustomToast from '@/hooks/useCustomToast'
@@ -36,22 +36,16 @@ export function DeleteKgPrefix({
   const queryClient = useQueryClient()
   const { showErrorToast, showSuccessToast } = useCustomToast()
   const mutation = useMutation({
-    mutationFn: () => deleteKgPrefix(prefix.prefix),
+    ...deleteKgPrefixMutation(),
     onError: (error) => {
-      if (kgPrefixErrorCode(error) === 'kg_dev_eui_prefix_in_use') {
+      if (isKgPrefixInUseError(error)) {
         setInUse(true)
         return
       }
-      showErrorToast(
-        'Не удалось удалить префикс',
-        kgPrefixErrorMessage(error) ?? 'Попробуйте ещё раз.',
-      )
+      showErrorToast('Не удалось удалить префикс', 'Попробуйте ещё раз.')
     },
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['kg', 'prefixes'] }),
-        queryClient.invalidateQueries({ queryKey: ['audit'] }),
-      ])
+      await invalidateKgPrefixQueries(queryClient)
       close(true)
       onSuccess()
       showSuccessToast('Префикс удалён', `Префикс «${prefix.prefix}» удалён навсегда.`)
@@ -75,8 +69,8 @@ export function DeleteKgPrefix({
                 Нельзя удалить префикс
               </DialogTitle>
               <DialogDescription>
-                Префикс «{prefix.prefix}» используется партией. Сначала удалите или измените
-                связанные партии.
+                Из префикса «{prefix.prefix}» уже выданы DevEUI. Архивируйте его, чтобы он не
+                использовался в новых партиях.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
@@ -99,7 +93,7 @@ export function DeleteKgPrefix({
               </Button>
               <Button
                 disabled={mutation.isPending}
-                onClick={() => mutation.mutate()}
+                onClick={() => mutation.mutate({ path: { prefix_id: prefix.id } })}
                 variant="destructive"
               >
                 {mutation.isPending ? <Spinner data-icon="inline-start" /> : null}

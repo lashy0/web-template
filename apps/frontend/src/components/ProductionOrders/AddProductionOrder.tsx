@@ -1,8 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { createProductionOrderMutation } from '@web-app/api-client'
 import { PlusIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
+import type { z } from 'zod'
 
 import { Button } from '@web-app/ui/components/button'
 import {
@@ -23,15 +25,11 @@ import {
 } from '@web-app/ui/components/input-group'
 import { Spinner } from '@web-app/ui/components/spinner'
 
-import {
-  createProductionOrder,
-  productionOrderErrorMessage,
-  productionOrderQueryKeys,
-} from '@/features/production-orders/production-order-api'
+import { invalidateProductionOrderQueries } from '@/features/production-orders/production-order-api'
 import { productionOrderFormSchema } from '@/features/production-orders/production-order-form-schema'
 import useCustomToast from '@/hooks/useCustomToast'
 
-type CreateProductionOrderForm = Readonly<{ description: string; name: string }>
+type CreateProductionOrderForm = z.input<typeof productionOrderFormSchema>
 
 const initialValues: CreateProductionOrderForm = { description: '', name: '' }
 const textLimit = 2000
@@ -40,25 +38,25 @@ export function AddProductionOrder() {
   const [open, setOpen] = useState(false)
   const queryClient = useQueryClient()
   const { showErrorToast, showSuccessToast } = useCustomToast()
-  const form = useForm<CreateProductionOrderForm>({
+  const form = useForm<
+    CreateProductionOrderForm,
+    unknown,
+    z.output<typeof productionOrderFormSchema>
+  >({
     defaultValues: initialValues,
     mode: 'onBlur',
     reValidateMode: 'onBlur',
     resolver: zodResolver(productionOrderFormSchema),
   })
   const mutation = useMutation({
-    mutationFn: (values: CreateProductionOrderForm) =>
-      createProductionOrder({
-        description: values.description.trim() || null,
-        name: values.name.trim(),
-      }),
-    onError: (error) =>
+    ...createProductionOrderMutation(),
+    onError: () =>
       showErrorToast(
         'Не удалось создать производственный заказ',
-        productionOrderErrorMessage(error) ?? 'Проверьте данные и попробуйте ещё раз.',
+        'Проверьте данные и попробуйте ещё раз.',
       ),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: productionOrderQueryKeys.all })
+      await invalidateProductionOrderQueries(queryClient)
       close(true)
       showSuccessToast('Производственный заказ создан')
     },
@@ -88,7 +86,7 @@ export function AddProductionOrder() {
           autoComplete="off"
           className="flex min-h-0 flex-1 flex-col"
           noValidate
-          onSubmit={form.handleSubmit((values) => mutation.mutate(values))}
+          onSubmit={form.handleSubmit((body) => mutation.mutate({ body }))}
         >
           <FieldGroup className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
             <Controller

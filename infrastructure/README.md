@@ -16,30 +16,46 @@ From `./infrastructure/`, install the CLI and its dependencies with:
 uv sync
 ```
 
-Complete the environment setup described in the
-[repository README](../README.md#local-development), then start the independent
-projects in operational order:
+`infra` is the one operational command. Create the environment files once,
+then start and stop the whole stack:
 
 ```console
-uv run infra-database up dev
-uv run infra-traefik up dev
-uv run infra-identity up dev
-uv run infra-application backend up dev
-uv run infra-application frontend up dev
+uv run infra init
+uv run infra up dev
+uv run infra status dev
+uv run infra down dev
 ```
 
-Use `status` with the same environment argument to inspect a project. Stop the
-projects in reverse order:
+`up` starts the projects in dependency order (database, Traefik, identity,
+backend, frontend) and waits until each is healthy; `down` stops them in
+reverse order. `up dev --watch` keeps syncing backend source changes
+afterwards.
+
+Every project can also be managed alone with the same commands:
 
 ```console
-uv run infra-application frontend down dev
-uv run infra-application backend down dev
-uv run infra-identity down dev
-uv run infra-traefik down dev
-uv run infra-database down dev
+uv run infra database up dev
+uv run infra backend up dev --watch
+uv run infra backend logs dev api
+uv run infra frontend logs dev
 ```
+
+`infra database down` refuses while other projects still use the databases;
+`--force` overrides the check.
 
 Replace `dev` with `prod` when managing the production configuration.
+`up prod` deploys only a clean checkout of a release tag; tag the next CalVer
+release with `uv run infra release` (see
+[deployment](../docs/deployment.md#releases)).
+
+`infra up` and `infra backend up` create the administrator `admin` when no
+active administrator exists and show its generated password once. `otk` runs
+backend commands in the running API container, for example to replace a lost
+password:
+
+```console
+uv run otk users reset-password admin
+```
 
 ## Documentation
 

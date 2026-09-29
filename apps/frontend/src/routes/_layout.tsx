@@ -1,7 +1,7 @@
 import { Outlet, createFileRoute, redirect } from '@tanstack/react-router'
 
 import { AppShell } from '@/components/AppShell'
-import { RequestError, currentUserQueryOptions } from '@/features/auth/auth-api'
+import { currentUserQueryOptions, isUnauthorizedError } from '@/features/auth/auth-api'
 
 export const Route = createFileRoute('/_layout')({
   beforeLoad: async ({ context }) => {
@@ -9,7 +9,7 @@ export const Route = createFileRoute('/_layout')({
       const currentUser = await context.queryClient.fetchQuery(currentUserQueryOptions)
       return { currentUser }
     } catch (error) {
-      if (error instanceof RequestError && error.status === 401) {
+      if (isUnauthorizedError(error)) {
         throw redirect({ to: '/login', search: { flow: undefined, return_to: undefined } })
       }
       throw error

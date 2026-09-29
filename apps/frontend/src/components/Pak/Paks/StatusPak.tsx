@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { activatePakDeviceMutation, deactivatePakDeviceMutation } from '@web-app/api-client'
 
 import { Button } from '@web-app/ui/components/button'
 import {
@@ -11,7 +12,7 @@ import {
 } from '@web-app/ui/components/dialog'
 import { Spinner } from '@web-app/ui/components/spinner'
 
-import { updatePakActive, type Pak } from '@/features/paks/paks-api'
+import { invalidatePakQueries, type Pak } from '@/features/paks/paks-api'
 import { pakCodeForMessage } from '@/features/paks/pak-format'
 import useCustomToast from '@/hooks/useCustomToast'
 
@@ -28,17 +29,14 @@ export function StatusPak({
 }>) {
   const queryClient = useQueryClient()
   const { showErrorToast, showSuccessToast } = useCustomToast()
-  const activate = pak.status !== 'active'
+  const activate = !pak.isActive
   const action = activate ? 'Активировать' : 'Деактивировать'
 
   const mutation = useMutation({
-    mutationFn: () => updatePakActive(pak.id, activate),
+    ...(activate ? activatePakDeviceMutation() : deactivatePakDeviceMutation()),
     onError: () => showErrorToast(`Не удалось ${action.toLowerCase()} ПАК`, 'Попробуйте ещё раз.'),
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['paks'] }),
-        queryClient.invalidateQueries({ queryKey: ['audit'] }),
-      ])
+      await invalidatePakQueries(queryClient)
       closeDialog(true)
       onSuccess()
       showSuccessToast(
@@ -72,7 +70,7 @@ export function StatusPak({
           </Button>
           <Button
             disabled={mutation.isPending}
-            onClick={() => mutation.mutate()}
+            onClick={() => mutation.mutate({ path: { pak_id: pak.id } })}
             variant={activate ? 'default' : 'destructive'}
           >
             {mutation.isPending && <Spinner data-icon="inline-start" />}

@@ -1,4 +1,4 @@
-name: web-proxy
+name: otk-app-traefik
 
 x-default-logging: &default-logging
   driver: local
@@ -36,10 +36,13 @@ services:
       traefik.enable: "true"
       traefik.constraint-label: traefik-public
       traefik.docker.network: traefik-public
-      traefik.http.routers.dashboard.rule: "Host(`traefik.${BASE_DOMAIN:?BASE_DOMAIN is required}`)"
-      traefik.http.routers.dashboard.entrypoints: http
+      # The dashboard uses Traefik's internal entrypoint, separate from the
+      # public HTTP entrypoint; its /api path is otherwise routed to the backend.
+      traefik.http.routers.dashboard.rule: "PathPrefix(`/api`) || PathPrefix(`/dashboard`)"
+      traefik.http.routers.dashboard.entrypoints: traefik
       traefik.http.routers.dashboard.service: api@internal
-      traefik.http.routers.dashboard.middlewares: dashboard-auth
+      traefik.http.routers.dashboard.middlewares: dashboard-lan,dashboard-auth
+      traefik.http.middlewares.dashboard-lan.ipallowlist.sourcerange: "127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
       traefik.http.middlewares.dashboard-auth.basicauth.users: "${TRAEFIK_USERNAME:?TRAEFIK_USERNAME is required}:${TRAEFIK_HASHED_PASSWORD:?TRAEFIK_HASHED_PASSWORD is required}"
 
 networks:

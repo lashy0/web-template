@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { deleteDefectTypeMutation } from '@web-app/api-client'
 
 import { Button } from '@web-app/ui/components/button'
 import {
@@ -11,12 +12,7 @@ import {
 } from '@web-app/ui/components/dialog'
 import { Spinner } from '@web-app/ui/components/spinner'
 
-import {
-  defectErrorCode,
-  defectErrorMessage,
-  deleteDefectType,
-  type DefectType,
-} from '@/features/defects/defects-api'
+import { invalidateDefectQueries, type DefectType } from '@/features/defects/defects-api'
 import useCustomToast from '@/hooks/useCustomToast'
 
 export function DeleteDefectType({
@@ -31,22 +27,12 @@ export function DeleteDefectType({
   type: DefectType
 }>) {
   const queryClient = useQueryClient()
-  const { showErrorToast, showSuccessToast, showWarningToast } = useCustomToast()
+  const { showErrorToast, showSuccessToast } = useCustomToast()
   const mutation = useMutation({
-    mutationFn: () => deleteDefectType(type.id),
-    onError: (error) => {
-      if (defectErrorCode(error) === 'defect_type_cannot_be_deleted') {
-        closeDialog(true)
-        showWarningToast('Нельзя удалить тип', 'Тип используется в других данных.')
-        return
-      }
-      showErrorToast('Не удалось удалить тип', defectErrorMessage(error) ?? 'Попробуйте ещё раз.')
-    },
+    ...deleteDefectTypeMutation(),
+    onError: () => showErrorToast('Не удалось удалить тип', 'Попробуйте ещё раз.'),
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['defects'] }),
-        queryClient.invalidateQueries({ queryKey: ['audit'] }),
-      ])
+      await invalidateDefectQueries(queryClient)
       closeDialog(true)
       onSuccess()
       showSuccessToast('Тип удалён', `Тип «${type.code}» удалён навсегда.`)
@@ -73,7 +59,7 @@ export function DeleteDefectType({
           </Button>
           <Button
             disabled={mutation.isPending}
-            onClick={() => mutation.mutate()}
+            onClick={() => mutation.mutate({ path: { type_id: type.id } })}
             variant="destructive"
           >
             {mutation.isPending && <Spinner data-icon="inline-start" />}

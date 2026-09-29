@@ -47,10 +47,12 @@ export function ProductionOrderActionsMenu({ order }: Readonly<{ order: Producti
             <EyeIcon />
             Подробнее
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setEditOpen(true)}>
-            <PencilIcon />
-            Редактировать
-          </DropdownMenuItem>
+          {order.archivedAt ? null : (
+            <DropdownMenuItem onClick={() => setEditOpen(true)}>
+              <PencilIcon />
+              Изменить
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem onClick={() => setArchiveOpen(true)}>
             {order.archivedAt ? <RotateCcwIcon /> : <ArchiveIcon />}
             {order.archivedAt ? 'Восстановить' : 'Архивировать'}

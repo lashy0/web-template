@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { archiveUserMutation, restoreUserMutation } from '@web-app/api-client'
 
 import { Button } from '@web-app/ui/components/button'
 import {
@@ -11,7 +12,7 @@ import {
 } from '@web-app/ui/components/dialog'
 import { Spinner } from '@web-app/ui/components/spinner'
 
-import { updateUserArchived, type User } from '@/features/users/users-api'
+import { invalidateUserQueries, type User } from '@/features/users/users-api'
 import useCustomToast from '@/hooks/useCustomToast'
 
 export function ArchiveStatusUser({
@@ -31,12 +32,9 @@ export function ArchiveStatusUser({
   const action = restore ? 'Восстановить' : 'Архивировать'
   const pendingAction = restore ? 'Восстановление…' : 'Архивация…'
   const mutation = useMutation({
-    mutationFn: () => updateUserArchived(user.id, !restore),
+    ...(restore ? restoreUserMutation() : archiveUserMutation()),
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['users'] }),
-        queryClient.invalidateQueries({ queryKey: ['audit'] }),
-      ])
+      await invalidateUserQueries(queryClient)
       closeDialog(true)
       onSuccess()
       showSuccessToast(
@@ -73,7 +71,10 @@ export function ArchiveStatusUser({
           <Button disabled={mutation.isPending} onClick={() => closeDialog()} variant="outline">
             Отмена
           </Button>
-          <Button disabled={mutation.isPending} onClick={() => mutation.mutate()}>
+          <Button
+            disabled={mutation.isPending}
+            onClick={() => mutation.mutate({ path: { user_id: user.id } })}
+          >
             {mutation.isPending && <Spinner data-icon="inline-start" />}
             {mutation.isPending ? pendingAction : action}
           </Button>

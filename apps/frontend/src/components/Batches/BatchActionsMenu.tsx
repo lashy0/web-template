@@ -18,7 +18,7 @@ import {
   DropdownMenuTrigger,
 } from '@web-app/ui/components/dropdown-menu'
 
-import { type Batch } from '@/features/batches/batches-api'
+import { isBatchEditable, type Batch } from '@/features/batches/batches-api'
 
 import { ArchiveStatusBatch } from './ArchiveStatusBatch'
 import { CompleteBatch } from './CompleteBatch'
@@ -32,8 +32,8 @@ export function BatchActionsMenu({ batch }: Readonly<{ batch: Batch }>) {
   const [archiveOpen, setArchiveOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const archived = batch.archivedAt !== null
-  const canManage = batch.preparationStatus === 'READY'
-  const canComplete = canManage && !archived && batch.status === 'IN_PRODUCTION'
+  const inProduction = batch.status === 'in_production'
+  const editable = isBatchEditable(batch)
   const closeMenu = () => setOpen(false)
 
   return (
@@ -46,30 +46,32 @@ export function BatchActionsMenu({ batch }: Readonly<{ batch: Batch }>) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuGroup>
-          {!archived && canManage ? (
+          {editable ? (
             <DropdownMenuItem onClick={() => setEditOpen(true)}>
               <PencilIcon />
-              Редактировать
+              Изменить
             </DropdownMenuItem>
           ) : null}
-          {canComplete ? (
+          {!archived && inProduction ? (
             <DropdownMenuItem onClick={() => setCompleteOpen(true)}>
               <CircleCheckIcon />
               Завершить
             </DropdownMenuItem>
           ) : null}
-          {canManage ? (
-            <DropdownMenuItem onClick={() => setArchiveOpen(true)}>
-              {archived ? <RotateCcwIcon /> : <ArchiveIcon />}
-              {archived ? 'Восстановить' : 'Архивировать'}
-            </DropdownMenuItem>
-          ) : null}
+          <DropdownMenuItem onClick={() => setArchiveOpen(true)}>
+            {archived ? <RotateCcwIcon /> : <ArchiveIcon />}
+            {archived ? 'Восстановить' : 'Архивировать'}
+          </DropdownMenuItem>
         </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => setDeleteOpen(true)} variant="destructive">
-          <Trash2Icon />
-          Удалить
-        </DropdownMenuItem>
+        {editable && inProduction ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setDeleteOpen(true)} variant="destructive">
+              <Trash2Icon />
+              Удалить
+            </DropdownMenuItem>
+          </>
+        ) : null}
       </DropdownMenuContent>
       <EditBatch batch={batch} onOpenChange={setEditOpen} onSuccess={closeMenu} open={editOpen} />
       <CompleteBatch

@@ -1,70 +1,123 @@
+import time
 from typing import Annotated
 
 import typer
 
 from cli.compose import (
+    DATABASE_NETWORK,
     INFRASTRUCTURE_ROOT,
     ComposeProject,
+    DeploymentError,
     Environment,
+    EnvironmentArgument,
+    ServicesArgument,
     ensure_network,
     find_tool,
-    run_cli,
+    follow_logs,
     run_command,
 )
+from cli.output import ServiceStatus, heading, print_status, report
 
-DATABASE_NETWORK = "web-database"
-PROJECT = ComposeProject(INFRASTRUCTURE_ROOT / "database")
+PROJECT = ComposeProject(
+    "otk-app-database", "Database", "database", INFRASTRUCTURE_ROOT / "database"
+)
 
-app = typer.Typer(
-    help="Manage the Web App database infrastructure.",
+database_app = typer.Typer(
+    help="Manage PostgreSQL and Redis.",
     no_args_is_help=True,
     add_completion=False,
 )
 
 
-@app.command()
-def up(
-    environment: Annotated[
-        Environment,
-        typer.Argument(help="Configuration: dev or prod."),
-    ],
-) -> None:
-    """Start the PostgreSQL and Redis data services."""
+def addresses(environment: Environment) -> list[tuple[str, str]]:
+    # Production publishes no database ports.
+    if environment is Environment.PROD:
+        return []
+
+    return [
+        ("PostgreSQL", f"127.0.0.1:{PROJECT.setting('POSTGRES_PORT', '5432')}"),
+        ("Redis", f"127.0.0.1:{PROJECT.setting('REDIS_PORT', '6379')}"),
+    ]
+
+
+def require_no_clients(docker: str) -> None:
+    """Refuse while containers of other projects are connected to the databases."""
+    projects = run_command(
+        [
+            docker,
+            "ps",
+            "--filter",
+            f"network={DATABASE_NETWORK}",
+            "--format",
+            '{{.Label "com.docker.compose.project"}}',
+        ],
+        capture_output=True,
+    ).stdout.split()
+    clients = sorted(set(projects) - {PROJECT.name})
+
+    if clients:
+        raise DeploymentError(
+            f"The databases are still used by: {', '.join(clients)}. "
+            "Stop these projects first, or pass --force."
+        )
+
+
+def start(environment: Environment) -> None:
+    heading(PROJECT.title)
     docker = find_tool("docker")
     ensure_network(docker, DATABASE_NETWORK)
     command = PROJECT.prepare(docker, environment)
-    run_command([*command, "up", "--detach", "--wait", "postgres", "redis"])
+    PROJECT.up(command, ["--detach", "--wait", "postgres", "redis"], environment)
 
 
-@app.command()
-def down(
-    environment: Annotated[
-        Environment,
-        typer.Argument(help="Configuration: dev or prod."),
-    ],
-) -> None:
-    """Stop the database containers while preserving their volumes."""
+def stop(environment: Environment, *, force: bool = False) -> None:
+    heading(PROJECT.title)
     docker = find_tool("docker")
     command = PROJECT.prepare(docker, environment)
+
+    if not force:
+        require_no_clients(docker)
+
     run_command([*command, "down"])
 
 
-@app.command()
-def status(
-    environment: Annotated[
-        Environment,
-        typer.Argument(help="Configuration: dev or prod."),
-    ],
-) -> None:
-    """Show the database containers reported by Docker Compose."""
+def status_section(environment: Environment) -> tuple[str, list[ServiceStatus]]:
     docker = find_tool("docker")
     command = PROJECT.prepare(docker, environment)
-    run_command([*command, "ps"])
+
+    return PROJECT.title, PROJECT.statuses(docker, command)
 
 
-def main() -> None:
-    run_cli(app)
+@database_app.command()
+def up(environment: EnvironmentArgument) -> None:
+    """Start the PostgreSQL and Redis data services."""
+    started = time.monotonic()
+    start(environment)
+    report("Ready", started, addresses(environment))
 
 
-if __name__ == "__main__":
-    main()
+@database_app.command()
+def down(
+    environment: EnvironmentArgument,
+    force: Annotated[
+        bool,
+        typer.Option("--force", help="Stop even while other projects use the databases."),
+    ] = False,
+) -> None:
+    """Stop the database containers while preserving their volumes."""
+    started = time.monotonic()
+    stop(environment, force=force)
+    report("Stopped", started)
+
+
+@database_app.command()
+def status(environment: EnvironmentArgument) -> None:
+    """Show the state of the database services."""
+    print_status([status_section(environment)])
+
+
+@database_app.command()
+def logs(environment: EnvironmentArgument, services: ServicesArgument = None) -> None:
+    """Follow the logs of PostgreSQL and Redis."""
+    docker = find_tool("docker")
+    follow_logs(PROJECT.prepare(docker, environment), services)

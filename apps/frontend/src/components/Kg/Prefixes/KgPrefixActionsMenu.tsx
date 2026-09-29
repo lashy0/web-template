@@ -38,10 +38,12 @@ export function KgPrefixActionsMenu({ prefix }: Readonly<{ prefix: KgPrefix }>) 
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuGroup>
-          <DropdownMenuItem onClick={() => setEditOpen(true)}>
-            <PencilIcon />
-            Изменить
-          </DropdownMenuItem>
+          {prefix.archivedAt ? null : (
+            <DropdownMenuItem onClick={() => setEditOpen(true)}>
+              <PencilIcon />
+              Изменить
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem onClick={() => setArchiveOpen(true)}>
             {prefix.archivedAt ? <RotateCcwIcon /> : <ArchiveIcon />}
             {prefix.archivedAt ? 'Восстановить' : 'Архивировать'}

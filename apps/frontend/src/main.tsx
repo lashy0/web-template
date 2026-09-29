@@ -6,7 +6,9 @@ import { App } from '@/app/app'
 import { queryClient } from '@/app/query-client'
 import { router } from '@/app/router'
 import { installSessionLifecycle } from '@/app/session-lifecycle'
+import { installValidationMessages } from '@/lib/validation'
 
+installValidationMessages()
 installSessionLifecycle({ queryClient, router, window })
 
 createRoot(document.getElementById('root')!).render(

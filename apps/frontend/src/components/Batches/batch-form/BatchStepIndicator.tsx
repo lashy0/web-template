@@ -6,10 +6,7 @@ import type { FormStep } from './types'
 
 export function BatchStepIndicator({ activeStep }: Readonly<{ activeStep: FormStep }>) {
   return (
-    <ol
-      aria-label="Шаги создания партии"
-      className="mb-6 flex items-center gap-3 sm:gap-5"
-    >
+    <ol aria-label="Шаги создания партии" className="mb-6 flex items-center gap-3 sm:gap-5">
       <li className="flex min-w-0 items-center gap-3">
         <StepNumber complete={activeStep === 2} current={activeStep === 1} number={1} />
         {activeStep === 1 ? (

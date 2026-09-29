@@ -1,4 +1,5 @@
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { getPakAccessKey, rotatePakAccessKey } from '@web-app/api-client'
 import { CheckIcon, CopyIcon, EyeIcon, EyeOffIcon, RotateCcwIcon } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 
@@ -12,13 +13,9 @@ import {
 } from '@web-app/ui/components/dialog'
 import { Spinner } from '@web-app/ui/components/spinner'
 
-import {
-  getPakAccessKey,
-  pakKindLabels,
-  rotatePakAccessKey,
-  type Pak,
-} from '@/features/paks/paks-api'
+import { pakKindLabels, type Pak } from '@/features/paks/paks-api'
 import useCustomToast from '@/hooks/useCustomToast'
+import { invalidateTags } from '@/lib/queries'
 
 type CopiedValue = 'accessKey' | 'clientId' | null
 
@@ -37,16 +34,24 @@ export function ViewPakAccessKey({
   const [copied, setCopied] = useState<CopiedValue>(null)
   const [isAccessKeyVisible, setIsAccessKeyVisible] = useState(false)
   const [isRotationConfirmationVisible, setIsRotationConfirmationVisible] = useState(false)
+  const queryClient = useQueryClient()
   const { showErrorToast, showSuccessToast } = useCustomToast()
+  // Mutations rather than queries keep the access key out of the query cache.
   const accessKeyMutation = useMutation({
-    mutationFn: () => getPakAccessKey(pak.id),
+    mutationFn: async () => {
+      const { data } = await getPakAccessKey({ path: { pak_id: pak.id }, throwOnError: true })
+      return data.accessKey
+    },
     onError: () => {
       showErrorToast('Не удалось получить ключ доступа', 'Попробуйте ещё раз.')
     },
     onSuccess: setAccessKey,
   })
   const rotateMutation = useMutation({
-    mutationFn: () => rotatePakAccessKey(pak.id),
+    mutationFn: async () => {
+      const { data } = await rotatePakAccessKey({ path: { pak_id: pak.id }, throwOnError: true })
+      return data.accessKey
+    },
     onError: () => showErrorToast('Не удалось ротировать ключ доступа', 'Попробуйте ещё раз.'),
     onSuccess: (nextAccessKey) => {
       setAccessKey(nextAccessKey)
@@ -54,6 +59,7 @@ export function ViewPakAccessKey({
       setIsRotationConfirmationVisible(false)
       void copy(nextAccessKey, 'accessKey')
       showSuccessToast('Ключ доступа обновлён')
+      void invalidateTags(queryClient, 'Audit')
     },
   })
   const { mutate: requestAccessKey, reset: resetAccessKey } = accessKeyMutation

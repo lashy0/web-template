@@ -1,7 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { updateDefectType } from '@web-app/api-client'
 import { useEffect } from 'react'
 import { Controller, useForm } from 'react-hook-form'
+import type { z } from 'zod'
 
 import { Button } from '@web-app/ui/components/button'
 import {
@@ -22,27 +24,19 @@ import {
 } from '@web-app/ui/components/input-group'
 import { Spinner } from '@web-app/ui/components/spinner'
 
-import {
-  defectErrorMessage,
-  updateDefectType,
-  type DefectType,
-} from '@/features/defects/defects-api'
+import { invalidateDefectQueries, type DefectType } from '@/features/defects/defects-api'
 import { updateDefectTypeSchema } from '@/features/defects/defect-form-schema'
 import useCustomToast from '@/hooks/useCustomToast'
+import { changedFields, hasChanges } from '@/lib/changes'
 
-type EditDefectTypeForm = Readonly<{
-  description: string
-  engineer_action: string
-  name: string
-  possible_cause: string
-}>
+type EditDefectTypeForm = z.input<typeof updateDefectTypeSchema>
 const textLimit = 2000
 function toForm(type: DefectType): EditDefectTypeForm {
   return {
     description: type.description,
-    engineer_action: type.engineerAction ?? '',
+    engineerAction: type.engineerAction ?? '',
     name: type.name,
-    possible_cause: type.possibleCause ?? '',
+    possibleCause: type.possibleCause ?? '',
   }
 }
 export function EditDefectType({
@@ -57,7 +51,7 @@ export function EditDefectType({
   type: DefectType
 }>) {
   const queryClient = useQueryClient()
-  const form = useForm<EditDefectTypeForm>({
+  const form = useForm<EditDefectTypeForm, unknown, z.output<typeof updateDefectTypeSchema>>({
     defaultValues: toForm(type),
     mode: 'onChange',
     resolver: zodResolver(updateDefectTypeSchema),
@@ -67,27 +61,20 @@ export function EditDefectType({
     if (open) form.reset(toForm(type))
   }, [form, open, type])
   const mutation = useMutation({
-    mutationFn: (data: EditDefectTypeForm) =>
-      updateDefectType(type.id, {
-        description: data.description,
-        engineer_action: data.engineer_action.trim() || null,
-        name: data.name,
-        possible_cause: data.possible_cause.trim() || null,
-      }),
+    mutationFn: async (data: z.output<typeof updateDefectTypeSchema>) => {
+      const body = changedFields(type, data)
+      if (hasChanges(body)) {
+        await updateDefectType({ body, path: { type_id: type.id }, throwOnError: true })
+      }
+    },
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['defects'] }),
-        queryClient.invalidateQueries({ queryKey: ['audit'] }),
-      ])
+      await invalidateDefectQueries(queryClient)
       close(true)
       onSuccess()
       showSuccessToast('Тип изменён', `Данные «${type.code}» сохранены.`)
     },
-    onError: (error) =>
-      showErrorToast(
-        'Не удалось изменить тип',
-        defectErrorMessage(error) ?? 'Проверьте данные и попробуйте ещё раз.',
-      ),
+    onError: () =>
+      showErrorToast('Не удалось изменить тип', 'Проверьте данные и попробуйте ещё раз.'),
   })
   function close(force = false) {
     if (!mutation.isPending || force) onOpenChange(false)
@@ -153,7 +140,7 @@ export function EditDefectType({
             />
             <Controller
               control={form.control}
-              name="possible_cause"
+              name="possibleCause"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel className="cursor-pointer" htmlFor={`defect-type-${type.id}-cause`}>
@@ -175,7 +162,7 @@ export function EditDefectType({
             />
             <Controller
               control={form.control}
-              name="engineer_action"
+              name="engineerAction"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel className="cursor-pointer" htmlFor={`defect-type-${type.id}-action`}>

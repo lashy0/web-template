@@ -1,8 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { createDefectTypeMutation } from '@web-app/api-client'
 import { PlusIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
+import type { z } from 'zod'
 
 import { Button } from '@web-app/ui/components/button'
 import {
@@ -26,63 +28,63 @@ import { Spinner } from '@web-app/ui/components/spinner'
 
 import { DefectGroupSelect } from '@/components/Defects/Types/DefectGroupSelect'
 import {
-  createDefectType,
-  defectErrorCode,
-  defectErrorMessage,
-  type CreateDefectTypeInput,
+  invalidateDefectQueries,
+  isDefectGroupArchivedError,
+  isDefectTypeCodeTakenError,
 } from '@/features/defects/defects-api'
-import { createDefectTypeSchema } from '@/features/defects/defect-form-schema'
+import { createDefectTypeSchema, defectFormMessages } from '@/features/defects/defect-form-schema'
 import useCustomToast from '@/hooks/useCustomToast'
 
-type CreateDefectTypeForm = Readonly<{
-  code: string
-  description: string
-  engineer_action: string
-  group_id: string
-  name: string
-  possible_cause: string
-}>
+type CreateDefectTypeForm = z.input<typeof createDefectTypeSchema>
 const initialForm: CreateDefectTypeForm = {
   code: '',
   description: '',
-  engineer_action: '',
-  group_id: '',
+  engineerAction: '',
+  groupId: '',
   name: '',
-  possible_cause: '',
+  possibleCause: '',
 }
 const defectTypeTextLimit = 2000
 
 export function AddDefectType({ groupId }: Readonly<{ groupId?: string }>) {
   const queryClient = useQueryClient()
   const [isOpen, setIsOpen] = useState(false)
-  const form = useForm<CreateDefectTypeForm>({
-    defaultValues: { ...initialForm, group_id: groupId ?? '' },
+  const form = useForm<CreateDefectTypeForm, unknown, z.output<typeof createDefectTypeSchema>>({
+    defaultValues: { ...initialForm, groupId: groupId ?? '' },
     mode: 'onChange',
-    resolver: zodResolver(createDefectTypeSchema),
+    resolver: zodResolver(createDefectTypeSchema, { error: defectFormMessages }),
   })
   const { showErrorToast, showSuccessToast } = useCustomToast()
   const mutation = useMutation({
-    mutationFn: (data: CreateDefectTypeForm) => createDefectType(toInput(data)),
+    ...createDefectTypeMutation(),
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['defects'] }),
-        queryClient.invalidateQueries({ queryKey: ['audit'] }),
-      ])
+      await invalidateDefectQueries(queryClient)
       resetAndClose()
       showSuccessToast('Тип создан', 'Тип дефекта успешно добавлен.')
     },
     onError: (error) => {
-      const message = defectErrorMessage(error)
-      if (defectErrorCode(error) === 'defect_type_already_exists') {
-        form.setError('code', { message, type: 'server' }, { shouldFocus: true })
+      if (isDefectTypeCodeTakenError(error)) {
+        form.setError(
+          'code',
+          { message: 'Тип с таким кодом уже существует.', type: 'server' },
+          { shouldFocus: true },
+        )
         return
       }
-      showErrorToast('Не удалось создать тип', message ?? 'Проверьте данные и попробуйте ещё раз.')
+      if (isDefectGroupArchivedError(error)) {
+        form.setError(
+          'groupId',
+          { message: 'Группа архивирована. Выберите другую.', type: 'server' },
+          { shouldFocus: true },
+        )
+        return
+      }
+      showErrorToast('Не удалось создать тип', 'Проверьте данные и попробуйте ещё раз.')
     },
   })
 
   function resetAndClose() {
-    form.reset({ ...initialForm, group_id: groupId ?? '' })
+    form.reset({ ...initialForm, groupId: groupId ?? '' })
     setIsOpen(false)
   }
   return (
@@ -105,7 +107,7 @@ export function AddDefectType({ groupId }: Readonly<{ groupId?: string }>) {
           autoComplete="off"
           className="flex min-h-0 flex-1 flex-col"
           noValidate
-          onSubmit={form.handleSubmit((data) => mutation.mutate(data))}
+          onSubmit={form.handleSubmit((body) => mutation.mutate({ body }))}
         >
           <DialogHeader className="shrink-0 px-4 pt-4">
             <DialogTitle>Новый тип дефекта</DialogTitle>
@@ -114,7 +116,7 @@ export function AddDefectType({ groupId }: Readonly<{ groupId?: string }>) {
           <FieldGroup className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
             <Controller
               control={form.control}
-              name="group_id"
+              name="groupId"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel className="cursor-pointer" htmlFor="new-defect-type-group">
@@ -216,7 +218,7 @@ export function AddDefectType({ groupId }: Readonly<{ groupId?: string }>) {
             />
             <Controller
               control={form.control}
-              name="possible_cause"
+              name="possibleCause"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel className="cursor-pointer" htmlFor="new-defect-type-cause">
@@ -238,7 +240,7 @@ export function AddDefectType({ groupId }: Readonly<{ groupId?: string }>) {
             />
             <Controller
               control={form.control}
-              name="engineer_action"
+              name="engineerAction"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel className="cursor-pointer" htmlFor="new-defect-type-action">
@@ -292,15 +294,4 @@ function CharacterCount({ value }: Readonly<{ value: string }>) {
       </InputGroupText>
     </InputGroupAddon>
   )
-}
-
-function toInput(data: CreateDefectTypeForm): CreateDefectTypeInput {
-  return {
-    code: data.code,
-    description: data.description,
-    engineer_action: data.engineer_action.trim() || null,
-    group_id: data.group_id,
-    name: data.name,
-    possible_cause: data.possible_cause.trim() || null,
-  }
 }

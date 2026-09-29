@@ -23,7 +23,6 @@ import { Route as LayoutAdminKgPrefixesRouteImport } from './routes/_layout/admi
 import { Route as LayoutAdminKgVersionsRouteImport } from './routes/_layout/admin/kg/versions'
 import { Route as LayoutAdminPakAuditRouteImport } from './routes/_layout/admin/pak/audit'
 import { Route as LayoutAdminPakPaksRouteImport } from './routes/_layout/admin/pak/paks'
-import { Route as LayoutAdminProductionBatchesRouteImport } from './routes/_layout/admin/production/batches'
 import { Route as LayoutAdminProductionProductionOrdersRouteImport } from './routes/_layout/admin/production/production-orders'
 import { Route as LayoutAdminUserAuditRouteImport } from './routes/_layout/admin/user/audit'
 import { Route as LayoutAdminUserUsersRouteImport } from './routes/_layout/admin/user/users'
@@ -100,12 +99,6 @@ const LayoutAdminPakPaksRoute = LayoutAdminPakPaksRouteImport.update({
   path: '/pak/paks',
   getParentRoute: () => LayoutAdminRoute,
 } as any)
-const LayoutAdminProductionBatchesRoute =
-  LayoutAdminProductionBatchesRouteImport.update({
-    id: '/production/batches',
-    path: '/production/batches',
-    getParentRoute: () => LayoutAdminRoute,
-  } as any)
 const LayoutAdminProductionProductionOrdersRoute =
   LayoutAdminProductionProductionOrdersRouteImport.update({
     id: '/production/production-orders',
@@ -124,15 +117,15 @@ const LayoutAdminUserUsersRoute = LayoutAdminUserUsersRouteImport.update({
 } as any)
 const LayoutAdminProductionBatchesIndexRoute =
   LayoutAdminProductionBatchesIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => LayoutAdminProductionBatchesRoute,
+    id: '/production/batches/',
+    path: '/production/batches/',
+    getParentRoute: () => LayoutAdminRoute,
   } as any)
 const LayoutAdminProductionBatchesBatchIdRoute =
   LayoutAdminProductionBatchesBatchIdRouteImport.update({
-    id: '/$batchId',
-    path: '/$batchId',
-    getParentRoute: () => LayoutAdminProductionBatchesRoute,
+    id: '/production/batches/$batchId',
+    path: '/production/batches/$batchId',
+    getParentRoute: () => LayoutAdminRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -149,7 +142,6 @@ export interface FileRoutesByFullPath {
   '/admin/kg/versions': typeof LayoutAdminKgVersionsRoute
   '/admin/pak/audit': typeof LayoutAdminPakAuditRoute
   '/admin/pak/paks': typeof LayoutAdminPakPaksRoute
-  '/admin/production/batches': typeof LayoutAdminProductionBatchesRouteWithChildren
   '/admin/production/production-orders': typeof LayoutAdminProductionProductionOrdersRoute
   '/admin/user/audit': typeof LayoutAdminUserAuditRoute
   '/admin/user/users': typeof LayoutAdminUserUsersRoute
@@ -191,7 +183,6 @@ export interface FileRoutesById {
   '/_layout/admin/kg/versions': typeof LayoutAdminKgVersionsRoute
   '/_layout/admin/pak/audit': typeof LayoutAdminPakAuditRoute
   '/_layout/admin/pak/paks': typeof LayoutAdminPakPaksRoute
-  '/_layout/admin/production/batches': typeof LayoutAdminProductionBatchesRouteWithChildren
   '/_layout/admin/production/production-orders': typeof LayoutAdminProductionProductionOrdersRoute
   '/_layout/admin/user/audit': typeof LayoutAdminUserAuditRoute
   '/_layout/admin/user/users': typeof LayoutAdminUserUsersRoute
@@ -214,7 +205,6 @@ export interface FileRouteTypes {
     | '/admin/kg/versions'
     | '/admin/pak/audit'
     | '/admin/pak/paks'
-    | '/admin/production/batches'
     | '/admin/production/production-orders'
     | '/admin/user/audit'
     | '/admin/user/users'
@@ -255,7 +245,6 @@ export interface FileRouteTypes {
     | '/_layout/admin/kg/versions'
     | '/_layout/admin/pak/audit'
     | '/_layout/admin/pak/paks'
-    | '/_layout/admin/production/batches'
     | '/_layout/admin/production/production-orders'
     | '/_layout/admin/user/audit'
     | '/_layout/admin/user/users'
@@ -369,13 +358,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutAdminPakPaksRouteImport
       parentRoute: typeof LayoutAdminRoute
     }
-    '/_layout/admin/production/batches': {
-      id: '/_layout/admin/production/batches'
-      path: '/production/batches'
-      fullPath: '/admin/production/batches'
-      preLoaderRoute: typeof LayoutAdminProductionBatchesRouteImport
-      parentRoute: typeof LayoutAdminRoute
-    }
     '/_layout/admin/production/production-orders': {
       id: '/_layout/admin/production/production-orders'
       path: '/production/production-orders'
@@ -399,38 +381,20 @@ declare module '@tanstack/react-router' {
     }
     '/_layout/admin/production/batches/': {
       id: '/_layout/admin/production/batches/'
-      path: '/'
+      path: '/production/batches'
       fullPath: '/admin/production/batches/'
       preLoaderRoute: typeof LayoutAdminProductionBatchesIndexRouteImport
-      parentRoute: typeof LayoutAdminProductionBatchesRoute
+      parentRoute: typeof LayoutAdminRoute
     }
     '/_layout/admin/production/batches/$batchId': {
       id: '/_layout/admin/production/batches/$batchId'
-      path: '/$batchId'
+      path: '/production/batches/$batchId'
       fullPath: '/admin/production/batches/$batchId'
       preLoaderRoute: typeof LayoutAdminProductionBatchesBatchIdRouteImport
-      parentRoute: typeof LayoutAdminProductionBatchesRoute
+      parentRoute: typeof LayoutAdminRoute
     }
   }
 }
-
-interface LayoutAdminProductionBatchesRouteChildren {
-  LayoutAdminProductionBatchesBatchIdRoute: typeof LayoutAdminProductionBatchesBatchIdRoute
-  LayoutAdminProductionBatchesIndexRoute: typeof LayoutAdminProductionBatchesIndexRoute
-}
-
-const LayoutAdminProductionBatchesRouteChildren: LayoutAdminProductionBatchesRouteChildren =
-  {
-    LayoutAdminProductionBatchesBatchIdRoute:
-      LayoutAdminProductionBatchesBatchIdRoute,
-    LayoutAdminProductionBatchesIndexRoute:
-      LayoutAdminProductionBatchesIndexRoute,
-  }
-
-const LayoutAdminProductionBatchesRouteWithChildren =
-  LayoutAdminProductionBatchesRoute._addFileChildren(
-    LayoutAdminProductionBatchesRouteChildren,
-  )
 
 interface LayoutAdminRouteChildren {
   LayoutAdminIndexRoute: typeof LayoutAdminIndexRoute
@@ -442,10 +406,11 @@ interface LayoutAdminRouteChildren {
   LayoutAdminKgVersionsRoute: typeof LayoutAdminKgVersionsRoute
   LayoutAdminPakAuditRoute: typeof LayoutAdminPakAuditRoute
   LayoutAdminPakPaksRoute: typeof LayoutAdminPakPaksRoute
-  LayoutAdminProductionBatchesRoute: typeof LayoutAdminProductionBatchesRouteWithChildren
   LayoutAdminProductionProductionOrdersRoute: typeof LayoutAdminProductionProductionOrdersRoute
   LayoutAdminUserAuditRoute: typeof LayoutAdminUserAuditRoute
   LayoutAdminUserUsersRoute: typeof LayoutAdminUserUsersRoute
+  LayoutAdminProductionBatchesBatchIdRoute: typeof LayoutAdminProductionBatchesBatchIdRoute
+  LayoutAdminProductionBatchesIndexRoute: typeof LayoutAdminProductionBatchesIndexRoute
 }
 
 const LayoutAdminRouteChildren: LayoutAdminRouteChildren = {
@@ -458,12 +423,14 @@ const LayoutAdminRouteChildren: LayoutAdminRouteChildren = {
   LayoutAdminKgVersionsRoute: LayoutAdminKgVersionsRoute,
   LayoutAdminPakAuditRoute: LayoutAdminPakAuditRoute,
   LayoutAdminPakPaksRoute: LayoutAdminPakPaksRoute,
-  LayoutAdminProductionBatchesRoute:
-    LayoutAdminProductionBatchesRouteWithChildren,
   LayoutAdminProductionProductionOrdersRoute:
     LayoutAdminProductionProductionOrdersRoute,
   LayoutAdminUserAuditRoute: LayoutAdminUserAuditRoute,
   LayoutAdminUserUsersRoute: LayoutAdminUserUsersRoute,
+  LayoutAdminProductionBatchesBatchIdRoute:
+    LayoutAdminProductionBatchesBatchIdRoute,
+  LayoutAdminProductionBatchesIndexRoute:
+    LayoutAdminProductionBatchesIndexRoute,
 }
 
 const LayoutAdminRouteWithChildren = LayoutAdminRoute._addFileChildren(

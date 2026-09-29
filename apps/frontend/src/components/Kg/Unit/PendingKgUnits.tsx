@@ -15,9 +15,11 @@ export function PendingKgUnits() {
         <TableHeader>
           <TableRow>
             <TableHead>DevEUI</TableHead>
-            <TableHead>Статус</TableHead>
-            <TableHead>Прошивка</TableHead>
+            <TableHead>Короткий ID</TableHead>
+            <TableHead>Состояние</TableHead>
+            <TableHead>ОТК</TableHead>
             <TableHead>Последняя ОТК</TableHead>
+            <TableHead>Упакована</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { archiveDefectTypeMutation, restoreDefectTypeMutation } from '@web-app/api-client'
 
 import { Button } from '@web-app/ui/components/button'
 import {
@@ -12,8 +13,8 @@ import {
 import { Spinner } from '@web-app/ui/components/spinner'
 
 import {
-  defectErrorMessage,
-  updateDefectTypeArchived,
+  invalidateDefectQueries,
+  isDefectGroupArchivedError,
   type DefectType,
 } from '@/features/defects/defects-api'
 import useCustomToast from '@/hooks/useCustomToast'
@@ -35,17 +36,16 @@ export function ArchiveStatusDefectType({
   const action = restore ? 'Восстановить' : 'Архивировать'
   const pendingAction = restore ? 'Восстановление…' : 'Архивация…'
   const mutation = useMutation({
-    mutationFn: () => updateDefectTypeArchived(type.id, !restore),
+    ...(restore ? restoreDefectTypeMutation() : archiveDefectTypeMutation()),
     onError: (error) =>
       showErrorToast(
         `Не удалось ${action.toLowerCase()} тип`,
-        defectErrorMessage(error) ?? 'Попробуйте ещё раз.',
+        isDefectGroupArchivedError(error)
+          ? 'Группа типа архивирована. Сначала восстановите группу.'
+          : 'Попробуйте ещё раз.',
       ),
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['defects'] }),
-        queryClient.invalidateQueries({ queryKey: ['audit'] }),
-      ])
+      await invalidateDefectQueries(queryClient)
       closeDialog(true)
       onSuccess()
       showSuccessToast(
@@ -79,7 +79,10 @@ export function ArchiveStatusDefectType({
           <Button disabled={mutation.isPending} onClick={() => closeDialog()} variant="outline">
             Отмена
           </Button>
-          <Button disabled={mutation.isPending} onClick={() => mutation.mutate()}>
+          <Button
+            disabled={mutation.isPending}
+            onClick={() => mutation.mutate({ path: { type_id: type.id } })}
+          >
             {mutation.isPending && <Spinner data-icon="inline-start" />}
             {mutation.isPending ? pendingAction : action}
           </Button>

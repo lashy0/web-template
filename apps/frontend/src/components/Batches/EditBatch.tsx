@@ -1,7 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { updateBatch } from '@web-app/api-client'
 import { useEffect, useMemo } from 'react'
 import { Controller, useForm } from 'react-hook-form'
+import type { z } from 'zod'
 
 import { Button } from '@web-app/ui/components/button'
 import {
@@ -23,15 +25,18 @@ import {
 import { Spinner } from '@web-app/ui/components/spinner'
 
 import {
-  batchErrorMessage,
-  batchQueryKeys,
-  updateBatch,
+  invalidateBatchQueries,
+  isBatchEditWindowExpiredError,
   type Batch,
 } from '@/features/batches/batches-api'
-import { editBatchFormSchema } from '@/features/batches/batch-form-schema'
+import {
+  editBatchFormSchema,
+  normalizePositiveIntegerInput,
+} from '@/features/batches/batch-form-schema'
 import useCustomToast from '@/hooks/useCustomToast'
+import { changedFields, hasChanges } from '@/lib/changes'
 
-type EditBatchForm = Readonly<{ dayPlanQty: string; description: string; name: string }>
+type EditBatchForm = z.input<typeof editBatchFormSchema>
 
 const textLimit = 2000
 
@@ -56,7 +61,7 @@ export function EditBatch({
     }),
     [batch.dayPlanQty, batch.description, batch.name],
   )
-  const form = useForm<EditBatchForm>({
+  const form = useForm<EditBatchForm, unknown, z.output<typeof editBatchFormSchema>>({
     defaultValues: initialValues,
     mode: 'onChange',
     reValidateMode: 'onChange',
@@ -66,22 +71,24 @@ export function EditBatch({
     if (open) form.reset(initialValues)
   }, [form, initialValues, open])
   const mutation = useMutation({
-    mutationFn: (values: EditBatchForm) =>
-      updateBatch(batch.id, {
-        day_plan_qty: Number(values.dayPlanQty),
-        description: values.description.trim() || null,
-        name: values.name.trim(),
-      }),
+    mutationFn: async (data: z.output<typeof editBatchFormSchema>) => {
+      const body = changedFields(batch, data)
+      if (hasChanges(body)) {
+        await updateBatch({ body, path: { batch_id: batch.id }, throwOnError: true })
+      }
+    },
     onError: (error) =>
       showErrorToast(
         'Не удалось изменить партию',
-        batchErrorMessage(error) ?? 'Проверьте данные и попробуйте ещё раз.',
+        isBatchEditWindowExpiredError(error)
+          ? 'Партию можно изменить только в течение часа после создания.'
+          : 'Проверьте данные и попробуйте ещё раз.',
       ),
-    onSuccess: async (updatedBatch) => {
-      await queryClient.invalidateQueries({ queryKey: batchQueryKeys.all })
+    onSuccess: async () => {
+      await invalidateBatchQueries(queryClient)
       onOpenChange(false)
       onSuccess()
-      showSuccessToast('Партия изменена', `Данные «${updatedBatch.name}» сохранены.`)
+      showSuccessToast('Партия изменена', `Данные «${batch.name}» сохранены.`)
     },
   })
 
@@ -138,9 +145,11 @@ export function EditBatch({
                     {...field}
                     aria-invalid={fieldState.invalid}
                     id={`batch-${batch.id}-day-plan`}
-                    min={1}
+                    inputMode="numeric"
+                    onChange={(event) =>
+                      field.onChange(normalizePositiveIntegerInput(event.currentTarget.value))
+                    }
                     required
-                    type="number"
                   />
                   {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
                 </Field>

@@ -4,13 +4,15 @@ version = "0.1.0"
 description = "Operational CLI for the Web App infrastructure"
 readme = "README.md"
 requires-python = ">=3.13,<4"
-dependencies = ["typer>=0.27.0,<1.0.0"]
+dependencies = [
+    "bcrypt>=4.3.0,<6.0.0",
+    "rich>=15.0.0,<16.0.0",
+    "typer>=0.27.0,<1.0.0",
+]
 
 [project.scripts]
-infra-application = "cli.application:main"
-infra-database = "cli.database:main"
-infra-identity = "cli.identity:main"
-infra-traefik = "cli.traefik:main"
+infra = "cli.main:main"
+otk = "cli.otk:main"
 
 [build-system]
 requires = ["uv_build>=0.12.1,<0.13"]

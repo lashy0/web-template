@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { updateUserPasswordMutation } from '@web-app/api-client'
 import { EyeIcon, EyeOffIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
@@ -23,8 +24,8 @@ import {
 } from '@web-app/ui/components/input-group'
 import { Spinner } from '@web-app/ui/components/spinner'
 
-import { updateUserPassword, type User } from '@/features/users/users-api'
-import { changeUserPasswordSchema } from '@/features/users/user-form-schema'
+import { invalidateUserQueries, type User } from '@/features/users/users-api'
+import { changeUserPasswordSchema, userFormMessages } from '@/features/users/user-form-schema'
 import useCustomToast from '@/hooks/useCustomToast'
 
 type ChangePasswordForm = z.infer<typeof changeUserPasswordSchema>
@@ -48,7 +49,7 @@ export function ChangeUserPassword({
   const form = useForm<ChangePasswordForm>({
     defaultValues: initialForm,
     mode: 'onChange',
-    resolver: zodResolver(changeUserPasswordSchema),
+    resolver: zodResolver(changeUserPasswordSchema, { error: userFormMessages }),
   })
   const { showErrorToast, showSuccessToast } = useCustomToast()
 
@@ -61,12 +62,9 @@ export function ChangeUserPassword({
   }, [form, open])
 
   const mutation = useMutation({
-    mutationFn: ({ password }: ChangePasswordForm) => updateUserPassword(user.id, password),
+    ...updateUserPasswordMutation(),
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['users'] }),
-        queryClient.invalidateQueries({ queryKey: ['audit'] }),
-      ])
+      await invalidateUserQueries(queryClient)
       closeDialog(true)
       onSuccess()
       showSuccessToast('Пароль изменён', `Пароль пользователя «${user.name}» успешно обновлён.`)
@@ -81,8 +79,8 @@ export function ChangeUserPassword({
     onOpenChange(false)
   }
 
-  function submit(data: ChangePasswordForm) {
-    mutation.mutate(data)
+  function submit({ password }: ChangePasswordForm) {
+    mutation.mutate({ body: { password }, path: { user_id: user.id } })
   }
 
   return (

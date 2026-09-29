@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AuditListAuditEventsData, AuditListAuditEventsErrors, AuditListAuditEventsResponses, AuthMeData, AuthMeResponses, BatchAddBatchShipmentItemData, BatchAddBatchShipmentItemErrors, BatchAddBatchShipmentItemResponses, BatchAssignProductionOrderData, BatchAssignProductionOrderErrors, BatchAssignProductionOrderResponses, BatchCompleteBatchData, BatchCompleteBatchErrors, BatchCompleteBatchResponses, BatchCompleteBatchShipmentData, BatchCompleteBatchShipmentErrors, BatchCompleteBatchShipmentResponses, BatchCreateBatchData, BatchCreateBatchErrors, BatchCreateBatchReceiptData, BatchCreateBatchReceiptErrors, BatchCreateBatchReceiptResponses, BatchCreateBatchResponses, BatchCreateBatchShipmentData, BatchCreateBatchShipmentErrors, BatchCreateBatchShipmentResponses, BatchDeleteBatchData, BatchDeleteBatchErrors, BatchDeleteBatchResponses, BatchGetBatchData, BatchGetBatchErrors, BatchGetBatchResponses, BatchListBatchesData, BatchListBatchesErrors, BatchListBatchesResponses, BatchListBatchReceiptsData, BatchListBatchReceiptsErrors, BatchListBatchReceiptsResponses, BatchListBatchShipmentItemsData, BatchListBatchShipmentItemsErrors, BatchListBatchShipmentItemsResponses, BatchListBatchShipmentsData, BatchListBatchShipmentsErrors, BatchListBatchShipmentsResponses, BatchPreviewDevEuiRangeData, BatchPreviewDevEuiRangeErrors, BatchPreviewDevEuiRangeResponses, BatchRemoveBatchShipmentItemData, BatchRemoveBatchShipmentItemErrors, BatchRemoveBatchShipmentItemResponses, BatchRetryBatchPreparationData, BatchRetryBatchPreparationErrors, BatchRetryBatchPreparationResponses, BatchUpdateBatchArchivedData, BatchUpdateBatchArchivedErrors, BatchUpdateBatchArchivedResponses, BatchUpdateBatchData, BatchUpdateBatchErrors, BatchUpdateBatchReceiptData, BatchUpdateBatchReceiptErrors, BatchUpdateBatchReceiptResponses, BatchUpdateBatchResponses, BatchUpdateBatchShipmentData, BatchUpdateBatchShipmentErrors, BatchUpdateBatchShipmentResponses, BatchVoidBatchReceiptData, BatchVoidBatchReceiptErrors, BatchVoidBatchReceiptResponses, BatchVoidBatchShipmentData, BatchVoidBatchShipmentErrors, BatchVoidBatchShipmentResponses, DefectsCreateDefectGroupData, DefectsCreateDefectGroupErrors, DefectsCreateDefectGroupResponses, DefectsCreateDefectTypeData, DefectsCreateDefectTypeErrors, DefectsCreateDefectTypeResponses, DefectsDeleteDefectGroupData, DefectsDeleteDefectGroupErrors, DefectsDeleteDefectGroupResponses, DefectsDeleteDefectTypeData, DefectsDeleteDefectTypeErrors, DefectsDeleteDefectTypeResponses, DefectsGetDefectGroupData, DefectsGetDefectGroupErrors, DefectsGetDefectGroupResponses, DefectsGetDefectTypeData, DefectsGetDefectTypeErrors, DefectsGetDefectTypeResponses, DefectsListDefectGroupsData, DefectsListDefectGroupsErrors, DefectsListDefectGroupsResponses, DefectsListDefectTypesData, DefectsListDefectTypesErrors, DefectsListDefectTypesResponses, DefectsUpdateDefectGroupArchivedData, DefectsUpdateDefectGroupArchivedErrors, DefectsUpdateDefectGroupArchivedResponses, DefectsUpdateDefectGroupData, DefectsUpdateDefectGroupErrors, DefectsUpdateDefectGroupResponses, DefectsUpdateDefectTypeArchivedData, DefectsUpdateDefectTypeArchivedErrors, DefectsUpdateDefectTypeArchivedResponses, DefectsUpdateDefectTypeData, DefectsUpdateDefectTypeErrors, DefectsUpdateDefectTypeResponses, KgCreateDevEuiPrefixData, KgCreateDevEuiPrefixErrors, KgCreateDevEuiPrefixResponses, KgCreateKgVersionData, KgCreateKgVersionErrors, KgCreateKgVersionResponses, KgDeleteDevEuiPrefixData, KgDeleteDevEuiPrefixErrors, KgDeleteDevEuiPrefixResponses, KgDeleteKgVersionData, KgDeleteKgVersionErrors, KgDeleteKgVersionResponses, KgGetKgData, KgGetKgErrors, KgGetKgResponses, KgListDevEuiPrefixesData, KgListDevEuiPrefixesErrors, KgListDevEuiPrefixesResponses, KgListKgByBatchData, KgListKgByBatchErrors, KgListKgByBatchResponses, KgListKgData, KgListKgErrors, KgListKgResponses, KgListKgVersionsData, KgListKgVersionsErrors, KgListKgVersionsResponses, KgUpdateDevEuiPrefixArchivedData, KgUpdateDevEuiPrefixArchivedErrors, KgUpdateDevEuiPrefixArchivedResponses, KgUpdateDevEuiPrefixData, KgUpdateDevEuiPrefixErrors, KgUpdateDevEuiPrefixResponses, KgUpdateKgVersionArchivedData, KgUpdateKgVersionArchivedErrors, KgUpdateKgVersionArchivedResponses, KgUpdateKgVersionData, KgUpdateKgVersionErrors, KgUpdateKgVersionResponses, PakCreatePakData, PakCreatePakErrors, PakCreatePakResponses, PakDeletePakData, PakDeletePakErrors, PakDeletePakResponses, PakGetAccessKeyData, PakGetAccessKeyErrors, PakGetAccessKeyResponses, PakGetPakData, PakGetPakErrors, PakGetPakResponses, PakGetPakTestData, PakGetPakTestErrors, PakGetPakTestResponses, PakListPakData, PakListPakErrors, PakListPakResponses, PakListPakTestsData, PakListPakTestsErrors, PakListPakTestsResponses, PakRotateAccessKeyData, PakRotateAccessKeyErrors, PakRotateAccessKeyResponses, PakUpdateActiveData, PakUpdateActiveErrors, PakUpdateActiveResponses, PakUpdateArchivedData, PakUpdateArchivedErrors, PakUpdateArchivedResponses, PakUpdatePakData, PakUpdatePakErrors, PakUpdatePakResponses, ProductionOrderArchiveOrderData, ProductionOrderArchiveOrderErrors, ProductionOrderArchiveOrderResponses, ProductionOrderCreateOrderData, ProductionOrderCreateOrderErrors, ProductionOrderCreateOrderResponses, ProductionOrderDeleteOrderData, ProductionOrderDeleteOrderErrors, ProductionOrderDeleteOrderResponses, ProductionOrderGetOrderData, ProductionOrderGetOrderErrors, ProductionOrderGetOrderResponses, ProductionOrderListOrdersData, ProductionOrderListOrdersErrors, ProductionOrderListOrdersResponses, ProductionOrderUpdateOrderData, ProductionOrderUpdateOrderErrors, ProductionOrderUpdateOrderResponses, UsersCreateUserData, UsersCreateUserErrors, UsersCreateUserResponses, UsersDeleteUserData, UsersDeleteUserErrors, UsersDeleteUserResponses, UsersGetUserData, UsersGetUserErrors, UsersGetUserResponses, UsersListUsersData, UsersListUsersErrors, UsersListUsersResponses, UsersUpdateActiveData, UsersUpdateActiveErrors, UsersUpdateActiveResponses, UsersUpdateArchivedData, UsersUpdateArchivedErrors, UsersUpdateArchivedResponses, UsersUpdatePasswordData, UsersUpdatePasswordErrors, UsersUpdatePasswordResponses, UsersUpdateUserData, UsersUpdateUserErrors, UsersUpdateUserResponses, VerificationGetSessionData, VerificationGetSessionErrors, VerificationGetSessionResponses, VerificationListSessionsData, VerificationListSessionsErrors, VerificationListSessionsResponses } from './types.gen';
+import type { ActivatePakDeviceData, ActivatePakDeviceErrors, ActivatePakDeviceResponses, ActivateUserData, ActivateUserErrors, ActivateUserResponses, AddBatchShipmentUnitsData, AddBatchShipmentUnitsErrors, AddBatchShipmentUnitsResponses, AddPackedBatchShipmentUnitsData, AddPackedBatchShipmentUnitsErrors, AddPackedBatchShipmentUnitsResponses, ArchiveBatchData, ArchiveBatchErrors, ArchiveBatchResponses, ArchiveDefectGroupData, ArchiveDefectGroupErrors, ArchiveDefectGroupResponses, ArchiveDefectTypeData, ArchiveDefectTypeErrors, ArchiveDefectTypeResponses, ArchiveKgPrefixData, ArchiveKgPrefixErrors, ArchiveKgPrefixResponses, ArchiveKgVersionData, ArchiveKgVersionErrors, ArchiveKgVersionResponses, ArchivePakDeviceData, ArchivePakDeviceErrors, ArchivePakDeviceResponses, ArchiveProductionOrderData, ArchiveProductionOrderErrors, ArchiveProductionOrderResponses, ArchiveUserData, ArchiveUserErrors, ArchiveUserResponses, AssignBatchProductionOrderData, AssignBatchProductionOrderErrors, AssignBatchProductionOrderResponses, CompleteBatchData, CompleteBatchErrors, CompleteBatchResponses, CompleteBatchShipmentData, CompleteBatchShipmentErrors, CompleteBatchShipmentResponses, CreateBatchData, CreateBatchErrors, CreateBatchReceiptData, CreateBatchReceiptErrors, CreateBatchReceiptResponses, CreateBatchResponses, CreateBatchShipmentData, CreateBatchShipmentErrors, CreateBatchShipmentResponses, CreateDefectGroupData, CreateDefectGroupErrors, CreateDefectGroupResponses, CreateDefectTypeData, CreateDefectTypeErrors, CreateDefectTypeResponses, CreateKgPrefixData, CreateKgPrefixErrors, CreateKgPrefixResponses, CreateKgVersionData, CreateKgVersionErrors, CreateKgVersionResponses, CreatePakDeviceData, CreatePakDeviceErrors, CreatePakDeviceResponses, CreateProductionOrderData, CreateProductionOrderErrors, CreateProductionOrderResponses, CreateUserData, CreateUserErrors, CreateUserResponses, DeactivatePakDeviceData, DeactivatePakDeviceErrors, DeactivatePakDeviceResponses, DeactivateUserData, DeactivateUserErrors, DeactivateUserResponses, DeleteBatchData, DeleteBatchErrors, DeleteBatchResponses, DeleteDefectGroupData, DeleteDefectGroupErrors, DeleteDefectGroupResponses, DeleteDefectTypeData, DeleteDefectTypeErrors, DeleteDefectTypeResponses, DeleteKgPrefixData, DeleteKgPrefixErrors, DeleteKgPrefixResponses, DeleteKgVersionData, DeleteKgVersionErrors, DeleteKgVersionResponses, DeletePakDeviceData, DeletePakDeviceErrors, DeletePakDeviceResponses, DeleteProductionOrderData, DeleteProductionOrderErrors, DeleteProductionOrderResponses, DeleteUserData, DeleteUserErrors, DeleteUserResponses, FindPackingUnitData, FindPackingUnitErrors, FindPackingUnitResponses, GetBatchData, GetBatchErrors, GetBatchReceiptData, GetBatchReceiptErrors, GetBatchReceiptResponses, GetBatchResponses, GetBatchShipmentData, GetBatchShipmentErrors, GetBatchShipmentResponses, GetDefectGroupData, GetDefectGroupErrors, GetDefectGroupResponses, GetDefectTypeData, GetDefectTypeErrors, GetDefectTypeResponses, GetKgPrefixData, GetKgPrefixErrors, GetKgPrefixResponses, GetKgUnitData, GetKgUnitErrors, GetKgUnitResponses, GetKgVersionData, GetKgVersionErrors, GetKgVersionResponses, GetPakAccessKeyData, GetPakAccessKeyErrors, GetPakAccessKeyResponses, GetPakCheckData, GetPakCheckErrors, GetPakCheckResponses, GetPakDeviceData, GetPakDeviceErrors, GetPakDeviceResponses, GetProductionOrderData, GetProductionOrderErrors, GetProductionOrderResponses, GetProfileData, GetProfileErrors, GetProfileResponses, GetUserData, GetUserErrors, GetUserResponses, GetVerificationSessionData, GetVerificationSessionErrors, GetVerificationSessionResponses, ListAuditEntriesData, ListAuditEntriesErrors, ListAuditEntriesResponses, ListBatchesData, ListBatchesErrors, ListBatchesResponses, ListBatchReceiptsData, ListBatchReceiptsErrors, ListBatchReceiptsResponses, ListBatchShipmentItemsData, ListBatchShipmentItemsErrors, ListBatchShipmentItemsResponses, ListBatchShipmentsData, ListBatchShipmentsErrors, ListBatchShipmentsResponses, ListDefectGroupsData, ListDefectGroupsErrors, ListDefectGroupsResponses, ListDefectTypesData, ListDefectTypesErrors, ListDefectTypesResponses, ListKgPrefixesData, ListKgPrefixesErrors, ListKgPrefixesResponses, ListKgUnitsData, ListKgUnitsErrors, ListKgUnitsResponses, ListKgVersionsData, ListKgVersionsErrors, ListKgVersionsResponses, ListPakChecksData, ListPakChecksErrors, ListPakChecksResponses, ListPakDevicesData, ListPakDevicesErrors, ListPakDevicesResponses, ListProductionOrdersData, ListProductionOrdersErrors, ListProductionOrdersResponses, ListUsersData, ListUsersErrors, ListUsersResponses, ListVerificationSessionsData, ListVerificationSessionsErrors, ListVerificationSessionsResponses, PackKgUnitData, PackKgUnitErrors, PackKgUnitResponses, PreviewBatchDevEuiRangeData, PreviewBatchDevEuiRangeErrors, PreviewBatchDevEuiRangeResponses, RemoveBatchShipmentUnitData, RemoveBatchShipmentUnitErrors, RemoveBatchShipmentUnitResponses, RestoreBatchData, RestoreBatchErrors, RestoreBatchResponses, RestoreDefectGroupData, RestoreDefectGroupErrors, RestoreDefectGroupResponses, RestoreDefectTypeData, RestoreDefectTypeErrors, RestoreDefectTypeResponses, RestoreKgPrefixData, RestoreKgPrefixErrors, RestoreKgPrefixResponses, RestoreKgVersionData, RestoreKgVersionErrors, RestoreKgVersionResponses, RestorePakDeviceData, RestorePakDeviceErrors, RestorePakDeviceResponses, RestoreProductionOrderData, RestoreProductionOrderErrors, RestoreProductionOrderResponses, RestoreUserData, RestoreUserErrors, RestoreUserResponses, RotatePakAccessKeyData, RotatePakAccessKeyErrors, RotatePakAccessKeyResponses, UpdateBatchData, UpdateBatchErrors, UpdateBatchReceiptData, UpdateBatchReceiptErrors, UpdateBatchReceiptResponses, UpdateBatchResponses, UpdateBatchShipmentData, UpdateBatchShipmentErrors, UpdateBatchShipmentResponses, UpdateDefectGroupData, UpdateDefectGroupErrors, UpdateDefectGroupResponses, UpdateDefectTypeData, UpdateDefectTypeErrors, UpdateDefectTypeResponses, UpdateKgPrefixData, UpdateKgPrefixErrors, UpdateKgPrefixResponses, UpdateKgVersionData, UpdateKgVersionErrors, UpdateKgVersionResponses, UpdatePakDeviceData, UpdatePakDeviceErrors, UpdatePakDeviceResponses, UpdateProductionOrderData, UpdateProductionOrderErrors, UpdateProductionOrderResponses, UpdateProfileData, UpdateProfileErrors, UpdateProfileResponses, UpdateUserData, UpdateUserErrors, UpdateUserPasswordData, UpdateUserPasswordErrors, UpdateUserPasswordResponses, UpdateUserResponses, UpdateUserRoleData, UpdateUserRoleErrors, UpdateUserRoleResponses, VoidBatchReceiptData, VoidBatchReceiptErrors, VoidBatchReceiptResponses, VoidBatchShipmentData, VoidBatchShipmentErrors, VoidBatchShipmentResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -19,20 +19,17 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
 };
 
 /**
- * List Audit Events
+ * Get current user profile
+ *
+ * User profile information.
  */
-export const auditListAuditEvents = <ThrowOnError extends boolean = false>(options?: Options<AuditListAuditEventsData, ThrowOnError>): RequestResult<AuditListAuditEventsResponses, AuditListAuditEventsErrors, ThrowOnError> => (options?.client ?? client).get<AuditListAuditEventsResponses, AuditListAuditEventsErrors, ThrowOnError>({ url: '/audit', ...options });
+export const getProfile = <ThrowOnError extends boolean = false>(options?: Options<GetProfileData, ThrowOnError>): RequestResult<GetProfileResponses, GetProfileErrors, ThrowOnError> => (options?.client ?? client).get<GetProfileResponses, GetProfileErrors, ThrowOnError>({ url: '/api/auth/me', ...options });
 
 /**
- * Me
+ * Update current user profile
  */
-export const authMe = <ThrowOnError extends boolean = false>(options?: Options<AuthMeData, ThrowOnError>): RequestResult<AuthMeResponses, unknown, ThrowOnError> => (options?.client ?? client).get<AuthMeResponses, unknown, ThrowOnError>({ url: '/auth/me', ...options });
-
-/**
- * Create Batch
- */
-export const batchCreateBatch = <ThrowOnError extends boolean = false>(options: Options<BatchCreateBatchData, ThrowOnError>): RequestResult<BatchCreateBatchResponses, BatchCreateBatchErrors, ThrowOnError> => (options.client ?? client).post<BatchCreateBatchResponses, BatchCreateBatchErrors, ThrowOnError>({
-    url: '/batches',
+export const updateProfile = <ThrowOnError extends boolean = false>(options: Options<UpdateProfileData, ThrowOnError>): RequestResult<UpdateProfileResponses, UpdateProfileErrors, ThrowOnError> => (options.client ?? client).patch<UpdateProfileResponses, UpdateProfileErrors, ThrowOnError>({
+    url: '/api/auth/me',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -41,30 +38,25 @@ export const batchCreateBatch = <ThrowOnError extends boolean = false>(options: 
 });
 
 /**
- * List Batches
+ * ActivateUser
  */
-export const batchListBatches = <ThrowOnError extends boolean = false>(options?: Options<BatchListBatchesData, ThrowOnError>): RequestResult<BatchListBatchesResponses, BatchListBatchesErrors, ThrowOnError> => (options?.client ?? client).get<BatchListBatchesResponses, BatchListBatchesErrors, ThrowOnError>({ url: '/batches/', ...options });
+export const activateUser = <ThrowOnError extends boolean = false>(options: Options<ActivateUserData, ThrowOnError>): RequestResult<ActivateUserResponses, ActivateUserErrors, ThrowOnError> => (options.client ?? client).post<ActivateUserResponses, ActivateUserErrors, ThrowOnError>({ url: '/api/users/{user_id}/activate', ...options });
 
 /**
- * Preview Dev Eui Range
+ * ArchiveUser
  */
-export const batchPreviewDevEuiRange = <ThrowOnError extends boolean = false>(options: Options<BatchPreviewDevEuiRangeData, ThrowOnError>): RequestResult<BatchPreviewDevEuiRangeResponses, BatchPreviewDevEuiRangeErrors, ThrowOnError> => (options.client ?? client).get<BatchPreviewDevEuiRangeResponses, BatchPreviewDevEuiRangeErrors, ThrowOnError>({ url: '/batches/dev-eui-range-preview', ...options });
+export const archiveUser = <ThrowOnError extends boolean = false>(options: Options<ArchiveUserData, ThrowOnError>): RequestResult<ArchiveUserResponses, ArchiveUserErrors, ThrowOnError> => (options.client ?? client).post<ArchiveUserResponses, ArchiveUserErrors, ThrowOnError>({ url: '/api/users/{user_id}/archive', ...options });
 
 /**
- * Delete Batch
+ * ListUsers
  */
-export const batchDeleteBatch = <ThrowOnError extends boolean = false>(options: Options<BatchDeleteBatchData, ThrowOnError>): RequestResult<BatchDeleteBatchResponses, BatchDeleteBatchErrors, ThrowOnError> => (options.client ?? client).delete<BatchDeleteBatchResponses, BatchDeleteBatchErrors, ThrowOnError>({ url: '/batches/{batch_id}', ...options });
+export const listUsers = <ThrowOnError extends boolean = false>(options?: Options<ListUsersData, ThrowOnError>): RequestResult<ListUsersResponses, ListUsersErrors, ThrowOnError> => (options?.client ?? client).get<ListUsersResponses, ListUsersErrors, ThrowOnError>({ url: '/api/users', ...options });
 
 /**
- * Get Batch
+ * CreateUser
  */
-export const batchGetBatch = <ThrowOnError extends boolean = false>(options: Options<BatchGetBatchData, ThrowOnError>): RequestResult<BatchGetBatchResponses, BatchGetBatchErrors, ThrowOnError> => (options.client ?? client).get<BatchGetBatchResponses, BatchGetBatchErrors, ThrowOnError>({ url: '/batches/{batch_id}', ...options });
-
-/**
- * Update Batch
- */
-export const batchUpdateBatch = <ThrowOnError extends boolean = false>(options: Options<BatchUpdateBatchData, ThrowOnError>): RequestResult<BatchUpdateBatchResponses, BatchUpdateBatchErrors, ThrowOnError> => (options.client ?? client).patch<BatchUpdateBatchResponses, BatchUpdateBatchErrors, ThrowOnError>({
-    url: '/batches/{batch_id}',
+export const createUser = <ThrowOnError extends boolean = false>(options: Options<CreateUserData, ThrowOnError>): RequestResult<CreateUserResponses, CreateUserErrors, ThrowOnError> => (options.client ?? client).post<CreateUserResponses, CreateUserErrors, ThrowOnError>({
+    url: '/api/users',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -73,10 +65,25 @@ export const batchUpdateBatch = <ThrowOnError extends boolean = false>(options: 
 });
 
 /**
- * Update Batch Archived
+ * DeactivateUser
  */
-export const batchUpdateBatchArchived = <ThrowOnError extends boolean = false>(options: Options<BatchUpdateBatchArchivedData, ThrowOnError>): RequestResult<BatchUpdateBatchArchivedResponses, BatchUpdateBatchArchivedErrors, ThrowOnError> => (options.client ?? client).put<BatchUpdateBatchArchivedResponses, BatchUpdateBatchArchivedErrors, ThrowOnError>({
-    url: '/batches/{batch_id}/archived',
+export const deactivateUser = <ThrowOnError extends boolean = false>(options: Options<DeactivateUserData, ThrowOnError>): RequestResult<DeactivateUserResponses, DeactivateUserErrors, ThrowOnError> => (options.client ?? client).post<DeactivateUserResponses, DeactivateUserErrors, ThrowOnError>({ url: '/api/users/{user_id}/deactivate', ...options });
+
+/**
+ * DeleteUser
+ */
+export const deleteUser = <ThrowOnError extends boolean = false>(options: Options<DeleteUserData, ThrowOnError>): RequestResult<DeleteUserResponses, DeleteUserErrors, ThrowOnError> => (options.client ?? client).delete<DeleteUserResponses, DeleteUserErrors, ThrowOnError>({ url: '/api/users/{user_id}', ...options });
+
+/**
+ * GetUser
+ */
+export const getUser = <ThrowOnError extends boolean = false>(options: Options<GetUserData, ThrowOnError>): RequestResult<GetUserResponses, GetUserErrors, ThrowOnError> => (options.client ?? client).get<GetUserResponses, GetUserErrors, ThrowOnError>({ url: '/api/users/{user_id}', ...options });
+
+/**
+ * UpdateUser
+ */
+export const updateUser = <ThrowOnError extends boolean = false>(options: Options<UpdateUserData, ThrowOnError>): RequestResult<UpdateUserResponses, UpdateUserErrors, ThrowOnError> => (options.client ?? client).patch<UpdateUserResponses, UpdateUserErrors, ThrowOnError>({
+    url: '/api/users/{user_id}',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -85,20 +92,15 @@ export const batchUpdateBatchArchived = <ThrowOnError extends boolean = false>(o
 });
 
 /**
- * Complete Batch
+ * RestoreUser
  */
-export const batchCompleteBatch = <ThrowOnError extends boolean = false>(options: Options<BatchCompleteBatchData, ThrowOnError>): RequestResult<BatchCompleteBatchResponses, BatchCompleteBatchErrors, ThrowOnError> => (options.client ?? client).post<BatchCompleteBatchResponses, BatchCompleteBatchErrors, ThrowOnError>({ url: '/batches/{batch_id}/complete', ...options });
+export const restoreUser = <ThrowOnError extends boolean = false>(options: Options<RestoreUserData, ThrowOnError>): RequestResult<RestoreUserResponses, RestoreUserErrors, ThrowOnError> => (options.client ?? client).post<RestoreUserResponses, RestoreUserErrors, ThrowOnError>({ url: '/api/users/{user_id}/restore', ...options });
 
 /**
- * Retry Batch Preparation
+ * UpdatePassword
  */
-export const batchRetryBatchPreparation = <ThrowOnError extends boolean = false>(options: Options<BatchRetryBatchPreparationData, ThrowOnError>): RequestResult<BatchRetryBatchPreparationResponses, BatchRetryBatchPreparationErrors, ThrowOnError> => (options.client ?? client).post<BatchRetryBatchPreparationResponses, BatchRetryBatchPreparationErrors, ThrowOnError>({ url: '/batches/{batch_id}/preparation/retry', ...options });
-
-/**
- * Assign Production Order
- */
-export const batchAssignProductionOrder = <ThrowOnError extends boolean = false>(options: Options<BatchAssignProductionOrderData, ThrowOnError>): RequestResult<BatchAssignProductionOrderResponses, BatchAssignProductionOrderErrors, ThrowOnError> => (options.client ?? client).put<BatchAssignProductionOrderResponses, BatchAssignProductionOrderErrors, ThrowOnError>({
-    url: '/batches/{batch_id}/production-order',
+export const updateUserPassword = <ThrowOnError extends boolean = false>(options: Options<UpdateUserPasswordData, ThrowOnError>): RequestResult<UpdateUserPasswordResponses, UpdateUserPasswordErrors, ThrowOnError> => (options.client ?? client).put<UpdateUserPasswordResponses, UpdateUserPasswordErrors, ThrowOnError>({
+    url: '/api/users/{user_id}/password',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -107,15 +109,10 @@ export const batchAssignProductionOrder = <ThrowOnError extends boolean = false>
 });
 
 /**
- * List Batch Receipts
+ * UpdateRole
  */
-export const batchListBatchReceipts = <ThrowOnError extends boolean = false>(options: Options<BatchListBatchReceiptsData, ThrowOnError>): RequestResult<BatchListBatchReceiptsResponses, BatchListBatchReceiptsErrors, ThrowOnError> => (options.client ?? client).get<BatchListBatchReceiptsResponses, BatchListBatchReceiptsErrors, ThrowOnError>({ url: '/batches/{batch_id}/receipts', ...options });
-
-/**
- * Create Batch Receipt
- */
-export const batchCreateBatchReceipt = <ThrowOnError extends boolean = false>(options: Options<BatchCreateBatchReceiptData, ThrowOnError>): RequestResult<BatchCreateBatchReceiptResponses, BatchCreateBatchReceiptErrors, ThrowOnError> => (options.client ?? client).post<BatchCreateBatchReceiptResponses, BatchCreateBatchReceiptErrors, ThrowOnError>({
-    url: '/batches/{batch_id}/receipts',
+export const updateUserRole = <ThrowOnError extends boolean = false>(options: Options<UpdateUserRoleData, ThrowOnError>): RequestResult<UpdateUserRoleResponses, UpdateUserRoleErrors, ThrowOnError> => (options.client ?? client).put<UpdateUserRoleResponses, UpdateUserRoleErrors, ThrowOnError>({
+    url: '/api/users/{user_id}/role',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -124,10 +121,30 @@ export const batchCreateBatchReceipt = <ThrowOnError extends boolean = false>(op
 });
 
 /**
- * Update Batch Receipt
+ * ListAuditEntries
  */
-export const batchUpdateBatchReceipt = <ThrowOnError extends boolean = false>(options: Options<BatchUpdateBatchReceiptData, ThrowOnError>): RequestResult<BatchUpdateBatchReceiptResponses, BatchUpdateBatchReceiptErrors, ThrowOnError> => (options.client ?? client).patch<BatchUpdateBatchReceiptResponses, BatchUpdateBatchReceiptErrors, ThrowOnError>({
-    url: '/batches/{batch_id}/receipts/{receipt_id}',
+export const listAuditEntries = <ThrowOnError extends boolean = false>(options?: Options<ListAuditEntriesData, ThrowOnError>): RequestResult<ListAuditEntriesResponses, ListAuditEntriesErrors, ThrowOnError> => (options?.client ?? client).get<ListAuditEntriesResponses, ListAuditEntriesErrors, ThrowOnError>({ url: '/api/audit', ...options });
+
+/**
+ * ActivatePakDevice
+ */
+export const activatePakDevice = <ThrowOnError extends boolean = false>(options: Options<ActivatePakDeviceData, ThrowOnError>): RequestResult<ActivatePakDeviceResponses, ActivatePakDeviceErrors, ThrowOnError> => (options.client ?? client).post<ActivatePakDeviceResponses, ActivatePakDeviceErrors, ThrowOnError>({ url: '/api/paks/{pak_id}/activate', ...options });
+
+/**
+ * ArchivePakDevice
+ */
+export const archivePakDevice = <ThrowOnError extends boolean = false>(options: Options<ArchivePakDeviceData, ThrowOnError>): RequestResult<ArchivePakDeviceResponses, ArchivePakDeviceErrors, ThrowOnError> => (options.client ?? client).post<ArchivePakDeviceResponses, ArchivePakDeviceErrors, ThrowOnError>({ url: '/api/paks/{pak_id}/archive', ...options });
+
+/**
+ * ListPakDevices
+ */
+export const listPakDevices = <ThrowOnError extends boolean = false>(options?: Options<ListPakDevicesData, ThrowOnError>): RequestResult<ListPakDevicesResponses, ListPakDevicesErrors, ThrowOnError> => (options?.client ?? client).get<ListPakDevicesResponses, ListPakDevicesErrors, ThrowOnError>({ url: '/api/paks', ...options });
+
+/**
+ * CreatePakDevice
+ */
+export const createPakDevice = <ThrowOnError extends boolean = false>(options: Options<CreatePakDeviceData, ThrowOnError>): RequestResult<CreatePakDeviceResponses, CreatePakDeviceErrors, ThrowOnError> => (options.client ?? client).post<CreatePakDeviceResponses, CreatePakDeviceErrors, ThrowOnError>({
+    url: '/api/paks',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -136,10 +153,25 @@ export const batchUpdateBatchReceipt = <ThrowOnError extends boolean = false>(op
 });
 
 /**
- * Void Batch Receipt
+ * DeactivatePakDevice
  */
-export const batchVoidBatchReceipt = <ThrowOnError extends boolean = false>(options: Options<BatchVoidBatchReceiptData, ThrowOnError>): RequestResult<BatchVoidBatchReceiptResponses, BatchVoidBatchReceiptErrors, ThrowOnError> => (options.client ?? client).post<BatchVoidBatchReceiptResponses, BatchVoidBatchReceiptErrors, ThrowOnError>({
-    url: '/batches/{batch_id}/receipts/{receipt_id}/void',
+export const deactivatePakDevice = <ThrowOnError extends boolean = false>(options: Options<DeactivatePakDeviceData, ThrowOnError>): RequestResult<DeactivatePakDeviceResponses, DeactivatePakDeviceErrors, ThrowOnError> => (options.client ?? client).post<DeactivatePakDeviceResponses, DeactivatePakDeviceErrors, ThrowOnError>({ url: '/api/paks/{pak_id}/deactivate', ...options });
+
+/**
+ * DeletePakDevice
+ */
+export const deletePakDevice = <ThrowOnError extends boolean = false>(options: Options<DeletePakDeviceData, ThrowOnError>): RequestResult<DeletePakDeviceResponses, DeletePakDeviceErrors, ThrowOnError> => (options.client ?? client).delete<DeletePakDeviceResponses, DeletePakDeviceErrors, ThrowOnError>({ url: '/api/paks/{pak_id}', ...options });
+
+/**
+ * GetPakDevice
+ */
+export const getPakDevice = <ThrowOnError extends boolean = false>(options: Options<GetPakDeviceData, ThrowOnError>): RequestResult<GetPakDeviceResponses, GetPakDeviceErrors, ThrowOnError> => (options.client ?? client).get<GetPakDeviceResponses, GetPakDeviceErrors, ThrowOnError>({ url: '/api/paks/{pak_id}', ...options });
+
+/**
+ * UpdatePakDevice
+ */
+export const updatePakDevice = <ThrowOnError extends boolean = false>(options: Options<UpdatePakDeviceData, ThrowOnError>): RequestResult<UpdatePakDeviceResponses, UpdatePakDeviceErrors, ThrowOnError> => (options.client ?? client).patch<UpdatePakDeviceResponses, UpdatePakDeviceErrors, ThrowOnError>({
+    url: '/api/paks/{pak_id}',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -148,15 +180,30 @@ export const batchVoidBatchReceipt = <ThrowOnError extends boolean = false>(opti
 });
 
 /**
- * List Batch Shipments
+ * GetPakAccessKey
  */
-export const batchListBatchShipments = <ThrowOnError extends boolean = false>(options: Options<BatchListBatchShipmentsData, ThrowOnError>): RequestResult<BatchListBatchShipmentsResponses, BatchListBatchShipmentsErrors, ThrowOnError> => (options.client ?? client).get<BatchListBatchShipmentsResponses, BatchListBatchShipmentsErrors, ThrowOnError>({ url: '/batches/{batch_id}/shipments', ...options });
+export const getPakAccessKey = <ThrowOnError extends boolean = false>(options: Options<GetPakAccessKeyData, ThrowOnError>): RequestResult<GetPakAccessKeyResponses, GetPakAccessKeyErrors, ThrowOnError> => (options.client ?? client).get<GetPakAccessKeyResponses, GetPakAccessKeyErrors, ThrowOnError>({ url: '/api/paks/{pak_id}/access-key', ...options });
 
 /**
- * Create Batch Shipment
+ * RestorePakDevice
  */
-export const batchCreateBatchShipment = <ThrowOnError extends boolean = false>(options: Options<BatchCreateBatchShipmentData, ThrowOnError>): RequestResult<BatchCreateBatchShipmentResponses, BatchCreateBatchShipmentErrors, ThrowOnError> => (options.client ?? client).post<BatchCreateBatchShipmentResponses, BatchCreateBatchShipmentErrors, ThrowOnError>({
-    url: '/batches/{batch_id}/shipments',
+export const restorePakDevice = <ThrowOnError extends boolean = false>(options: Options<RestorePakDeviceData, ThrowOnError>): RequestResult<RestorePakDeviceResponses, RestorePakDeviceErrors, ThrowOnError> => (options.client ?? client).post<RestorePakDeviceResponses, RestorePakDeviceErrors, ThrowOnError>({ url: '/api/paks/{pak_id}/restore', ...options });
+
+/**
+ * RotatePakAccessKey
+ */
+export const rotatePakAccessKey = <ThrowOnError extends boolean = false>(options: Options<RotatePakAccessKeyData, ThrowOnError>): RequestResult<RotatePakAccessKeyResponses, RotatePakAccessKeyErrors, ThrowOnError> => (options.client ?? client).post<RotatePakAccessKeyResponses, RotatePakAccessKeyErrors, ThrowOnError>({ url: '/api/paks/{pak_id}/access-key/rotate', ...options });
+
+/**
+ * ArchiveBatch
+ */
+export const archiveBatch = <ThrowOnError extends boolean = false>(options: Options<ArchiveBatchData, ThrowOnError>): RequestResult<ArchiveBatchResponses, ArchiveBatchErrors, ThrowOnError> => (options.client ?? client).post<ArchiveBatchResponses, ArchiveBatchErrors, ThrowOnError>({ url: '/api/batches/{batch_id}/archive', ...options });
+
+/**
+ * AssignProductionOrder
+ */
+export const assignBatchProductionOrder = <ThrowOnError extends boolean = false>(options: Options<AssignBatchProductionOrderData, ThrowOnError>): RequestResult<AssignBatchProductionOrderResponses, AssignBatchProductionOrderErrors, ThrowOnError> => (options.client ?? client).put<AssignBatchProductionOrderResponses, AssignBatchProductionOrderErrors, ThrowOnError>({
+    url: '/api/batches/{batch_id}/production-order',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -165,10 +212,20 @@ export const batchCreateBatchShipment = <ThrowOnError extends boolean = false>(o
 });
 
 /**
- * Update Batch Shipment
+ * CompleteBatch
  */
-export const batchUpdateBatchShipment = <ThrowOnError extends boolean = false>(options: Options<BatchUpdateBatchShipmentData, ThrowOnError>): RequestResult<BatchUpdateBatchShipmentResponses, BatchUpdateBatchShipmentErrors, ThrowOnError> => (options.client ?? client).patch<BatchUpdateBatchShipmentResponses, BatchUpdateBatchShipmentErrors, ThrowOnError>({
-    url: '/batches/{batch_id}/shipments/{shipment_id}',
+export const completeBatch = <ThrowOnError extends boolean = false>(options: Options<CompleteBatchData, ThrowOnError>): RequestResult<CompleteBatchResponses, CompleteBatchErrors, ThrowOnError> => (options.client ?? client).post<CompleteBatchResponses, CompleteBatchErrors, ThrowOnError>({ url: '/api/batches/{batch_id}/complete', ...options });
+
+/**
+ * ListBatches
+ */
+export const listBatches = <ThrowOnError extends boolean = false>(options?: Options<ListBatchesData, ThrowOnError>): RequestResult<ListBatchesResponses, ListBatchesErrors, ThrowOnError> => (options?.client ?? client).get<ListBatchesResponses, ListBatchesErrors, ThrowOnError>({ url: '/api/batches', ...options });
+
+/**
+ * CreateBatch
+ */
+export const createBatch = <ThrowOnError extends boolean = false>(options: Options<CreateBatchData, ThrowOnError>): RequestResult<CreateBatchResponses, CreateBatchErrors, ThrowOnError> => (options.client ?? client).post<CreateBatchResponses, CreateBatchErrors, ThrowOnError>({
+    url: '/api/batches',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -177,20 +234,20 @@ export const batchUpdateBatchShipment = <ThrowOnError extends boolean = false>(o
 });
 
 /**
- * Complete Batch Shipment
+ * DeleteBatch
  */
-export const batchCompleteBatchShipment = <ThrowOnError extends boolean = false>(options: Options<BatchCompleteBatchShipmentData, ThrowOnError>): RequestResult<BatchCompleteBatchShipmentResponses, BatchCompleteBatchShipmentErrors, ThrowOnError> => (options.client ?? client).post<BatchCompleteBatchShipmentResponses, BatchCompleteBatchShipmentErrors, ThrowOnError>({ url: '/batches/{batch_id}/shipments/{shipment_id}/complete', ...options });
+export const deleteBatch = <ThrowOnError extends boolean = false>(options: Options<DeleteBatchData, ThrowOnError>): RequestResult<DeleteBatchResponses, DeleteBatchErrors, ThrowOnError> => (options.client ?? client).delete<DeleteBatchResponses, DeleteBatchErrors, ThrowOnError>({ url: '/api/batches/{batch_id}', ...options });
 
 /**
- * List Batch Shipment Items
+ * GetBatch
  */
-export const batchListBatchShipmentItems = <ThrowOnError extends boolean = false>(options: Options<BatchListBatchShipmentItemsData, ThrowOnError>): RequestResult<BatchListBatchShipmentItemsResponses, BatchListBatchShipmentItemsErrors, ThrowOnError> => (options.client ?? client).get<BatchListBatchShipmentItemsResponses, BatchListBatchShipmentItemsErrors, ThrowOnError>({ url: '/batches/{batch_id}/shipments/{shipment_id}/items', ...options });
+export const getBatch = <ThrowOnError extends boolean = false>(options: Options<GetBatchData, ThrowOnError>): RequestResult<GetBatchResponses, GetBatchErrors, ThrowOnError> => (options.client ?? client).get<GetBatchResponses, GetBatchErrors, ThrowOnError>({ url: '/api/batches/{batch_id}', ...options });
 
 /**
- * Add Batch Shipment Item
+ * UpdateBatch
  */
-export const batchAddBatchShipmentItem = <ThrowOnError extends boolean = false>(options: Options<BatchAddBatchShipmentItemData, ThrowOnError>): RequestResult<BatchAddBatchShipmentItemResponses, BatchAddBatchShipmentItemErrors, ThrowOnError> => (options.client ?? client).post<BatchAddBatchShipmentItemResponses, BatchAddBatchShipmentItemErrors, ThrowOnError>({
-    url: '/batches/{batch_id}/shipments/{shipment_id}/items',
+export const updateBatch = <ThrowOnError extends boolean = false>(options: Options<UpdateBatchData, ThrowOnError>): RequestResult<UpdateBatchResponses, UpdateBatchErrors, ThrowOnError> => (options.client ?? client).patch<UpdateBatchResponses, UpdateBatchErrors, ThrowOnError>({
+    url: '/api/batches/{batch_id}',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -199,15 +256,25 @@ export const batchAddBatchShipmentItem = <ThrowOnError extends boolean = false>(
 });
 
 /**
- * Remove Batch Shipment Item
+ * PreviewDevEuiRange
  */
-export const batchRemoveBatchShipmentItem = <ThrowOnError extends boolean = false>(options: Options<BatchRemoveBatchShipmentItemData, ThrowOnError>): RequestResult<BatchRemoveBatchShipmentItemResponses, BatchRemoveBatchShipmentItemErrors, ThrowOnError> => (options.client ?? client).delete<BatchRemoveBatchShipmentItemResponses, BatchRemoveBatchShipmentItemErrors, ThrowOnError>({ url: '/batches/{batch_id}/shipments/{shipment_id}/items/{dev_eui}', ...options });
+export const previewBatchDevEuiRange = <ThrowOnError extends boolean = false>(options: Options<PreviewBatchDevEuiRangeData, ThrowOnError>): RequestResult<PreviewBatchDevEuiRangeResponses, PreviewBatchDevEuiRangeErrors, ThrowOnError> => (options.client ?? client).get<PreviewBatchDevEuiRangeResponses, PreviewBatchDevEuiRangeErrors, ThrowOnError>({ url: '/api/batches/dev-eui-range-preview', ...options });
 
 /**
- * Void Batch Shipment
+ * RestoreBatch
  */
-export const batchVoidBatchShipment = <ThrowOnError extends boolean = false>(options: Options<BatchVoidBatchShipmentData, ThrowOnError>): RequestResult<BatchVoidBatchShipmentResponses, BatchVoidBatchShipmentErrors, ThrowOnError> => (options.client ?? client).post<BatchVoidBatchShipmentResponses, BatchVoidBatchShipmentErrors, ThrowOnError>({
-    url: '/batches/{batch_id}/shipments/{shipment_id}/void',
+export const restoreBatch = <ThrowOnError extends boolean = false>(options: Options<RestoreBatchData, ThrowOnError>): RequestResult<RestoreBatchResponses, RestoreBatchErrors, ThrowOnError> => (options.client ?? client).post<RestoreBatchResponses, RestoreBatchErrors, ThrowOnError>({ url: '/api/batches/{batch_id}/restore', ...options });
+
+/**
+ * ListReceipts
+ */
+export const listBatchReceipts = <ThrowOnError extends boolean = false>(options: Options<ListBatchReceiptsData, ThrowOnError>): RequestResult<ListBatchReceiptsResponses, ListBatchReceiptsErrors, ThrowOnError> => (options.client ?? client).get<ListBatchReceiptsResponses, ListBatchReceiptsErrors, ThrowOnError>({ url: '/api/batches/{batch_id}/receipts', ...options });
+
+/**
+ * CreateReceipt
+ */
+export const createBatchReceipt = <ThrowOnError extends boolean = false>(options: Options<CreateBatchReceiptData, ThrowOnError>): RequestResult<CreateBatchReceiptResponses, CreateBatchReceiptErrors, ThrowOnError> => (options.client ?? client).post<CreateBatchReceiptResponses, CreateBatchReceiptErrors, ThrowOnError>({
+    url: '/api/batches/{batch_id}/receipts',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -216,15 +283,15 @@ export const batchVoidBatchShipment = <ThrowOnError extends boolean = false>(opt
 });
 
 /**
- * List Defect Groups
+ * GetReceipt
  */
-export const defectsListDefectGroups = <ThrowOnError extends boolean = false>(options?: Options<DefectsListDefectGroupsData, ThrowOnError>): RequestResult<DefectsListDefectGroupsResponses, DefectsListDefectGroupsErrors, ThrowOnError> => (options?.client ?? client).get<DefectsListDefectGroupsResponses, DefectsListDefectGroupsErrors, ThrowOnError>({ url: '/defects/groups', ...options });
+export const getBatchReceipt = <ThrowOnError extends boolean = false>(options: Options<GetBatchReceiptData, ThrowOnError>): RequestResult<GetBatchReceiptResponses, GetBatchReceiptErrors, ThrowOnError> => (options.client ?? client).get<GetBatchReceiptResponses, GetBatchReceiptErrors, ThrowOnError>({ url: '/api/batches/{batch_id}/receipts/{receipt_id}', ...options });
 
 /**
- * Create Defect Group
+ * UpdateReceipt
  */
-export const defectsCreateDefectGroup = <ThrowOnError extends boolean = false>(options: Options<DefectsCreateDefectGroupData, ThrowOnError>): RequestResult<DefectsCreateDefectGroupResponses, DefectsCreateDefectGroupErrors, ThrowOnError> => (options.client ?? client).post<DefectsCreateDefectGroupResponses, DefectsCreateDefectGroupErrors, ThrowOnError>({
-    url: '/defects/groups',
+export const updateBatchReceipt = <ThrowOnError extends boolean = false>(options: Options<UpdateBatchReceiptData, ThrowOnError>): RequestResult<UpdateBatchReceiptResponses, UpdateBatchReceiptErrors, ThrowOnError> => (options.client ?? client).patch<UpdateBatchReceiptResponses, UpdateBatchReceiptErrors, ThrowOnError>({
+    url: '/api/batches/{batch_id}/receipts/{receipt_id}',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -233,20 +300,10 @@ export const defectsCreateDefectGroup = <ThrowOnError extends boolean = false>(o
 });
 
 /**
- * Delete Defect Group
+ * VoidReceipt
  */
-export const defectsDeleteDefectGroup = <ThrowOnError extends boolean = false>(options: Options<DefectsDeleteDefectGroupData, ThrowOnError>): RequestResult<DefectsDeleteDefectGroupResponses, DefectsDeleteDefectGroupErrors, ThrowOnError> => (options.client ?? client).delete<DefectsDeleteDefectGroupResponses, DefectsDeleteDefectGroupErrors, ThrowOnError>({ url: '/defects/groups/{group_id}', ...options });
-
-/**
- * Get Defect Group
- */
-export const defectsGetDefectGroup = <ThrowOnError extends boolean = false>(options: Options<DefectsGetDefectGroupData, ThrowOnError>): RequestResult<DefectsGetDefectGroupResponses, DefectsGetDefectGroupErrors, ThrowOnError> => (options.client ?? client).get<DefectsGetDefectGroupResponses, DefectsGetDefectGroupErrors, ThrowOnError>({ url: '/defects/groups/{group_id}', ...options });
-
-/**
- * Update Defect Group
- */
-export const defectsUpdateDefectGroup = <ThrowOnError extends boolean = false>(options: Options<DefectsUpdateDefectGroupData, ThrowOnError>): RequestResult<DefectsUpdateDefectGroupResponses, DefectsUpdateDefectGroupErrors, ThrowOnError> => (options.client ?? client).patch<DefectsUpdateDefectGroupResponses, DefectsUpdateDefectGroupErrors, ThrowOnError>({
-    url: '/defects/groups/{group_id}',
+export const voidBatchReceipt = <ThrowOnError extends boolean = false>(options: Options<VoidBatchReceiptData, ThrowOnError>): RequestResult<VoidBatchReceiptResponses, VoidBatchReceiptErrors, ThrowOnError> => (options.client ?? client).post<VoidBatchReceiptResponses, VoidBatchReceiptErrors, ThrowOnError>({
+    url: '/api/batches/{batch_id}/receipts/{receipt_id}/void',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -255,10 +312,20 @@ export const defectsUpdateDefectGroup = <ThrowOnError extends boolean = false>(o
 });
 
 /**
- * Update Defect Group Archived
+ * CompleteShipment
  */
-export const defectsUpdateDefectGroupArchived = <ThrowOnError extends boolean = false>(options: Options<DefectsUpdateDefectGroupArchivedData, ThrowOnError>): RequestResult<DefectsUpdateDefectGroupArchivedResponses, DefectsUpdateDefectGroupArchivedErrors, ThrowOnError> => (options.client ?? client).put<DefectsUpdateDefectGroupArchivedResponses, DefectsUpdateDefectGroupArchivedErrors, ThrowOnError>({
-    url: '/defects/groups/{group_id}/archived',
+export const completeBatchShipment = <ThrowOnError extends boolean = false>(options: Options<CompleteBatchShipmentData, ThrowOnError>): RequestResult<CompleteBatchShipmentResponses, CompleteBatchShipmentErrors, ThrowOnError> => (options.client ?? client).post<CompleteBatchShipmentResponses, CompleteBatchShipmentErrors, ThrowOnError>({ url: '/api/batches/{batch_id}/shipments/{shipment_id}/complete', ...options });
+
+/**
+ * ListShipments
+ */
+export const listBatchShipments = <ThrowOnError extends boolean = false>(options: Options<ListBatchShipmentsData, ThrowOnError>): RequestResult<ListBatchShipmentsResponses, ListBatchShipmentsErrors, ThrowOnError> => (options.client ?? client).get<ListBatchShipmentsResponses, ListBatchShipmentsErrors, ThrowOnError>({ url: '/api/batches/{batch_id}/shipments', ...options });
+
+/**
+ * CreateShipment
+ */
+export const createBatchShipment = <ThrowOnError extends boolean = false>(options: Options<CreateBatchShipmentData, ThrowOnError>): RequestResult<CreateBatchShipmentResponses, CreateBatchShipmentErrors, ThrowOnError> => (options.client ?? client).post<CreateBatchShipmentResponses, CreateBatchShipmentErrors, ThrowOnError>({
+    url: '/api/batches/{batch_id}/shipments',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -267,15 +334,15 @@ export const defectsUpdateDefectGroupArchived = <ThrowOnError extends boolean = 
 });
 
 /**
- * List Defect Types
+ * GetShipment
  */
-export const defectsListDefectTypes = <ThrowOnError extends boolean = false>(options?: Options<DefectsListDefectTypesData, ThrowOnError>): RequestResult<DefectsListDefectTypesResponses, DefectsListDefectTypesErrors, ThrowOnError> => (options?.client ?? client).get<DefectsListDefectTypesResponses, DefectsListDefectTypesErrors, ThrowOnError>({ url: '/defects/types', ...options });
+export const getBatchShipment = <ThrowOnError extends boolean = false>(options: Options<GetBatchShipmentData, ThrowOnError>): RequestResult<GetBatchShipmentResponses, GetBatchShipmentErrors, ThrowOnError> => (options.client ?? client).get<GetBatchShipmentResponses, GetBatchShipmentErrors, ThrowOnError>({ url: '/api/batches/{batch_id}/shipments/{shipment_id}', ...options });
 
 /**
- * Create Defect Type
+ * UpdateShipment
  */
-export const defectsCreateDefectType = <ThrowOnError extends boolean = false>(options: Options<DefectsCreateDefectTypeData, ThrowOnError>): RequestResult<DefectsCreateDefectTypeResponses, DefectsCreateDefectTypeErrors, ThrowOnError> => (options.client ?? client).post<DefectsCreateDefectTypeResponses, DefectsCreateDefectTypeErrors, ThrowOnError>({
-    url: '/defects/types',
+export const updateBatchShipment = <ThrowOnError extends boolean = false>(options: Options<UpdateBatchShipmentData, ThrowOnError>): RequestResult<UpdateBatchShipmentResponses, UpdateBatchShipmentErrors, ThrowOnError> => (options.client ?? client).patch<UpdateBatchShipmentResponses, UpdateBatchShipmentErrors, ThrowOnError>({
+    url: '/api/batches/{batch_id}/shipments/{shipment_id}',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -284,20 +351,10 @@ export const defectsCreateDefectType = <ThrowOnError extends boolean = false>(op
 });
 
 /**
- * Delete Defect Type
+ * VoidShipment
  */
-export const defectsDeleteDefectType = <ThrowOnError extends boolean = false>(options: Options<DefectsDeleteDefectTypeData, ThrowOnError>): RequestResult<DefectsDeleteDefectTypeResponses, DefectsDeleteDefectTypeErrors, ThrowOnError> => (options.client ?? client).delete<DefectsDeleteDefectTypeResponses, DefectsDeleteDefectTypeErrors, ThrowOnError>({ url: '/defects/types/{defect_type_id}', ...options });
-
-/**
- * Get Defect Type
- */
-export const defectsGetDefectType = <ThrowOnError extends boolean = false>(options: Options<DefectsGetDefectTypeData, ThrowOnError>): RequestResult<DefectsGetDefectTypeResponses, DefectsGetDefectTypeErrors, ThrowOnError> => (options.client ?? client).get<DefectsGetDefectTypeResponses, DefectsGetDefectTypeErrors, ThrowOnError>({ url: '/defects/types/{defect_type_id}', ...options });
-
-/**
- * Update Defect Type
- */
-export const defectsUpdateDefectType = <ThrowOnError extends boolean = false>(options: Options<DefectsUpdateDefectTypeData, ThrowOnError>): RequestResult<DefectsUpdateDefectTypeResponses, DefectsUpdateDefectTypeErrors, ThrowOnError> => (options.client ?? client).patch<DefectsUpdateDefectTypeResponses, DefectsUpdateDefectTypeErrors, ThrowOnError>({
-    url: '/defects/types/{defect_type_id}',
+export const voidBatchShipment = <ThrowOnError extends boolean = false>(options: Options<VoidBatchShipmentData, ThrowOnError>): RequestResult<VoidBatchShipmentResponses, VoidBatchShipmentErrors, ThrowOnError> => (options.client ?? client).post<VoidBatchShipmentResponses, VoidBatchShipmentErrors, ThrowOnError>({
+    url: '/api/batches/{batch_id}/shipments/{shipment_id}/void',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -306,10 +363,20 @@ export const defectsUpdateDefectType = <ThrowOnError extends boolean = false>(op
 });
 
 /**
- * Update Defect Type Archived
+ * AddPackedUnits
  */
-export const defectsUpdateDefectTypeArchived = <ThrowOnError extends boolean = false>(options: Options<DefectsUpdateDefectTypeArchivedData, ThrowOnError>): RequestResult<DefectsUpdateDefectTypeArchivedResponses, DefectsUpdateDefectTypeArchivedErrors, ThrowOnError> => (options.client ?? client).put<DefectsUpdateDefectTypeArchivedResponses, DefectsUpdateDefectTypeArchivedErrors, ThrowOnError>({
-    url: '/defects/types/{defect_type_id}/archived',
+export const addPackedBatchShipmentUnits = <ThrowOnError extends boolean = false>(options: Options<AddPackedBatchShipmentUnitsData, ThrowOnError>): RequestResult<AddPackedBatchShipmentUnitsResponses, AddPackedBatchShipmentUnitsErrors, ThrowOnError> => (options.client ?? client).post<AddPackedBatchShipmentUnitsResponses, AddPackedBatchShipmentUnitsErrors, ThrowOnError>({ url: '/api/batches/{batch_id}/shipments/{shipment_id}/items/packed', ...options });
+
+/**
+ * ListItems
+ */
+export const listBatchShipmentItems = <ThrowOnError extends boolean = false>(options: Options<ListBatchShipmentItemsData, ThrowOnError>): RequestResult<ListBatchShipmentItemsResponses, ListBatchShipmentItemsErrors, ThrowOnError> => (options.client ?? client).get<ListBatchShipmentItemsResponses, ListBatchShipmentItemsErrors, ThrowOnError>({ url: '/api/batches/{batch_id}/shipments/{shipment_id}/items', ...options });
+
+/**
+ * AddUnits
+ */
+export const addBatchShipmentUnits = <ThrowOnError extends boolean = false>(options: Options<AddBatchShipmentUnitsData, ThrowOnError>): RequestResult<AddBatchShipmentUnitsResponses, AddBatchShipmentUnitsErrors, ThrowOnError> => (options.client ?? client).post<AddBatchShipmentUnitsResponses, AddBatchShipmentUnitsErrors, ThrowOnError>({
+    url: '/api/batches/{batch_id}/shipments/{shipment_id}/items',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -318,25 +385,25 @@ export const defectsUpdateDefectTypeArchived = <ThrowOnError extends boolean = f
 });
 
 /**
- * List Kg
+ * RemoveUnit
  */
-export const kgListKg = <ThrowOnError extends boolean = false>(options?: Options<KgListKgData, ThrowOnError>): RequestResult<KgListKgResponses, KgListKgErrors, ThrowOnError> => (options?.client ?? client).get<KgListKgResponses, KgListKgErrors, ThrowOnError>({ url: '/kg', ...options });
+export const removeBatchShipmentUnit = <ThrowOnError extends boolean = false>(options: Options<RemoveBatchShipmentUnitData, ThrowOnError>): RequestResult<RemoveBatchShipmentUnitResponses, RemoveBatchShipmentUnitErrors, ThrowOnError> => (options.client ?? client).delete<RemoveBatchShipmentUnitResponses, RemoveBatchShipmentUnitErrors, ThrowOnError>({ url: '/api/batches/{batch_id}/shipments/{shipment_id}/items/{dev_eui}', ...options });
 
 /**
- * List Kg By Batch
+ * ArchiveKgPrefix
  */
-export const kgListKgByBatch = <ThrowOnError extends boolean = false>(options: Options<KgListKgByBatchData, ThrowOnError>): RequestResult<KgListKgByBatchResponses, KgListKgByBatchErrors, ThrowOnError> => (options.client ?? client).get<KgListKgByBatchResponses, KgListKgByBatchErrors, ThrowOnError>({ url: '/kg/batch/{batch_id}', ...options });
+export const archiveKgPrefix = <ThrowOnError extends boolean = false>(options: Options<ArchiveKgPrefixData, ThrowOnError>): RequestResult<ArchiveKgPrefixResponses, ArchiveKgPrefixErrors, ThrowOnError> => (options.client ?? client).post<ArchiveKgPrefixResponses, ArchiveKgPrefixErrors, ThrowOnError>({ url: '/api/kg/prefixes/{prefix_id}/archive', ...options });
 
 /**
- * List Dev Eui Prefixes
+ * ListKgPrefixes
  */
-export const kgListDevEuiPrefixes = <ThrowOnError extends boolean = false>(options?: Options<KgListDevEuiPrefixesData, ThrowOnError>): RequestResult<KgListDevEuiPrefixesResponses, KgListDevEuiPrefixesErrors, ThrowOnError> => (options?.client ?? client).get<KgListDevEuiPrefixesResponses, KgListDevEuiPrefixesErrors, ThrowOnError>({ url: '/kg/dev-eui-prefixes', ...options });
+export const listKgPrefixes = <ThrowOnError extends boolean = false>(options?: Options<ListKgPrefixesData, ThrowOnError>): RequestResult<ListKgPrefixesResponses, ListKgPrefixesErrors, ThrowOnError> => (options?.client ?? client).get<ListKgPrefixesResponses, ListKgPrefixesErrors, ThrowOnError>({ url: '/api/kg/prefixes', ...options });
 
 /**
- * Create Dev Eui Prefix
+ * CreateKgPrefix
  */
-export const kgCreateDevEuiPrefix = <ThrowOnError extends boolean = false>(options: Options<KgCreateDevEuiPrefixData, ThrowOnError>): RequestResult<KgCreateDevEuiPrefixResponses, KgCreateDevEuiPrefixErrors, ThrowOnError> => (options.client ?? client).post<KgCreateDevEuiPrefixResponses, KgCreateDevEuiPrefixErrors, ThrowOnError>({
-    url: '/kg/dev-eui-prefixes',
+export const createKgPrefix = <ThrowOnError extends boolean = false>(options: Options<CreateKgPrefixData, ThrowOnError>): RequestResult<CreateKgPrefixResponses, CreateKgPrefixErrors, ThrowOnError> => (options.client ?? client).post<CreateKgPrefixResponses, CreateKgPrefixErrors, ThrowOnError>({
+    url: '/api/kg/prefixes',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -345,15 +412,20 @@ export const kgCreateDevEuiPrefix = <ThrowOnError extends boolean = false>(optio
 });
 
 /**
- * Delete Dev Eui Prefix
+ * DeleteKgPrefix
  */
-export const kgDeleteDevEuiPrefix = <ThrowOnError extends boolean = false>(options: Options<KgDeleteDevEuiPrefixData, ThrowOnError>): RequestResult<KgDeleteDevEuiPrefixResponses, KgDeleteDevEuiPrefixErrors, ThrowOnError> => (options.client ?? client).delete<KgDeleteDevEuiPrefixResponses, KgDeleteDevEuiPrefixErrors, ThrowOnError>({ url: '/kg/dev-eui-prefixes/{prefix}', ...options });
+export const deleteKgPrefix = <ThrowOnError extends boolean = false>(options: Options<DeleteKgPrefixData, ThrowOnError>): RequestResult<DeleteKgPrefixResponses, DeleteKgPrefixErrors, ThrowOnError> => (options.client ?? client).delete<DeleteKgPrefixResponses, DeleteKgPrefixErrors, ThrowOnError>({ url: '/api/kg/prefixes/{prefix_id}', ...options });
 
 /**
- * Update Dev Eui Prefix
+ * GetKgPrefix
  */
-export const kgUpdateDevEuiPrefix = <ThrowOnError extends boolean = false>(options: Options<KgUpdateDevEuiPrefixData, ThrowOnError>): RequestResult<KgUpdateDevEuiPrefixResponses, KgUpdateDevEuiPrefixErrors, ThrowOnError> => (options.client ?? client).patch<KgUpdateDevEuiPrefixResponses, KgUpdateDevEuiPrefixErrors, ThrowOnError>({
-    url: '/kg/dev-eui-prefixes/{prefix}',
+export const getKgPrefix = <ThrowOnError extends boolean = false>(options: Options<GetKgPrefixData, ThrowOnError>): RequestResult<GetKgPrefixResponses, GetKgPrefixErrors, ThrowOnError> => (options.client ?? client).get<GetKgPrefixResponses, GetKgPrefixErrors, ThrowOnError>({ url: '/api/kg/prefixes/{prefix_id}', ...options });
+
+/**
+ * UpdateKgPrefix
+ */
+export const updateKgPrefix = <ThrowOnError extends boolean = false>(options: Options<UpdateKgPrefixData, ThrowOnError>): RequestResult<UpdateKgPrefixResponses, UpdateKgPrefixErrors, ThrowOnError> => (options.client ?? client).patch<UpdateKgPrefixResponses, UpdateKgPrefixErrors, ThrowOnError>({
+    url: '/api/kg/prefixes/{prefix_id}',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -362,10 +434,35 @@ export const kgUpdateDevEuiPrefix = <ThrowOnError extends boolean = false>(optio
 });
 
 /**
- * Update Dev Eui Prefix Archived
+ * RestoreKgPrefix
  */
-export const kgUpdateDevEuiPrefixArchived = <ThrowOnError extends boolean = false>(options: Options<KgUpdateDevEuiPrefixArchivedData, ThrowOnError>): RequestResult<KgUpdateDevEuiPrefixArchivedResponses, KgUpdateDevEuiPrefixArchivedErrors, ThrowOnError> => (options.client ?? client).put<KgUpdateDevEuiPrefixArchivedResponses, KgUpdateDevEuiPrefixArchivedErrors, ThrowOnError>({
-    url: '/kg/dev-eui-prefixes/{prefix}/archived',
+export const restoreKgPrefix = <ThrowOnError extends boolean = false>(options: Options<RestoreKgPrefixData, ThrowOnError>): RequestResult<RestoreKgPrefixResponses, RestoreKgPrefixErrors, ThrowOnError> => (options.client ?? client).post<RestoreKgPrefixResponses, RestoreKgPrefixErrors, ThrowOnError>({ url: '/api/kg/prefixes/{prefix_id}/restore', ...options });
+
+/**
+ * GetKgUnit
+ */
+export const getKgUnit = <ThrowOnError extends boolean = false>(options: Options<GetKgUnitData, ThrowOnError>): RequestResult<GetKgUnitResponses, GetKgUnitErrors, ThrowOnError> => (options.client ?? client).get<GetKgUnitResponses, GetKgUnitErrors, ThrowOnError>({ url: '/api/kg/units/{dev_eui}', ...options });
+
+/**
+ * ListKgUnits
+ */
+export const listKgUnits = <ThrowOnError extends boolean = false>(options?: Options<ListKgUnitsData, ThrowOnError>): RequestResult<ListKgUnitsResponses, ListKgUnitsErrors, ThrowOnError> => (options?.client ?? client).get<ListKgUnitsResponses, ListKgUnitsErrors, ThrowOnError>({ url: '/api/kg/units', ...options });
+
+/**
+ * ArchiveKgVersion
+ */
+export const archiveKgVersion = <ThrowOnError extends boolean = false>(options: Options<ArchiveKgVersionData, ThrowOnError>): RequestResult<ArchiveKgVersionResponses, ArchiveKgVersionErrors, ThrowOnError> => (options.client ?? client).post<ArchiveKgVersionResponses, ArchiveKgVersionErrors, ThrowOnError>({ url: '/api/kg/versions/{version_id}/archive', ...options });
+
+/**
+ * ListKgVersions
+ */
+export const listKgVersions = <ThrowOnError extends boolean = false>(options?: Options<ListKgVersionsData, ThrowOnError>): RequestResult<ListKgVersionsResponses, ListKgVersionsErrors, ThrowOnError> => (options?.client ?? client).get<ListKgVersionsResponses, ListKgVersionsErrors, ThrowOnError>({ url: '/api/kg/versions', ...options });
+
+/**
+ * CreateKgVersion
+ */
+export const createKgVersion = <ThrowOnError extends boolean = false>(options: Options<CreateKgVersionData, ThrowOnError>): RequestResult<CreateKgVersionResponses, CreateKgVersionErrors, ThrowOnError> => (options.client ?? client).post<CreateKgVersionResponses, CreateKgVersionErrors, ThrowOnError>({
+    url: '/api/kg/versions',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -374,15 +471,20 @@ export const kgUpdateDevEuiPrefixArchived = <ThrowOnError extends boolean = fals
 });
 
 /**
- * List Kg Versions
+ * DeleteKgVersion
  */
-export const kgListKgVersions = <ThrowOnError extends boolean = false>(options?: Options<KgListKgVersionsData, ThrowOnError>): RequestResult<KgListKgVersionsResponses, KgListKgVersionsErrors, ThrowOnError> => (options?.client ?? client).get<KgListKgVersionsResponses, KgListKgVersionsErrors, ThrowOnError>({ url: '/kg/versions', ...options });
+export const deleteKgVersion = <ThrowOnError extends boolean = false>(options: Options<DeleteKgVersionData, ThrowOnError>): RequestResult<DeleteKgVersionResponses, DeleteKgVersionErrors, ThrowOnError> => (options.client ?? client).delete<DeleteKgVersionResponses, DeleteKgVersionErrors, ThrowOnError>({ url: '/api/kg/versions/{version_id}', ...options });
 
 /**
- * Create Kg Version
+ * GetKgVersion
  */
-export const kgCreateKgVersion = <ThrowOnError extends boolean = false>(options: Options<KgCreateKgVersionData, ThrowOnError>): RequestResult<KgCreateKgVersionResponses, KgCreateKgVersionErrors, ThrowOnError> => (options.client ?? client).post<KgCreateKgVersionResponses, KgCreateKgVersionErrors, ThrowOnError>({
-    url: '/kg/versions',
+export const getKgVersion = <ThrowOnError extends boolean = false>(options: Options<GetKgVersionData, ThrowOnError>): RequestResult<GetKgVersionResponses, GetKgVersionErrors, ThrowOnError> => (options.client ?? client).get<GetKgVersionResponses, GetKgVersionErrors, ThrowOnError>({ url: '/api/kg/versions/{version_id}', ...options });
+
+/**
+ * UpdateKgVersion
+ */
+export const updateKgVersion = <ThrowOnError extends boolean = false>(options: Options<UpdateKgVersionData, ThrowOnError>): RequestResult<UpdateKgVersionResponses, UpdateKgVersionErrors, ThrowOnError> => (options.client ?? client).patch<UpdateKgVersionResponses, UpdateKgVersionErrors, ThrowOnError>({
+    url: '/api/kg/versions/{version_id}',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -391,15 +493,35 @@ export const kgCreateKgVersion = <ThrowOnError extends boolean = false>(options:
 });
 
 /**
- * Delete Kg Version
+ * RestoreKgVersion
  */
-export const kgDeleteKgVersion = <ThrowOnError extends boolean = false>(options: Options<KgDeleteKgVersionData, ThrowOnError>): RequestResult<KgDeleteKgVersionResponses, KgDeleteKgVersionErrors, ThrowOnError> => (options.client ?? client).delete<KgDeleteKgVersionResponses, KgDeleteKgVersionErrors, ThrowOnError>({ url: '/kg/versions/{version_id}', ...options });
+export const restoreKgVersion = <ThrowOnError extends boolean = false>(options: Options<RestoreKgVersionData, ThrowOnError>): RequestResult<RestoreKgVersionResponses, RestoreKgVersionErrors, ThrowOnError> => (options.client ?? client).post<RestoreKgVersionResponses, RestoreKgVersionErrors, ThrowOnError>({ url: '/api/kg/versions/{version_id}/restore', ...options });
 
 /**
- * Update Kg Version
+ * FindUnit
  */
-export const kgUpdateKgVersion = <ThrowOnError extends boolean = false>(options: Options<KgUpdateKgVersionData, ThrowOnError>): RequestResult<KgUpdateKgVersionResponses, KgUpdateKgVersionErrors, ThrowOnError> => (options.client ?? client).patch<KgUpdateKgVersionResponses, KgUpdateKgVersionErrors, ThrowOnError>({
-    url: '/kg/versions/{version_id}',
+export const findPackingUnit = <ThrowOnError extends boolean = false>(options: Options<FindPackingUnitData, ThrowOnError>): RequestResult<FindPackingUnitResponses, FindPackingUnitErrors, ThrowOnError> => (options.client ?? client).get<FindPackingUnitResponses, FindPackingUnitErrors, ThrowOnError>({ url: '/api/packing/units/{code}', ...options });
+
+/**
+ * PackUnit
+ */
+export const packKgUnit = <ThrowOnError extends boolean = false>(options: Options<PackKgUnitData, ThrowOnError>): RequestResult<PackKgUnitResponses, PackKgUnitErrors, ThrowOnError> => (options.client ?? client).post<PackKgUnitResponses, PackKgUnitErrors, ThrowOnError>({ url: '/api/packing/units/{dev_eui}/pack', ...options });
+
+/**
+ * ArchiveProductionOrder
+ */
+export const archiveProductionOrder = <ThrowOnError extends boolean = false>(options: Options<ArchiveProductionOrderData, ThrowOnError>): RequestResult<ArchiveProductionOrderResponses, ArchiveProductionOrderErrors, ThrowOnError> => (options.client ?? client).post<ArchiveProductionOrderResponses, ArchiveProductionOrderErrors, ThrowOnError>({ url: '/api/production-orders/{order_id}/archive', ...options });
+
+/**
+ * ListProductionOrders
+ */
+export const listProductionOrders = <ThrowOnError extends boolean = false>(options?: Options<ListProductionOrdersData, ThrowOnError>): RequestResult<ListProductionOrdersResponses, ListProductionOrdersErrors, ThrowOnError> => (options?.client ?? client).get<ListProductionOrdersResponses, ListProductionOrdersErrors, ThrowOnError>({ url: '/api/production-orders', ...options });
+
+/**
+ * CreateProductionOrder
+ */
+export const createProductionOrder = <ThrowOnError extends boolean = false>(options: Options<CreateProductionOrderData, ThrowOnError>): RequestResult<CreateProductionOrderResponses, CreateProductionOrderErrors, ThrowOnError> => (options.client ?? client).post<CreateProductionOrderResponses, CreateProductionOrderErrors, ThrowOnError>({
+    url: '/api/production-orders',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -408,10 +530,20 @@ export const kgUpdateKgVersion = <ThrowOnError extends boolean = false>(options:
 });
 
 /**
- * Update Kg Version Archived
+ * DeleteProductionOrder
  */
-export const kgUpdateKgVersionArchived = <ThrowOnError extends boolean = false>(options: Options<KgUpdateKgVersionArchivedData, ThrowOnError>): RequestResult<KgUpdateKgVersionArchivedResponses, KgUpdateKgVersionArchivedErrors, ThrowOnError> => (options.client ?? client).put<KgUpdateKgVersionArchivedResponses, KgUpdateKgVersionArchivedErrors, ThrowOnError>({
-    url: '/kg/versions/{version_id}/archived',
+export const deleteProductionOrder = <ThrowOnError extends boolean = false>(options: Options<DeleteProductionOrderData, ThrowOnError>): RequestResult<DeleteProductionOrderResponses, DeleteProductionOrderErrors, ThrowOnError> => (options.client ?? client).delete<DeleteProductionOrderResponses, DeleteProductionOrderErrors, ThrowOnError>({ url: '/api/production-orders/{order_id}', ...options });
+
+/**
+ * GetProductionOrder
+ */
+export const getProductionOrder = <ThrowOnError extends boolean = false>(options: Options<GetProductionOrderData, ThrowOnError>): RequestResult<GetProductionOrderResponses, GetProductionOrderErrors, ThrowOnError> => (options.client ?? client).get<GetProductionOrderResponses, GetProductionOrderErrors, ThrowOnError>({ url: '/api/production-orders/{order_id}', ...options });
+
+/**
+ * UpdateProductionOrder
+ */
+export const updateProductionOrder = <ThrowOnError extends boolean = false>(options: Options<UpdateProductionOrderData, ThrowOnError>): RequestResult<UpdateProductionOrderResponses, UpdateProductionOrderErrors, ThrowOnError> => (options.client ?? client).patch<UpdateProductionOrderResponses, UpdateProductionOrderErrors, ThrowOnError>({
+    url: '/api/production-orders/{order_id}',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -420,20 +552,25 @@ export const kgUpdateKgVersionArchived = <ThrowOnError extends boolean = false>(
 });
 
 /**
- * Get Kg
+ * RestoreProductionOrder
  */
-export const kgGetKg = <ThrowOnError extends boolean = false>(options: Options<KgGetKgData, ThrowOnError>): RequestResult<KgGetKgResponses, KgGetKgErrors, ThrowOnError> => (options.client ?? client).get<KgGetKgResponses, KgGetKgErrors, ThrowOnError>({ url: '/kg/{dev_eui}', ...options });
+export const restoreProductionOrder = <ThrowOnError extends boolean = false>(options: Options<RestoreProductionOrderData, ThrowOnError>): RequestResult<RestoreProductionOrderResponses, RestoreProductionOrderErrors, ThrowOnError> => (options.client ?? client).post<RestoreProductionOrderResponses, RestoreProductionOrderErrors, ThrowOnError>({ url: '/api/production-orders/{order_id}/restore', ...options });
 
 /**
- * List Pak
+ * ArchiveDefectGroup
  */
-export const pakListPak = <ThrowOnError extends boolean = false>(options?: Options<PakListPakData, ThrowOnError>): RequestResult<PakListPakResponses, PakListPakErrors, ThrowOnError> => (options?.client ?? client).get<PakListPakResponses, PakListPakErrors, ThrowOnError>({ url: '/pak', ...options });
+export const archiveDefectGroup = <ThrowOnError extends boolean = false>(options: Options<ArchiveDefectGroupData, ThrowOnError>): RequestResult<ArchiveDefectGroupResponses, ArchiveDefectGroupErrors, ThrowOnError> => (options.client ?? client).post<ArchiveDefectGroupResponses, ArchiveDefectGroupErrors, ThrowOnError>({ url: '/api/defects/groups/{group_id}/archive', ...options });
 
 /**
- * Create Pak
+ * ListDefectGroups
  */
-export const pakCreatePak = <ThrowOnError extends boolean = false>(options: Options<PakCreatePakData, ThrowOnError>): RequestResult<PakCreatePakResponses, PakCreatePakErrors, ThrowOnError> => (options.client ?? client).post<PakCreatePakResponses, PakCreatePakErrors, ThrowOnError>({
-    url: '/pak',
+export const listDefectGroups = <ThrowOnError extends boolean = false>(options?: Options<ListDefectGroupsData, ThrowOnError>): RequestResult<ListDefectGroupsResponses, ListDefectGroupsErrors, ThrowOnError> => (options?.client ?? client).get<ListDefectGroupsResponses, ListDefectGroupsErrors, ThrowOnError>({ url: '/api/defects/groups', ...options });
+
+/**
+ * CreateDefectGroup
+ */
+export const createDefectGroup = <ThrowOnError extends boolean = false>(options: Options<CreateDefectGroupData, ThrowOnError>): RequestResult<CreateDefectGroupResponses, CreateDefectGroupErrors, ThrowOnError> => (options.client ?? client).post<CreateDefectGroupResponses, CreateDefectGroupErrors, ThrowOnError>({
+    url: '/api/defects/groups',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -442,30 +579,20 @@ export const pakCreatePak = <ThrowOnError extends boolean = false>(options: Opti
 });
 
 /**
- * List Pak Tests
+ * DeleteDefectGroup
  */
-export const pakListPakTests = <ThrowOnError extends boolean = false>(options?: Options<PakListPakTestsData, ThrowOnError>): RequestResult<PakListPakTestsResponses, PakListPakTestsErrors, ThrowOnError> => (options?.client ?? client).get<PakListPakTestsResponses, PakListPakTestsErrors, ThrowOnError>({ url: '/pak/tests', ...options });
+export const deleteDefectGroup = <ThrowOnError extends boolean = false>(options: Options<DeleteDefectGroupData, ThrowOnError>): RequestResult<DeleteDefectGroupResponses, DeleteDefectGroupErrors, ThrowOnError> => (options.client ?? client).delete<DeleteDefectGroupResponses, DeleteDefectGroupErrors, ThrowOnError>({ url: '/api/defects/groups/{group_id}', ...options });
 
 /**
- * Get Pak Test
+ * GetDefectGroup
  */
-export const pakGetPakTest = <ThrowOnError extends boolean = false>(options: Options<PakGetPakTestData, ThrowOnError>): RequestResult<PakGetPakTestResponses, PakGetPakTestErrors, ThrowOnError> => (options.client ?? client).get<PakGetPakTestResponses, PakGetPakTestErrors, ThrowOnError>({ url: '/pak/tests/{test_id}', ...options });
+export const getDefectGroup = <ThrowOnError extends boolean = false>(options: Options<GetDefectGroupData, ThrowOnError>): RequestResult<GetDefectGroupResponses, GetDefectGroupErrors, ThrowOnError> => (options.client ?? client).get<GetDefectGroupResponses, GetDefectGroupErrors, ThrowOnError>({ url: '/api/defects/groups/{group_id}', ...options });
 
 /**
- * Delete Pak
+ * UpdateDefectGroup
  */
-export const pakDeletePak = <ThrowOnError extends boolean = false>(options: Options<PakDeletePakData, ThrowOnError>): RequestResult<PakDeletePakResponses, PakDeletePakErrors, ThrowOnError> => (options.client ?? client).delete<PakDeletePakResponses, PakDeletePakErrors, ThrowOnError>({ url: '/pak/{pak_id}', ...options });
-
-/**
- * Get Pak
- */
-export const pakGetPak = <ThrowOnError extends boolean = false>(options: Options<PakGetPakData, ThrowOnError>): RequestResult<PakGetPakResponses, PakGetPakErrors, ThrowOnError> => (options.client ?? client).get<PakGetPakResponses, PakGetPakErrors, ThrowOnError>({ url: '/pak/{pak_id}', ...options });
-
-/**
- * Update Pak
- */
-export const pakUpdatePak = <ThrowOnError extends boolean = false>(options: Options<PakUpdatePakData, ThrowOnError>): RequestResult<PakUpdatePakResponses, PakUpdatePakErrors, ThrowOnError> => (options.client ?? client).patch<PakUpdatePakResponses, PakUpdatePakErrors, ThrowOnError>({
-    url: '/pak/{pak_id}',
+export const updateDefectGroup = <ThrowOnError extends boolean = false>(options: Options<UpdateDefectGroupData, ThrowOnError>): RequestResult<UpdateDefectGroupResponses, UpdateDefectGroupErrors, ThrowOnError> => (options.client ?? client).patch<UpdateDefectGroupResponses, UpdateDefectGroupErrors, ThrowOnError>({
+    url: '/api/defects/groups/{group_id}',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -474,20 +601,25 @@ export const pakUpdatePak = <ThrowOnError extends boolean = false>(options: Opti
 });
 
 /**
- * Get Access Key
+ * RestoreDefectGroup
  */
-export const pakGetAccessKey = <ThrowOnError extends boolean = false>(options: Options<PakGetAccessKeyData, ThrowOnError>): RequestResult<PakGetAccessKeyResponses, PakGetAccessKeyErrors, ThrowOnError> => (options.client ?? client).get<PakGetAccessKeyResponses, PakGetAccessKeyErrors, ThrowOnError>({ url: '/pak/{pak_id}/access-key', ...options });
+export const restoreDefectGroup = <ThrowOnError extends boolean = false>(options: Options<RestoreDefectGroupData, ThrowOnError>): RequestResult<RestoreDefectGroupResponses, RestoreDefectGroupErrors, ThrowOnError> => (options.client ?? client).post<RestoreDefectGroupResponses, RestoreDefectGroupErrors, ThrowOnError>({ url: '/api/defects/groups/{group_id}/restore', ...options });
 
 /**
- * Rotate Access Key
+ * ArchiveDefectType
  */
-export const pakRotateAccessKey = <ThrowOnError extends boolean = false>(options: Options<PakRotateAccessKeyData, ThrowOnError>): RequestResult<PakRotateAccessKeyResponses, PakRotateAccessKeyErrors, ThrowOnError> => (options.client ?? client).post<PakRotateAccessKeyResponses, PakRotateAccessKeyErrors, ThrowOnError>({ url: '/pak/{pak_id}/access-key/rotate', ...options });
+export const archiveDefectType = <ThrowOnError extends boolean = false>(options: Options<ArchiveDefectTypeData, ThrowOnError>): RequestResult<ArchiveDefectTypeResponses, ArchiveDefectTypeErrors, ThrowOnError> => (options.client ?? client).post<ArchiveDefectTypeResponses, ArchiveDefectTypeErrors, ThrowOnError>({ url: '/api/defects/types/{type_id}/archive', ...options });
 
 /**
- * Update Active
+ * ListDefectTypes
  */
-export const pakUpdateActive = <ThrowOnError extends boolean = false>(options: Options<PakUpdateActiveData, ThrowOnError>): RequestResult<PakUpdateActiveResponses, PakUpdateActiveErrors, ThrowOnError> => (options.client ?? client).put<PakUpdateActiveResponses, PakUpdateActiveErrors, ThrowOnError>({
-    url: '/pak/{pak_id}/active',
+export const listDefectTypes = <ThrowOnError extends boolean = false>(options?: Options<ListDefectTypesData, ThrowOnError>): RequestResult<ListDefectTypesResponses, ListDefectTypesErrors, ThrowOnError> => (options?.client ?? client).get<ListDefectTypesResponses, ListDefectTypesErrors, ThrowOnError>({ url: '/api/defects/types', ...options });
+
+/**
+ * CreateDefectType
+ */
+export const createDefectType = <ThrowOnError extends boolean = false>(options: Options<CreateDefectTypeData, ThrowOnError>): RequestResult<CreateDefectTypeResponses, CreateDefectTypeErrors, ThrowOnError> => (options.client ?? client).post<CreateDefectTypeResponses, CreateDefectTypeErrors, ThrowOnError>({
+    url: '/api/defects/types',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -496,10 +628,20 @@ export const pakUpdateActive = <ThrowOnError extends boolean = false>(options: O
 });
 
 /**
- * Update Archived
+ * DeleteDefectType
  */
-export const pakUpdateArchived = <ThrowOnError extends boolean = false>(options: Options<PakUpdateArchivedData, ThrowOnError>): RequestResult<PakUpdateArchivedResponses, PakUpdateArchivedErrors, ThrowOnError> => (options.client ?? client).put<PakUpdateArchivedResponses, PakUpdateArchivedErrors, ThrowOnError>({
-    url: '/pak/{pak_id}/archived',
+export const deleteDefectType = <ThrowOnError extends boolean = false>(options: Options<DeleteDefectTypeData, ThrowOnError>): RequestResult<DeleteDefectTypeResponses, DeleteDefectTypeErrors, ThrowOnError> => (options.client ?? client).delete<DeleteDefectTypeResponses, DeleteDefectTypeErrors, ThrowOnError>({ url: '/api/defects/types/{type_id}', ...options });
+
+/**
+ * GetDefectType
+ */
+export const getDefectType = <ThrowOnError extends boolean = false>(options: Options<GetDefectTypeData, ThrowOnError>): RequestResult<GetDefectTypeResponses, GetDefectTypeErrors, ThrowOnError> => (options.client ?? client).get<GetDefectTypeResponses, GetDefectTypeErrors, ThrowOnError>({ url: '/api/defects/types/{type_id}', ...options });
+
+/**
+ * UpdateDefectType
+ */
+export const updateDefectType = <ThrowOnError extends boolean = false>(options: Options<UpdateDefectTypeData, ThrowOnError>): RequestResult<UpdateDefectTypeResponses, UpdateDefectTypeErrors, ThrowOnError> => (options.client ?? client).patch<UpdateDefectTypeResponses, UpdateDefectTypeErrors, ThrowOnError>({
+    url: '/api/defects/types/{type_id}',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -508,137 +650,26 @@ export const pakUpdateArchived = <ThrowOnError extends boolean = false>(options:
 });
 
 /**
- * Create Order
+ * RestoreDefectType
  */
-export const productionOrderCreateOrder = <ThrowOnError extends boolean = false>(options: Options<ProductionOrderCreateOrderData, ThrowOnError>): RequestResult<ProductionOrderCreateOrderResponses, ProductionOrderCreateOrderErrors, ThrowOnError> => (options.client ?? client).post<ProductionOrderCreateOrderResponses, ProductionOrderCreateOrderErrors, ThrowOnError>({
-    url: '/production-orders',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
+export const restoreDefectType = <ThrowOnError extends boolean = false>(options: Options<RestoreDefectTypeData, ThrowOnError>): RequestResult<RestoreDefectTypeResponses, RestoreDefectTypeErrors, ThrowOnError> => (options.client ?? client).post<RestoreDefectTypeResponses, RestoreDefectTypeErrors, ThrowOnError>({ url: '/api/defects/types/{type_id}/restore', ...options });
 
 /**
- * List Orders
+ * GetPakCheck
  */
-export const productionOrderListOrders = <ThrowOnError extends boolean = false>(options?: Options<ProductionOrderListOrdersData, ThrowOnError>): RequestResult<ProductionOrderListOrdersResponses, ProductionOrderListOrdersErrors, ThrowOnError> => (options?.client ?? client).get<ProductionOrderListOrdersResponses, ProductionOrderListOrdersErrors, ThrowOnError>({ url: '/production-orders/', ...options });
+export const getPakCheck = <ThrowOnError extends boolean = false>(options: Options<GetPakCheckData, ThrowOnError>): RequestResult<GetPakCheckResponses, GetPakCheckErrors, ThrowOnError> => (options.client ?? client).get<GetPakCheckResponses, GetPakCheckErrors, ThrowOnError>({ url: '/api/verification/checks/{check_id}', ...options });
 
 /**
- * Delete Order
+ * ListPakChecks
  */
-export const productionOrderDeleteOrder = <ThrowOnError extends boolean = false>(options: Options<ProductionOrderDeleteOrderData, ThrowOnError>): RequestResult<ProductionOrderDeleteOrderResponses, ProductionOrderDeleteOrderErrors, ThrowOnError> => (options.client ?? client).delete<ProductionOrderDeleteOrderResponses, ProductionOrderDeleteOrderErrors, ThrowOnError>({ url: '/production-orders/{order_id}', ...options });
+export const listPakChecks = <ThrowOnError extends boolean = false>(options?: Options<ListPakChecksData, ThrowOnError>): RequestResult<ListPakChecksResponses, ListPakChecksErrors, ThrowOnError> => (options?.client ?? client).get<ListPakChecksResponses, ListPakChecksErrors, ThrowOnError>({ url: '/api/verification/checks', ...options });
 
 /**
- * Get Order
+ * GetVerificationSession
  */
-export const productionOrderGetOrder = <ThrowOnError extends boolean = false>(options: Options<ProductionOrderGetOrderData, ThrowOnError>): RequestResult<ProductionOrderGetOrderResponses, ProductionOrderGetOrderErrors, ThrowOnError> => (options.client ?? client).get<ProductionOrderGetOrderResponses, ProductionOrderGetOrderErrors, ThrowOnError>({ url: '/production-orders/{order_id}', ...options });
+export const getVerificationSession = <ThrowOnError extends boolean = false>(options: Options<GetVerificationSessionData, ThrowOnError>): RequestResult<GetVerificationSessionResponses, GetVerificationSessionErrors, ThrowOnError> => (options.client ?? client).get<GetVerificationSessionResponses, GetVerificationSessionErrors, ThrowOnError>({ url: '/api/verification/sessions/{session_id}', ...options });
 
 /**
- * Update Order
+ * ListVerificationSessions
  */
-export const productionOrderUpdateOrder = <ThrowOnError extends boolean = false>(options: Options<ProductionOrderUpdateOrderData, ThrowOnError>): RequestResult<ProductionOrderUpdateOrderResponses, ProductionOrderUpdateOrderErrors, ThrowOnError> => (options.client ?? client).patch<ProductionOrderUpdateOrderResponses, ProductionOrderUpdateOrderErrors, ThrowOnError>({
-    url: '/production-orders/{order_id}',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Archive Order
- */
-export const productionOrderArchiveOrder = <ThrowOnError extends boolean = false>(options: Options<ProductionOrderArchiveOrderData, ThrowOnError>): RequestResult<ProductionOrderArchiveOrderResponses, ProductionOrderArchiveOrderErrors, ThrowOnError> => (options.client ?? client).put<ProductionOrderArchiveOrderResponses, ProductionOrderArchiveOrderErrors, ThrowOnError>({
-    url: '/production-orders/{order_id}/archived',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * List Users
- */
-export const usersListUsers = <ThrowOnError extends boolean = false>(options?: Options<UsersListUsersData, ThrowOnError>): RequestResult<UsersListUsersResponses, UsersListUsersErrors, ThrowOnError> => (options?.client ?? client).get<UsersListUsersResponses, UsersListUsersErrors, ThrowOnError>({ url: '/users', ...options });
-
-/**
- * Create User
- */
-export const usersCreateUser = <ThrowOnError extends boolean = false>(options: Options<UsersCreateUserData, ThrowOnError>): RequestResult<UsersCreateUserResponses, UsersCreateUserErrors, ThrowOnError> => (options.client ?? client).post<UsersCreateUserResponses, UsersCreateUserErrors, ThrowOnError>({
-    url: '/users',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Delete User
- */
-export const usersDeleteUser = <ThrowOnError extends boolean = false>(options: Options<UsersDeleteUserData, ThrowOnError>): RequestResult<UsersDeleteUserResponses, UsersDeleteUserErrors, ThrowOnError> => (options.client ?? client).delete<UsersDeleteUserResponses, UsersDeleteUserErrors, ThrowOnError>({ url: '/users/{user_id}', ...options });
-
-/**
- * Get User
- */
-export const usersGetUser = <ThrowOnError extends boolean = false>(options: Options<UsersGetUserData, ThrowOnError>): RequestResult<UsersGetUserResponses, UsersGetUserErrors, ThrowOnError> => (options.client ?? client).get<UsersGetUserResponses, UsersGetUserErrors, ThrowOnError>({ url: '/users/{user_id}', ...options });
-
-/**
- * Update User
- */
-export const usersUpdateUser = <ThrowOnError extends boolean = false>(options: Options<UsersUpdateUserData, ThrowOnError>): RequestResult<UsersUpdateUserResponses, UsersUpdateUserErrors, ThrowOnError> => (options.client ?? client).patch<UsersUpdateUserResponses, UsersUpdateUserErrors, ThrowOnError>({
-    url: '/users/{user_id}',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Update Active
- */
-export const usersUpdateActive = <ThrowOnError extends boolean = false>(options: Options<UsersUpdateActiveData, ThrowOnError>): RequestResult<UsersUpdateActiveResponses, UsersUpdateActiveErrors, ThrowOnError> => (options.client ?? client).put<UsersUpdateActiveResponses, UsersUpdateActiveErrors, ThrowOnError>({
-    url: '/users/{user_id}/active',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Update Archived
- */
-export const usersUpdateArchived = <ThrowOnError extends boolean = false>(options: Options<UsersUpdateArchivedData, ThrowOnError>): RequestResult<UsersUpdateArchivedResponses, UsersUpdateArchivedErrors, ThrowOnError> => (options.client ?? client).put<UsersUpdateArchivedResponses, UsersUpdateArchivedErrors, ThrowOnError>({
-    url: '/users/{user_id}/archived',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Update Password
- */
-export const usersUpdatePassword = <ThrowOnError extends boolean = false>(options: Options<UsersUpdatePasswordData, ThrowOnError>): RequestResult<UsersUpdatePasswordResponses, UsersUpdatePasswordErrors, ThrowOnError> => (options.client ?? client).put<UsersUpdatePasswordResponses, UsersUpdatePasswordErrors, ThrowOnError>({
-    url: '/users/{user_id}/password',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * List Sessions
- */
-export const verificationListSessions = <ThrowOnError extends boolean = false>(options?: Options<VerificationListSessionsData, ThrowOnError>): RequestResult<VerificationListSessionsResponses, VerificationListSessionsErrors, ThrowOnError> => (options?.client ?? client).get<VerificationListSessionsResponses, VerificationListSessionsErrors, ThrowOnError>({ url: '/verification/sessions', ...options });
-
-/**
- * Get Session
- */
-export const verificationGetSession = <ThrowOnError extends boolean = false>(options: Options<VerificationGetSessionData, ThrowOnError>): RequestResult<VerificationGetSessionResponses, VerificationGetSessionErrors, ThrowOnError> => (options.client ?? client).get<VerificationGetSessionResponses, VerificationGetSessionErrors, ThrowOnError>({ url: '/verification/sessions/{session_id}', ...options });
+export const listVerificationSessions = <ThrowOnError extends boolean = false>(options?: Options<ListVerificationSessionsData, ThrowOnError>): RequestResult<ListVerificationSessionsResponses, ListVerificationSessionsErrors, ThrowOnError> => (options?.client ?? client).get<ListVerificationSessionsResponses, ListVerificationSessionsErrors, ThrowOnError>({ url: '/api/verification/sessions', ...options });

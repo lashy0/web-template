@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { completeBatchMutation } from '@web-app/api-client'
 
 import { Button } from '@web-app/ui/components/button'
 import {
@@ -11,12 +12,7 @@ import {
 } from '@web-app/ui/components/dialog'
 import { Spinner } from '@web-app/ui/components/spinner'
 
-import {
-  batchErrorMessage,
-  batchQueryKeys,
-  completeBatch,
-  type Batch,
-} from '@/features/batches/batches-api'
+import { invalidateBatchQueries, type Batch } from '@/features/batches/batches-api'
 import useCustomToast from '@/hooks/useCustomToast'
 
 export function CompleteBatch({
@@ -33,14 +29,10 @@ export function CompleteBatch({
   const queryClient = useQueryClient()
   const { showErrorToast, showSuccessToast } = useCustomToast()
   const mutation = useMutation({
-    mutationFn: () => completeBatch(batch.id),
-    onError: (error) =>
-      showErrorToast(
-        'Не удалось завершить партию',
-        batchErrorMessage(error) ?? 'Попробуйте ещё раз.',
-      ),
+    ...completeBatchMutation(),
+    onError: () => showErrorToast('Не удалось завершить партию', 'Попробуйте ещё раз.'),
     onSuccess: async (completedBatch) => {
-      await queryClient.invalidateQueries({ queryKey: batchQueryKeys.all })
+      await invalidateBatchQueries(queryClient)
       onOpenChange(false)
       onSuccess()
       showSuccessToast(
@@ -61,15 +53,19 @@ export function CompleteBatch({
         <DialogHeader>
           <DialogTitle>Завершить партию?</DialogTitle>
           <DialogDescription>
-            Партия «{batch.name}» будет переведена в статус «Завершена». Вернуть её в
-            производство будет нельзя.
+            Партия «{batch.name}» будет переведена в статус «Завершена». Вернуть её в производство
+            будет нельзя.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button disabled={mutation.isPending} onClick={() => close()} variant="outline">
             Отмена
           </Button>
-          <Button disabled={mutation.isPending} onClick={() => mutation.mutate()} variant="destructive">
+          <Button
+            disabled={mutation.isPending}
+            onClick={() => mutation.mutate({ path: { batch_id: batch.id } })}
+            variant="destructive"
+          >
             {mutation.isPending ? <Spinner data-icon="inline-start" /> : null}
             {mutation.isPending ? 'Завершение…' : 'Завершить'}
           </Button>

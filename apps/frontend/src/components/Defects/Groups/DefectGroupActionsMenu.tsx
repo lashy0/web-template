@@ -38,10 +38,12 @@ export function DefectGroupActionsMenu({ group }: Readonly<{ group: DefectGroup 
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuGroup>
-          <DropdownMenuItem onClick={() => setEditOpen(true)}>
-            <PencilIcon />
-            Изменить
-          </DropdownMenuItem>
+          {group.archivedAt ? null : (
+            <DropdownMenuItem onClick={() => setEditOpen(true)}>
+              <PencilIcon />
+              Изменить
+            </DropdownMenuItem>
+          )}
           {group.archivedAt ? (
             <DropdownMenuItem onClick={() => setArchiveOpen(true)}>
               <RotateCcwIcon />

@@ -1,7 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { updateKgPrefixMutation } from '@web-app/api-client'
 import { useEffect } from 'react'
 import { Controller, useForm } from 'react-hook-form'
+import type { z } from 'zod'
 
 import { Button } from '@web-app/ui/components/button'
 import {
@@ -16,11 +18,11 @@ import { Field, FieldError, FieldGroup, FieldLabel } from '@web-app/ui/component
 import { Input } from '@web-app/ui/components/input'
 import { Spinner } from '@web-app/ui/components/spinner'
 
-import { kgPrefixErrorMessage, updateKgPrefix, type KgPrefix } from '@/features/kg/kg-prefixes-api'
+import { invalidateKgPrefixQueries, type KgPrefix } from '@/features/kg/kg-prefixes-api'
 import { updateKgPrefixSchema } from '@/features/kg/kg-prefix-form-schema'
 import useCustomToast from '@/hooks/useCustomToast'
 
-type EditKgPrefixForm = Readonly<{ name: string }>
+type EditKgPrefixForm = z.input<typeof updateKgPrefixSchema>
 
 function toForm(prefix: KgPrefix): EditKgPrefixForm {
   return { name: prefix.name ?? '' }
@@ -39,7 +41,7 @@ export function EditKgPrefix({
 }>) {
   const queryClient = useQueryClient()
   const { showErrorToast, showSuccessToast } = useCustomToast()
-  const form = useForm<EditKgPrefixForm>({
+  const form = useForm<EditKgPrefixForm, unknown, z.output<typeof updateKgPrefixSchema>>({
     defaultValues: toForm(prefix),
     mode: 'onChange',
     resolver: zodResolver(updateKgPrefixSchema),
@@ -48,18 +50,11 @@ export function EditKgPrefix({
     if (open) form.reset(toForm(prefix))
   }, [form, open, prefix])
   const mutation = useMutation({
-    mutationFn: (data: EditKgPrefixForm) =>
-      updateKgPrefix(prefix.prefix, { name: data.name.trim() || null }),
-    onError: (error) =>
-      showErrorToast(
-        'Не удалось изменить префикс',
-        kgPrefixErrorMessage(error) ?? 'Проверьте данные и попробуйте ещё раз.',
-      ),
+    ...updateKgPrefixMutation(),
+    onError: () =>
+      showErrorToast('Не удалось изменить префикс', 'Проверьте данные и попробуйте ещё раз.'),
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['kg', 'prefixes'] }),
-        queryClient.invalidateQueries({ queryKey: ['audit'] }),
-      ])
+      await invalidateKgPrefixQueries(queryClient)
       close(true)
       onSuccess()
       showSuccessToast('Префикс изменён', `Данные «${prefix.prefix}» сохранены.`)
@@ -80,7 +75,9 @@ export function EditKgPrefix({
           autoComplete="off"
           className="flex min-h-0 flex-1 flex-col"
           noValidate
-          onSubmit={form.handleSubmit((data) => mutation.mutate(data))}
+          onSubmit={form.handleSubmit((body) =>
+            mutation.mutate({ body, path: { prefix_id: prefix.id } }),
+          )}
         >
           <DialogHeader className="shrink-0 px-4 pt-4">
             <DialogTitle>Изменить DevEUI-префикс</DialogTitle>
@@ -92,16 +89,13 @@ export function EditKgPrefix({
               name="name"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel
-                    className="cursor-pointer"
-                    htmlFor={`kg-prefix-${prefix.prefix}-name`}
-                  >
+                  <FieldLabel className="cursor-pointer" htmlFor={`kg-prefix-${prefix.id}-name`}>
                     Название
                   </FieldLabel>
                   <Input
                     {...field}
                     aria-invalid={fieldState.invalid}
-                    id={`kg-prefix-${prefix.prefix}-name`}
+                    id={`kg-prefix-${prefix.id}-name`}
                   />
                   {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
                 </Field>

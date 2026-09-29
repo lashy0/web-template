@@ -1,4 +1,5 @@
 import { client } from './generated/client.gen'
+import type { ErrorResponse } from './generated/types.gen'
 
 export type ApiClientConfiguration = Readonly<{
   baseUrl?: string
@@ -7,10 +8,10 @@ export type ApiClientConfiguration = Readonly<{
 
 let unauthorizedResponseInterceptor: number | undefined
 
-export function configureApiClient({
-  baseUrl = '/api',
-  onUnauthorized,
-}: ApiClientConfiguration = {}) {
+// Query keys carry the base URL, so it is set before any key is built.
+client.setConfig({ baseUrl: '', credentials: 'same-origin' })
+
+export function configureApiClient({ baseUrl = '', onUnauthorized }: ApiClientConfiguration = {}) {
   client.setConfig({
     baseUrl,
     credentials: 'same-origin',
@@ -29,4 +30,23 @@ export function configureApiClient({
       return response
     })
   }
+}
+
+/**
+ * Whether `error` is an error response of the backend, as thrown by the
+ * generated queries and mutations; with `code`, whether its `extra.code` is it.
+ */
+export function isApiError(error: unknown, code?: string): error is ErrorResponse {
+  if (
+    typeof error !== 'object' ||
+    error === null ||
+    !('status_code' in error) ||
+    typeof error.status_code !== 'number'
+  ) {
+    return false
+  }
+  if (code === undefined) {
+    return true
+  }
+  return (error as ErrorResponse).extra?.code === code
 }

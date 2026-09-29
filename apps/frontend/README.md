@@ -1,6 +1,6 @@
 # Frontend
 
-The frontend is a React SPA served at `app.${BASE_DOMAIN}` in production. Vite
+The frontend is a React SPA served at `https://${APP_HOST}/` in production. Vite
 runs in its own Docker Compose project during development; production uses a
 multi-stage image and an unprivileged Nginx runtime.
 
@@ -9,47 +9,42 @@ multi-stage image and an unprivileged Nginx runtime.
 - Docker Desktop with Docker Compose
 - The backend, identity, and Traefik development infrastructure
 
-Start the frontend after the backend, Traefik, and identity development stacks:
+Start the whole development stack, the frontend included:
 
 ```console
-uv run --project infrastructure infra-application frontend up dev
+uv run --project infrastructure infra up dev
 ```
 
-Open <http://localhost:5173>. The container runs Vite and reloads changes in
-the frontend and shared TypeScript packages automatically.
+Open <http://localhost>. The container runs Vite and reloads changes in the
+frontend and shared TypeScript packages automatically.
 
-Browser requests to `/api/*` are proxied to `http://api.${BASE_DOMAIN}` with the
-`/api` prefix removed. The application does not read a build-time API host.
+The SPA, the API and Ory share one host, as in production: Traefik routes `/`
+to Vite, `/api/*` to the backend and `/.ory/*` to Kratos and Hydra. Vite
+proxies nothing itself, and the application does not read a build-time API
+host.
 
 ## Quality checks
 
-Run the repository quality gate:
+Run the repository quality gate, which type-checks, lints, checks formatting and
+builds every package:
 
 ```console
 pnpm check
 ```
 
-Run the Chromium end-to-end smoke test:
-
-```console
-pnpm test:e2e
-```
-
-The full release matrix is available from the frontend workspace:
-
-```console
-pnpm --filter @web-app/frontend test:e2e:full
-```
+The frontend has no automated tests yet.
 
 ## Structure
 
 ```text
 src/
-├── app/       Providers, router and global application configuration
-├── routes/    TanStack Router file-based routes
-└── test/      Shared Vitest setup
+├── app/         Providers, router and global application configuration
+├── components/  Screens and dialogs, grouped by section
+├── features/    Labels, form schemas and query helpers of each domain
+├── lib/         Shared helpers: list search, validation messages, dates
+└── routes/      TanStack Router file-based routes
 ```
 
-Shared design tokens and shadcn/Base UI components live in `packages/ui`.
-Generated API code lives in `packages/api-client`. TanStack Form and charting
-libraries are intentionally deferred until a product scenario needs them.
+Requests, query options, mutations and the zod schemas of request bodies are
+generated in `packages/api-client`; see its README. Shared design tokens and
+shadcn/Base UI components live in `packages/ui`.

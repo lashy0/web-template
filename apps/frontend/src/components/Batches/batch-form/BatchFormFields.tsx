@@ -88,7 +88,7 @@ export function SelectField({
   loading?: boolean
   error?: boolean
   retry?: () => void
-  name: 'activationType' | 'devEuiPrefix' | 'kgVersionId' | 'lorawanVersion' | 'productionOrderId'
+  name: 'activationType' | 'kgPrefixId' | 'kgVersionId' | 'lorawanVersion' | 'productionOrderId'
   placeholder: string
   required?: boolean
 }>) {

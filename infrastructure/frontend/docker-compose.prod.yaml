@@ -1,17 +1,9 @@
 services:
   frontend:
-    image: "web-app-frontend:${FRONTEND_TAG:?FRONTEND_TAG is required}"
+    image: "otk-app-frontend:${FRONTEND_TAG:?FRONTEND_TAG is required}"
     restart: unless-stopped
-    networks:
-      - traefik-public
     labels:
-      traefik.enable: "true"
-      traefik.constraint-label: traefik-public
-      traefik.docker.network: traefik-public
-      traefik.http.routers.frontend.rule: "Host(`app.${BASE_DOMAIN:?BASE_DOMAIN is required}`)"
       traefik.http.routers.frontend.entrypoints: https
-      traefik.http.routers.frontend.priority: "1"
-      traefik.http.routers.frontend.service: frontend
       traefik.http.routers.frontend.tls: "true"
       traefik.http.routers.frontend.tls.certresolver: letsencrypt
       traefik.http.services.frontend.loadbalancer.server.port: "8080"

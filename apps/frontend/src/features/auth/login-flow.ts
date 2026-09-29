@@ -1,7 +1,5 @@
 import {
-  Configuration,
   FetchError,
-  FrontendApi,
   ResponseError,
   type LoginFlow as OryLoginFlow,
   type UiNode,
@@ -10,12 +8,7 @@ import {
   type UiText,
 } from '@ory/client-fetch'
 
-const frontend = new FrontendApi(
-  new Configuration({
-    basePath: window.location.origin,
-    credentials: 'include',
-  }),
-)
+import { kratosFrontend as frontend, kratosPath } from '@/features/auth/kratos'
 
 const flowReturnTos = new Map<string, string>()
 
@@ -167,7 +160,7 @@ export function mapLoginFlow(flow: OryLoginFlow): LoginFlow {
 }
 
 export function restartLoginFlow(flowId?: string) {
-  const url = new URL('/self-service/login/browser', window.location.origin)
+  const url = new URL(kratosPath('/self-service/login/browser'), window.location.origin)
   const returnTo = flowId ? flowReturnTos.get(flowId) : getReturnToFromLocation()
 
   if (returnTo && returnTo !== '/') {

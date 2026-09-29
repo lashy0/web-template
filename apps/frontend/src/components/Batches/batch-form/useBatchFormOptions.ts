@@ -1,55 +1,46 @@
 import { useQuery, type UseQueryResult } from '@tanstack/react-query'
+import {
+  listKgPrefixesOptions,
+  listKgVersionsOptions,
+  listProductionOrdersOptions,
+} from '@web-app/api-client'
+
 import type { SelectOption, SelectOptionsState } from './types'
 import { formatDevEuiPrefix } from '@/features/kg/kg-prefix-format'
-import { listKgPrefixes } from '@/features/kg/kg-prefixes-api'
-import { listKgVersions } from '@/features/kg/kg-versions-api'
-import {
-  listProductionOrders,
-  productionOrderQueryKeys,
-} from '@/features/production-orders/production-order-api'
+
+/** Current catalog entries sorted by name, the first hundred of each. */
+const catalogQuery = {
+  archived: false,
+  orderBy: 'name',
+  pageSize: 100,
+  sortOrder: 'asc',
+} as const
 
 export function useBatchFormOptions(enabled: boolean) {
   const prefixes = useQuery({
+    ...listKgPrefixesOptions({ query: catalogQuery }),
     enabled,
-    queryFn: () =>
-      listKgPrefixes({ archived: false, order: 'asc', page: 1, pageSize: 100, sort: 'name' }),
-    queryKey: ['kg', 'prefixes', 'batch-form'],
     select: (data) =>
       data.items.map((prefix) => ({
         label: prefix.name
-          ? formatDevEuiPrefix(prefix.prefix) + ' (' + prefix.name + ')'
+          ? `${formatDevEuiPrefix(prefix.prefix)} (${prefix.name})`
           : formatDevEuiPrefix(prefix.prefix),
-        value: prefix.prefix,
+        value: prefix.id,
       })),
   })
   const versions = useQuery({
+    ...listKgVersionsOptions({ query: catalogQuery }),
     enabled,
-    queryFn: () =>
-      listKgVersions({ archived: false, order: 'asc', page: 1, pageSize: 100, sort: 'name' }),
-    queryKey: ['kg', 'versions', 'batch-form'],
     select: (data) =>
       data.items.map((version) => ({
-        label: version.name ? version.code + ' (' + version.name + ')' : version.code,
+        label: `${version.code} (${version.name})`,
         value: version.id,
       })),
   })
   const orders = useQuery({
+    ...listProductionOrdersOptions({ query: catalogQuery }),
     enabled,
-    queryFn: () =>
-      listProductionOrders({
-        archived: false,
-        order: 'asc',
-        page: 1,
-        pageSize: 100,
-        sort: 'name',
-      }),
     select: (data) => data.items.map((order) => ({ label: order.name, value: order.id })),
-    queryKey: productionOrderQueryKeys.list({
-      archived: false,
-      page: 1,
-      pageSize: 100,
-      sort: 'name',
-    }),
   })
 
   return {
@@ -59,7 +50,7 @@ export function useBatchFormOptions(enabled: boolean) {
   }
 }
 
-function optionsState(query: UseQueryResult<SelectOption[]>): SelectOptionsState {
+function optionsState(query: UseQueryResult<SelectOption[], unknown>): SelectOptionsState {
   return {
     items: query.data ?? [],
     loading: query.isPending || (query.isError && query.isFetching),

@@ -15,35 +15,31 @@ import {
   SelectValue,
 } from '@web-app/ui/components/select'
 
-import {
-  authStateFilterOptions,
-  roleFilterOptions,
-  type AuthState,
-  type Role,
-} from '@/features/users/users-api'
+import { roleFilterOptions, type Role } from '@/features/users/users-api'
+import { activityFilterOptions, type Activity } from '@/lib/activity'
 
 type RoleFilter = Role | 'all'
-type AuthStateFilter = AuthState | 'all'
+type StatusFilter = Activity | 'all'
 
 export function UserFilters({
   archived,
-  authState,
-  onAuthStateChange,
   onQueryChange,
   onRoleChange,
+  onStatusChange,
   query,
   role,
+  status,
 }: Readonly<{
   archived: boolean
-  authState: AuthStateFilter
-  onAuthStateChange: (value: AuthStateFilter) => void
   onQueryChange: (value: string) => void
   onRoleChange: (value: RoleFilter) => void
+  onStatusChange: (value: StatusFilter) => void
   query: string
   role: RoleFilter
+  status: StatusFilter
 }>) {
   const roleLabel = roleFilterOptions.find((option) => option.value === role)?.label
-  const authStateLabel = authStateFilterOptions.find((option) => option.value === authState)?.label
+  const statusLabel = activityFilterOptions.find((option) => option.value === status)?.label
 
   return (
     <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
@@ -88,17 +84,14 @@ export function UserFilters({
         </Select>
 
         {!archived && (
-          <Select
-            onValueChange={(value) => onAuthStateChange(value as AuthStateFilter)}
-            value={authState}
-          >
+          <Select onValueChange={(value) => onStatusChange(value as StatusFilter)} value={status}>
             <SelectTrigger className="w-40 cursor-pointer">
-              <SelectValue>{authStateLabel}</SelectValue>
+              <SelectValue>{statusLabel}</SelectValue>
             </SelectTrigger>
 
             <SelectContent>
               <SelectGroup>
-                {authStateFilterOptions.map((option) => (
+                {activityFilterOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>

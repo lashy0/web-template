@@ -4,7 +4,9 @@ import * as React from 'react'
 import { cn } from '#lib/utils'
 
 function Breadcrumb({ className, ...props }: React.ComponentProps<'nav'>) {
-  return <nav aria-label="breadcrumb" className={cn('', className)} data-slot="breadcrumb" {...props} />
+  return (
+    <nav aria-label="breadcrumb" className={cn('', className)} data-slot="breadcrumb" {...props} />
+  )
 }
 
 function BreadcrumbList({ className, ...props }: React.ComponentProps<'ol'>) {
@@ -30,13 +32,15 @@ function BreadcrumbItem({ className, ...props }: React.ComponentProps<'li'>) {
   )
 }
 
-function BreadcrumbLink({ className, ...props }: React.ComponentProps<'a'>) {
+function BreadcrumbLink({ children, className, ...props }: React.ComponentProps<'a'>) {
   return (
     <a
       className={cn('hover:text-foreground transition-colors', className)}
       data-slot="breadcrumb-link"
       {...props}
-    />
+    >
+      {children}
+    </a>
   )
 }
 
@@ -47,6 +51,7 @@ function BreadcrumbPage({ className, ...props }: React.ComponentProps<'span'>) {
       aria-disabled="true"
       className={cn('text-foreground font-normal', className)}
       data-slot="breadcrumb-page"
+      // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role
       role="link"
       {...props}
     />

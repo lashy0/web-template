@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { activateUserMutation, deactivateUserMutation } from '@web-app/api-client'
 
 import { Button } from '@web-app/ui/components/button'
 import {
@@ -11,7 +12,7 @@ import {
 } from '@web-app/ui/components/dialog'
 import { Spinner } from '@web-app/ui/components/spinner'
 
-import { updateUserActive, type User } from '@/features/users/users-api'
+import { invalidateUserQueries, type User } from '@/features/users/users-api'
 import useCustomToast from '@/hooks/useCustomToast'
 
 export function StatusUser({
@@ -27,16 +28,13 @@ export function StatusUser({
 }>) {
   const queryClient = useQueryClient()
   const { showErrorToast, showSuccessToast } = useCustomToast()
-  const active = user.authState !== 'active'
+  const active = !user.isActive
   const action = active ? 'Активировать' : 'Деактивировать'
 
   const mutation = useMutation({
-    mutationFn: () => updateUserActive(user.id, active),
+    ...(active ? activateUserMutation() : deactivateUserMutation()),
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['users'] }),
-        queryClient.invalidateQueries({ queryKey: ['audit'] }),
-      ])
+      await invalidateUserQueries(queryClient)
       closeDialog(true)
       onSuccess()
       showSuccessToast(
@@ -73,7 +71,7 @@ export function StatusUser({
           </Button>
           <Button
             disabled={mutation.isPending}
-            onClick={() => mutation.mutate()}
+            onClick={() => mutation.mutate({ path: { user_id: user.id } })}
             variant={active ? 'default' : 'destructive'}
           >
             {mutation.isPending && <Spinner data-icon="inline-start" />}

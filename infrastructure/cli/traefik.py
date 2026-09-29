@@ -1,102 +1,91 @@
-from typing import Annotated
+import time
 
 import typer
 
 from cli.compose import (
     INFRASTRUCTURE_ROOT,
     ROOT_ENV_FILE,
+    TRAEFIK_NETWORK,
     ComposeProject,
     Environment,
+    EnvironmentArgument,
+    HealthTimeoutOption,
+    ServicesArgument,
     ensure_network,
     find_tool,
-    run_cli,
+    follow_logs,
     run_command,
 )
+from cli.output import ServiceStatus, heading, print_status, report
 
 TRAEFIK_ROOT = INFRASTRUCTURE_ROOT / "traefik"
-TRAEFIK_NETWORK = "traefik-public"
-PROJECT = ComposeProject(TRAEFIK_ROOT, (ROOT_ENV_FILE, TRAEFIK_ROOT / ".env"))
+PROJECT = ComposeProject(
+    "otk-app-traefik", "Traefik", "traefik", TRAEFIK_ROOT, (ROOT_ENV_FILE, TRAEFIK_ROOT / ".env")
+)
 
-app = typer.Typer(
+traefik_app = typer.Typer(
     help="Manage Traefik.",
     no_args_is_help=True,
     add_completion=False,
 )
 
 
-@app.command()
-def up(
-    environment: Annotated[
-        Environment,
-        typer.Argument(help="Configuration to use: dev or prod."),
-    ],
-    health_timeout: Annotated[
-        int,
-        typer.Option(min=1, help="Seconds to wait until Traefik is healthy."),
-    ] = 60,
-) -> None:
-    """Start or update Traefik and wait until it is healthy."""
+def addresses(environment: Environment) -> list[tuple[str, str]]:
+    host = (
+        "127.0.0.1"
+        if environment is Environment.DEV
+        else PROJECT.setting("TRAEFIK_DASHBOARD_ADDRESS")
+    )
+
+    return [("Traefik", f"http://{host}:8080/dashboard/")]
+
+
+def start(environment: Environment, *, health_timeout: int = 60) -> None:
+    heading(PROJECT.title)
     docker = find_tool("docker")
     command = PROJECT.prepare(docker, environment)
     ensure_network(docker, TRAEFIK_NETWORK)
-    command.extend(
-        (
-            "up",
-            "--detach",
-            "--pull",
-            "always",
-            "--wait",
-            "--wait-timeout",
-            str(health_timeout),
-        )
-    )
-
-    typer.secho(
-        f"Deploying Traefik ({environment.value})",
-        fg=typer.colors.CYAN,
-        bold=True,
-        err=True,
-    )
-    run_command(command)
-    typer.secho("Traefik is running.", fg=typer.colors.GREEN, bold=True, err=True)
+    PROJECT.up(command, ["--detach", "--wait", "--wait-timeout", str(health_timeout)], environment)
 
 
-@app.command()
-def status(
-    environment: Annotated[
-        Environment,
-        typer.Argument(help="Configuration to inspect: dev or prod."),
-    ],
-) -> None:
-    """Show the current state and published ports of Traefik."""
+def stop(environment: Environment) -> None:
+    heading(PROJECT.title)
     docker = find_tool("docker")
     command = PROJECT.prepare(docker, environment)
-    run_command([*command, "ps"])
-
-
-@app.command()
-def down(
-    environment: Annotated[
-        Environment,
-        typer.Argument(help="Configuration to stop: dev or prod."),
-    ],
-) -> None:
-    """Stop Traefik while keeping its external network and persistent data."""
-    docker = find_tool("docker")
-    command = PROJECT.prepare(docker, environment)
-    typer.secho(
-        f"Stopping Traefik ({environment.value})",
-        fg=typer.colors.CYAN,
-        bold=True,
-        err=True,
-    )
     run_command([*command, "down"])
-    typer.secho("Traefik is stopped.", fg=typer.colors.GREEN, bold=True, err=True)
 
 
-def main() -> None:
-    run_cli(app)
+def status_section(environment: Environment) -> tuple[str, list[ServiceStatus]]:
+    docker = find_tool("docker")
+    command = PROJECT.prepare(docker, environment)
+
+    return PROJECT.title, PROJECT.statuses(docker, command)
 
 
-if __name__ == "__main__":
-    main()
+@traefik_app.command()
+def up(environment: EnvironmentArgument, health_timeout: HealthTimeoutOption = 60) -> None:
+    """Start or update Traefik and wait until it is healthy."""
+    started = time.monotonic()
+    start(environment, health_timeout=health_timeout)
+    report("Ready", started, addresses(environment))
+
+
+@traefik_app.command()
+def down(environment: EnvironmentArgument) -> None:
+    """Stop Traefik while keeping its external network and persistent data."""
+    started = time.monotonic()
+    stop(environment)
+    report("Stopped", started)
+
+
+@traefik_app.command()
+def status(environment: EnvironmentArgument) -> None:
+    """Show the state of Traefik."""
+    print_status([status_section(environment)])
+
+
+@traefik_app.command()
+def logs(environment: EnvironmentArgument, services: ServicesArgument = None) -> None:
+    """Follow the Traefik logs."""
+    docker = find_tool("docker")
+    follow_logs(PROJECT.prepare(docker, environment), services)

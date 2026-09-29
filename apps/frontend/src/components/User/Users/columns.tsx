@@ -3,13 +3,8 @@ import { cn } from '@web-app/ui/lib/utils'
 import { Badge } from '@web-app/ui/components/badge'
 import { type DataTableColumn } from '@/components/Common/DataTable'
 import { UserActionsMenu } from '@/components/User/Users/UserActionsMenu'
-import {
-  authStateLabels,
-  roleLabels,
-  type AuthState,
-  type Role,
-  type User,
-} from '@/features/users/users-api'
+import { roleLabels, type Role, type User } from '@/features/users/users-api'
+import { activityLabels, activityOf, type Activity } from '@/lib/activity'
 import { formatDateTime } from '@/lib/date'
 
 export function createUserColumns(
@@ -23,10 +18,9 @@ export function createUserColumns(
         <div className="flex flex-col gap-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-medium">{row.original.name}</span>
-            {row.original.isSystem ? <Badge variant="secondary">Системная</Badge> : null}
             {row.original.id === currentUserId ? <CurrentUserBadge /> : null}
           </div>
-          <span className="text-muted-foreground">{row.original.login ?? '—'}</span>
+          <span className="text-muted-foreground">{row.original.login}</span>
         </div>
       ),
       enableSorting: true,
@@ -53,7 +47,7 @@ export function createUserColumns(
   } else {
     columns.push({
       id: 'status',
-      cell: ({ row }) => <Status state={row.original.authState} />,
+      cell: ({ row }) => <Status state={activityOf(row.original)} />,
       enableSorting: false,
       header: 'Статус',
     })
@@ -81,7 +75,7 @@ function RoleBadge({ role }: Readonly<{ role: Role }>) {
   return <Badge variant="secondary">{roleLabels[role]}</Badge>
 }
 
-function Status({ state }: Readonly<{ state: AuthState }>) {
+function Status({ state }: Readonly<{ state: Activity }>) {
   return (
     <span className="inline-flex items-center gap-2">
       <span
@@ -92,7 +86,7 @@ function Status({ state }: Readonly<{ state: AuthState }>) {
           state === 'inactive' && 'bg-red-500',
         )}
       />
-      {authStateLabels[state]}
+      {activityLabels[state]}
     </span>
   )
 }

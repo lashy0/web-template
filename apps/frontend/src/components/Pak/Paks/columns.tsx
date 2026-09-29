@@ -3,7 +3,8 @@ import { cn } from '@web-app/ui/lib/utils'
 
 import { type DataTableColumn } from '@/components/Common/DataTable'
 import { PakActionsMenu } from '@/components/Pak/Paks/PakActionsMenu'
-import { pakKindLabels, pakStatusLabels, type Pak } from '@/features/paks/paks-api'
+import { pakKindLabels, type Pak } from '@/features/paks/paks-api'
+import { activityLabels, activityOf, type Activity } from '@/lib/activity'
 import { formatDateTime } from '@/lib/date'
 
 export function createPakColumns(archived: boolean): readonly DataTableColumn<Pak>[] {
@@ -11,9 +12,7 @@ export function createPakColumns(archived: boolean): readonly DataTableColumn<Pa
     {
       accessorKey: 'code',
       cell: ({ row }) => (
-        <span className="block max-w-64 truncate font-medium">
-          {row.original.code}
-        </span>
+        <span className="block max-w-64 truncate font-medium">{row.original.code}</span>
       ),
       enableSorting: true,
       header: 'Код ПАК',
@@ -46,7 +45,7 @@ export function createPakColumns(archived: boolean): readonly DataTableColumn<Pa
     })
   } else {
     columns.splice(2, 0, {
-      cell: ({ row }) => <PakStatus status={row.original.status} />,
+      cell: ({ row }) => <PakStatus status={activityOf(row.original)} />,
       enableSorting: false,
       header: 'Статус',
       id: 'status',
@@ -65,14 +64,14 @@ export function createPakColumns(archived: boolean): readonly DataTableColumn<Pa
   return columns
 }
 
-function PakStatus({ status }: Readonly<{ status: Pak['status'] }>) {
+function PakStatus({ status }: Readonly<{ status: Activity }>) {
   return (
     <span className="inline-flex items-center gap-2">
       <span
         aria-hidden="true"
         className={cn('size-2 rounded-full', status === 'active' ? 'bg-green-500' : 'bg-red-500')}
       />
-      {pakStatusLabels[status]}
+      {activityLabels[status]}
     </span>
   )
 }

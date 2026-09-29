@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { deleteProductionOrderMutation } from '@web-app/api-client'
 
 import { Button } from '@web-app/ui/components/button'
 import {
@@ -12,10 +13,8 @@ import {
 import { Spinner } from '@web-app/ui/components/spinner'
 
 import {
-  deleteProductionOrder,
-  productionOrderErrorCode,
-  productionOrderErrorMessage,
-  productionOrderQueryKeys,
+  invalidateProductionOrderQueries,
+  isProductionOrderInUseError,
   type ProductionOrder,
 } from '@/features/production-orders/production-order-api'
 import useCustomToast from '@/hooks/useCustomToast'
@@ -34,20 +33,19 @@ export function DeleteProductionOrder({
   const queryClient = useQueryClient()
   const { showErrorToast, showSuccessToast, showWarningToast } = useCustomToast()
   const mutation = useMutation({
-    mutationFn: () => deleteProductionOrder(order.id),
+    ...deleteProductionOrderMutation(),
     onError: (error) => {
-      if (productionOrderErrorCode(error) === 'production_order_cannot_be_deleted') {
+      if (isProductionOrderInUseError(error)) {
         onOpenChange(false)
-        showWarningToast('Невозможно удалить производственный заказ: в нём есть партии.')
+        showWarningToast(
+          'Производственный заказ нельзя удалить: в нём есть партии. Архивируйте его.',
+        )
         return
       }
-      showErrorToast(
-        'Не удалось удалить производственный заказ',
-        productionOrderErrorMessage(error) ?? 'Попробуйте ещё раз.',
-      )
+      showErrorToast('Не удалось удалить производственный заказ', 'Попробуйте ещё раз.')
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: productionOrderQueryKeys.all })
+      await invalidateProductionOrderQueries(queryClient)
       onOpenChange(false)
       onSuccess()
       showSuccessToast('Производственный заказ удалён')
@@ -73,7 +71,7 @@ export function DeleteProductionOrder({
           </Button>
           <Button
             disabled={mutation.isPending}
-            onClick={() => mutation.mutate()}
+            onClick={() => mutation.mutate({ path: { order_id: order.id } })}
             variant="destructive"
           >
             {mutation.isPending ? <Spinner data-icon="inline-start" /> : null}

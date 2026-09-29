@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { archiveDefectGroupMutation, restoreDefectGroupMutation } from '@web-app/api-client'
 import { TriangleAlertIcon } from 'lucide-react'
 import { useState } from 'react'
 
@@ -15,9 +16,8 @@ import {
 import { Spinner } from '@web-app/ui/components/spinner'
 
 import {
-  defectErrorCode,
-  defectErrorMessage,
-  updateDefectGroupArchived,
+  invalidateDefectQueries,
+  isDefectGroupHasActiveTypesError,
   type DefectGroup,
 } from '@/features/defects/defects-api'
 import useCustomToast from '@/hooks/useCustomToast'
@@ -40,22 +40,16 @@ export function ArchiveStatusDefectGroup({
   const action = restore ? 'Восстановить' : 'Архивировать'
   const pendingAction = restore ? 'Восстановление…' : 'Архивация…'
   const mutation = useMutation({
-    mutationFn: () => updateDefectGroupArchived(group.id, !restore),
+    ...(restore ? restoreDefectGroupMutation() : archiveDefectGroupMutation()),
     onError: (error) => {
-      if (!restore && defectErrorCode(error) === 'defect_group_has_unarchived_types') {
+      if (!restore && isDefectGroupHasActiveTypesError(error)) {
         setBlockedByActiveTypes(true)
         return
       }
-      showErrorToast(
-        `Не удалось ${action.toLowerCase()} группу`,
-        defectErrorMessage(error) ?? 'Попробуйте ещё раз.',
-      )
+      showErrorToast(`Не удалось ${action.toLowerCase()} группу`, 'Попробуйте ещё раз.')
     },
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['defects'] }),
-        queryClient.invalidateQueries({ queryKey: ['audit'] }),
-      ])
+      await invalidateDefectQueries(queryClient)
       closeDialog(true)
       onSuccess()
       showSuccessToast(
@@ -96,7 +90,10 @@ export function ArchiveStatusDefectGroup({
               <Button disabled={mutation.isPending} onClick={() => closeDialog()} variant="outline">
                 Отмена
               </Button>
-              <Button disabled={mutation.isPending} onClick={() => mutation.mutate()}>
+              <Button
+                disabled={mutation.isPending}
+                onClick={() => mutation.mutate({ path: { group_id: group.id } })}
+              >
                 {mutation.isPending && <Spinner data-icon="inline-start" />}
                 {mutation.isPending ? pendingAction : action}
               </Button>

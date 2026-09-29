@@ -7,6 +7,7 @@ function Spinner({ className, ...props }: React.ComponentProps<typeof LoaderCirc
     <LoaderCircleIcon
       aria-label="Загрузка"
       className={cn('animate-spin', className)}
+      // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role
       role="status"
       {...props}
     />

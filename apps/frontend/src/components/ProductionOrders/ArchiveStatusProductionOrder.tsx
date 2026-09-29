@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { archiveProductionOrderMutation, restoreProductionOrderMutation } from '@web-app/api-client'
 
 import { Button } from '@web-app/ui/components/button'
 import {
@@ -12,9 +13,7 @@ import {
 import { Spinner } from '@web-app/ui/components/spinner'
 
 import {
-  productionOrderErrorMessage,
-  productionOrderQueryKeys,
-  updateProductionOrderArchived,
+  invalidateProductionOrderQueries,
   type ProductionOrder,
 } from '@/features/production-orders/production-order-api'
 import useCustomToast from '@/hooks/useCustomToast'
@@ -35,14 +34,14 @@ export function ArchiveStatusProductionOrder({
   const restore = order.archivedAt !== null
   const action = restore ? 'Восстановить' : 'Архивировать'
   const mutation = useMutation({
-    mutationFn: () => updateProductionOrderArchived(order.id, !restore),
-    onError: (error) =>
+    ...(restore ? restoreProductionOrderMutation() : archiveProductionOrderMutation()),
+    onError: () =>
       showErrorToast(
         `Не удалось ${action.toLowerCase()} производственный заказ`,
-        productionOrderErrorMessage(error) ?? 'Попробуйте ещё раз.',
+        'Попробуйте ещё раз.',
       ),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: productionOrderQueryKeys.all })
+      await invalidateProductionOrderQueries(queryClient)
       onOpenChange(false)
       onSuccess()
       showSuccessToast(
@@ -70,7 +69,10 @@ export function ArchiveStatusProductionOrder({
           <Button disabled={mutation.isPending} onClick={close} variant="outline">
             Отмена
           </Button>
-          <Button disabled={mutation.isPending} onClick={() => mutation.mutate()}>
+          <Button
+            disabled={mutation.isPending}
+            onClick={() => mutation.mutate({ path: { order_id: order.id } })}
+          >
             {mutation.isPending ? <Spinner data-icon="inline-start" /> : null}
             {mutation.isPending ? `${action}…` : action}
           </Button>

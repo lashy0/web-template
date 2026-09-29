@@ -1,8 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { createUserMutation } from '@web-app/api-client'
 import { EyeIcon, EyeOffIcon, PlusIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
+import type { z } from 'zod'
 
 import { Button } from '@web-app/ui/components/button'
 import {
@@ -40,18 +42,19 @@ import { Switch } from '@web-app/ui/components/switch'
 import { Spinner } from '@web-app/ui/components/spinner'
 
 import {
-  createUser,
-  isLoginAlreadyExistsError,
+  invalidateUserQueries,
+  isLoginTakenError,
   roleLabels,
   roleOptions,
-  type CreateUserInput,
   type Role,
 } from '@/features/users/users-api'
-import { createUserSchema } from '@/features/users/user-form-schema'
+import { createUserSchema, userFormMessages } from '@/features/users/user-form-schema'
 import useCustomToast from '@/hooks/useCustomToast'
 
-const initialForm: CreateUserInput = {
-  active: true,
+type CreateUserForm = z.infer<typeof createUserSchema>
+
+const initialForm: CreateUserForm = {
+  isActive: true,
   login: '',
   name: '',
   password: '',
@@ -62,25 +65,22 @@ export function AddUser() {
   const queryClient = useQueryClient()
   const [isOpen, setIsOpen] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const form = useForm<CreateUserInput>({
+  const form = useForm<CreateUserForm>({
     defaultValues: initialForm,
     mode: 'onChange',
-    resolver: zodResolver(createUserSchema),
+    resolver: zodResolver(createUserSchema, { error: userFormMessages }),
   })
   const { showErrorToast, showSuccessToast } = useCustomToast()
 
   const mutation = useMutation({
-    mutationFn: createUser,
+    ...createUserMutation(),
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['users'] }),
-        queryClient.invalidateQueries({ queryKey: ['audit'] }),
-      ])
+      await invalidateUserQueries(queryClient)
       resetAndClose()
       showSuccessToast('Пользователь создан', 'Учётная запись успешно добавлена.')
     },
     onError: (error) => {
-      if (isLoginAlreadyExistsError(error)) {
+      if (isLoginTakenError(error)) {
         form.setError(
           'login',
           { message: 'Этот логин уже занят. Выберите другой.', type: 'server' },
@@ -98,8 +98,8 @@ export function AddUser() {
     setShowPassword(false)
   }
 
-  function submit(data: CreateUserInput) {
-    mutation.mutate(data)
+  function submit(data: CreateUserForm) {
+    mutation.mutate({ body: data })
   }
 
   return (
@@ -247,7 +247,7 @@ export function AddUser() {
             />
             <Controller
               control={form.control}
-              name="active"
+              name="isActive"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid} orientation="horizontal">
                   <FieldContent>

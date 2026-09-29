@@ -1,15 +1,11 @@
-import {
-  ArrowRightIcon,
-  CpuIcon,
-  InfoIcon,
-} from 'lucide-react'
+import { ArrowRightIcon, CpuIcon, InfoIcon } from 'lucide-react'
 
 import { Alert, AlertDescription, AlertTitle } from '@web-app/ui/components/alert'
 import { Spinner } from '@web-app/ui/components/spinner'
 
 import { formatDevEui } from '@/features/kg/kg-prefix-format'
 
-import type { DevEuiRangePreview } from '@/features/batches/batches-api'
+import type { DevEuiRange } from '@web-app/api-client'
 
 export function BatchDevEuiRange({
   plannedCount,
@@ -19,7 +15,7 @@ export function BatchDevEuiRange({
 }: Readonly<{
   plannedCount: number
   prefix: string
-  range: DevEuiRangePreview | undefined
+  range: DevEuiRange | undefined
   rangeLoading: boolean
 }>) {
   const isReady = prefix.length > 0 && Number.isInteger(plannedCount) && plannedCount > 0
@@ -28,9 +24,7 @@ export function BatchDevEuiRange({
     return (
       <Alert>
         <InfoIcon />
-        <AlertDescription>
-          Выберите DevEUI-префикс, чтобы рассчитать диапазон.
-        </AlertDescription>
+        <AlertDescription>Выберите DevEUI-префикс, чтобы рассчитать диапазон.</AlertDescription>
       </Alert>
     )
   }

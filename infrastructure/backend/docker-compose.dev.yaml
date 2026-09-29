@@ -1,12 +1,12 @@
 services:
   prestart:
     environment:
-      BACKEND_DEBUG: "true"
+      LITESTAR_DEBUG: "true"
 
   api:
     restart: "no"
     environment:
-      BACKEND_DEBUG: "true"
+      LITESTAR_DEBUG: "true"
       BACKEND_RELOAD: "true"
 
     develop:
@@ -14,10 +14,6 @@ services:
         - action: sync
           path: ../../apps/backend/app
           target: /app/backend/app
-
-        - action: sync
-          path: ../../apps/backend/alembic
-          target: /app/backend/alembic
 
         - action: sync
           path: ../../apps/backend/scripts
@@ -30,24 +26,6 @@ services:
           path: ../../apps/backend/uv.lock
 
   worker:
-    restart: "no"
-    develop:
-      watch:
-        - action: sync+restart
-          path: ../../apps/backend/app
-          target: /app/backend/app
-
-        - action: sync+restart
-          path: ../../apps/backend/scripts
-          target: /app/backend/scripts
-
-        - action: rebuild
-          path: ../../apps/backend/pyproject.toml
-
-        - action: rebuild
-          path: ../../apps/backend/uv.lock
-
-  realtime:
     restart: "no"
     develop:
       watch:

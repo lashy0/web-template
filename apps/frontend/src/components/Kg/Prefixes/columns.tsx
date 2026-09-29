@@ -49,10 +49,10 @@ export function createKgPrefixColumns(archived: boolean): readonly DataTableColu
     })
   } else {
     columns.push({
-      accessorKey: 'batchCount',
-      cell: ({ row }) => row.original.batchCount,
+      accessorKey: 'availableQty',
+      cell: ({ row }) => row.original.availableQty.toLocaleString('ru-RU'),
       enableSorting: false,
-      header: 'В партиях',
+      header: 'Свободно DevEUI',
     })
   }
   columns.push({

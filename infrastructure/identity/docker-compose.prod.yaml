@@ -9,12 +9,12 @@ services:
     mem_limit: 1g
     restart: unless-stopped
     environment:
-      SERVE_PUBLIC_BASE_URL: "https://app.${BASE_DOMAIN:?BASE_DOMAIN is required}/"
-      SELFSERVICE_DEFAULT_BROWSER_RETURN_URL: "https://app.${BASE_DOMAIN:?BASE_DOMAIN is required}/"
-      SELFSERVICE_ALLOWED_RETURN_URLS: "https://app.${BASE_DOMAIN:?BASE_DOMAIN is required}"
-      SELFSERVICE_FLOWS_ERROR_UI_URL: "https://app.${BASE_DOMAIN:?BASE_DOMAIN is required}/auth/error"
-      SELFSERVICE_FLOWS_LOGIN_UI_URL: "https://app.${BASE_DOMAIN:?BASE_DOMAIN is required}/login"
-      SELFSERVICE_FLOWS_LOGOUT_AFTER_DEFAULT_BROWSER_RETURN_URL: "https://app.${BASE_DOMAIN:?BASE_DOMAIN is required}/login"
+      SERVE_PUBLIC_BASE_URL: "https://${APP_HOST:?APP_HOST is required}/.ory/kratos/"
+      SELFSERVICE_DEFAULT_BROWSER_RETURN_URL: "https://${APP_HOST:?APP_HOST is required}/"
+      SELFSERVICE_ALLOWED_RETURN_URLS: "https://${APP_HOST:?APP_HOST is required}"
+      SELFSERVICE_FLOWS_ERROR_UI_URL: "https://${APP_HOST:?APP_HOST is required}/auth/error"
+      SELFSERVICE_FLOWS_LOGIN_UI_URL: "https://${APP_HOST:?APP_HOST is required}/login"
+      SELFSERVICE_FLOWS_LOGOUT_AFTER_DEFAULT_BROWSER_RETURN_URL: "https://${APP_HOST:?APP_HOST is required}/login"
       COOKIES_SECURE: "true"
       LOG_FORMAT: json
       LOG_LEVEL: info
@@ -36,13 +36,10 @@ services:
     mem_limit: 1g
     restart: unless-stopped
     environment:
-      URLS_SELF_ISSUER: "https://oauth.${BASE_DOMAIN:?BASE_DOMAIN is required}"
+      URLS_SELF_ISSUER: "https://${APP_HOST:?APP_HOST is required}/.ory/hydra"
       LOG_FORMAT: json
       LOG_LEVEL: info
     labels:
-      traefik.http.routers.hydra-public.entrypoints: https
-      traefik.http.routers.hydra-public.tls: "true"
-      traefik.http.routers.hydra-public.tls.certresolver: letsencrypt
-      traefik.http.routers.api-oauth2-token.entrypoints: https
-      traefik.http.routers.api-oauth2-token.tls: "true"
-      traefik.http.routers.api-oauth2-token.tls.certresolver: letsencrypt
+      traefik.http.routers.hydra-token.entrypoints: https
+      traefik.http.routers.hydra-token.tls: "true"
+      traefik.http.routers.hydra-token.tls.certresolver: letsencrypt

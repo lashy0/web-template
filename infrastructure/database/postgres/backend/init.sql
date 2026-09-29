@@ -1,0 +1,27 @@
+CREATE ROLE backend_migrator
+    LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION
+    PASSWORD :'migrator_password';
+
+CREATE ROLE backend_runtime
+    LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION
+    PASSWORD :'runtime_password';
+
+CREATE DATABASE backend OWNER backend_migrator;
+REVOKE ALL ON DATABASE backend FROM PUBLIC;
+GRANT CONNECT ON DATABASE backend TO backend_migrator, backend_runtime;
+
+\connect backend
+
+REVOKE ALL ON SCHEMA public FROM PUBLIC;
+ALTER SCHEMA public OWNER TO backend_migrator;
+GRANT USAGE ON SCHEMA public TO backend_runtime;
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+    ON ALL TABLES IN SCHEMA public TO backend_runtime;
+GRANT USAGE, SELECT, UPDATE
+    ON ALL SEQUENCES IN SCHEMA public TO backend_runtime;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE backend_migrator IN SCHEMA public
+    GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO backend_runtime;
+ALTER DEFAULT PRIVILEGES FOR ROLE backend_migrator IN SCHEMA public
+    GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO backend_runtime;

@@ -1,7 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { updateKgVersion } from '@web-app/api-client'
 import { useEffect } from 'react'
 import { Controller, useForm } from 'react-hook-form'
+import type { z } from 'zod'
 
 import { Button } from '@web-app/ui/components/button'
 import {
@@ -22,15 +24,12 @@ import {
 } from '@web-app/ui/components/input-group'
 import { Spinner } from '@web-app/ui/components/spinner'
 
-import {
-  kgVersionErrorMessage,
-  updateKgVersion,
-  type KgVersion,
-} from '@/features/kg/kg-versions-api'
+import { invalidateKgVersionQueries, type KgVersion } from '@/features/kg/kg-versions-api'
 import { updateKgVersionSchema } from '@/features/kg/kg-version-form-schema'
 import useCustomToast from '@/hooks/useCustomToast'
+import { changedFields, hasChanges } from '@/lib/changes'
 
-type EditKgVersionForm = Readonly<{ description: string; name: string }>
+type EditKgVersionForm = z.input<typeof updateKgVersionSchema>
 const textLimit = 2000
 
 function toForm(version: KgVersion): EditKgVersionForm {
@@ -50,7 +49,7 @@ export function EditKgVersion({
 }>) {
   const queryClient = useQueryClient()
   const { showErrorToast, showSuccessToast } = useCustomToast()
-  const form = useForm<EditKgVersionForm>({
+  const form = useForm<EditKgVersionForm, unknown, z.output<typeof updateKgVersionSchema>>({
     defaultValues: toForm(version),
     mode: 'onChange',
     resolver: zodResolver(updateKgVersionSchema),
@@ -59,21 +58,16 @@ export function EditKgVersion({
     if (open) form.reset(toForm(version))
   }, [form, open, version])
   const mutation = useMutation({
-    mutationFn: (data: EditKgVersionForm) =>
-      updateKgVersion(version.id, {
-        description: data.description.trim() || null,
-        name: data.name.trim(),
-      }),
-    onError: (error) =>
-      showErrorToast(
-        'Не удалось изменить версию КГ',
-        kgVersionErrorMessage(error) ?? 'Проверьте данные и попробуйте ещё раз.',
-      ),
+    mutationFn: async (data: z.output<typeof updateKgVersionSchema>) => {
+      const body = changedFields(version, data)
+      if (hasChanges(body)) {
+        await updateKgVersion({ body, path: { version_id: version.id }, throwOnError: true })
+      }
+    },
+    onError: () =>
+      showErrorToast('Не удалось изменить версию КГ', 'Проверьте данные и попробуйте ещё раз.'),
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['kg', 'versions'] }),
-        queryClient.invalidateQueries({ queryKey: ['audit'] }),
-      ])
+      await invalidateKgVersionQueries(queryClient)
       close(true)
       onSuccess()
       showSuccessToast('Версия КГ изменена', `Данные «${version.code}» сохранены.`)

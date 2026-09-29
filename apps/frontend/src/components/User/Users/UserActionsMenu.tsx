@@ -37,7 +37,7 @@ export function UserActionsMenu({ user }: Readonly<{ user: User }>) {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const { user: currentUser } = useAuth()
 
-  if (!currentUser || user.isSystem || user.id === currentUser.id) {
+  if (!currentUser || user.id === currentUser.id) {
     return null
   }
 
@@ -69,19 +69,17 @@ export function UserActionsMenu({ user }: Readonly<{ user: User }>) {
                 Сменить пароль
               </DropdownMenuItem>
 
-              {user.authState === 'active' ? (
+              {user.isActive ? (
                 <DropdownMenuItem onClick={() => setStatusOpen(true)}>
                   <UserRoundXIcon />
                   Деактивировать
                 </DropdownMenuItem>
-              ) : null}
-
-              {user.authState === 'inactive' ? (
+              ) : (
                 <DropdownMenuItem onClick={() => setStatusOpen(true)}>
                   <CircleCheckIcon />
                   Активировать
                 </DropdownMenuItem>
-              ) : null}
+              )}
 
               <DropdownMenuItem onClick={() => setArchiveOpen(true)}>
                 <ArchiveIcon />

@@ -1,8 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { createDefectGroupMutation } from '@web-app/api-client'
 import { PlusIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
+import type { z } from 'zod'
 
 import { Button } from '@web-app/ui/components/button'
 import {
@@ -25,49 +27,42 @@ import {
 import { Spinner } from '@web-app/ui/components/spinner'
 
 import {
-  createDefectGroup,
-  defectErrorCode,
-  defectErrorMessage,
-  type CreateDefectGroupInput,
+  invalidateDefectQueries,
+  isDefectGroupCodeTakenError,
 } from '@/features/defects/defects-api'
-import { createDefectGroupSchema } from '@/features/defects/defect-form-schema'
+import { createDefectGroupSchema, defectFormMessages } from '@/features/defects/defect-form-schema'
 import useCustomToast from '@/hooks/useCustomToast'
 
-type CreateDefectGroupForm = Readonly<{ code: string; description: string; name: string }>
+type CreateDefectGroupForm = z.input<typeof createDefectGroupSchema>
 const initialForm: CreateDefectGroupForm = { code: '', description: '', name: '' }
 const textLimit = 2000
 
 export function AddDefectGroup() {
   const queryClient = useQueryClient()
   const [isOpen, setIsOpen] = useState(false)
-  const form = useForm<CreateDefectGroupForm>({
+  const form = useForm<CreateDefectGroupForm, unknown, z.output<typeof createDefectGroupSchema>>({
     defaultValues: initialForm,
     mode: 'onChange',
-    resolver: zodResolver(createDefectGroupSchema),
+    resolver: zodResolver(createDefectGroupSchema, { error: defectFormMessages }),
   })
   const { showErrorToast, showSuccessToast } = useCustomToast()
   const mutation = useMutation({
-    mutationFn: (data: CreateDefectGroupForm) => createDefectGroup(toInput(data)),
+    ...createDefectGroupMutation(),
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['defects'] }),
-        queryClient.invalidateQueries({ queryKey: ['audit'] }),
-      ])
+      await invalidateDefectQueries(queryClient)
       resetAndClose()
       showSuccessToast('Группа создана', 'Группа дефектов успешно добавлена.')
     },
     onError: (error) => {
-      const message = defectErrorMessage(error)
-
-      if (defectErrorCode(error) === 'defect_group_already_exists') {
-        form.setError('code', { message, type: 'server' }, { shouldFocus: true })
+      if (isDefectGroupCodeTakenError(error)) {
+        form.setError(
+          'code',
+          { message: 'Группа с таким кодом уже существует.', type: 'server' },
+          { shouldFocus: true },
+        )
         return
       }
-
-      showErrorToast(
-        'Не удалось создать группу',
-        message ?? 'Проверьте данные и попробуйте ещё раз.',
-      )
+      showErrorToast('Не удалось создать группу', 'Проверьте данные и попробуйте ещё раз.')
     },
   })
 
@@ -96,7 +91,7 @@ export function AddDefectGroup() {
           autoComplete="off"
           className="flex min-h-0 flex-1 flex-col"
           noValidate
-          onSubmit={form.handleSubmit((data) => mutation.mutate(data))}
+          onSubmit={form.handleSubmit((body) => mutation.mutate({ body }))}
         >
           <DialogHeader className="shrink-0 px-4 pt-4">
             <DialogTitle>Новая группа дефектов</DialogTitle>
@@ -203,12 +198,4 @@ function CharacterCount({ value }: Readonly<{ value: string }>) {
       </InputGroupText>
     </InputGroupAddon>
   )
-}
-
-function toInput(data: CreateDefectGroupForm): CreateDefectGroupInput {
-  return {
-    code: data.code,
-    description: data.description.trim() || null,
-    name: data.name,
-  }
 }

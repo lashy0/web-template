@@ -8,16 +8,6 @@ const repositoryRoot = fileURLToPath(new URL('../..', import.meta.url))
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, repositoryRoot, '')
-  const baseDomain = env.BASE_DOMAIN || 'localhost'
-  const kratosPublicPort = env.KRATOS_PUBLIC_PORT || '4433'
-  const apiHost = `api.${baseDomain}`
-  const apiTarget =
-    env.DEV_API_PROXY_TARGET ||
-    (baseDomain === 'localhost' ? 'http://127.0.0.1' : `http://${apiHost}`)
-  const kratosPublicTarget =
-    env.DEV_KRATOS_PUBLIC_PROXY_TARGET || `http://127.0.0.1:${kratosPublicPort}`
-  const realtimeHost = `realtime.${baseDomain}`
-  const realtimeTarget = env.DEV_REALTIME_PROXY_TARGET || `http://${realtimeHost}`
 
   return {
     envDir: repositoryRoot,
@@ -35,42 +25,9 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      proxy: {
-        '/api': {
-          target: apiTarget,
-          changeOrigin: true,
-          configure:
-            baseDomain === 'localhost'
-              ? (proxy) => {
-                  proxy.on('proxyReq', (request) => {
-                    request.setHeader('host', apiHost)
-                  })
-                }
-              : undefined,
-          rewrite: (path) => path.replace(/^\/api/, ''),
-        },
-        '/self-service': {
-          target: kratosPublicTarget,
-          changeOrigin: true,
-        },
-        '/sessions': {
-          target: kratosPublicTarget,
-          changeOrigin: true,
-        },
-        '/realtime': {
-          target: realtimeTarget,
-          changeOrigin: true,
-          configure:
-            baseDomain === 'localhost'
-              ? (proxy) => {
-                  proxy.on('proxyReq', (request) => {
-                    request.setHeader('host', realtimeHost)
-                  })
-                }
-              : undefined,
-          rewrite: (path) => path.replace(/^\/realtime/, ''),
-        },
-      },
+      // Traefik serves the dev server on the application host next to /api and
+      // /.ory, as in production, so Vite proxies nothing itself.
+      allowedHosts: [env.APP_HOST || 'localhost'],
     },
   }
 })

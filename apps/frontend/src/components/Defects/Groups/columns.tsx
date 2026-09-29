@@ -79,10 +79,9 @@ function DefectGroupName({ group }: Readonly<{ group: DefectGroup }>) {
   return (
     <HoverCard>
       <HoverCardTrigger
-        aria-label={`Показать описание группы «${group.name}»`}
         className="cursor-help rounded-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring"
         delay={250}
-        render={<button type="button" />}
+        render={<button aria-label={`Показать описание группы «${group.name}»`} type="button" />}
       >
         {group.name}
       </HoverCardTrigger>

@@ -1,5 +1,9 @@
-import { DataTable, type DataTablePaginationState, type DataTableSorting } from '@/components/Common/DataTable'
-import { type Kg } from '@/features/kg/kg-api'
+import {
+  DataTable,
+  type DataTablePaginationState,
+  type DataTableSorting,
+} from '@/components/Common/DataTable'
+import { type KgUnit } from '@/features/kg/kg-api'
 
 import { kgUnitColumns } from './columns'
 
@@ -12,7 +16,7 @@ export function KgUnitTable({
   pagination,
   total,
 }: Readonly<{
-  items: readonly Kg[]
+  items: readonly KgUnit[]
   loading: boolean
   onPaginationChange: (pagination: DataTablePaginationState) => void
   pagination: DataTablePaginationState

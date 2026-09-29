@@ -1,8 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { createKgPrefixMutation } from '@web-app/api-client'
 import { PlusIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
+import type { z } from 'zod'
 
 import { Button } from '@web-app/ui/components/button'
 import {
@@ -19,48 +21,51 @@ import { Input } from '@web-app/ui/components/input'
 import { Spinner } from '@web-app/ui/components/spinner'
 
 import {
-  createKgPrefix,
-  kgPrefixErrorCode,
-  kgPrefixErrorMessage,
-  type CreateKgPrefixInput,
+  invalidateKgPrefixQueries,
+  isKgPrefixShortCodeTakenError,
+  isKgPrefixTakenError,
 } from '@/features/kg/kg-prefixes-api'
-import { createKgPrefixSchema } from '@/features/kg/kg-prefix-form-schema'
+import { createKgPrefixSchema, kgPrefixFormMessages } from '@/features/kg/kg-prefix-form-schema'
 import { formatDevEuiPrefix, normalizeDevEuiPrefix } from '@/features/kg/kg-prefix-format'
 import useCustomToast from '@/hooks/useCustomToast'
 
-type CreateKgPrefixForm = Readonly<{ name: string; prefix: string; short_code: string }>
+type CreateKgPrefixForm = z.input<typeof createKgPrefixSchema>
 
-const initialForm: CreateKgPrefixForm = { name: '', prefix: '', short_code: '' }
+const initialForm: CreateKgPrefixForm = { name: '', prefix: '', shortCode: '' }
 
 export function AddKgPrefix() {
   const [open, setOpen] = useState(false)
   const queryClient = useQueryClient()
   const { showErrorToast, showSuccessToast } = useCustomToast()
-  const form = useForm<CreateKgPrefixForm>({
+  const form = useForm<CreateKgPrefixForm, unknown, z.output<typeof createKgPrefixSchema>>({
     defaultValues: initialForm,
     mode: 'onBlur',
     reValidateMode: 'onBlur',
-    resolver: zodResolver(createKgPrefixSchema),
+    resolver: zodResolver(createKgPrefixSchema, { error: kgPrefixFormMessages }),
   })
   const mutation = useMutation({
-    mutationFn: (data: CreateKgPrefixForm) => createKgPrefix(toInput(data)),
+    ...createKgPrefixMutation(),
     onError: (error) => {
-      const message = kgPrefixErrorMessage(error)
-      if (kgPrefixErrorCode(error) === 'kg_dev_eui_prefix_conflict') {
-        form.setError('prefix', { message, type: 'server' }, { shouldFocus: true })
-        form.setError('short_code', { message, type: 'server' })
+      if (isKgPrefixTakenError(error)) {
+        form.setError(
+          'prefix',
+          { message: 'Такой префикс уже зарегистрирован.', type: 'server' },
+          { shouldFocus: true },
+        )
         return
       }
-      showErrorToast(
-        'Не удалось создать префикс',
-        message ?? 'Проверьте данные и попробуйте ещё раз.',
-      )
+      if (isKgPrefixShortCodeTakenError(error)) {
+        form.setError(
+          'shortCode',
+          { message: 'Такой короткий код уже используется.', type: 'server' },
+          { shouldFocus: true },
+        )
+        return
+      }
+      showErrorToast('Не удалось создать префикс', 'Проверьте данные и попробуйте ещё раз.')
     },
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['kg', 'prefixes'] }),
-        queryClient.invalidateQueries({ queryKey: ['audit'] }),
-      ])
+      await invalidateKgPrefixQueries(queryClient)
       close(true)
       showSuccessToast('Префикс создан', 'DevEUI-префикс успешно добавлен.')
     },
@@ -86,11 +91,13 @@ export function AddKgPrefix() {
           autoComplete="off"
           className="flex min-h-0 flex-1 flex-col"
           noValidate
-          onSubmit={form.handleSubmit((data) => mutation.mutate(data))}
+          onSubmit={form.handleSubmit((body) => mutation.mutate({ body }))}
         >
           <DialogHeader className="shrink-0 px-4 pt-4">
             <DialogTitle>Новый DevEUI-префикс</DialogTitle>
-            <DialogDescription>Задайте название, префикс и короткий код.</DialogDescription>
+            <DialogDescription>
+              Задайте название, префикс и короткий код. Префикс и код потом не изменить.
+            </DialogDescription>
           </DialogHeader>
           <FieldGroup className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
             <Controller
@@ -101,43 +108,52 @@ export function AddKgPrefix() {
                   <FieldLabel className="cursor-pointer" htmlFor="new-kg-prefix-name">
                     Название
                   </FieldLabel>
+                  <Input {...field} aria-invalid={fieldState.invalid} id="new-kg-prefix-name" />
+                  {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                </Field>
+              )}
+            />
+            <Controller
+              control={form.control}
+              name="prefix"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel className="cursor-pointer" htmlFor="new-kg-prefix-prefix">
+                    <RequiredLabel>Префикс DevEUI</RequiredLabel>
+                  </FieldLabel>
                   <Input
                     {...field}
                     aria-invalid={fieldState.invalid}
-                    id="new-kg-prefix-name"
+                    autoCapitalize="none"
+                    className="font-mono tracking-[0.16em]"
+                    id="new-kg-prefix-prefix"
+                    inputMode="text"
                     onChange={(event) => {
-                      if (fieldState.error?.type === 'server') form.clearErrors('name')
-                      field.onChange(event)
+                      if (fieldState.error?.type === 'server') form.clearErrors('prefix')
+                      field.onChange(normalizeDevEuiPrefix(event.currentTarget.value))
                     }}
+                    placeholder="aa bb cc dd ee"
+                    spellCheck={false}
+                    value={formatDevEuiPrefix(field.value)}
                   />
                   {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
                 </Field>
               )}
             />
-            <DevEuiPrefixInput
-              clearErrors={form.clearErrors}
-              control={form.control}
-              id="new-kg-prefix-prefix"
-            />
             <Controller
               control={form.control}
-              name="short_code"
+              name="shortCode"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel className="cursor-pointer" htmlFor="new-kg-prefix-short-code">
-                    <span>
-                      Короткий код
-                      <span aria-hidden="true" className="ml-0.5 text-destructive">
-                        *
-                      </span>
-                    </span>
+                    <RequiredLabel>Короткий код</RequiredLabel>
                   </FieldLabel>
                   <Input
                     {...field}
                     aria-invalid={fieldState.invalid}
                     id="new-kg-prefix-short-code"
                     onChange={(event) => {
-                      if (fieldState.error?.type === 'server') form.clearErrors('short_code')
+                      if (fieldState.error?.type === 'server') form.clearErrors('shortCode')
                       field.onChange(event)
                     }}
                     required
@@ -167,55 +183,13 @@ export function AddKgPrefix() {
   )
 }
 
-function DevEuiPrefixInput({
-  clearErrors,
-  control,
-  id,
-}: Readonly<{
-  clearErrors: (name: keyof CreateKgPrefixForm) => void
-  control: ReturnType<typeof useForm<CreateKgPrefixForm>>['control']
-  id: string
-}>) {
+function RequiredLabel({ children }: Readonly<{ children: string }>) {
   return (
-    <Controller
-      control={control}
-      name="prefix"
-      render={({ field, fieldState }) => (
-        <Field data-invalid={fieldState.invalid}>
-          <FieldLabel className="cursor-pointer" htmlFor={id}>
-            <span>
-              Префикс DevEUI
-              <span aria-hidden="true" className="ml-0.5 text-destructive">
-                *
-              </span>
-            </span>
-          </FieldLabel>
-          <Input
-            {...field}
-            aria-invalid={fieldState.invalid}
-            autoCapitalize="none"
-            className="font-mono tracking-[0.16em]"
-            id={id}
-            inputMode="text"
-            onChange={(event) => {
-              if (fieldState.error?.type === 'server') clearErrors('prefix')
-              field.onChange(normalizeDevEuiPrefix(event.currentTarget.value))
-            }}
-            placeholder="aa bb cc dd ee"
-            spellCheck={false}
-            value={formatDevEuiPrefix(field.value)}
-          />
-          {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
-        </Field>
-      )}
-    />
+    <span>
+      {children}
+      <span aria-hidden="true" className="ml-0.5 text-destructive">
+        *
+      </span>
+    </span>
   )
-}
-
-function toInput(data: CreateKgPrefixForm): CreateKgPrefixInput {
-  return {
-    name: data.name.trim() || null,
-    prefix: data.prefix.trim().toLowerCase(),
-    short_code: data.short_code.trim().toLowerCase(),
-  }
 }

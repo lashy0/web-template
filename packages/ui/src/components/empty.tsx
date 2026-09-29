@@ -16,7 +16,9 @@ function Empty({ className, ...props }: React.ComponentProps<'div'>) {
 }
 
 function EmptyHeader({ className, ...props }: React.ComponentProps<'div'>) {
-  return <div className={cn('flex flex-col gap-1', className)} data-slot="empty-header" {...props} />
+  return (
+    <div className={cn('flex flex-col gap-1', className)} data-slot="empty-header" {...props} />
+  )
 }
 
 function EmptyTitle({ className, ...props }: React.ComponentProps<'p'>) {
@@ -25,7 +27,11 @@ function EmptyTitle({ className, ...props }: React.ComponentProps<'p'>) {
 
 function EmptyDescription({ className, ...props }: React.ComponentProps<'p'>) {
   return (
-    <p className={cn('text-sm text-muted-foreground', className)} data-slot="empty-description" {...props} />
+    <p
+      className={cn('text-sm text-muted-foreground', className)}
+      data-slot="empty-description"
+      {...props}
+    />
   )
 }
 

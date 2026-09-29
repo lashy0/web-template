@@ -3,9 +3,13 @@ import type { Control } from 'react-hook-form'
 import type { z } from 'zod'
 import type { createBatchFormSchema } from '@/features/batches/batch-form-schema'
 
-export type CreateBatchForm = z.infer<typeof createBatchFormSchema>
+export type CreateBatchForm = z.input<typeof createBatchFormSchema>
 
-export type BatchFormControl = Control<CreateBatchForm>
+export type BatchFormControl = Control<
+  CreateBatchForm,
+  unknown,
+  z.output<typeof createBatchFormSchema>
+>
 export type FormStep = 1 | 2
 export type SelectOption = Readonly<{ label: string; value: string }>
 
@@ -20,7 +24,7 @@ export const initialBatchFormValues: CreateBatchForm = {
   activationType: 'abp',
   dayPlanQty: '',
   description: '',
-  devEuiPrefix: '',
+  kgPrefixId: '',
   kgVersionId: '',
   lorawanVersion: '1.1',
   name: '',

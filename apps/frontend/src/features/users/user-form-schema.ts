@@ -1,38 +1,29 @@
+import { zUserCreate, zUserPasswordUpdate, zUserRole } from '@web-app/api-client'
 import { z } from 'zod'
 
-const roleSchema = z.enum(['administrator', 'manager', 'engineer', 'packer', 'operator'])
+import { fieldMessages, trimmed } from '@/lib/validation'
 
-const nameSchema = z
-  .string()
-  .trim()
-  .min(1, 'Укажите имя пользователя.')
-  .max(128, 'Имя не должно превышать 128 символов.')
-
-const loginSchema = z
-  .string()
-  .trim()
-  .regex(
-    /^[a-z0-9][a-z0-9._-]{2,63}$/,
-    'От 3 строчных латинских букв, цифр, точек, дефисов или подчёркиваний.',
-  )
+// The rules come from the backend; the form trims and lowers what a person typed.
+const login = z.string().trim().toLowerCase().pipe(zUserCreate.shape.login)
+const name = trimmed(zUserCreate.shape.name)
 
 export const createUserSchema = z.object({
-  active: z.boolean(),
-  login: loginSchema,
-  name: nameSchema,
-  password: z.string().min(12, 'Пароль должен содержать не менее 12 символов.'),
-  role: roleSchema,
+  isActive: z.boolean(),
+  login,
+  name,
+  password: zUserCreate.shape.password,
+  role: zUserRole,
 })
 
 export const editUserSchema = z.object({
-  login: loginSchema,
-  name: nameSchema,
-  role: roleSchema,
+  login,
+  name,
+  role: zUserRole,
 })
 
 export const changeUserPasswordSchema = z
   .object({
-    password: z.string().min(12, 'Пароль должен содержать не менее 12 символов.'),
+    password: zUserPasswordUpdate.shape.password,
     passwordConfirmation: z.string(),
   })
   .refine(({ password, passwordConfirmation }) => password === passwordConfirmation, {
@@ -40,6 +31,17 @@ export const changeUserPasswordSchema = z
     path: ['passwordConfirmation'],
   })
 
-export function zodErrorMessage(error: z.ZodError): string {
-  return error.issues[0]?.message ?? 'Проверьте введённые данные.'
-}
+/** Pass as `zodResolver(schema, { error: userFormMessages })`. */
+export const userFormMessages = fieldMessages({
+  login: {
+    invalid_format:
+      'Латинские буквы, цифры, точки, дефисы или подчёркивания; начинается с буквы или цифры.',
+  },
+  name: {
+    invalid_format: 'Только буквы, пробелы, апострофы, точки и дефисы.',
+  },
+  password: {
+    invalid_format:
+      'Нужны заглавная и строчная латинские буквы, цифра и спецсимвол; пароль не должен начинаться с 123, abc, qwe и подобного.',
+  },
+})

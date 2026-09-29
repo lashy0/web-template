@@ -1,8 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { createKgVersionMutation } from '@web-app/api-client'
 import { PlusIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
+import type { z } from 'zod'
 
 import { Button } from '@web-app/ui/components/button'
 import {
@@ -25,15 +27,13 @@ import {
 import { Spinner } from '@web-app/ui/components/spinner'
 
 import {
-  createKgVersion,
-  kgVersionErrorCode,
-  kgVersionErrorMessage,
-  type CreateKgVersionInput,
+  invalidateKgVersionQueries,
+  isKgVersionCodeTakenError,
 } from '@/features/kg/kg-versions-api'
 import { createKgVersionSchema } from '@/features/kg/kg-version-form-schema'
 import useCustomToast from '@/hooks/useCustomToast'
 
-type CreateKgVersionForm = Readonly<{ code: string; description: string; name: string }>
+type CreateKgVersionForm = z.input<typeof createKgVersionSchema>
 
 const initialForm: CreateKgVersionForm = { code: '', description: '', name: '' }
 const textLimit = 2000
@@ -42,30 +42,27 @@ export function AddKgVersion() {
   const [open, setOpen] = useState(false)
   const queryClient = useQueryClient()
   const { showErrorToast, showSuccessToast } = useCustomToast()
-  const form = useForm<CreateKgVersionForm>({
+  const form = useForm<CreateKgVersionForm, unknown, z.output<typeof createKgVersionSchema>>({
     defaultValues: initialForm,
     mode: 'onBlur',
     reValidateMode: 'onBlur',
     resolver: zodResolver(createKgVersionSchema),
   })
   const mutation = useMutation({
-    mutationFn: (data: CreateKgVersionForm) => createKgVersion(toInput(data)),
+    ...createKgVersionMutation(),
     onError: (error) => {
-      const message = kgVersionErrorMessage(error)
-      if (kgVersionErrorCode(error) === 'kg_version_conflict') {
-        form.setError('code', { message, type: 'server' }, { shouldFocus: true })
+      if (isKgVersionCodeTakenError(error)) {
+        form.setError(
+          'code',
+          { message: 'Версия КГ с таким кодом уже существует.', type: 'server' },
+          { shouldFocus: true },
+        )
         return
       }
-      showErrorToast(
-        'Не удалось создать версию КГ',
-        message ?? 'Проверьте данные и попробуйте ещё раз.',
-      )
+      showErrorToast('Не удалось создать версию КГ', 'Проверьте данные и попробуйте ещё раз.')
     },
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['kg', 'versions'] }),
-        queryClient.invalidateQueries({ queryKey: ['audit'] }),
-      ])
+      await invalidateKgVersionQueries(queryClient)
       close(true)
       showSuccessToast('Версия КГ создана', 'Версия КГ успешно добавлена.')
     },
@@ -91,7 +88,7 @@ export function AddKgVersion() {
           autoComplete="off"
           className="flex min-h-0 flex-1 flex-col"
           noValidate
-          onSubmit={form.handleSubmit((data) => mutation.mutate(data))}
+          onSubmit={form.handleSubmit((body) => mutation.mutate({ body }))}
         >
           <DialogHeader className="shrink-0 px-4 pt-4">
             <DialogTitle>Новая версия КГ</DialogTitle>
@@ -200,12 +197,4 @@ function CharacterCount({ value }: Readonly<{ value: string }>) {
       </InputGroupText>
     </InputGroupAddon>
   )
-}
-
-function toInput(data: CreateKgVersionForm): CreateKgVersionInput {
-  return {
-    code: data.code.trim(),
-    description: data.description.trim() || null,
-    name: data.name.trim(),
-  }
 }

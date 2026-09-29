@@ -42,6 +42,7 @@ export function DataTable<Row extends RowData>({
   getRowClassName,
   loading = false,
   onPaginationChange,
+  onRowClick,
   onSortingChange,
   pagination,
   showPageSize = true,
@@ -54,6 +55,8 @@ export function DataTable<Row extends RowData>({
   getRowClassName?: (row: Row) => string | undefined
   loading?: boolean
   onPaginationChange: (pagination: DataTablePaginationState) => void
+  /** Opens a row on a mouse click; keep a button in the row for the keyboard. */
+  onRowClick?: (row: Row) => void
   onSortingChange: (sorting: DataTableSorting) => void
   pagination: DataTablePaginationState
   showPageSize?: boolean
@@ -151,7 +154,11 @@ export function DataTable<Row extends RowData>({
         <TableBody>
           {table.getRowModel().rows.length ? (
             table.getRowModel().rows.map((row) => (
-              <TableRow className={getRowClassName?.(row.original)} key={row.id}>
+              <TableRow
+                className={cn(onRowClick && 'cursor-pointer', getRowClassName?.(row.original))}
+                key={row.id}
+                onClick={onRowClick ? () => onRowClick(row.original) : undefined}
+              >
                 {row.getAllCells().map((cell) => (
                   <TableCell className="px-4 py-3" key={cell.id}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}

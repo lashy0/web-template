@@ -1,8 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { createBatchMutation, previewBatchDevEuiRangeOptions } from '@web-app/api-client'
 import { ArrowLeftIcon, ArrowRightIcon, PlusIcon } from 'lucide-react'
 import { useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
+import type { z } from 'zod'
 
 import { Button } from '@web-app/ui/components/button'
 import {
@@ -26,13 +28,8 @@ import {
   type FormStep,
 } from './batch-form/types'
 
-import {
-  batchErrorMessage,
-  batchQueryKeys,
-  createBatch,
-  previewDevEuiRange,
-} from '@/features/batches/batches-api'
-import { createBatchFormSchema } from '@/features/batches/batch-form-schema'
+import { invalidateBatchQueries } from '@/features/batches/batches-api'
+import { batchFormMessages, createBatchFormSchema } from '@/features/batches/batch-form-schema'
 import useCustomToast from '@/hooks/useCustomToast'
 
 export function AddBatch() {
@@ -40,42 +37,25 @@ export function AddBatch() {
   const [step, setStep] = useState<FormStep>(1)
   const queryClient = useQueryClient()
   const { showErrorToast, showSuccessToast } = useCustomToast()
-  const form = useForm<CreateBatchForm>({
+  const form = useForm<CreateBatchForm, unknown, z.output<typeof createBatchFormSchema>>({
     defaultValues: initialBatchFormValues,
     mode: 'onChange',
     reValidateMode: 'onChange',
-    resolver: zodResolver(createBatchFormSchema),
+    resolver: zodResolver(createBatchFormSchema, { error: batchFormMessages }),
   })
   const plannedQty = Number(useWatch({ control: form.control, name: 'plannedQty' }))
-  const selectedPrefix = useWatch({ control: form.control, name: 'devEuiPrefix' })
+  const selectedPrefix = useWatch({ control: form.control, name: 'kgPrefixId' })
   const { prefixes, versions, orders } = useBatchFormOptions(open)
   const devEuiRange = useQuery({
+    ...previewBatchDevEuiRangeOptions({ query: { kgPrefixId: selectedPrefix, plannedQty } }),
     enabled: open && step === 2 && selectedPrefix.length > 0 && plannedQty > 0,
-    queryFn: () => previewDevEuiRange(selectedPrefix, plannedQty),
-    queryKey: batchQueryKeys.devEuiRange(selectedPrefix, plannedQty),
   })
   const mutation = useMutation({
-    mutationFn: (values: CreateBatchForm) =>
-      createBatch({
-        day_plan_qty: Number(values.dayPlanQty),
-        description: values.description.trim() || null,
-        dev_eui_prefix: values.devEuiPrefix,
-        kg_version_id: values.kgVersionId,
-        lorawan_config: {
-          activation_type: values.activationType,
-          lorawan_version: values.lorawanVersion,
-        },
-        name: values.name.trim(),
-        planned_qty: Number(values.plannedQty),
-        production_order_id: values.productionOrderId || null,
-      }),
-    onError: (error) =>
-      showErrorToast(
-        'Не удалось создать партию',
-        batchErrorMessage(error) ?? 'Проверьте данные и попробуйте ещё раз.',
-      ),
+    ...createBatchMutation(),
+    onError: () =>
+      showErrorToast('Не удалось создать партию', 'Проверьте данные и попробуйте ещё раз.'),
     onSuccess: async (batch) => {
-      await queryClient.invalidateQueries({ queryKey: batchQueryKeys.all })
+      await invalidateBatchQueries(queryClient)
       close(true)
       showSuccessToast('Партия создана', `Партия «${batch.name}» успешно добавлена.`)
     },
@@ -115,7 +95,7 @@ export function AddBatch() {
               void goToConfiguration()
               return
             }
-            void form.handleSubmit((values) => mutation.mutate(values))()
+            void form.handleSubmit((body) => mutation.mutate({ body }))()
           }}
         >
           <DialogHeader className="shrink-0 px-4 pt-4">

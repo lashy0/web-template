@@ -1,8 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { createPakDeviceMutation, type PakDeviceProvisioned } from '@web-app/api-client'
 import { CopyIcon, PlusIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
+import type { z } from 'zod'
 
 import { Button } from '@web-app/ui/components/button'
 import {
@@ -34,44 +36,40 @@ import { Spinner } from '@web-app/ui/components/spinner'
 import { Switch } from '@web-app/ui/components/switch'
 
 import {
-  createPak,
-  isPakAlreadyExistsError,
+  invalidatePakQueries,
+  isPakCodeTakenError,
   pakKindLabels,
   pakKindOptions,
-  type CreatePakResult,
   type PakKind,
 } from '@/features/paks/paks-api'
 import { pakCodeForMessage } from '@/features/paks/pak-format'
-import { createPakSchema } from '@/features/paks/pak-form-schema'
+import { createPakSchema, pakFormMessages } from '@/features/paks/pak-form-schema'
 import useCustomToast from '@/hooks/useCustomToast'
 
-type CreatePakForm = Readonly<{ active: boolean; code: string; kind: PakKind }>
+type CreatePakForm = z.infer<typeof createPakSchema>
 
-const initialForm: CreatePakForm = { active: true, code: '', kind: 'otk_line' }
+const initialForm: CreatePakForm = { code: '', isActive: true, kind: 'otk_line' }
 
 export function AddPak() {
   const queryClient = useQueryClient()
   const [isOpen, setIsOpen] = useState(false)
-  const [created, setCreated] = useState<CreatePakResult | null>(null)
+  const [created, setCreated] = useState<PakDeviceProvisioned | null>(null)
   const form = useForm<CreatePakForm>({
     defaultValues: initialForm,
     mode: 'onChange',
-    resolver: zodResolver(createPakSchema),
+    resolver: zodResolver(createPakSchema, { error: pakFormMessages }),
   })
   const { showErrorToast, showSuccessToast } = useCustomToast()
   const mutation = useMutation({
-    mutationFn: createPak,
+    ...createPakDeviceMutation(),
     onSuccess: async (result) => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['paks'] }),
-        queryClient.invalidateQueries({ queryKey: ['audit'] }),
-      ])
+      await invalidatePakQueries(queryClient)
       form.reset(initialForm)
       setCreated(result)
-      showSuccessToast('ПАК создан', `ПАК «${pakCodeForMessage(result.pak.code)}» добавлен.`)
+      showSuccessToast('ПАК создан', `ПАК «${pakCodeForMessage(result.device.code)}» добавлен.`)
     },
     onError: (error) => {
-      if (isPakAlreadyExistsError(error)) {
+      if (isPakCodeTakenError(error)) {
         form.setError(
           'code',
           { message: 'ПАК с таким кодом уже существует.', type: 'server' },
@@ -112,7 +110,7 @@ export function AddPak() {
             autoComplete="off"
             className="flex min-h-0 flex-1 flex-col"
             noValidate
-            onSubmit={form.handleSubmit((data) => mutation.mutate(data))}
+            onSubmit={form.handleSubmit((data) => mutation.mutate({ body: data }))}
           >
             <DialogHeader className="shrink-0 px-4 pt-4">
               <DialogTitle>Новый ПАК</DialogTitle>
@@ -182,7 +180,7 @@ export function AddPak() {
               />
               <Controller
                 control={form.control}
-                name="active"
+                name="isActive"
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid} orientation="horizontal">
                     <FieldContent>
@@ -192,7 +190,7 @@ export function AddPak() {
                     </FieldContent>
                     <Switch
                       aria-invalid={fieldState.invalid}
-                      checked={field.value ?? true}
+                      checked={field.value}
                       id="new-pak-active"
                       onCheckedChange={field.onChange}
                     />
@@ -224,7 +222,7 @@ export function AddPak() {
 function CreatedAccessKey({
   onClose,
   result,
-}: Readonly<{ onClose: () => void; result: CreatePakResult }>) {
+}: Readonly<{ onClose: () => void; result: PakDeviceProvisioned }>) {
   const { showSuccessToast } = useCustomToast()
   const copy = async () => {
     await navigator.clipboard?.writeText(result.accessKey)

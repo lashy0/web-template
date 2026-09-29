@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { deleteKgVersionMutation } from '@web-app/api-client'
 
 import { Button } from '@web-app/ui/components/button'
 import {
@@ -12,9 +13,8 @@ import {
 import { Spinner } from '@web-app/ui/components/spinner'
 
 import {
-  deleteKgVersion,
-  kgVersionErrorCode,
-  kgVersionErrorMessage,
+  invalidateKgVersionQueries,
+  isKgVersionInUseError,
   type KgVersion,
 } from '@/features/kg/kg-versions-api'
 import useCustomToast from '@/hooks/useCustomToast'
@@ -33,25 +33,17 @@ export function DeleteKgVersion({
   const queryClient = useQueryClient()
   const { showErrorToast, showSuccessToast, showWarningToast } = useCustomToast()
   const mutation = useMutation({
-    mutationFn: () => deleteKgVersion(version.id),
+    ...deleteKgVersionMutation(),
     onError: (error) => {
-      if (kgVersionErrorCode(error) === 'kg_version_in_use') {
+      if (isKgVersionInUseError(error)) {
         close(true)
-        showWarningToast(
-          'Невозможно удалить версию КГ: она используется в одной или нескольких партиях.',
-        )
+        showWarningToast('Версию КГ нельзя удалить: она используется в партиях. Архивируйте её.')
         return
       }
-      showErrorToast(
-        'Не удалось удалить версию КГ',
-        kgVersionErrorMessage(error) ?? 'Попробуйте ещё раз.',
-      )
+      showErrorToast('Не удалось удалить версию КГ', 'Попробуйте ещё раз.')
     },
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['kg', 'versions'] }),
-        queryClient.invalidateQueries({ queryKey: ['audit'] }),
-      ])
+      await invalidateKgVersionQueries(queryClient)
       close(true)
       onSuccess()
       showSuccessToast('Версия КГ удалена', `Версия «${version.code}» удалена навсегда.`)
@@ -78,7 +70,7 @@ export function DeleteKgVersion({
           </Button>
           <Button
             disabled={mutation.isPending}
-            onClick={() => mutation.mutate()}
+            onClick={() => mutation.mutate({ path: { version_id: version.id } })}
             variant="destructive"
           >
             {mutation.isPending ? <Spinner data-icon="inline-start" /> : null}

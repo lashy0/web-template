@@ -7,15 +7,15 @@ services:
   kratos:
     restart: "no"
     ports:
-      - "127.0.0.1:${KRATOS_PUBLIC_PORT:-4433}:4433"
+      # The Public API is reached through Traefik, as in production.
       - "127.0.0.1:${KRATOS_ADMIN_PORT:-4434}:4434"
     environment:
-      SERVE_PUBLIC_BASE_URL: http://localhost:5173/
-      SELFSERVICE_DEFAULT_BROWSER_RETURN_URL: http://localhost:5173/
-      SELFSERVICE_ALLOWED_RETURN_URLS: http://localhost:5173
-      SELFSERVICE_FLOWS_ERROR_UI_URL: http://localhost:5173/auth/error
-      SELFSERVICE_FLOWS_LOGIN_UI_URL: http://localhost:5173/login
-      SELFSERVICE_FLOWS_LOGOUT_AFTER_DEFAULT_BROWSER_RETURN_URL: http://localhost:5173/login
+      SERVE_PUBLIC_BASE_URL: "http://${APP_HOST:?APP_HOST is required}/.ory/kratos/"
+      SELFSERVICE_DEFAULT_BROWSER_RETURN_URL: "http://${APP_HOST:?APP_HOST is required}/"
+      SELFSERVICE_ALLOWED_RETURN_URLS: "http://${APP_HOST:?APP_HOST is required}"
+      SELFSERVICE_FLOWS_ERROR_UI_URL: "http://${APP_HOST:?APP_HOST is required}/auth/error"
+      SELFSERVICE_FLOWS_LOGIN_UI_URL: "http://${APP_HOST:?APP_HOST is required}/login"
+      SELFSERVICE_FLOWS_LOGOUT_AFTER_DEFAULT_BROWSER_RETURN_URL: "http://${APP_HOST:?APP_HOST is required}/login"
       COOKIES_SECURE: "false"
       LOG_FORMAT: text
       LOG_LEVEL: debug
@@ -27,8 +27,10 @@ services:
 
   hydra:
     restart: "no"
+    ports:
+      - "127.0.0.1:${HYDRA_ADMIN_PORT:-4445}:4445"
     command: ["serve", "all", "--dev", "--sqa-opt-out", "--config", "/etc/config/hydra/hydra.yaml"]
     environment:
-      URLS_SELF_ISSUER: "http://oauth.${BASE_DOMAIN:?BASE_DOMAIN is required}"
+      URLS_SELF_ISSUER: "http://${APP_HOST:?APP_HOST is required}/.ory/hydra"
       LOG_FORMAT: text
       LOG_LEVEL: debug

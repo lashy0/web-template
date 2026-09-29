@@ -68,8 +68,8 @@ export function PakActionsMenu({ pak }: Readonly<{ pak: Pak }>) {
                 Изменить
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setStatusOpen(true)}>
-                {pak.status === 'active' ? <PowerIcon /> : <CircleCheckIcon />}
-                {pak.status === 'active' ? 'Деактивировать' : 'Активировать'}
+                {pak.isActive ? <PowerIcon /> : <CircleCheckIcon />}
+                {pak.isActive ? 'Деактивировать' : 'Активировать'}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setArchiveOpen(true)}>
                 <ArchiveIcon />

@@ -1,107 +1,101 @@
-from typing import Annotated
+import time
 
 import typer
 
 from cli.compose import (
+    DATABASE_NETWORK,
+    IDENTITY_NETWORK,
     INFRASTRUCTURE_ROOT,
     ROOT_ENV_FILE,
+    TRAEFIK_NETWORK,
     ComposeProject,
     Environment,
+    EnvironmentArgument,
+    HealthTimeoutOption,
+    ServicesArgument,
     ensure_network,
     find_tool,
+    follow_logs,
     require_network,
-    run_cli,
     run_command,
 )
+from cli.output import ServiceStatus, heading, print_status, report
 
 IDENTITY_ROOT = INFRASTRUCTURE_ROOT / "identity"
-IDENTITY_NETWORK = "web-identity"
-DATABASE_NETWORK = "web-database"
-TRAEFIK_NETWORK = "traefik-public"
-PROJECT = ComposeProject(IDENTITY_ROOT, (ROOT_ENV_FILE, IDENTITY_ROOT / ".env"))
+PROJECT = ComposeProject(
+    "otk-app-identity",
+    "Identity",
+    "identity",
+    IDENTITY_ROOT,
+    (ROOT_ENV_FILE, IDENTITY_ROOT / ".env"),
+    jobs=("kratos-migrate", "hydra-migrate"),
+)
 
-app = typer.Typer(
+identity_app = typer.Typer(
     help="Manage the Ory Kratos and Hydra identity infrastructure.",
     no_args_is_help=True,
     add_completion=False,
 )
 
 
-@app.command()
-def up(
-    environment: Annotated[
-        Environment,
-        typer.Argument(help="Configuration to start: dev or prod."),
-    ],
-    health_timeout: Annotated[
-        int,
-        typer.Option(min=1, help="Seconds to wait until Kratos and Hydra are healthy."),
-    ] = 90,
-) -> None:
-    """Run migrations, start Kratos and Hydra, and wait until both are healthy."""
+def addresses(environment: Environment) -> list[tuple[str, str]]:
+    # Production publishes no identity ports; development only the Admin APIs.
+    if environment is Environment.PROD:
+        return []
+    return [
+        ("Kratos admin", f"http://127.0.0.1:{PROJECT.setting('KRATOS_ADMIN_PORT', '4434')}"),
+        ("Hydra admin", f"http://127.0.0.1:{PROJECT.setting('HYDRA_ADMIN_PORT', '4445')}"),
+    ]
+
+
+def start(environment: Environment, *, health_timeout: int = 90) -> None:
+    heading(PROJECT.title)
     docker = find_tool("docker")
-    require_network(docker, DATABASE_NETWORK, "Start database infrastructure first.")
-    require_network(docker, TRAEFIK_NETWORK, "Start Traefik infrastructure first.")
+    require_network(docker, DATABASE_NETWORK, "Start the database first: infra database up.")
+    require_network(docker, TRAEFIK_NETWORK, "Start Traefik first: infra traefik up.")
     ensure_network(docker, IDENTITY_NETWORK)
     command = PROJECT.prepare(docker, environment)
-
-    typer.secho(
-        f"Deploying identity infrastructure ({environment.value})",
-        fg=typer.colors.CYAN,
-        bold=True,
-        err=True,
-    )
-    run_command(
-        [
-            *command,
-            "up",
-            "--detach",
-            "--pull",
-            "always",
-            "--wait",
-            "--wait-timeout",
-            str(health_timeout),
-        ]
-    )
-    typer.secho("Kratos and Hydra are healthy.", fg=typer.colors.GREEN, bold=True, err=True)
+    PROJECT.up(command, ["--detach", "--wait", "--wait-timeout", str(health_timeout)], environment)
 
 
-@app.command()
-def status(
-    environment: Annotated[
-        Environment,
-        typer.Argument(help="Configuration to inspect: dev or prod."),
-    ],
-) -> None:
-    """Show migration, Kratos, and Hydra containers reported by Compose."""
+def stop(environment: Environment) -> None:
+    heading(PROJECT.title)
     docker = find_tool("docker")
     command = PROJECT.prepare(docker, environment)
-    run_command([*command, "ps", "--all"])
-
-
-@app.command()
-def down(
-    environment: Annotated[
-        Environment,
-        typer.Argument(help="Configuration to stop: dev or prod."),
-    ],
-) -> None:
-    """Stop Kratos and Hydra while preserving their external network and databases."""
-    docker = find_tool("docker")
-    command = PROJECT.prepare(docker, environment)
-    typer.secho(
-        f"Stopping identity infrastructure ({environment.value})",
-        fg=typer.colors.CYAN,
-        bold=True,
-        err=True,
-    )
     run_command([*command, "down"])
-    typer.secho("Identity infrastructure is stopped.", fg=typer.colors.GREEN, bold=True, err=True)
 
 
-def main() -> None:
-    run_cli(app)
+def status_section(environment: Environment) -> tuple[str, list[ServiceStatus]]:
+    docker = find_tool("docker")
+    command = PROJECT.prepare(docker, environment)
+
+    return PROJECT.title, PROJECT.statuses(docker, command)
 
 
-if __name__ == "__main__":
-    main()
+@identity_app.command()
+def up(environment: EnvironmentArgument, health_timeout: HealthTimeoutOption = 90) -> None:
+    """Run migrations, start Kratos and Hydra, and wait until both are healthy."""
+    started = time.monotonic()
+    start(environment, health_timeout=health_timeout)
+    report("Ready", started, addresses(environment))
+
+
+@identity_app.command()
+def down(environment: EnvironmentArgument) -> None:
+    """Stop Kratos and Hydra while preserving their external network and databases."""
+    started = time.monotonic()
+    stop(environment)
+    report("Stopped", started)
+
+
+@identity_app.command()
+def status(environment: EnvironmentArgument) -> None:
+    """Show the state of Kratos and Hydra and of failed migrations."""
+    print_status([status_section(environment)])
+
+
+@identity_app.command()
+def logs(environment: EnvironmentArgument, services: ServicesArgument = None) -> None:
+    """Follow the logs of Kratos, Hydra and their migrations."""
+    docker = find_tool("docker")
+    follow_logs(PROJECT.prepare(docker, environment), services)

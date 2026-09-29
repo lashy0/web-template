@@ -8,8 +8,8 @@ infrastructure.
 ```text
 .
 ├── apps/                  Application source code
-│   ├── backend/           FastAPI application, migrations, and tests
-│   └── frontend/          React SPA, unit tests, and browser tests
+│   ├── backend/           Litestar application, migrations, and tests
+│   └── frontend/          React SPA
 ├── packages/              Private TypeScript source packages
 │   ├── api-client/        Generated OpenAPI client for the frontend
 │   └── ui/                Shared shadcn/Base UI components and tokens
@@ -21,7 +21,7 @@ infrastructure.
 
 Detailed layouts and configuration are documented in:
 
-- [Backend](apps/backend/README.md)
+- [Backend](apps/backend/AGENTS.md)
 - [Frontend](apps/frontend/README.md)
 - [Infrastructure](infrastructure/README.md)
 - [Backend infrastructure](infrastructure/backend/README.md)
@@ -32,43 +32,45 @@ Detailed layouts and configuration are documented in:
 
 ## Local development
 
-Create and review the shared environment file:
+Create the ignored environment files and their secrets:
 
 ```console
-cp .env.example .env
+uv run --project infrastructure infra init
 ```
 
-Configure the separate `infrastructure/traefik/.env` as described in the
-[Traefik README](infrastructure/traefik/README.md).
-Create the persistent Kratos secrets in `infrastructure/identity/.env` as
-described in the [Identity README](infrastructure/identity/README.md).
+`infra init` creates `.env`, `infrastructure/identity/.env` and
+`infrastructure/traefik/.env` from their examples and generates every secret;
+the Traefik dashboard password is in a comment in `infrastructure/traefik/.env`.
+It never changes existing values, so it can be run again when an example gains
+a variable.
 
-Start infrastructure, then deploy the backend and frontend independently:
+Start everything in dependency order and keep syncing backend code changes:
 
 ```console
-uv run --project infrastructure infra-database up dev
-uv run --project infrastructure infra-traefik up dev
-uv run --project infrastructure infra-identity up dev
-uv run --project infrastructure infra-application backend up dev
-uv run --project infrastructure infra-application frontend up dev
+uv run --project infrastructure infra up dev --watch
 ```
 
-Open <http://localhost:5173>. The frontend source and shared TypeScript package
-changes reload automatically. Docker Desktop must be running.
+`Ctrl+C` stops only the sync; the containers keep running. On the first start,
+the command creates the administrator `admin` and shows its generated password
+once. A lost password is replaced with:
+
+```console
+uv run --project infrastructure otk users reset-password admin
+```
+
+Open <http://localhost>. Traefik routes the one host `${APP_HOST}` as in
+production: `/` to the Vite dev server, `/api` to the backend and `/.ory` to
+Kratos and Hydra. The frontend source and shared TypeScript package changes
+reload automatically. Docker Desktop must be running.
 
 PostgreSQL and Redis are exposed only on loopback in development. Application
 deployment checks their health but never starts or updates them.
 
-Normal shutdown uses the reverse order:
+Stop everything in reverse order; the data volumes are kept:
 
 ```console
-uv run --project infrastructure infra-application frontend down dev
-uv run --project infrastructure infra-application backend down dev
-uv run --project infrastructure infra-identity down dev
-uv run --project infrastructure infra-traefik down dev
-uv run --project infrastructure infra-database down dev
+uv run --project infrastructure infra down dev
 ```
 
-Vite serves the development frontend on `http://localhost:5173` and proxies
-`/api` to the backend through Traefik. Production serves the built SPA from
-`app.${BASE_DOMAIN}`.
+Each project can also be managed alone, for example `infra backend logs dev`
+or `infra frontend up dev`; see the [infrastructure README](infrastructure/README.md).

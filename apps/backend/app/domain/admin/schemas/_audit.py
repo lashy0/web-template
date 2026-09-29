@@ -1,0 +1,27 @@
+"""Audit log schemas."""
+
+from datetime import datetime
+from typing import Any
+from uuid import UUID
+
+from app.lib.schema import CamelizedBaseStruct
+
+
+class AuditLogEntry(CamelizedBaseStruct, kw_only=True):
+    """Detailed audit log entry."""
+
+    id: UUID
+    action: str
+    created_at: datetime
+
+    actor_id: UUID | None
+    actor_login: str | None
+
+    target_type: str | None
+    target_id: str | None
+    target_label: str | None
+
+    details: dict[str, Any] | None
+
+    ip_address: str | None
+    user_agent: str | None

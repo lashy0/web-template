@@ -1,5 +1,5 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { Button } from '@web-app/ui/components/button'
+import { buttonVariants } from '@web-app/ui/components/button'
 import {
   Card,
   CardContent,
@@ -9,13 +9,15 @@ import {
   CardTitle,
 } from '@web-app/ui/components/card'
 
+import { kratosPath } from '@/features/auth/kratos'
+
 export const Route = createFileRoute('/auth/error')({
   beforeLoad: redirectAuthenticatedUser,
   component: AuthErrorPage,
 })
 
 export async function redirectAuthenticatedUser() {
-  const response = await fetch('/sessions/whoami', { credentials: 'include' })
+  const response = await fetch(kratosPath('/sessions/whoami'), { credentials: 'include' })
 
   if (response.ok) {
     throw redirect({ to: '/' })
@@ -37,9 +39,12 @@ export function AuthErrorPage() {
             </p>
           </CardContent>
           <CardFooter>
-            <Button className="w-full" render={<a href="/self-service/login/browser" />} size="lg">
+            <a
+              className={buttonVariants({ className: 'w-full', size: 'lg' })}
+              href={kratosPath('/self-service/login/browser')}
+            >
               Войти снова
-            </Button>
+            </a>
           </CardFooter>
         </Card>
       </div>
