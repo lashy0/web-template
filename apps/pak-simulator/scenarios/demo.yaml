@@ -1,0 +1,254 @@
+# yaml-language-server: $schema=../scenario.schema.json
+# ${NAME} is loaded from the environment or scenarios/.env.
+
+server: ${PAK_SIM_SERVER}
+
+sessions:
+  loading: independent
+  start: 0s..2s  # Delay before the first session on each slot.
+  swap: 1s..3s   # Delay between sessions on the same slot.
+  abandon: 0
+  retest:
+    chance: 0
+    other_slot: 0
+    max_attempts: 1
+    pause: 0s
+
+paks:
+  - code: "${PAK1_CODE}"
+    client_id: ${PAK1_CLIENT_ID}
+    access_key: ${PAK1_ACCESS_KEY}
+    profile: kg-v3
+    slots: 6
+    dev_eui:
+      from: "${PAK1_DEV_EUI_FROM}"
+      count: ${PAK1_DEV_EUI_COUNT}
+
+profiles:
+  kg-v3:
+    firmware_version: "v.1.0.9"
+    pass_rate: 0.8  # Probability of a passed session: 0 = all fail, 1 = all pass.
+
+    checks:
+      - name: Flash
+        label: Прошивка КГ
+        group: ОБ
+        value: 1
+        time: 24.5s..25.2s
+        critical: true
+
+      - name: KeysWrite
+        label: Проверка ЧБ
+        group: ОБ
+        value: 1
+        time: 5.4s..5.5s
+        critical: true
+
+      - name: KeysMulticastWrite
+        label: Проверка ЧБ - Multicast
+        group: ОБ
+        value: 1
+        time: 6.2s..6.6s
+
+      - name: TestFirmware
+        label: Проверка поддерживаемых команд
+        group: ОБ
+        value: 1
+        time: 6s..6.3s
+
+      - name: TestMainPower
+        label: Проверка включения внешнего питания
+        group: СИ
+        value: 1
+        time: 2.3s..2.5s
+
+      - name: TestDCDC
+        label: Проверка DC/DC преобразователя
+        group: СИ
+        limits: [3315, 3665]
+        value: 3456..3521
+        time: 11s..12.4s
+
+      - name: TestCurrentSensor
+        label: Проверка датчика тока
+        group: СИ
+        unit: mA
+        limits: [135, 240]
+        value: 203.33..231.00
+        time: 3.9s..4.3s
+
+      - name: TestDimming
+        label: Проверка диммирования 0%
+        group: СИ
+        unit: mV
+        limits: [0, 500]
+        value: 10..47
+        time: 1.8s..2.8s
+
+      - name: TestDimming
+        label: Проверка диммирования 20%
+        group: СИ
+        unit: mV
+        limits: [1900, 2100]
+        value: 1990..2064
+        time: 1.4s..2.4s
+
+      - name: TestDimming
+        label: Проверка диммирования 40%
+        group: СИ
+        unit: mV
+        limits: [3800, 4200]
+        value: 3978..4088
+        time: 1.4s..2.4s
+
+      - name: TestDimming
+        label: Проверка диммирования 60%
+        group: СИ
+        unit: mV
+        limits: [5700, 6300]
+        value: 5942..6105
+        time: 1.4s..2.4s
+
+      - name: TestDimming
+        label: Проверка диммирования 80%
+        group: СИ
+        unit: mV
+        limits: [7600, 8400]
+        value: 7938..8124
+        time: 1.4s..2.4s
+
+      - name: TestDimming
+        label: Проверка диммирования 100%
+        group: СИ
+        unit: mV
+        limits: [9500, 10500]
+        value: 9934..10170
+        time: 1.4s..2.4s
+
+      - name: TestLoRaExt
+        label: Проверка взаимодействия по протоколу LoRaWan
+        group: СЕТЬ
+        value: 1
+        time: 40s..150s
+
+      - name: TestLoRaRSSI
+        label: "Результат измерения RSSI LoRa [БС]"
+        group: СЕТЬ
+        unit: dB
+        limits: [-55, -10]
+        value: -55..-46
+        time: 0.2s..0.7s
+
+      - name: TestLoRaRSSI
+        label: "Результат измерения RSSI LoRa [КГ]"
+        group: СЕТЬ
+        unit: dB
+        limits: [-55, -10]
+        value: -54..-39
+        time: 0.2s..0.4s
+
+      - name: TestBluetooth
+        label: Проверка Bluetooth
+        group: СЕТЬ
+        unit: dBm
+        limits: [-80, -1]
+        value: -47..-31
+        time: 0.3s..0.8s
+
+      - name: TestSupercapacitor
+        label: Проверка ионистора
+        group: СИ
+        unit: mV
+        limits: [2000, 5000]
+        value: 3469..3609
+        time: 4.1s..4.5s
+
+      - name: TestLeds
+        label: Проверка светодиодов
+        group: ОБ
+        value: 0
+        time: 2s..22s
+
+      - name: TestStorageMode
+        label: Перевод в режим хранения
+        group: ОБ
+        value: 1
+        time: 4.5s..4.8s
+
+    defects:
+      base_station_rssi_low:
+        chance: 0.4
+        transient: true
+        steps:
+          "Результат измерения RSSI LoRa [БС]": -77..-56
+
+      unit_rssi_lost:
+        chance: 0.28
+        transient: true
+        steps:
+          "Результат измерения RSSI LoRa [КГ]": -90
+
+      unit_rssi_low:
+        chance: 0.2
+        transient: true
+        steps:
+          "Результат измерения RSSI LoRa [КГ]": -71..-56
+
+      supercapacitor_missing:
+        chance: 0.08
+        persists: 0.9
+        steps:
+          TestSupercapacitor:
+            value: -1
+            time: 6.7s..7s
+
+      leds_faulty:
+        chance: 0.04
+        steps:
+          TestLeds:
+            value: -1
+            time: 15s..35s
+
+      flash_failed:
+        chance: 0.02
+        persists: 0.5
+        steps:
+          Flash:
+            value: 0
+            time: 120s..130s
+
+      keys_failed:
+        chance: 0.03
+        persists: 0.3
+        steps:
+          KeysWrite:
+            name: PersonalizationWriteKeys
+            value: 0
+            time: 21s..23s
+
+      current_out_of_range:
+        chance: 0.02
+        steps:
+          TestCurrentSensor: 40.00..130.00
+
+      dimming_dead:
+        chance: 0.04
+        steps:
+          TestDimming:
+            value: 0..30
+            time: 5s..6s
+
+      bluetooth_silent:
+        chance: 0.04
+        persists: 0.7
+        steps:
+          TestBluetooth:
+            value: 0
+            time: 44s..47s
+
+      storage_mode_failed:
+        chance: 0.01
+        steps:
+          TestStorageMode:
+            value: -1
+            time: 8s..10s

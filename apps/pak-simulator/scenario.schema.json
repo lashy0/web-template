@@ -1,0 +1,623 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "CheckSpec": {
+      "additionalProperties": false,
+      "description": "A check as a healthy KG unit passes it.",
+      "properties": {
+        "name": {
+          "description": "The check name in the PAK, such as `TestLoRa`.",
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "label": {
+          "description": "The check label shown to people.",
+          "maxLength": 255,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "group": {
+          "description": "The defect group code from the defect dictionary.",
+          "maxLength": 32,
+          "minLength": 1,
+          "title": "Group",
+          "type": "string"
+        },
+        "time": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "pattern": "^\\d+(?:\\.\\d+)?(?:ms|s|m)?(?:\\.\\.\\d+(?:\\.\\d+)?(?:ms|s|m)?)?$",
+              "type": "string"
+            },
+            {
+              "pattern": "^\\$\\{([A-Za-z_][A-Za-z0-9_]*)\\}$",
+              "type": "string"
+            }
+          ],
+          "description": "A time: seconds as a number, `25s`, `1.5m`, `500ms` or a range `24s..27s`."
+        },
+        "value": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "pattern": "^-?\\d+(?:\\.\\d+)?(?:\\.\\.-?\\d+(?:\\.\\d+)?)?$",
+                  "type": "string"
+                },
+                {
+                  "pattern": "^\\$\\{([A-Za-z_][A-Za-z0-9_]*)\\}$",
+                  "type": "string"
+                }
+              ],
+              "description": "A value: a number or range `205..225`, preserving the written decimal precision."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "maxLength": 32,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        },
+        "limits": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "`[min, max]`; a check without limits fails only through a defect.",
+          "title": "Limits"
+        },
+        "critical": {
+          "default": false,
+          "description": "A failure ends the session.",
+          "title": "Critical",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "label",
+        "group",
+        "time"
+      ],
+      "title": "CheckSpec",
+      "type": "object"
+    },
+    "DefectSpec": {
+      "additionalProperties": false,
+      "description": "A fault of a KG unit.",
+      "properties": {
+        "chance": {
+          "description": "The share of units with this fault.",
+          "ge": 0,
+          "le": 1,
+          "title": "Chance",
+          "type": "number"
+        },
+        "persists": {
+          "default": 1.0,
+          "description": "The chance the fault is still there when the unit is retested.",
+          "ge": 0,
+          "le": 1,
+          "title": "Persists",
+          "type": "number"
+        },
+        "steps": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "pattern": "^-?\\d+(?:\\.\\d+)?(?:\\.\\.-?\\d+(?:\\.\\d+)?)?$",
+                    "type": "string"
+                  },
+                  {
+                    "pattern": "^\\$\\{([A-Za-z_][A-Za-z0-9_]*)\\}$",
+                    "type": "string"
+                  }
+                ],
+                "description": "A value: a number or range `205..225`, preserving the written decimal precision."
+              },
+              {
+                "$ref": "#/$defs/EffectSpec"
+              }
+            ]
+          },
+          "description": "Checks by name or label: a new value, or the changes.",
+          "title": "Steps",
+          "type": "object"
+        },
+        "transient": {
+          "default": false,
+          "description": "A condition of the test rather than of the unit, such as radio interference: rolled at its chance for every session, retests included; `persists` is ignored.",
+          "title": "Transient",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "chance",
+        "steps"
+      ],
+      "title": "DefectSpec",
+      "type": "object"
+    },
+    "DevEuiRange": {
+      "additionalProperties": false,
+      "description": "Consecutive DevEUIs of a batch.",
+      "properties": {
+        "from": {
+          "anyOf": [
+            {
+              "pattern": "^\\s*[0-9A-Fa-f]{16}\\s*$",
+              "type": "string"
+            },
+            {
+              "pattern": "^\\$\\{([A-Za-z_][A-Za-z0-9_]*)\\}$",
+              "type": "string"
+            }
+          ],
+          "description": "The first DevEUI.",
+          "title": "From"
+        },
+        "count": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "pattern": "^\\$\\{([A-Za-z_][A-Za-z0-9_]*)\\}$",
+              "type": "string"
+            }
+          ],
+          "description": "How many DevEUIs to take.",
+          "title": "Count"
+        }
+      },
+      "required": [
+        "from",
+        "count"
+      ],
+      "title": "DevEuiRange",
+      "type": "object"
+    },
+    "EffectSpec": {
+      "additionalProperties": false,
+      "description": "How a defect changes a check.",
+      "properties": {
+        "value": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "pattern": "^-?\\d+(?:\\.\\d+)?(?:\\.\\.-?\\d+(?:\\.\\d+)?)?$",
+                  "type": "string"
+                },
+                {
+                  "pattern": "^\\$\\{([A-Za-z_][A-Za-z0-9_]*)\\}$",
+                  "type": "string"
+                }
+              ],
+              "description": "A value: a number or range `205..225`, preserving the written decimal precision."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "name": {
+          "anyOf": [
+            {
+              "description": "Another check name the PAK reports instead.",
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "description": "The check label shown to people.",
+              "maxLength": 255,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "time": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "pattern": "^\\d+(?:\\.\\d+)?(?:ms|s|m)?(?:\\.\\.\\d+(?:\\.\\d+)?(?:ms|s|m)?)?$",
+                  "type": "string"
+                },
+                {
+                  "pattern": "^\\$\\{([A-Za-z_][A-Za-z0-9_]*)\\}$",
+                  "type": "string"
+                }
+              ],
+              "description": "A time: seconds as a number, `25s`, `1.5m`, `500ms` or a range `24s..27s`."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "status": {
+          "anyOf": [
+            {
+              "enum": [
+                "passed",
+                "failed"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The result instead of the one computed from the limits.",
+          "title": "Status"
+        }
+      },
+      "title": "EffectSpec",
+      "type": "object"
+    },
+    "PakSpec": {
+      "additionalProperties": false,
+      "description": "A PAK with its slots and KG units.",
+      "properties": {
+        "code": {
+          "description": "The PAK code, shown by the simulator.",
+          "minLength": 1,
+          "title": "Code",
+          "type": "string"
+        },
+        "client_id": {
+          "description": "The PAK's OAuth client ID, usually `${PAK1_CLIENT_ID}`.",
+          "minLength": 1,
+          "title": "Client Id",
+          "type": "string"
+        },
+        "access_key": {
+          "description": "The PAK's access key, usually `${PAK1_ACCESS_KEY}`.",
+          "minLength": 1,
+          "title": "Access Key",
+          "type": "string"
+        },
+        "profile": {
+          "description": "A key of `profiles`.",
+          "minLength": 1,
+          "title": "Profile",
+          "type": "string"
+        },
+        "slots": {
+          "default": 6,
+          "ge": 1,
+          "le": 32,
+          "title": "Slots",
+          "type": "integer"
+        },
+        "dev_eui": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DevEuiRange"
+            },
+            {
+              "items": {
+                "anyOf": [
+                  {
+                    "pattern": "^\\s*[0-9A-Fa-f]{16}\\s*$",
+                    "type": "string"
+                  },
+                  {
+                    "pattern": "^\\$\\{([A-Za-z_][A-Za-z0-9_]*)\\}$",
+                    "type": "string"
+                  }
+                ]
+              },
+              "minItems": 1,
+              "type": "array"
+            }
+          ],
+          "description": "KG units to verify: a range `{from, count}` or a list of DevEUIs.",
+          "title": "Dev Eui"
+        }
+      },
+      "required": [
+        "code",
+        "client_id",
+        "access_key",
+        "profile",
+        "dev_eui"
+      ],
+      "title": "PakSpec",
+      "type": "object"
+    },
+    "ProfileSpec": {
+      "additionalProperties": false,
+      "description": "The checks a PAK runs for a KG version, in order.",
+      "properties": {
+        "firmware_version": {
+          "description": "The KG firmware version the PAK reports.",
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Firmware Version",
+          "type": "string"
+        },
+        "checks": {
+          "items": {
+            "$ref": "#/$defs/CheckSpec"
+          },
+          "minItems": 1,
+          "title": "Checks",
+          "type": "array"
+        },
+        "defects": {
+          "additionalProperties": {
+            "$ref": "#/$defs/DefectSpec"
+          },
+          "title": "Defects",
+          "type": "object"
+        },
+        "pass_rate": {
+          "anyOf": [
+            {
+              "ge": 0,
+              "le": 1,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Probability of a passed session (0 to 1). When set, controls the outcome and generates matching check results; when omitted, defects and limits determine the outcome.",
+          "title": "Pass Rate"
+        }
+      },
+      "required": [
+        "firmware_version",
+        "checks"
+      ],
+      "title": "ProfileSpec",
+      "type": "object"
+    },
+    "RetestSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "chance": {
+          "default": 0.5,
+          "description": "The chance a failed unit is verified again.",
+          "ge": 0,
+          "le": 1,
+          "title": "Chance",
+          "type": "number"
+        },
+        "other_slot": {
+          "default": 0.5,
+          "description": "The chance it is moved to another slot for that.",
+          "ge": 0,
+          "le": 1,
+          "title": "Other Slot",
+          "type": "number"
+        },
+        "max_attempts": {
+          "default": 3,
+          "description": "How many times a unit is verified at most.",
+          "ge": 1,
+          "title": "Max Attempts",
+          "type": "integer"
+        },
+        "pause": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "pattern": "^\\d+(?:\\.\\d+)?(?:ms|s|m)?(?:\\.\\.\\d+(?:\\.\\d+)?(?:ms|s|m)?)?$",
+              "type": "string"
+            },
+            {
+              "pattern": "^\\$\\{([A-Za-z_][A-Za-z0-9_]*)\\}$",
+              "type": "string"
+            }
+          ],
+          "default": "5s..15s",
+          "description": "Pause before a retest in the same slot."
+        }
+      },
+      "title": "RetestSpec",
+      "type": "object"
+    },
+    "SessionsSpec": {
+      "additionalProperties": false,
+      "description": "Session scheduling, interruptions and retries.",
+      "properties": {
+        "loading": {
+          "default": "independent",
+          "description": "`independent`: each slot is reloaded as soon as it finishes. `together`: all slots are loaded at once, failed units are retested in their slot, and the next units go in only when every slot has finished.",
+          "enum": [
+            "independent",
+            "together"
+          ],
+          "title": "Loading",
+          "type": "string"
+        },
+        "start": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "pattern": "^\\d+(?:\\.\\d+)?(?:ms|s|m)?(?:\\.\\.\\d+(?:\\.\\d+)?(?:ms|s|m)?)?$",
+              "type": "string"
+            },
+            {
+              "pattern": "^\\$\\{([A-Za-z_][A-Za-z0-9_]*)\\}$",
+              "type": "string"
+            }
+          ],
+          "default": "0s..15s",
+          "description": "Delay before a slot is loaded: the first time, or within each load when loading together."
+        },
+        "swap": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "pattern": "^\\d+(?:\\.\\d+)?(?:ms|s|m)?(?:\\.\\.\\d+(?:\\.\\d+)?(?:ms|s|m)?)?$",
+              "type": "string"
+            },
+            {
+              "pattern": "^\\$\\{([A-Za-z_][A-Za-z0-9_]*)\\}$",
+              "type": "string"
+            }
+          ],
+          "default": "8s..20s",
+          "description": "Pause between units in a slot, or between loads when loading together."
+        },
+        "abandon": {
+          "default": 0.0,
+          "description": "Probability of a session being interrupted halfway.",
+          "ge": 0,
+          "le": 1,
+          "title": "Abandon",
+          "type": "number"
+        },
+        "retest": {
+          "$ref": "#/$defs/RetestSpec"
+        }
+      },
+      "title": "SessionsSpec",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A PAK simulator scenario.",
+  "properties": {
+    "server": {
+      "anyOf": [
+        {
+          "format": "uri",
+          "type": "string"
+        },
+        {
+          "pattern": "^\\$\\{([A-Za-z_][A-Za-z0-9_]*)\\}$",
+          "type": "string"
+        }
+      ],
+      "description": "The application address, such as `http://localhost`.",
+      "title": "Server"
+    },
+    "verify_tls": {
+      "default": true,
+      "title": "Verify Tls",
+      "type": "boolean"
+    },
+    "sessions": {
+      "$ref": "#/$defs/SessionsSpec"
+    },
+    "paks": {
+      "items": {
+        "$ref": "#/$defs/PakSpec"
+      },
+      "minItems": 1,
+      "title": "Paks",
+      "type": "array"
+    },
+    "profiles": {
+      "additionalProperties": {
+        "$ref": "#/$defs/ProfileSpec"
+      },
+      "title": "Profiles",
+      "type": "object"
+    }
+  },
+  "required": [
+    "server",
+    "paks",
+    "profiles"
+  ],
+  "title": "ScenarioSpec",
+  "type": "object"
+}
