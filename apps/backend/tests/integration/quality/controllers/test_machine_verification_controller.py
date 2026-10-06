@@ -8,13 +8,14 @@ import pytest
 from sqlalchemy import select
 
 from app.db import models as m
-from app.db.enums import KgOtkStatus
+from app.db.enums import KgOtkStatus, UserRole
 
 if TYPE_CHECKING:
     from litestar import Litestar
     from litestar.testing import AsyncTestClient
     from sqlalchemy.ext.asyncio import AsyncSession
 
+    from tests.integration.conftest import OpenEventStream, SignIn
     from tests.integration.quality.conftest import CreateBatch, SignInPak
 
 pytestmark = [
@@ -162,3 +163,81 @@ async def test_complete_verification_session_on_otk_line_pak_passes_the_kg(
 
     otk_status = await session.scalar(select(m.KgUnit.otk_status).where(m.KgUnit.dev_eui == batch.first_dev_eui))
     assert (response.status_code, otk_status) == (200, KgOtkStatus.PASSED)
+
+
+async def test_open_verification_session_announces_the_change_to_users_who_read_verification(
+    client: AsyncTestClient[Litestar],
+    create_batch: CreateBatch,
+    sign_in: SignIn,
+    sign_in_pak: SignInPak,
+    open_event_stream: OpenEventStream,
+) -> None:
+    batch = await create_batch()
+    pak, headers = await sign_in_pak()
+    await sign_in(UserRole.ENGINEER)
+
+    async with open_event_stream() as events:
+        await _open(client, headers, batch.first_dev_eui)
+        event = await events.next_event()
+
+    assert event == ("verification.changed", {"pakId": str(pak.id), "batchId": str(batch.id)})
+
+
+async def test_start_verification_step_announces_a_new_check(
+    client: AsyncTestClient[Litestar],
+    session: AsyncSession,
+    create_batch: CreateBatch,
+    sign_in: SignIn,
+    sign_in_pak: SignInPak,
+    open_event_stream: OpenEventStream,
+) -> None:
+    batch = await create_batch()
+    _, headers = await sign_in_pak()
+    opened = await _open(client, headers, batch.first_dev_eui)
+    await sign_in(UserRole.ENGINEER)
+
+    async with open_event_stream() as events:
+        await _start(client, headers, opened["id"])
+        received = [await events.next_event(), await events.next_event()]
+
+    check_id = await session.scalar(select(m.PakCheck.id).where(m.PakCheck.name == "rf_power"))
+    assert ("pak_check.changed", {"checkId": str(check_id)}) in received
+
+
+async def test_complete_verification_session_on_otk_line_pak_announces_the_batch_change(
+    client: AsyncTestClient[Litestar],
+    create_batch: CreateBatch,
+    sign_in: SignIn,
+    sign_in_pak: SignInPak,
+    open_event_stream: OpenEventStream,
+) -> None:
+    batch = await create_batch()
+    _, headers = await sign_in_pak()
+    opened = await _open(client, headers, batch.first_dev_eui)
+    await _start(client, headers, opened["id"])
+    await client.put(f"{SESSIONS}/{opened['id']}/steps/1", json={"status": "passed"}, headers=headers)
+    await sign_in(UserRole.MANAGER)
+
+    async with open_event_stream() as events:
+        await client.post(f"{SESSIONS}/{opened['id']}/complete", json={"status": "passed"}, headers=headers)
+        received = [await events.next_event(), await events.next_event()]
+
+    assert ("batch.changed", {"batchId": str(batch.id)}) in received
+
+
+async def test_open_verification_session_is_not_announced_to_users_who_cannot_read_verification(
+    client: AsyncTestClient[Litestar],
+    create_batch: CreateBatch,
+    sign_in: SignIn,
+    sign_in_pak: SignInPak,
+    open_event_stream: OpenEventStream,
+) -> None:
+    batch = await create_batch()
+    _, headers = await sign_in_pak()
+    await sign_in(UserRole.PACKER)
+
+    async with open_event_stream() as events:
+        await _open(client, headers, batch.first_dev_eui)
+
+        with pytest.raises(TimeoutError):
+            await events.next_event(timeout=0.3)

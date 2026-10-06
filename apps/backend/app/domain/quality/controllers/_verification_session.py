@@ -2,17 +2,22 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import TYPE_CHECKING, Annotated
 from uuid import UUID
 
 from advanced_alchemy.extensions.litestar.providers import FieldNameType
 from litestar import Controller, get
 from litestar.di import NamedDependency
-from litestar.params import Parameter, SkipValidation
+from litestar.params import Parameter, QueryParameter, SkipValidation
 
 from app.db.enums import PakDeviceKind, VerificationSessionStatus
 from app.domain.quality.permissions import VerificationPermission
-from app.domain.quality.schemas import VerificationSession, VerificationSessionDetail
+from app.domain.quality.schemas import (
+    VerificationSession,
+    VerificationSessionDetail,
+    VerificationSlotSession,
+)
 from app.domain.quality.services import VerificationSessionService
 from app.lib.authorization import requires_permission
 from app.lib.deps import create_service_dependencies
@@ -25,6 +30,19 @@ if TYPE_CHECKING:
 SessionId = Annotated[
     UUID,
     Parameter(title="Verification session ID", description="The session to read."),
+]
+PakId = Annotated[
+    UUID,
+    QueryParameter(name="pakId", description="The PAK whose slots to read."),
+]
+FinishedWithin = Annotated[
+    int,
+    QueryParameter(
+        name="finishedWithin",
+        description="Seconds a finished session stays the state of its slot.",
+        ge=0,
+        le=24 * 60 * 60,
+    ),
 ]
 
 
@@ -48,6 +66,7 @@ class VerificationSessionController(Controller):
             "sort_order": "desc",
             "in_fields": [
                 FieldNameType(name="batch_id", type_hint=UUID),
+                FieldNameType(name="dev_eui", type_hint=str),
                 FieldNameType(name="pak_id", type_hint=UUID),
                 FieldNameType(name="pak_kind", type_hint=PakDeviceKind),
                 FieldNameType(name="status", type_hint=VerificationSessionStatus),
@@ -73,6 +92,30 @@ class VerificationSessionController(Controller):
             filters,
             schema_type=VerificationSession,
         )
+
+    @get(
+        operation_id="ListVerificationSessionsBySlot",
+        path="/by-slot",
+        guards=[requires_permission(VerificationPermission.READ)],
+        responses=error_responses(401, 403),
+    )
+    async def list_verification_sessions_by_slot(
+        self,
+        verification_sessions_service: NamedDependency[VerificationSessionService],
+        pak_id: PakId,
+        finished_within: FinishedWithin = 0,
+    ) -> list[VerificationSlotSession]:
+        """Return the state of a PAK's slots: the session each one runs or finished last.
+
+        A free slot shows its last session only for ``finishedWithin`` seconds
+        after it finished; by default only running sessions are returned.
+        """
+        results = await verification_sessions_service.list_by_slot(
+            pak_id,
+            finished_within=timedelta(seconds=finished_within),
+        )
+
+        return list(verification_sessions_service.to_schema(results, schema_type=VerificationSlotSession).items)
 
     @get(
         operation_id="GetVerificationSession",

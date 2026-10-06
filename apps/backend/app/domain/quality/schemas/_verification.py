@@ -28,6 +28,14 @@ class VerificationSessionPak(CamelizedBaseStruct):
     code: str
 
 
+class VerificationSessionKgVersion(CamelizedBaseStruct):
+    """The KG version of the unit's batch."""
+
+    id: UUID
+    code: str
+    name: str
+
+
 class VerificationStep(CamelizedBaseStruct):
     id: UUID
     step_no: int
@@ -49,11 +57,15 @@ class VerificationSession(CamelizedBaseStruct):
     id: UUID
     dev_eui: str
     batch_id: UUID
+    kg_version: VerificationSessionKgVersion | None
+    """From the batch; ``None`` when the batch has no KG version."""
     pak: VerificationSessionPak
     pak_kind: PakDeviceKind
     slot_no: int
     firmware_version: str
     total_steps: int
+    completed_steps: int
+    """Steps reported passed or failed."""
     status: VerificationSessionStatus
     started_at: datetime
     last_activity_at: datetime
@@ -62,6 +74,18 @@ class VerificationSession(CamelizedBaseStruct):
 
 class VerificationSessionDetail(VerificationSession):
     steps: list[VerificationStep]
+
+
+class VerificationSlotStep(CamelizedBaseStruct):
+    step_no: int
+    check_label: str
+    status: VerificationStepStatus
+
+
+class VerificationSlotSession(VerificationSession):
+    """A session as its PAK slot shows it: with the status of every step started so far."""
+
+    steps: list[VerificationSlotStep]
 
 
 class VerificationStepResult(StrEnum):

@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from advanced_alchemy.base import UUIDv7AuditBase
-from sqlalchemy import CheckConstraint, Enum, ForeignKey, Index, Integer, String, text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import CheckConstraint, Enum, ForeignKey, Index, Integer, String, func, select, text
+from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 
-from app.db.enums import PakDeviceKind, VerificationSessionStatus, enum_values
+from app.db.enums import PakDeviceKind, VerificationSessionStatus, VerificationStepStatus, enum_values
+from app.db.models._kg_version import KgVersion
 from app.db.models._pak_device import PakDevice
 from app.db.models._verification_step import VerificationStep
 
@@ -58,6 +60,7 @@ class VerificationSession(UUIDv7AuditBase):
         String(64),
         nullable=False,
     )
+    """The KG controller firmware the PAK flashed, as it reports it, such as ``v.1.0.0``."""
 
     total_steps: Mapped[int] = mapped_column(
         Integer,
@@ -90,11 +93,23 @@ class VerificationSession(UUIDv7AuditBase):
     )
 
     pak: Mapped[PakDevice] = relationship(lazy="selectin")
+    kg_version: Mapped[KgVersion | None] = relationship(
+        secondary="batches",
+        primaryjoin="VerificationSession.batch_id == Batch.id",
+        secondaryjoin="Batch.kg_version_id == KgVersion.id",
+        viewonly=True,
+        lazy="selectin",
+    )
+    """The KG version of the unit's batch; the PAK reports only the firmware it flashed."""
     steps: Mapped[list[VerificationStep]] = relationship(
         lazy="raise",
         order_by=VerificationStep.step_no,
         passive_deletes=True,
     )
+
+    if TYPE_CHECKING:
+        completed_steps: int
+        """Steps reported passed or failed; mapped below the class."""
 
     __table_args__ = (
         CheckConstraint("slot_no > 0", name="slot_no_positive"),
@@ -103,6 +118,8 @@ class VerificationSession(UUIDv7AuditBase):
         Index("ix_verification_sessions_dev_eui_started_at", "dev_eui", "started_at"),
         Index("ix_verification_sessions_batch_id_started_at", "batch_id", "started_at"),
         Index("ix_verification_sessions_pak_id_started_at", "pak_id", "started_at"),
+        # Finds the sessions a PAK finished recently, for the state of its slots.
+        Index("ix_verification_sessions_pak_id_completed_at", "pak_id", "completed_at"),
         Index("ix_verification_sessions_started_at", "started_at"),
         Index(
             "ix_verification_sessions_running_last_activity_at",
@@ -123,3 +140,16 @@ class VerificationSession(UUIDv7AuditBase):
             postgresql_where=text("status = 'running'"),
         ),
     )
+
+
+# Assigned after the class so the subquery can reference ``VerificationSession.id``.
+VerificationSession.completed_steps = column_property(  # type: ignore[assignment]
+    select(func.count())
+    .where(
+        VerificationStep.session_id == VerificationSession.id,
+        VerificationStep.status.in_((VerificationStepStatus.PASSED, VerificationStepStatus.FAILED)),
+    )
+    .correlate_except(VerificationStep)
+    .scalar_subquery(),
+    expire_on_flush=False,
+)

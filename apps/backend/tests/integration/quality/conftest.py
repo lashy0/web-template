@@ -33,6 +33,7 @@ if TYPE_CHECKING:
 
     from app.lib.hydra import HydraClient
     from tests.conftest import HydraService
+    from tests.integration.conftest import MulticastGroups
 
 
 pytestmark = pytest.mark.anyio
@@ -117,7 +118,7 @@ async def verification_service(session: AsyncSession) -> AsyncGenerator[Verifica
 
 
 @pytest.fixture
-def create_batch(session: AsyncSession) -> CreateBatch:
+def create_batch(session: AsyncSession, multicast_groups: MulticastGroups) -> CreateBatch:
     """Return a helper that commits a batch of two KG units under a new DevEUI prefix."""
 
     async def _create(
@@ -125,6 +126,8 @@ def create_batch(session: AsyncSession) -> CreateBatch:
         *,
         status: BatchStatus = BatchStatus.IN_PRODUCTION,
         archived: bool = False,
+        activation_type: ActivationType = ActivationType.OTAA,
+        lorawan_version: LoRaWanVersion = LoRaWanVersion.V1_0,
     ) -> m.Batch:
         async with (
             unit_of_work(session),
@@ -138,8 +141,10 @@ def create_batch(session: AsyncSession) -> CreateBatch:
                     kg_prefix_id=kg_prefix.id,
                     planned_qty=2,
                     day_plan_qty=2,
-                    activation_type=ActivationType.OTAA,
-                    lorawan_version=LoRaWanVersion.V1_0,
+                    activation_type=activation_type,
+                    lorawan_version=lorawan_version,
+                    multicast_group_0_id=multicast_groups[0].id,
+                    multicast_group_1_id=multicast_groups[1].id,
                 ),
                 created_by_id=None,
             )

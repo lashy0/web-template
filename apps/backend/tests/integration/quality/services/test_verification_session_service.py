@@ -33,6 +33,7 @@ from app.domain.quality.exceptions import (
     VerificationStepOutOfRangeError,
 )
 from app.domain.quality.schemas import (
+    MachineKgAbp10Keys,
     VerificationSessionComplete,
     VerificationSessionOpen,
     VerificationSessionResult,
@@ -40,12 +41,14 @@ from app.domain.quality.schemas import (
     VerificationStepResult,
     VerificationStepStart,
 )
+from app.lib.lorawan import ActivationType, LoRaWanVersion, generate_credentials
 from app.lib.uow import unit_of_work
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
     from app.domain.quality.services import PakCheckService, VerificationSessionService
+    from tests.integration.conftest import MulticastGroups
     from tests.integration.quality.conftest import CreateBatch, CreateGroup, CreatePak
 
 pytestmark = [
@@ -92,11 +95,13 @@ async def _open_session(
     total_steps: int = 2,
 ) -> m.VerificationSession:
     async with unit_of_work(session):
-        return await verification_service.open_session(
+        item, _ = await verification_service.open_session(
             pak,
             _open(dev_eui, slot_no, total_steps),
             reopen_inactivity=REOPEN,
         )
+
+    return item
 
 
 async def _run_step(
@@ -820,7 +825,11 @@ async def test_expire_stale_closes_idle_sessions_and_their_running_steps(
             .where(m.VerificationStep.id == step_id)
         )
     ).one()
-    assert (expired, *statuses) == (1, VerificationSessionStatus.INCOMPLETE, VerificationStepStatus.ABORTED)
+    assert ([closed.id for closed in expired], *statuses) == (
+        [item.id],
+        VerificationSessionStatus.INCOMPLETE,
+        VerificationStepStatus.INCOMPLETE,
+    )
 
 
 async def test_expire_stale_keeps_recently_active_sessions(
@@ -836,7 +845,7 @@ async def test_expire_stale_keeps_recently_active_sessions(
     async with unit_of_work(session):
         expired = await verification_service.expire_stale(idle_for=timedelta(hours=2), limit=10)
 
-    assert expired == 0
+    assert expired == []
 
 
 async def test_get_with_steps_orders_steps_by_number(
@@ -877,3 +886,198 @@ async def test_last_activity_is_kept_when_the_system_closes_a_session(
         await verification_service.expire_stale(idle_for=timedelta(hours=2), limit=10)
 
     assert item.last_activity_at == last_report
+
+
+async def test_open_session_returns_the_sessions_it_closed(
+    session: AsyncSession,
+    verification_service: VerificationSessionService,
+    create_batch: CreateBatch,
+    create_pak: CreatePak,
+) -> None:
+    batch = await create_batch()
+    pak = await create_pak()
+    previous = await _open_session(session, verification_service, pak, batch.first_dev_eui)
+
+    async with unit_of_work(session):
+        _, closed = await verification_service.open_session(
+            pak,
+            _open(batch.last_dev_eui),
+            reopen_inactivity=REOPEN,
+        )
+
+    assert [item.id for item in closed] == [previous.id]
+
+
+async def test_list_by_slot_returns_the_running_session_of_each_slot(
+    session: AsyncSession,
+    verification_service: VerificationSessionService,
+    create_batch: CreateBatch,
+    create_pak: CreatePak,
+) -> None:
+    batch = await create_batch()
+    pak = await create_pak()
+    second = await _open_session(session, verification_service, pak, batch.last_dev_eui, slot_no=2)
+    first = await _open_session(session, verification_service, pak, batch.first_dev_eui, slot_no=1)
+
+    found = await verification_service.list_by_slot(pak.id, finished_within=timedelta(0))
+
+    assert [item.id for item in found] == [first.id, second.id]
+
+
+async def test_list_by_slot_keeps_a_session_finished_within_the_period(
+    session: AsyncSession,
+    verification_service: VerificationSessionService,
+    create_batch: CreateBatch,
+    create_pak: CreatePak,
+) -> None:
+    batch = await create_batch()
+    pak = await create_pak()
+    item = await _open_session(session, verification_service, pak, batch.first_dev_eui)
+    await _complete(session, verification_service, pak, item, VerificationSessionResult.ABORTED)
+
+    found = await verification_service.list_by_slot(pak.id, finished_within=timedelta(minutes=10))
+
+    assert [(found_item.id, found_item.status) for found_item in found] == [
+        (item.id, VerificationSessionStatus.ABORTED),
+    ]
+
+
+async def test_list_by_slot_leaves_out_a_session_finished_before_the_period(
+    session: AsyncSession,
+    verification_service: VerificationSessionService,
+    create_batch: CreateBatch,
+    create_pak: CreatePak,
+) -> None:
+    batch = await create_batch()
+    pak = await create_pak()
+    item = await _open_session(session, verification_service, pak, batch.first_dev_eui)
+    await _complete(session, verification_service, pak, item, VerificationSessionResult.ABORTED)
+
+    found = await verification_service.list_by_slot(pak.id, finished_within=timedelta(0))
+
+    assert found == []
+
+
+async def test_list_by_slot_returns_only_the_latest_session_of_a_slot(
+    session: AsyncSession,
+    verification_service: VerificationSessionService,
+    create_batch: CreateBatch,
+    create_pak: CreatePak,
+) -> None:
+    batch = await create_batch()
+    pak = await create_pak()
+    await _open_session(session, verification_service, pak, batch.first_dev_eui)
+    latest = await _open_session(session, verification_service, pak, batch.last_dev_eui)
+
+    found = await verification_service.list_by_slot(pak.id, finished_within=timedelta(minutes=10))
+
+    assert [item.id for item in found] == [latest.id]
+
+
+async def test_list_by_slot_leaves_out_a_session_the_system_closed(
+    session: AsyncSession,
+    verification_service: VerificationSessionService,
+    create_batch: CreateBatch,
+    create_pak: CreatePak,
+) -> None:
+    batch = await create_batch()
+    pak = await create_pak()
+    await _open_session(session, verification_service, pak, batch.first_dev_eui)
+
+    async with unit_of_work(session):
+        await verification_service.expire_stale(idle_for=timedelta(0), limit=10)
+
+    found = await verification_service.list_by_slot(pak.id, finished_within=timedelta(minutes=10))
+
+    assert found == []
+
+
+async def test_list_by_slot_leaves_out_other_paks(
+    session: AsyncSession,
+    verification_service: VerificationSessionService,
+    create_batch: CreateBatch,
+    create_pak: CreatePak,
+) -> None:
+    batch = await create_batch()
+    pak = await create_pak()
+    other = await create_pak()
+    await _open_session(session, verification_service, other, batch.first_dev_eui)
+
+    found = await verification_service.list_by_slot(pak.id, finished_within=timedelta(0))
+
+    assert found == []
+
+
+async def test_get_provisioning_of_abp_unit_includes_app_key_and_join_eui(
+    verification_service: VerificationSessionService,
+    create_batch: CreateBatch,
+    create_pak: CreatePak,
+) -> None:
+    batch = await create_batch(activation_type=ActivationType.ABP, lorawan_version=LoRaWanVersion.V1_0)
+    pak = await create_pak()
+
+    provisioning = await verification_service.get_provisioning(pak, batch.first_dev_eui)
+
+    expected = generate_credentials(batch.first_dev_eui, ActivationType.ABP, LoRaWanVersion.V1_0)
+    assert (type(provisioning.keys), provisioning.keys.app_key, provisioning.keys.join_eui) == (
+        MachineKgAbp10Keys,
+        expected.app_key,
+        batch.join_eui,
+    )
+
+
+async def test_get_provisioning_lists_both_multicast_groups_of_the_batch(
+    verification_service: VerificationSessionService,
+    create_batch: CreateBatch,
+    create_pak: CreatePak,
+    multicast_groups: MulticastGroups,
+) -> None:
+    batch = await create_batch()
+    pak = await create_pak()
+
+    provisioning = await verification_service.get_provisioning(pak, batch.first_dev_eui)
+
+    assert [(group.group_id, group.mc_addr) for group in provisioning.multicast] == [
+        (0, multicast_groups[0].mc_addr),
+        (1, multicast_groups[1].mc_addr),
+    ]
+
+
+async def test_get_provisioning_of_unknown_kg_is_not_found(
+    verification_service: VerificationSessionService,
+    create_pak: CreatePak,
+) -> None:
+    pak = await create_pak()
+
+    with pytest.raises(VerificationKgNotFoundError):
+        await verification_service.get_provisioning(pak, "ffffffffffffffff")
+
+
+async def test_get_provisioning_of_scrapped_kg_is_rejected(
+    session: AsyncSession,
+    verification_service: VerificationSessionService,
+    create_batch: CreateBatch,
+    create_pak: CreatePak,
+) -> None:
+    batch = await create_batch()
+    pak = await create_pak()
+
+    async with unit_of_work(session):
+        await session.execute(
+            update(m.KgUnit).where(m.KgUnit.dev_eui == batch.first_dev_eui).values(state=KgState.SCRAPPED),
+        )
+
+    with pytest.raises(VerificationKgScrappedError):
+        await verification_service.get_provisioning(pak, batch.first_dev_eui)
+
+
+async def test_get_provisioning_of_archived_batch_is_rejected(
+    verification_service: VerificationSessionService,
+    create_batch: CreateBatch,
+    create_pak: CreatePak,
+) -> None:
+    batch = await create_batch(archived=True)
+    pak = await create_pak()
+
+    with pytest.raises(VerificationBatchArchivedError):
+        await verification_service.get_provisioning(pak, batch.first_dev_eui)

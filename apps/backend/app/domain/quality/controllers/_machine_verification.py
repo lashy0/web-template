@@ -12,9 +12,12 @@ from litestar.status_codes import HTTP_200_OK, HTTP_201_CREATED
 
 from app.config import VerificationSettings
 from app.db import models as m
+from app.db.enums import PakDeviceKind
 from app.domain.admin.deps import provide_audit_log_service
 from app.domain.admin.services import AuditLogService
 from app.domain.pak.deps import provide_current_pak, provide_pak_devices_service
+from app.domain.production.events import announce_batch_changes
+from app.domain.quality.events import PakCheckChanged, announce_verification_changes
 from app.domain.quality.schemas import (
     VerificationSession,
     VerificationSessionComplete,
@@ -30,6 +33,7 @@ from app.domain.quality.services import (
 )
 from app.lib.deps import create_service_provider
 from app.lib.openapi import error_responses
+from app.lib.realtime import Realtime, announce_after_commit
 from app.lib.uow import UnitOfWork
 
 SessionId = Annotated[
@@ -42,6 +46,11 @@ StepNo = Annotated[
 ]
 
 _MACHINE_ERRORS = (401, 403, 404, 409)
+
+
+async def _session_of(uow: UnitOfWork, step: m.VerificationStep) -> m.VerificationSession:
+    # The service locked the session to change the step, so it comes from the identity map.
+    return await uow.session.get_one(m.VerificationSession, step.session_id)
 
 
 class MachineVerificationController(Controller):
@@ -73,15 +82,18 @@ class MachineVerificationController(Controller):
         current_pak: NamedDependency[m.PakDevice],
         verification_sessions_service: NamedDependency[VerificationSessionService],
         verification_settings: NamedDependency[VerificationSettings],
-        uow: NamedDependency[UnitOfWork],  # noqa: ARG002 - requested so the change commits
+        realtime: NamedDependency[Realtime],
+        uow: NamedDependency[UnitOfWork],
         data: VerificationSessionOpen,
     ) -> VerificationSession:
         """Start verifying a KG unit in a slot, or resume its session running there."""
-        db_obj = await verification_sessions_service.open_session(
+        db_obj, closed = await verification_sessions_service.open_session(
             current_pak,
             data,
             reopen_inactivity=verification_settings.reopen_inactivity,
         )
+        # A session closed to make room may have run on another PAK.
+        announce_verification_changes(uow, realtime, [db_obj, *closed])
 
         return verification_sessions_service.to_schema(db_obj, schema_type=VerificationSession)
 
@@ -98,7 +110,8 @@ class MachineVerificationController(Controller):
         verification_sessions_service: NamedDependency[VerificationSessionService],
         pak_checks_service: NamedDependency[PakCheckService],
         audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],  # noqa: ARG002 - requested so the change commits
+        realtime: NamedDependency[Realtime],
+        uow: NamedDependency[UnitOfWork],
         session_id: SessionId,
         data: VerificationStepStart,
     ) -> VerificationStep:
@@ -109,11 +122,14 @@ class MachineVerificationController(Controller):
             data,
             checks=pak_checks_service,
         )
+        announce_verification_changes(uow, realtime, [await _session_of(uow, step)])
 
         if observation is not None:
             await self._log_check_changes(
                 request,
                 audit_service,
+                uow,
+                realtime,
                 current_pak,
                 observation,
             )
@@ -130,7 +146,8 @@ class MachineVerificationController(Controller):
         self,
         current_pak: NamedDependency[m.PakDevice],
         verification_sessions_service: NamedDependency[VerificationSessionService],
-        uow: NamedDependency[UnitOfWork],  # noqa: ARG002 - requested so the change commits
+        realtime: NamedDependency[Realtime],
+        uow: NamedDependency[UnitOfWork],
         session_id: SessionId,
         step_no: StepNo,
         data: VerificationStepComplete,
@@ -142,6 +159,7 @@ class MachineVerificationController(Controller):
             step_no,
             data,
         )
+        announce_verification_changes(uow, realtime, [await _session_of(uow, step)])
 
         return verification_sessions_service.to_schema(step, schema_type=VerificationStep)
 
@@ -155,12 +173,18 @@ class MachineVerificationController(Controller):
         self,
         current_pak: NamedDependency[m.PakDevice],
         verification_sessions_service: NamedDependency[VerificationSessionService],
-        uow: NamedDependency[UnitOfWork],  # noqa: ARG002 - requested so the change commits
+        realtime: NamedDependency[Realtime],
+        uow: NamedDependency[UnitOfWork],
         session_id: SessionId,
         data: VerificationSessionComplete,
     ) -> VerificationSession:
         """Finish the session; on an OTK-line PAK a pass or fail sets the KG unit's OTK status."""
         db_obj = await verification_sessions_service.complete_session(current_pak, session_id, data)
+        announce_verification_changes(uow, realtime, [db_obj])
+
+        # Only an OTK-line PAK sets the unit's OTK status, which the batch counts.
+        if db_obj.pak_kind is PakDeviceKind.OTK_LINE:
+            announce_batch_changes(uow, realtime, [db_obj.batch_id])
 
         return verification_sessions_service.to_schema(db_obj, schema_type=VerificationSession)
 
@@ -168,6 +192,8 @@ class MachineVerificationController(Controller):
     async def _log_check_changes(
         request: Request[Any, Any, Any],
         audit_service: AuditLogService,
+        uow: UnitOfWork,
+        realtime: Realtime,
         pak: m.PakDevice,
         observation: CheckObservation,
     ) -> None:
@@ -178,9 +204,7 @@ class MachineVerificationController(Controller):
         await audit_service.log_action(
             action="pak_check.created" if observation.created else "pak_check.updated",
             actor_login=pak.code,
-            target_type="pak_check",
-            target_id=str(check.id),
-            target_label=check.label,
+            target=check,
             details={
                 "pak_id": str(pak.id),
                 "name": check.name,
@@ -192,3 +216,4 @@ class MachineVerificationController(Controller):
             },
             request=request,
         )
+        announce_after_commit(uow, realtime, PakCheckChanged(check_id=check.id))

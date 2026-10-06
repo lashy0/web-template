@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 import structlog
 
+from app.domain.quality.events import announce_verification_changes
 from app.domain.quality.services import VerificationSessionService
 from app.lib.uow import unit_of_work
 
@@ -30,14 +31,15 @@ async def expire_stale_verification_sessions(ctx: WorkerContext) -> int:
     while True:
         async with (
             ctx["alchemy"].get_session() as db_session,
-            unit_of_work(db_session),
+            unit_of_work(db_session) as uow,
             VerificationSessionService.new(session=db_session) as sessions,
         ):
             expired = await sessions.expire_stale(idle_for=idle_for, limit=EXPIRE_BATCH_SIZE)
+            announce_verification_changes(uow, ctx["realtime"], expired)
 
-        total += expired
+        total += len(expired)
 
-        if expired < EXPIRE_BATCH_SIZE:
+        if len(expired) < EXPIRE_BATCH_SIZE:
             break
 
     if total:

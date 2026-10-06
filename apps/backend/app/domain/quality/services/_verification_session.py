@@ -7,6 +7,7 @@ from uuid import UUID
 from advanced_alchemy.extensions.litestar import repository, service
 from sqlalchemy import and_, func, or_, select, update
 from sqlalchemy.orm import selectinload
+from sqlalchemy.orm.attributes import set_committed_value
 
 from app.db import models as m
 from app.db.enums import (
@@ -30,6 +31,22 @@ from app.domain.quality.exceptions import (
     VerificationStepInProgressError,
     VerificationStepNotFoundError,
     VerificationStepOutOfRangeError,
+)
+from app.domain.quality.schemas import (
+    MachineKgAbp10Keys,
+    MachineKgAbp11Keys,
+    MachineKgKeys,
+    MachineKgOtaa10Keys,
+    MachineKgOtaa11Keys,
+    MachineKgProvisioning,
+    MachineMulticastGroup,
+)
+from app.lib.lorawan import (
+    Abp10Credentials,
+    Abp11Credentials,
+    Otaa10Credentials,
+    Otaa11Credentials,
+    generate_credentials,
 )
 
 if TYPE_CHECKING:
@@ -59,13 +76,60 @@ class VerificationSessionService(service.SQLAlchemyAsyncRepositoryService[m.Veri
     async def get_with_steps(self, session_id: UUID) -> m.VerificationSession:
         return await self.get(session_id, load=[selectinload(m.VerificationSession.steps)])
 
+    async def list_by_slot(self, pak_id: UUID, *, finished_within: timedelta) -> list[m.VerificationSession]:
+        """Return, per slot of the PAK, the session it runs or finished last, by slot number, with its steps.
+
+        A slot whose last session finished longer than ``finished_within`` ago
+        is left out. Sessions the system closed as incomplete are not a slot's
+        result: the PAK stopped reporting them long ago or already moved on.
+        """
+        finished_since = datetime.now(UTC) - finished_within
+
+        return list(
+            await self.repository.session.scalars(
+                select(m.VerificationSession)
+                .options(selectinload(m.VerificationSession.steps))
+                .where(
+                    m.VerificationSession.pak_id == pak_id,
+                    m.VerificationSession.status != VerificationSessionStatus.INCOMPLETE,
+                    or_(
+                        m.VerificationSession.status == VerificationSessionStatus.RUNNING,
+                        m.VerificationSession.completed_at >= finished_since,
+                    ),
+                )
+                # A slot runs one session at a time, so its latest start is its current state.
+                .distinct(m.VerificationSession.slot_no)
+                .order_by(m.VerificationSession.slot_no, m.VerificationSession.started_at.desc())
+            )
+        )
+
+    async def get_provisioning(self, pak: m.PakDevice, dev_eui: str) -> MachineKgProvisioning:
+        """The keys and multicast groups the PAK writes into the unit before verifying it.
+
+        Refused as opening a session would be. A session of the unit running
+        elsewhere is no reason: opening the session decides on it.
+        """
+        kg = await self.repository.session.get(m.KgUnit, dev_eui)
+
+        if kg is None:
+            raise VerificationKgNotFoundError
+
+        batch = kg.batch
+        self._ensure_verifiable(kg, batch, pak)
+
+        return MachineKgProvisioning(
+            dev_eui=kg.dev_eui,
+            keys=_machine_keys(kg.dev_eui, batch),
+            multicast=[_machine_group(batch.multicast_group_0), _machine_group(batch.multicast_group_1)],
+        )
+
     async def open_session(
         self,
         pak: m.PakDevice,
         data: s.VerificationSessionOpen,
         *,
         reopen_inactivity: timedelta,
-    ) -> m.VerificationSession:
+    ) -> tuple[m.VerificationSession, list[m.VerificationSession]]:
         """Start a session for the KG unit in the PAK slot.
 
         The session already running for the unit in the same slot is resumed.
@@ -73,18 +137,16 @@ class VerificationSessionService(service.SQLAlchemyAsyncRepositoryService[m.Veri
         idle for ``reopen_inactivity``; then it is closed as incomplete. A
         session still running in the slot for another unit is closed too: the
         PAK has moved on.
+
+        Returns the session and the sessions closed to make room for it.
         """
-        kg = await self._lock_verifiable_kg(data.dev_eui)
-
-        # Packing is final; an engineering PAK may still examine a packed or shipped unit.
-        if kg.state in {KgState.PACKED, KgState.SHIPPED} and pak.kind is PakDeviceKind.OTK_LINE:
-            raise VerificationKgPackedError
-
+        kg = await self._lock_verifiable_kg(data.dev_eui, pak)
         await self._lock_pak(pak.id)
         now = datetime.now(UTC)
 
         by_kg: m.VerificationSession | None = None
         by_slot: m.VerificationSession | None = None
+        closed: list[m.VerificationSession] = []
 
         for running in await self._lock_running_sessions(kg.dev_eui, pak_id=pak.id, slot_no=data.slot_no):
             if running.dev_eui == kg.dev_eui:
@@ -94,17 +156,19 @@ class VerificationSessionService(service.SQLAlchemyAsyncRepositoryService[m.Veri
 
         if by_kg is not None:
             if now - by_kg.last_activity_at >= reopen_inactivity:
-                await self._close_incomplete([by_kg], now=now)
+                closed.append(by_kg)
             elif by_kg.pak_id == pak.id and by_kg.slot_no == data.slot_no:
                 by_kg.last_activity_at = now
                 await self.repository.session.flush()
 
-                return by_kg
+                return by_kg, closed
             else:
                 raise VerificationSessionAlreadyRunningError
 
         if by_slot is not None:
-            await self._close_incomplete([by_slot], now=now)
+            closed.append(by_slot)
+
+        await self._close_incomplete(closed, now=now)
 
         item = m.VerificationSession(
             dev_eui=kg.dev_eui,
@@ -120,8 +184,11 @@ class VerificationSessionService(service.SQLAlchemyAsyncRepositoryService[m.Veri
         )
         self.repository.session.add(item)
         await self.repository.session.flush()
+        # A new session has no steps; set the count rather than load it lazily.
+        set_committed_value(item, "completed_steps", 0)
+        set_committed_value(item, "kg_version", kg.batch.kg_version)
 
-        return item
+        return item, closed
 
     async def start_step(
         self,
@@ -308,11 +375,11 @@ class VerificationSessionService(service.SQLAlchemyAsyncRepositoryService[m.Veri
 
         return item
 
-    async def expire_stale(self, *, idle_for: timedelta, limit: int) -> int:
+    async def expire_stale(self, *, idle_for: timedelta, limit: int) -> list[m.VerificationSession]:
         """Close up to ``limit`` running sessions idle for ``idle_for`` as incomplete.
 
         Sessions locked by a concurrent report are skipped until the next run.
-        Returns the number of sessions closed.
+        Returns the sessions closed.
         """
         now = datetime.now(UTC)
         stale = list(
@@ -330,7 +397,7 @@ class VerificationSessionService(service.SQLAlchemyAsyncRepositoryService[m.Veri
         )
         await self._close_incomplete(stale, now=now)
 
-        return len(stale)
+        return stale
 
     async def _close_incomplete(
         self,
@@ -338,7 +405,7 @@ class VerificationSessionService(service.SQLAlchemyAsyncRepositoryService[m.Veri
         *,
         now: datetime,
     ) -> None:
-        """Close sessions the PAK abandoned; ``last_activity_at`` keeps the PAK's last report."""
+        """Close sessions the PAK abandoned, with their running step; ``last_activity_at`` keeps the PAK's last report."""
         if not sessions:
             return
 
@@ -348,7 +415,7 @@ class VerificationSessionService(service.SQLAlchemyAsyncRepositoryService[m.Veri
                 m.VerificationStep.session_id.in_([item.id for item in sessions]),
                 m.VerificationStep.status == VerificationStepStatus.RUNNING,
             )
-            .values(status=VerificationStepStatus.ABORTED, completed_at=now)
+            .values(status=VerificationStepStatus.INCOMPLETE, completed_at=now)
         )
 
         for item in sessions:
@@ -357,7 +424,7 @@ class VerificationSessionService(service.SQLAlchemyAsyncRepositoryService[m.Veri
 
         await self.repository.session.flush()
 
-    async def _lock_verifiable_kg(self, dev_eui: str) -> m.KgUnit:
+    async def _lock_verifiable_kg(self, dev_eui: str, pak: m.PakDevice) -> m.KgUnit:
         unit = await self.repository.session.get(m.KgUnit, dev_eui)
 
         if unit is None:
@@ -375,11 +442,7 @@ class VerificationSessionService(service.SQLAlchemyAsyncRepositoryService[m.Veri
         if batch is None or kg is None:
             raise VerificationKgNotFoundError
 
-        if batch.archived_at is not None:
-            raise VerificationBatchArchivedError
-
-        if kg.state is KgState.SCRAPPED:
-            raise VerificationKgScrappedError
+        self._ensure_verifiable(kg, batch, pak)
 
         return kg
 
@@ -474,3 +537,54 @@ class VerificationSessionService(service.SQLAlchemyAsyncRepositoryService[m.Veri
     def _ensure_in_range(item: m.VerificationSession, step_no: int) -> None:
         if step_no > item.total_steps:
             raise VerificationStepOutOfRangeError
+
+    @staticmethod
+    def _ensure_verifiable(kg: m.KgUnit, batch: m.Batch, pak: m.PakDevice) -> None:
+        if batch.archived_at is not None:
+            raise VerificationBatchArchivedError
+
+        if kg.state is KgState.SCRAPPED:
+            raise VerificationKgScrappedError
+
+        # Packing is final; an engineering PAK may still examine a packed or shipped unit.
+        if kg.state in {KgState.PACKED, KgState.SHIPPED} and pak.kind is PakDeviceKind.OTK_LINE:
+            raise VerificationKgPackedError
+
+
+def _machine_keys(dev_eui: str, batch: m.Batch) -> MachineKgKeys:
+    match generate_credentials(dev_eui, batch.activation_type, batch.lorawan_version):
+        case Otaa10Credentials() as keys:
+            return MachineKgOtaa10Keys(join_eui=batch.join_eui, app_key=keys.app_key)
+        case Otaa11Credentials() as keys:
+            return MachineKgOtaa11Keys(join_eui=batch.join_eui, app_key=keys.app_key, nwk_key=keys.nwk_key)
+        case Abp10Credentials() as keys:
+            return MachineKgAbp10Keys(
+                dev_addr=keys.dev_addr,
+                nwk_s_key=keys.nwk_s_key,
+                app_s_key=keys.app_s_key,
+                app_key=keys.app_key,
+                join_eui=batch.join_eui,
+            )
+        case Abp11Credentials() as keys:
+            return MachineKgAbp11Keys(
+                dev_addr=keys.dev_addr,
+                f_nwk_s_int_key=keys.f_nwk_s_int_key,
+                s_nwk_s_int_key=keys.s_nwk_s_int_key,
+                nwk_s_enc_key=keys.nwk_s_enc_key,
+                app_s_key=keys.app_s_key,
+                app_key=keys.app_key,
+                join_eui=batch.join_eui,
+            )
+
+
+def _machine_group(group: m.MulticastGroup) -> MachineMulticastGroup:
+    session_keys = group.session_keys
+
+    return MachineMulticastGroup(
+        group_id=group.group_id,
+        mc_addr=group.mc_addr,
+        mc_nwk_s_key=session_keys.mc_nwk_s_key,
+        mc_app_s_key=session_keys.mc_app_s_key,
+        frequency_hz=group.frequency_hz,
+        datarate=group.datarate,
+    )

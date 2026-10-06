@@ -4,18 +4,81 @@ A PAK verifies a KG unit by running a series of checks on it. The PAK reports
 each run as a **verification session** made of **steps**, one step per check.
 Users only read the history; PAKs write it through the machine API.
 
-## Machine API
-
-PAKs call `/machine/verification/sessions` with a Hydra access token
-(`Authorization: Bearer ...`, client credentials of the PAK's OAuth client).
-Browser sessions do not apply there. An inactive or archived PAK gets 403.
+## Reading
 
 | Request | Route |
 |---|---|
+| history, filtered and paged (by `batchIdIn`, `devEuiIn`, `pakIdIn`, `pakKindIn`, `statusIn`, start time) | `GET /verification/sessions` |
+| one session with its steps | `GET /verification/sessions/{id}` |
+| state of a PAK's slots | `GET /verification/sessions/by-slot?pakId=…&finishedWithin=…` |
+
+The state of a slot is the session it runs, or the one it finished last, with
+the number, check label and status of every step started so far; steps not
+started yet are only counted in `totalSteps`, since a PAK names a check when it
+starts it. A
+finished session stays the state of its slot for `finishedWithin` seconds (0 by
+default, so only running sessions are returned); after that the slot is left
+out, as a slot that never ran a session is. A session the system closed as
+`incomplete` is never a slot's state: by then the PAK has stopped reporting it
+for a long time or has moved on. The server knows only what PAKs report: a
+slot without a running session may still hold a KG unit.
+
+Every report of a PAK, and every session the system closes, publishes the
+realtime event `verification.changed` with the `pakId` and `batchId` of the
+sessions that changed, once per pair; see [realtime events](../realtime.md).
+Opening a session may close one on another PAK, so one report can announce two
+PAKs. A session ended on an OTK-line PAK also publishes `batch.changed`: it may
+have set the unit's OTK status.
+
+## Machine API
+
+PAKs call `/machine/pak`, `/machine/kg/units` and `/machine/verification/sessions` with a Hydra access token
+(`Authorization: Bearer ...`, client credentials of the PAK's OAuth client).
+Browser sessions do not apply there. An inactive or archived PAK gets 403.
+
+The PAK gets the token at `POST /machine/token`: OAuth2 client credentials,
+`grant_type=client_credentials` as a form with `Authorization: Basic
+base64(client_id:access_key)`. Traefik sends that path straight to Hydra, so
+the backend has no handler for it, and its errors follow OAuth2
+(`{error, error_description}`), not the API format. The token lives an hour;
+on 401 the PAK gets a new one and repeats the request once. See the
+[identity infrastructure](../../../../infrastructure/identity/README.md).
+
+| Request | Route |
+|---|---|
+| read its own registration, to show it | `GET /machine/pak` → `{code, kind}` |
+| read what to write into a unit | `GET /machine/kg/units/{devEui}/keys` → `{devEui, keys, multicast}` |
 | open a session | `POST /machine/verification/sessions` `{devEui, slotNo, firmwareVersion, totalSteps}` |
 | start a step | `POST /machine/verification/sessions/{id}/steps` `{stepNo, checkName, checkLabel, defectGroupCode}` |
 | report a step | `PUT /machine/verification/sessions/{id}/steps/{stepNo}` `{status: passed\|failed, measurementValue, measurementMin, measurementMax, measurementUnit}` |
 | finish a session | `POST /machine/verification/sessions/{id}/complete` `{status: passed\|failed\|aborted}` |
+
+A PAK reads its registration when it starts and after each new token. A kind
+changed in between reaches it in the `pakKind` of the next session it opens.
+
+Before verifying a unit the PAK reads its keys. `keys` has one shape per
+activation of the batch, told apart by `scheme`, with the fields the PAK
+writes; ABP units also get the AppKey and JoinEUI, as PAKs have written them
+so far:
+
+| `scheme` | Fields |
+|---|---|
+| `otaa-1.0` | `joinEui` (the AppEUI), `appKey` |
+| `otaa-1.1` | `joinEui`, `appKey`, `nwkKey` |
+| `abp-1.0` | `devAddr`, `nwkSKey`, `appSKey`, `appKey`, `joinEui` |
+| `abp-1.1` | `devAddr`, `fNwkSIntKey`, `sNwkSIntKey`, `nwkSEncKey`, `appSKey`, `appKey`, `joinEui` |
+
+`multicast` lists both [multicast groups](multicast.md) of the batch by
+`groupId`, each with `mcAddr`, `mcNwkSKey`, `mcAppSKey`, `frequencyHz` and
+`datarate`. Hex values are lower case. The keys are refused as opening a
+session would be (unknown, scrapped or packed unit, archived batch; see
+below), except that a session of the unit running elsewhere is decided when
+the session opens. The response is `Cache-Control: no-store` and not audited.
+
+`firmwareVersion` is the KG controller firmware the PAK flashes, such as
+`v.1.0.9` (`controller_version` in the old system), not the KG version. The
+KG version comes from the unit's batch: a session shows it as `kgVersion`,
+or `null` when the batch has none.
 
 Every request may be repeated after a lost response: the same report is
 answered with the current state, a different one with a 409. A session of
@@ -39,8 +102,11 @@ A KG unit and a PAK slot each have at most one `running` session.
 A session ends `passed`, `failed` or `aborted` when the PAK finishes it, and
 `incomplete` when the system closes it. `passed` needs every step passed; a
 running step blocks `passed` and `failed` (`verification_session_incomplete`)
-and is aborted with the session on `aborted`. `lastActivityAt` is the PAK's
-last report; closing a session as incomplete keeps it.
+and is aborted with the session on `aborted`; when the system closes a session,
+its running step ends `incomplete` too. A PAK reports steps only `passed` or
+`failed`. `lastActivityAt` is the PAK's last report; closing a session as
+incomplete keeps it. `completedSteps` counts
+the steps reported `passed` or `failed`, out of `totalSteps`, to show progress.
 
 A PAK may abort a session after the system has already closed it: `aborted`
 on an `incomplete` session is answered with the session as it is, not a 409,
@@ -49,7 +115,7 @@ still `verification_session_not_running`.
 
 The background task `expire_stale_verification_sessions` runs every minute and
 closes sessions idle for `BACKEND_VERIFICATION_SESSION_TTL_MINUTES` (120) as
-incomplete, aborting their running step. The 60 minutes above are
+incomplete, with their running step, and announces the change. The 60 minutes above are
 `BACKEND_VERIFICATION_SESSION_REOPEN_INACTIVITY_MINUTES` and must be shorter
 than the TTL.
 

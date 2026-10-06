@@ -11,6 +11,15 @@ from app.domain.quality.schemas._defect_type import (
     DefectTypeGroup,
     DefectTypeUpdate,
 )
+from app.domain.quality.schemas._machine_keys import (
+    MachineKgAbp10Keys,
+    MachineKgAbp11Keys,
+    MachineKgKeys,
+    MachineKgOtaa10Keys,
+    MachineKgOtaa11Keys,
+    MachineKgProvisioning,
+    MachineMulticastGroup,
+)
 from app.domain.quality.schemas._pak_check import PakCheck, PakCheckDefectGroup
 from app.domain.quality.schemas._verification import (
     VerificationSession,
@@ -19,6 +28,8 @@ from app.domain.quality.schemas._verification import (
     VerificationSessionOpen,
     VerificationSessionPak,
     VerificationSessionResult,
+    VerificationSlotSession,
+    VerificationSlotStep,
     VerificationStep,
     VerificationStepComplete,
     VerificationStepResult,
@@ -33,6 +44,13 @@ __all__ = (
     "DefectTypeCreate",
     "DefectTypeGroup",
     "DefectTypeUpdate",
+    "MachineKgAbp10Keys",
+    "MachineKgAbp11Keys",
+    "MachineKgKeys",
+    "MachineKgOtaa10Keys",
+    "MachineKgOtaa11Keys",
+    "MachineKgProvisioning",
+    "MachineMulticastGroup",
     "PakCheck",
     "PakCheckDefectGroup",
     "VerificationSession",
@@ -41,6 +59,8 @@ __all__ = (
     "VerificationSessionOpen",
     "VerificationSessionPak",
     "VerificationSessionResult",
+    "VerificationSlotSession",
+    "VerificationSlotStep",
     "VerificationStep",
     "VerificationStepComplete",
     "VerificationStepResult",

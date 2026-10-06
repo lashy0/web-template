@@ -60,6 +60,7 @@ def test_verification_routes_require_verification_read() -> None:
     assert_routes_require(
         {
             "ListVerificationSessions": {VerificationPermission.READ},
+            "ListVerificationSessionsBySlot": {VerificationPermission.READ},
             "GetVerificationSession": {VerificationPermission.READ},
             "ListPakChecks": {VerificationPermission.READ},
             "GetPakCheck": {VerificationPermission.READ},

@@ -66,3 +66,5 @@ class VerificationStepStatus(StrEnum):
     PASSED = "passed"
     FAILED = "failed"
     ABORTED = "aborted"
+    INCOMPLETE = "incomplete"
+    """Still running when the system closed its session as incomplete."""
