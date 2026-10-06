@@ -2,14 +2,20 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
+import re
+from collections.abc import Callable
 from contextlib import AbstractAsyncContextManager
-from typing import Any, Protocol, cast
+from typing import Any, Protocol
 
+from litestar.connection import ASGIConnection
 from litestar.enums import ScopeType
 from litestar.exceptions import NotAuthorizedException, ServiceUnavailableException
-from litestar.middleware import ASGIMiddleware
-from litestar.types import ASGIApp, Receive, Scope, Send
+from litestar.middleware import (
+    AbstractAuthenticationMiddleware,
+    AuthenticationResult,
+    DefineMiddleware,
+)
+from litestar.types import ASGIApp
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,6 +28,9 @@ from app.server.paths import SCHEMA_PATH
 
 SessionFactory = Callable[[], AbstractAsyncContextManager[AsyncSession]]
 
+_PUBLIC_PATHS = rf"^{re.escape(SCHEMA_PATH)}(/|$)"
+"""The OpenAPI document and its Scalar page."""
+
 
 class SessionVerifier(Protocol):
     """Resolve a browser ``Cookie`` header to the Kratos identity it belongs to.
@@ -30,50 +39,43 @@ class SessionVerifier(Protocol):
     ``KratosUnavailableError`` when Kratos cannot answer.
     """
 
-    async def verify_session(self, *, cookie_header: str) -> KratosIdentity: ...
+    async def verify_session(
+        self,
+        *,
+        cookie_header: str,
+    ) -> KratosIdentity: ...
 
 
-def _cookie_header(scope: Scope) -> str | None:
-    scope_dict = cast(dict[str, object], scope)
-    headers = cast(Iterable[tuple[bytes, bytes]], scope_dict.get("headers", ()))
-    cookie_values = [value.decode("latin-1") for name, value in headers if name.lower() == b"cookie"]
+class KratosAuthenticationMiddleware(AbstractAuthenticationMiddleware):
+    """Authenticate a request by its Kratos session.
 
-    return "; ".join(cookie_values) or None
+    The local user goes to ``scope["user"]`` and the Kratos identity to
+    ``scope["auth"]``. Routes with ``exclude_from_auth``, the public paths and
+    ``OPTIONS`` requests (CORS preflights) are not authenticated.
+    """
 
-
-def _is_public_schema(scope: Scope) -> bool:
-    path = scope["path"]
-
-    return path == SCHEMA_PATH or path.startswith(f"{SCHEMA_PATH}/")
-
-
-class KratosAuthenticationMiddleware(ASGIMiddleware):
-    """Authenticate a request and put the local user in ``scope["user"]``."""
-
-    scopes = (ScopeType.HTTP,)
-    exclude_opt_key = "exclude_from_auth"
-    should_bypass_for_scope = staticmethod(_is_public_schema)
+    __slots__ = ("_session_cookie", "_session_factory", "_verifier")
 
     def __init__(
         self,
+        app: ASGIApp,
         *,
         verifier: SessionVerifier,
         session_cookie: str,
         session_factory: SessionFactory,
     ) -> None:
+        super().__init__(app, exclude=_PUBLIC_PATHS, scopes={ScopeType.HTTP})
         self._verifier = verifier
         self._session_cookie = session_cookie
         self._session_factory = session_factory
 
-    async def handle(
+    async def authenticate_request(
         self,
-        scope: Scope,
-        receive: Receive,
-        send: Send,
-        next_app: ASGIApp,
-    ) -> None:
-        cookie_header = _cookie_header(scope)
-        if cookie_header is None or not self._has_session_cookie(cookie_header):
+        connection: ASGIConnection[Any, Any, Any, Any],
+    ) -> AuthenticationResult:
+        cookie_header = connection.headers.get("cookie")
+
+        if cookie_header is None or self._session_cookie not in connection.cookies:
             raise NotAuthorizedException(detail="Authentication required.")
 
         try:
@@ -92,17 +94,10 @@ class KratosAuthenticationMiddleware(ASGIMiddleware):
                 )
             )
 
-        if user is None or not user.identity_active or user.archived_at is not None:
+        if user is None:
             raise NotAuthorizedException(detail="Authentication required.")
 
-        scope_dict = cast(dict[str, Any], scope)
-        scope_dict["user"] = user
-        await next_app(cast(Scope, scope_dict), receive, send)
-
-    def _has_session_cookie(self, cookie_header: str) -> bool:
-        prefix = f"{self._session_cookie}="
-
-        return any(part.strip().startswith(prefix) for part in cookie_header.split(";"))
+        return AuthenticationResult(user=user, auth=identity)
 
 
 def create_authentication_middleware(
@@ -110,10 +105,11 @@ def create_authentication_middleware(
     *,
     session_factory: SessionFactory,
     verifier: SessionVerifier | None = None,
-) -> KratosAuthenticationMiddleware:
+) -> DefineMiddleware:
     """Build the authentication middleware; ``verifier`` defaults to the Kratos Public API."""
 
-    return KratosAuthenticationMiddleware(
+    return DefineMiddleware(
+        KratosAuthenticationMiddleware,
         verifier=verifier or KratosSessionVerifier(settings),
         session_cookie=settings.session_cookie,
         session_factory=session_factory,

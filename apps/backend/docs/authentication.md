@@ -2,8 +2,8 @@
 
 The backend authenticates browser requests with Ory Kratos and resolves every
 Kratos identity to a local `User`. Authentication is wired by
-`app.server.authentication.KratosAuthenticationMiddleware` in the
-`ApplicationCore` composition root.
+`app.server.authentication.KratosAuthenticationMiddleware`, a Litestar
+`AbstractAuthenticationMiddleware`, in the `ApplicationCore` composition root.
 
 ## Request flow
 
@@ -27,8 +27,9 @@ The middleware:
 3. Gets the Kratos `identity.id` and selects the matching local user by
    `User.identity_id`.
 4. Requires `User.identity_active = true` and `User.archived_at IS NULL`.
-5. Places the local `User` object in `scope["user"]` for guards and request
-   handlers.
+5. Places the local `User` object in `scope["user"]` (`request.user`) for
+   guards and request handlers, and the Kratos identity in `scope["auth"]`
+   (`request.auth`).
 
 Missing or invalid authentication, an unprovisioned identity, an inactive
 local user, and an archived user result in HTTP 401. Kratos connectivity
@@ -36,9 +37,24 @@ failures result in HTTP 503. Authorization is handled separately by
 `requires_permission(...)`; an authenticated user without the required exact
 permission receives HTTP 403.
 
+## Session lifetime
+
+A browser session ends after 8 hours without requests (`session.lifespan` in
+`infrastructure/identity/kratos/kratos.yaml`). Kratos never extends a session
+by itself, so `KratosSessionVerifier` does: when a verified session expires in
+less than `BACKEND_KRATOS_SESSION_EXTEND_WITHIN_MINUTES` (default 420, equal to
+`session.earliest_possible_extend`), it extends the session through the Kratos
+Admin API. A session is thus extended at most about once an hour. A failed
+extension is logged and does not fail the request.
+
+The session cookie is not persistent: extending a session does not reissue
+the cookie, and a persistent cookie would expire at the original time.
+
 ## Public routes
 
-OpenAPI/Scalar routes under `/api/schema` are public. The current-user endpoint
+OpenAPI/Scalar routes under `/api/schema` are public, and so is every route
+with `exclude_from_auth=True`. `OPTIONS` requests, such as CORS preflights,
+are not authenticated. The current-user endpoint
 is available at `/api/auth/me`. The health endpoint `/api/health` is also public
 and reports database, Kratos and Hydra readiness.
 

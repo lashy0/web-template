@@ -1,3 +1,4 @@
+from datetime import timedelta
 from functools import lru_cache
 
 from pydantic import Field
@@ -28,6 +29,16 @@ class KratosSettings(BaseSettings):
         validation_alias="BACKEND_KRATOS_SESSION_COOKIE",
     )
 
+    session_extend_within_minutes: int = Field(
+        default=420,
+        ge=1,
+        validation_alias="BACKEND_KRATOS_SESSION_EXTEND_WITHIN_MINUTES",
+        description=(
+            "A request extends a browser session that expires sooner than this; "
+            "keep equal to `session.earliest_possible_extend` in kratos.yaml."
+        ),
+    )
+
     public_timeout: float = Field(
         default=2.0,
         gt=0,
@@ -51,6 +62,10 @@ class KratosSettings(BaseSettings):
         ge=1,
         validation_alias="BACKEND_KRATOS_ADMIN_CONCURRENCY",
     )
+
+    @property
+    def session_extend_within(self) -> timedelta:
+        return timedelta(minutes=self.session_extend_within_minutes)
 
 
 @lru_cache

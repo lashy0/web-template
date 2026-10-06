@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
+from litestar.connection import ASGIConnection
 from litestar.exceptions import NotAuthorizedException
 from litestar.testing import AsyncTestClient
 
@@ -19,24 +20,30 @@ pytestmark = [
 ]
 
 _COOKIE = [(b"cookie", b"ory_kratos_session=session-value")]
+_IDENTITY = KratosIdentity(id=uuid4(), login="auth-user", is_active=True)
+
+
+def _connection(headers: list[tuple[bytes, bytes]]) -> ASGIConnection[Any, Any, Any, Any]:
+    return ASGIConnection({"type": "http", "headers": headers, "state": {}})  # type: ignore[arg-type]
 
 
 def _middleware(user: m.User | None) -> KratosAuthenticationMiddleware:
     verifier = AsyncMock()
-    verifier.verify_session.return_value = KratosIdentity(id=uuid4(), login="auth-user", is_active=True)
+    verifier.verify_session.return_value = _IDENTITY
     session = AsyncMock()
     session.scalar.return_value = user
     session_factory = MagicMock()
     session_factory.return_value.__aenter__.return_value = session
 
     return KratosAuthenticationMiddleware(
+        AsyncMock(),
         verifier=verifier,
         session_cookie="ory_kratos_session",
         session_factory=session_factory,
     )
 
 
-async def test_authenticated_session_places_user_in_scope() -> None:
+async def test_authenticated_session_resolves_the_local_user() -> None:
     user = m.User(
         identity_id=uuid4(),
         identity_login="auth-user",
@@ -44,23 +51,20 @@ async def test_authenticated_session_places_user_in_scope() -> None:
         name="Auth User",
         role=UserRole.OPERATOR,
     )
-    scope: dict[str, Any] = {"type": "http", "headers": _COOKIE}
-    next_app = AsyncMock()
 
-    await _middleware(user).handle(scope, AsyncMock(), AsyncMock(), next_app)  # type: ignore[arg-type]
+    result = await _middleware(user).authenticate_request(_connection(_COOKIE))
 
-    assert scope["user"] is user
-    next_app.assert_awaited_once()
+    assert (result.user, result.auth) == (user, _IDENTITY)
 
 
 async def test_missing_session_cookie_is_unauthorized() -> None:
     with pytest.raises(NotAuthorizedException):
-        await _middleware(None).handle({"type": "http", "headers": []}, AsyncMock(), AsyncMock(), AsyncMock())  # type: ignore[arg-type]
+        await _middleware(None).authenticate_request(_connection([]))
 
 
 async def test_unknown_local_user_is_unauthorized() -> None:
     with pytest.raises(NotAuthorizedException):
-        await _middleware(None).handle({"type": "http", "headers": _COOKIE}, AsyncMock(), AsyncMock(), AsyncMock())  # type: ignore[arg-type]
+        await _middleware(None).authenticate_request(_connection(_COOKIE))
 
 
 async def test_documentation_is_public() -> None:
