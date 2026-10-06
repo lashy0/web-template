@@ -47,6 +47,12 @@ class AuditLog(UUIDv7AuditBase):
     )
     """Human-readable actor snapshot preserved independently of the user."""
 
+    actor_name: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+    """The actor's name at the time of the action (null for the CLI and PAK devices)."""
+
     action: Mapped[str] = mapped_column(
         String(128),
         nullable=False,
@@ -71,6 +77,12 @@ class AuditLog(UUIDv7AuditBase):
         nullable=True,
     )
     """Human-readable label for the target (e.g., user email, team name)."""
+
+    target_name: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+    """The target's name at the time of the action, for targets named apart from their label."""
 
     details: Mapped[dict[str, Any] | None] = mapped_column(
         JSONB,

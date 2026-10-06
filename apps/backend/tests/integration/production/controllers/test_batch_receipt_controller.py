@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from litestar.testing import AsyncTestClient
     from sqlalchemy.ext.asyncio import AsyncSession
 
-    from tests.integration.conftest import SignIn
+    from tests.integration.conftest import OpenEventStream, SignIn
     from tests.integration.production.conftest import CreateBatch, CreatePrefix, CreateReceipt
 
 pytestmark = [
@@ -106,6 +106,20 @@ async def test_create_receipt_updates_batch_received_qty(
     assert (await client.get(f"/api/batches/{batch.id}")).json()["receivedQty"] == 2
 
 
+async def test_create_receipt_announces_the_batch_change(
+    client: AsyncTestClient[Litestar],
+    create_batch: CreateBatch,
+    open_event_stream: OpenEventStream,
+) -> None:
+    batch = await create_batch()
+
+    async with open_event_stream() as events:
+        await client.post(f"/api/batches/{batch.id}/receipts", json={"quantity": 2})
+        event = await events.next_event()
+
+    assert event == ("batch.changed", {"batchId": str(batch.id)})
+
+
 async def test_create_receipt_beyond_planned_qty_is_conflict_with_code(
     client: AsyncTestClient[Litestar],
     create_batch: CreateBatch,
@@ -150,7 +164,10 @@ async def test_update_receipt_changes_given_fields(
     batch = await create_batch()
     receipt = await create_receipt(batch)
 
-    response = await client.patch(f"/api/batches/{batch.id}/receipts/{receipt.id}", json={"quantity": 2})
+    response = await client.patch(
+        f"/api/batches/{batch.id}/receipts/{receipt.id}",
+        json={"expectedUpdatedAt": receipt.updated_at.isoformat(), "quantity": 2},
+    )
 
     assert (response.status_code, response.json()["quantity"]) == (200, 2)
 
@@ -171,7 +188,10 @@ async def test_update_receipt_after_edit_window_is_conflict_with_code(
             .values(created_at=datetime.now(UTC) - timedelta(hours=2))
         )
 
-    response = await client.patch(f"/api/batches/{batch.id}/receipts/{receipt.id}", json={"comment": "Late"})
+    response = await client.patch(
+        f"/api/batches/{batch.id}/receipts/{receipt.id}",
+        json={"expectedUpdatedAt": receipt.updated_at.isoformat(), "comment": "Late"},
+    )
 
     assert (response.status_code, response.json()["extra"]) == (409, {"code": "batch_receipt_edit_window_expired"})
 

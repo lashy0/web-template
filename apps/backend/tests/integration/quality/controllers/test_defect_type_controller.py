@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from litestar import Litestar
     from litestar.testing import AsyncTestClient
 
-    from tests.integration.conftest import SignIn
+    from tests.integration.conftest import OpenEventStream, SignIn
     from tests.integration.quality.conftest import CreateGroup, CreateType
 
 pytestmark = [
@@ -99,9 +99,15 @@ async def test_update_defect_type_clears_guidance(
 ) -> None:
     await sign_in()
     defect_type = await create_type(await create_group())
-    await client.patch(f"/api/defects/types/{defect_type.id}", json={"possibleCause": "Loose antenna"})
+    first = await client.patch(
+        f"/api/defects/types/{defect_type.id}",
+        json={"expectedUpdatedAt": defect_type.updated_at.isoformat(), "possibleCause": "Loose antenna"},
+    )
 
-    response = await client.patch(f"/api/defects/types/{defect_type.id}", json={"possibleCause": None})
+    response = await client.patch(
+        f"/api/defects/types/{defect_type.id}",
+        json={"expectedUpdatedAt": first.json()["updatedAt"], "possibleCause": None},
+    )
 
     assert (response.status_code, response.json()["possibleCause"]) == (200, None)
 
@@ -150,3 +156,20 @@ async def test_engineer_reads_but_cannot_create_defect_types(
     )
 
     assert (listed.status_code, created.status_code) == (200, 403)
+
+
+async def test_archive_defect_type_announces_the_type_change(
+    client: AsyncTestClient[Litestar],
+    sign_in: SignIn,
+    create_group: CreateGroup,
+    create_type: CreateType,
+    open_event_stream: OpenEventStream,
+) -> None:
+    await sign_in()
+    defect_type = await create_type(await create_group())
+
+    async with open_event_stream() as events:
+        await client.post(f"/api/defects/types/{defect_type.id}/archive")
+        event = await events.next_event()
+
+    assert event == ("defect_type.changed", {"typeId": str(defect_type.id)})

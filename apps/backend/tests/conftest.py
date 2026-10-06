@@ -15,10 +15,15 @@ from urllib.request import urlopen
 os.environ.update(
     {
         "LITESTAR_DEBUG": "False",
+        # The Litestar CLI loads the developer's .env into os.environ, where it would
+        # outlive the test: POSTGRES_PORT from it pins the test PostgreSQL to the dev port.
+        "PYTHON_DOTENV_DISABLED": "true",
         "DATABASE_URL": "postgresql+asyncpg://test:test@localhost:5432/test",
         # The task queue connects only when a job is enqueued; tests run task functions directly.
         "REDIS_URL": "redis://localhost:6379/0",
         "BACKEND_WORKERS_IN_SERVER": "False",
+        # Events stay inside the application under test; the Redis path has tests of its own.
+        "BACKEND_REALTIME_BACKEND": "memory",
         "BACKEND_KRATOS_PUBLIC_URL": "http://kratos.test:4433",
         "BACKEND_KRATOS_ADMIN_URL": "http://kratos.test:4434",
         "BACKEND_HYDRA_PUBLIC_URL": "http://hydra.test:4444",
@@ -48,6 +53,7 @@ if TYPE_CHECKING:
 pytest_plugins = [
     "pytest_databases.docker",
     "pytest_databases.docker.postgres",
+    "pytest_databases.docker.redis",
 ]
 
 pytestmark = pytest.mark.anyio
@@ -234,6 +240,12 @@ def _environment(**values: str) -> Generator[None]:
 def postgres_image() -> str:
     """Test on the PostgreSQL image of ``infrastructure/database/docker-compose.yaml``, not the pytest-databases default."""
     return "postgres:17-trixie"
+
+
+@pytest.fixture(scope="session")
+def redis_image() -> str:
+    """Test on the Redis image of ``infrastructure/database/docker-compose.yaml``."""
+    return "redis:8-trixie"
 
 
 @pytest.fixture(scope="session")

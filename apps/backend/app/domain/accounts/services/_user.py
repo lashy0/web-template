@@ -18,6 +18,7 @@ from app.domain.accounts.exceptions import (
     UserArchivedError,
     UserLoginTakenError,
 )
+from app.lib.concurrency import ensure_unchanged
 from app.lib.kratos import KratosClient
 from app.lib.kratos.exceptions import KratosIdentityAlreadyExistsError
 from app.lib.uow import UnitOfWork
@@ -68,6 +69,15 @@ class UserService(service.SQLAlchemyAsyncRepositoryService[m.User]):
             auto_commit=False,
         )
 
+    async def _get_for_update(self, user_id: UUID) -> m.User:
+        """The user, locked until the transaction ends, so a check made on it holds for the update."""
+        return await self.get_one(
+            m.User.id == user_id,
+            with_for_update=True,
+            # A locked read must replace what an earlier read left in the session.
+            execution_options={"populate_existing": True},
+        )
+
     async def has_active_administrator(self) -> bool:
         return await self.exists(
             m.User.role == UserRole.ADMINISTRATOR,
@@ -83,7 +93,8 @@ class UserService(service.SQLAlchemyAsyncRepositoryService[m.User]):
         kratos: KratosClient,
         uow: UnitOfWork,
     ) -> m.User:
-        user = await self.get(user_id)
+        user = await self._get_for_update(user_id)
+        ensure_unchanged(user, data.expected_updated_at)
 
         self._ensure_not_archived(user)
 
@@ -93,6 +104,7 @@ class UserService(service.SQLAlchemyAsyncRepositoryService[m.User]):
                 identity = await kratos.update_login(user.identity_id, login=data.login)
             except KratosIdentityAlreadyExistsError as error:
                 raise UserLoginTakenError from error
+
             uow.on_rollback(
                 "user.update.rollback",
                 partial(kratos.update_login, user.identity_id, login=user.identity_login),
@@ -112,8 +124,10 @@ class UserService(service.SQLAlchemyAsyncRepositoryService[m.User]):
         role: UserRole,
         *,
         actor_id: UUID | None = None,
+        expected_updated_at: datetime | None = None,
     ) -> m.User:
-        user = await self.get(user_id)
+        user = await self._get_for_update(user_id)
+        ensure_unchanged(user, expected_updated_at)
 
         self._ensure_not_archived(user)
 

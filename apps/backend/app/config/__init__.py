@@ -3,6 +3,7 @@ from app.config.hydra import HydraSettings
 from app.config.kratos import KratosSettings
 from app.config.log import LogSettings
 from app.config.queue import QueueSettings
+from app.config.realtime import RealtimeSettings
 from app.config.redis import RedisSettings
 from app.config.settings import (
     AppSettings,
@@ -18,6 +19,7 @@ __all__ = [
     "KratosSettings",
     "LogSettings",
     "QueueSettings",
+    "RealtimeSettings",
     "RedisSettings",
     "Settings",
     "VerificationSettings",

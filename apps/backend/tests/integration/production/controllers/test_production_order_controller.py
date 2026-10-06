@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from litestar.testing import AsyncTestClient
     from sqlalchemy.ext.asyncio import AsyncSession
 
-    from tests.integration.conftest import SignIn
+    from tests.integration.conftest import OpenEventStream, SignIn
     from tests.integration.production.conftest import CreateBatch, CreateOrder
 
 pytestmark = [
@@ -129,7 +129,10 @@ async def test_update_production_order_changes_given_fields(
 ) -> None:
     order = await create_order("Order A")
 
-    response = await client.patch(f"/api/production-orders/{order.id}", json={"description": "Details"})
+    response = await client.patch(
+        f"/api/production-orders/{order.id}",
+        json={"expectedUpdatedAt": order.updated_at.isoformat(), "description": "Details"},
+    )
 
     assert (response.status_code, response.json()["name"], response.json()["description"]) == (
         200,
@@ -144,7 +147,10 @@ async def test_update_archived_production_order_is_conflict_with_code(
 ) -> None:
     order = await create_order(archived=True)
 
-    response = await client.patch(f"/api/production-orders/{order.id}", json={"name": "Renamed"})
+    response = await client.patch(
+        f"/api/production-orders/{order.id}",
+        json={"expectedUpdatedAt": order.updated_at.isoformat(), "name": "Renamed"},
+    )
 
     assert (response.status_code, response.json()["extra"]) == (409, {"code": "production_order_archived"})
 
@@ -181,3 +187,17 @@ async def test_delete_production_order_removes_it(
 
     assert response.status_code == 204
     assert (await client.get(f"/api/production-orders/{order.id}")).status_code == 404
+
+
+async def test_archive_production_order_announces_the_order_change(
+    client: AsyncTestClient[Litestar],
+    create_order: CreateOrder,
+    open_event_stream: OpenEventStream,
+) -> None:
+    order = await create_order()
+
+    async with open_event_stream() as events:
+        await client.post(f"/api/production-orders/{order.id}/archive")
+        event = await events.next_event()
+
+    assert event == ("production_order.changed", {"orderId": str(order.id)})

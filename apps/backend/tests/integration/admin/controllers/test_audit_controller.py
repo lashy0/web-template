@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
+from uuid import uuid4
 
 import pytest
 
@@ -102,3 +103,24 @@ async def test_list_is_forbidden_to_non_administrators(
     response = await client.get("/api/audit")
 
     assert response.status_code == 403
+
+
+async def test_list_shows_current_label_of_a_renamed_target(
+    client: AsyncTestClient[Litestar],
+    session: AsyncSession,
+    sign_in: SignIn,
+) -> None:
+    user = await sign_in()
+    renamed = _entry("user", str(user.id), days_ago=2)
+    renamed.target_label = "old-login"
+    unchanged = _entry("user", str(user.id), days_ago=1)
+    unchanged.target_label = user.identity_login
+    await _add_entries(session, renamed, unchanged, _entry("user", str(uuid4())))
+
+    response = await client.get("/api/audit", params={"targetTypeIn": "user"})
+
+    assert [(item["targetLabel"], item["targetCurrentLabel"]) for item in response.json()["items"]] == [
+        (f"user {response.json()['items'][0]['targetId']}", None),
+        (user.identity_login, None),
+        ("old-login", user.identity_login),
+    ]

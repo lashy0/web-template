@@ -5,10 +5,11 @@ _REDIS_RUNTIME_USER = "otk_app_runtime"
 
 
 class RedisSettings(BaseSettings):
-    """Redis connection shared by the task queue and, later, realtime channels.
+    """Redis connection shared by the task queue and realtime events.
 
-    The runtime ACL user may only touch this application's keys: the ``prefix``
-    namespace and the SAQ keys of the queue named after it.
+    The runtime ACL user may only touch this application's keys and pub/sub
+    channels: the ``prefix`` namespace and the SAQ keys of the queue named
+    after it.
     """
 
     model_config = SettingsConfigDict(

@@ -104,7 +104,12 @@ def ensure_admin() -> None:
     password = generate_password()
 
     try:
-        data = UserCreate(login=ADMIN_LOGIN, name=ADMIN_NAME, role=UserRole.ADMINISTRATOR, password=password)
+        data = UserCreate(
+            login=ADMIN_LOGIN,
+            name=ADMIN_NAME,
+            role=UserRole.ADMINISTRATOR,
+            password=password,
+        )
         created = anyio.run(_ensure_admin, data)
     except ApplicationError as error:
         raise click.ClickException(error.detail) from error
@@ -140,7 +145,9 @@ async def _ensure_admin(data: UserCreate) -> bool:
     async with _accounts() as accounts:
         if await accounts.users.has_active_administrator():
             return False
+
         await _create(accounts, data)
+
         return True
 
 
@@ -149,17 +156,17 @@ async def _create(accounts: _Accounts, data: UserCreate) -> m.User:
     await accounts.audit.log_action(
         action="user.created",
         actor_login=CLI_ACTOR,
-        target_type="user",
-        target_id=str(user.id),
-        target_label=user.identity_login,
+        target=user,
         details={"role": data.role.value, "is_active": data.is_active},
     )
+
     return user
 
 
 async def _reset_password(login: str, password: str) -> m.User:
     async with _accounts() as accounts:
         user = await accounts.users.get_one_or_none(identity_login=login)
+
         if user is None:
             msg = f"No user has the login {login!r}."
             raise click.ClickException(msg)
@@ -168,10 +175,9 @@ async def _reset_password(login: str, password: str) -> m.User:
         await accounts.audit.log_action(
             action="user.password_changed",
             actor_login=CLI_ACTOR,
-            target_type="user",
-            target_id=str(user.id),
-            target_label=user.identity_login,
+            target=user,
         )
+
         return user
 
 

@@ -4,8 +4,9 @@ from uuid import UUID
 
 import pytest
 
+from app.db import models as m
 from app.db.enums import UserRole
-from app.lib.audit import change_details, same_fields, snapshot
+from app.lib.audit import audit_target_fields, audit_target_models, change_details, same_fields, snapshot
 
 pytestmark = pytest.mark.unit
 
@@ -68,3 +69,38 @@ def test_change_details_is_none_without_changes() -> None:
     fields = same_fields("name")
 
     assert change_details(snapshot(_record(), fields), snapshot(_record(), fields)) is None
+
+
+def test_audit_target_fields_read_the_models_audit_attributes() -> None:
+    defect_type = m.DefectType(id=UUID(int=1), code="D-012", name="Царапина корпуса")
+    kg = m.KgUnit(dev_eui="70B3D57ED0000001", short_id="KG-1")
+    shipment = m.BatchShipment(id=UUID(int=2), number=7)
+
+    assert [audit_target_fields(target) for target in (defect_type, kg, shipment)] == [
+        {
+            "target_type": "defect_type",
+            "target_id": str(UUID(int=1)),
+            "target_label": "D-012",
+            "target_name": "Царапина корпуса",
+        },
+        {"target_type": "kg_unit", "target_id": "70B3D57ED0000001", "target_label": "KG-1", "target_name": None},
+        {"target_type": "batch_shipment", "target_id": str(UUID(int=2)), "target_label": "7", "target_name": None},
+    ]
+
+
+def test_audit_target_models_name_every_target_type_once() -> None:
+    assert sorted(audit_target_models()) == [
+        "batch",
+        "batch_receipt",
+        "batch_shipment",
+        "defect_group",
+        "defect_type",
+        "kg_prefix",
+        "kg_unit",
+        "kg_version",
+        "multicast_group",
+        "pak",
+        "pak_check",
+        "production_order",
+        "user",
+    ]

@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
     from app.lib.kratos import KratosClient
     from tests.integration.accounts.conftest import CreateUser
-    from tests.integration.conftest import SignIn
+    from tests.integration.conftest import OpenEventStream, SignIn
 
 pytestmark = [
     pytest.mark.anyio,
@@ -100,9 +100,28 @@ async def test_update_user_renames_it(
 ) -> None:
     user = await create_user()
 
-    response = await client.patch(f"/api/users/{user.id}", json={"name": "Renamed User"})
+    response = await client.patch(
+        f"/api/users/{user.id}", json={"expectedUpdatedAt": user.updated_at.isoformat(), "name": "Renamed User"}
+    )
 
     assert (response.status_code, response.json()["name"]) == (200, "Renamed User")
+
+
+async def test_update_user_role_from_a_stale_copy_is_conflict_with_code(
+    client: AsyncTestClient[Litestar],
+    create_user: CreateUser,
+) -> None:
+    user = await create_user()
+    await client.patch(
+        f"/api/users/{user.id}", json={"expectedUpdatedAt": user.updated_at.isoformat(), "name": "Renamed User"}
+    )
+
+    response = await client.put(
+        f"/api/users/{user.id}/role",
+        json={"expectedUpdatedAt": user.updated_at.isoformat(), "role": UserRole.MANAGER.value},
+    )
+
+    assert (response.status_code, response.json()["extra"]) == (409, {"code": "record_changed"})
 
 
 async def test_update_user_reports_a_taken_login(
@@ -112,7 +131,9 @@ async def test_update_user_reports_a_taken_login(
     user = await create_user()
     other = await create_user()
 
-    response = await client.patch(f"/api/users/{user.id}", json={"login": other.identity_login})
+    response = await client.patch(
+        f"/api/users/{user.id}", json={"expectedUpdatedAt": user.updated_at.isoformat(), "login": other.identity_login}
+    )
 
     assert (response.status_code, response.json()["extra"]) == (409, {"code": "user_login_taken"})
 
@@ -123,7 +144,10 @@ async def test_update_user_role_assigns_role(
 ) -> None:
     user = await create_user()
 
-    response = await client.put(f"/api/users/{user.id}/role", json={"role": UserRole.MANAGER.value})
+    response = await client.put(
+        f"/api/users/{user.id}/role",
+        json={"expectedUpdatedAt": user.updated_at.isoformat(), "role": UserRole.MANAGER.value},
+    )
 
     assert (response.status_code, response.json()["role"]) == (200, "manager")
 
@@ -159,6 +183,20 @@ async def test_activate_user_sets_active_flag(
     response = await client.post(f"/api/users/{user.id}/activate")
 
     assert (response.status_code, response.json()["isActive"]) == (200, True)
+
+
+async def test_activate_user_announces_the_user_change(
+    client: AsyncTestClient[Litestar],
+    create_user: CreateUser,
+    open_event_stream: OpenEventStream,
+) -> None:
+    user = await create_user(is_active=False)
+
+    async with open_event_stream() as events:
+        await client.post(f"/api/users/{user.id}/activate")
+        event = await events.next_event()
+
+    assert event == ("user.changed", {"userId": str(user.id)})
 
 
 async def test_archive_user_sets_archive_time(

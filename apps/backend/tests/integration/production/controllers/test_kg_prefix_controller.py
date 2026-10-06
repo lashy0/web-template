@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from litestar import Litestar
     from litestar.testing import AsyncTestClient
 
-    from tests.integration.conftest import SignIn
+    from tests.integration.conftest import OpenEventStream, SignIn
     from tests.integration.production.conftest import CreatePrefix
 
 pytestmark = [
@@ -62,9 +62,27 @@ async def test_update_kg_prefix_renames_it(
 ) -> None:
     prefix = await create_prefix()
 
-    response = await client.patch(f"/api/kg/prefixes/{prefix.id}", json={"name": "Line A"})
+    response = await client.patch(
+        f"/api/kg/prefixes/{prefix.id}", json={"expectedUpdatedAt": prefix.updated_at.isoformat(), "name": "Line A"}
+    )
 
     assert (response.status_code, response.json()["name"]) == (200, "Line A")
+
+
+async def test_update_kg_prefix_from_a_stale_copy_is_conflict_with_code(
+    client: AsyncTestClient[Litestar],
+    create_prefix: CreatePrefix,
+) -> None:
+    prefix = await create_prefix()
+    await client.patch(
+        f"/api/kg/prefixes/{prefix.id}", json={"expectedUpdatedAt": prefix.updated_at.isoformat(), "name": "Line A"}
+    )
+
+    response = await client.patch(
+        f"/api/kg/prefixes/{prefix.id}", json={"expectedUpdatedAt": prefix.updated_at.isoformat(), "name": "Line B"}
+    )
+
+    assert (response.status_code, response.json()["extra"]) == (409, {"code": "record_changed"})
 
 
 async def test_archive_kg_prefix_sets_archive_time(
@@ -99,3 +117,17 @@ async def test_delete_kg_prefix_removes_it(
 
     assert response.status_code == 204
     assert (await client.get(f"/api/kg/prefixes/{prefix.id}")).status_code == 404
+
+
+async def test_archive_kg_prefix_announces_the_prefix_change(
+    client: AsyncTestClient[Litestar],
+    create_prefix: CreatePrefix,
+    open_event_stream: OpenEventStream,
+) -> None:
+    prefix = await create_prefix()
+
+    async with open_event_stream() as events:
+        await client.post(f"/api/kg/prefixes/{prefix.id}/archive")
+        event = await events.next_event()
+
+    assert event == ("kg_prefix.changed", {"prefixId": str(prefix.id)})

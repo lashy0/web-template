@@ -65,7 +65,11 @@ Two exceptions:
   runs inline and its failure is reported.
 - **PAK secret rotation.** Hydra owns the secret and the database stores its
   encrypted copy, so no ordering is safe: the previous secret is restored in
-  Hydra through `uow.on_rollback(...)`.
+  Hydra through `uow.on_rollback(...)`. An `immediate` rotation then revokes
+  the PAK's tokens after the commit; a `planned` one leaves them valid until
+  they expire, so the PAK keeps working while its new key is set, and is
+  refused with `pak_verification_running` while the PAK has a running
+  verification session.
 
 ## Session lifecycle
 

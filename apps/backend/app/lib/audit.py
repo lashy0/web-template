@@ -15,29 +15,73 @@ from collections.abc import Mapping
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Any
+from typing import Any, ClassVar
 from uuid import UUID
 
 type Snapshot = dict[str, Any]
+
+
+class AuditTarget:
+    """A model whose records audit entries name as their target.
+
+    The entry's ``target_type`` is ``__audit_type__`` and its ``target_id`` the
+    attribute ``__audit_id__``. ``__audit_label__`` names the attribute the
+    record is known by, such as a code or a login, and ``__audit_name__`` the
+    attribute of a name shown apart from it. The entry keeps both as they were;
+    the audit list reads the label again to show one that has changed since.
+    """
+
+    __audit_type__: ClassVar[str]
+    __audit_id__: ClassVar[str] = "id"
+    __audit_label__: ClassVar[str | None] = None
+    __audit_name__: ClassVar[str | None] = None
+
+
+def audit_target_fields(target: AuditTarget) -> dict[str, str | None]:
+    """The ``target_*`` fields of an audit entry about ``target``."""
+    model = type(target)
+    return {
+        "target_type": model.__audit_type__,
+        "target_id": str(getattr(target, model.__audit_id__)),
+        "target_label": _attribute_text(target, model.__audit_label__),
+        "target_name": _attribute_text(target, model.__audit_name__),
+    }
+
+
+def audit_target_models() -> dict[str, type[AuditTarget]]:
+    """The models audit entries name as targets, by target type."""
+    return {model.__audit_type__: model for model in AuditTarget.__subclasses__()}
+
+
+def _attribute_text(target: AuditTarget, attribute: str | None) -> str | None:
+    value = getattr(target, attribute) if attribute else None
+
+    return None if value is None else str(value)
 
 
 def audit_value(value: object) -> Any:
     """Return ``value`` as JSON can store it."""
     if isinstance(value, Enum):
         return value.value
+
     if isinstance(value, (UUID, Decimal)):
         return str(value)
+
     if isinstance(value, (datetime, date)):
         return value.isoformat()
+
     return value
 
 
 def _read(record: object, path: str) -> object:
     value: object = record
+
     for attribute in path.split("."):
         if value is None:
             return None
+
         value = getattr(value, attribute)
+
     return value
 
 

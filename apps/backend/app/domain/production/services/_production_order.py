@@ -12,6 +12,7 @@ from app.domain.production.exceptions import (
     ProductionOrderArchivedError,
     ProductionOrderInUseError,
 )
+from app.lib.concurrency import ensure_unchanged
 
 _BATCH_COUNTS = ("batches_count", "total_planned_qty")
 
@@ -38,8 +39,11 @@ class ProductionOrderService(service.SQLAlchemyAsyncRepositoryService[m.Producti
         self,
         order_id: UUID,
         data: dict[str, object],
+        *,
+        expected_updated_at: datetime | None = None,
     ) -> m.ProductionOrder:
         order = await self._require(order_id, for_update=True)
+        ensure_unchanged(order, expected_updated_at)
 
         if order.archived_at is not None:
             raise ProductionOrderArchivedError

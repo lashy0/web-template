@@ -8,6 +8,7 @@ from uuid import UUID
 import msgspec
 
 from app.domain.production.schemas._common import Title, validate_title
+from app.lib.concurrency import VersionedUpdate
 from app.lib.lorawan import normalize_dev_eui_prefix
 from app.lib.schema import CamelizedBaseStruct
 from app.lib.validation import ValidationError
@@ -57,7 +58,7 @@ class KgPrefixCreate(CamelizedBaseStruct):
             self.name = validate_title(self.name)
 
 
-class KgPrefixUpdate(CamelizedBaseStruct, omit_defaults=True):
+class KgPrefixUpdate(VersionedUpdate, omit_defaults=True):
     """Rename a DevEUI prefix; ``null`` clears the name."""
 
     name: Title | msgspec.UnsetType | None = msgspec.UNSET

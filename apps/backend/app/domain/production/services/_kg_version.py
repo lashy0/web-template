@@ -13,6 +13,7 @@ from app.domain.production.exceptions import (
     KgVersionCodeTakenError,
     KgVersionInUseError,
 )
+from app.lib.concurrency import ensure_unchanged
 
 
 class KgVersionService(service.SQLAlchemyAsyncRepositoryService[m.KgVersion]):
@@ -38,8 +39,11 @@ class KgVersionService(service.SQLAlchemyAsyncRepositoryService[m.KgVersion]):
         self,
         version_id: UUID,
         data: dict[str, object],
+        *,
+        expected_updated_at: datetime | None = None,
     ) -> m.KgVersion:
         version = await self._require(version_id, for_update=True)
+        ensure_unchanged(version, expected_updated_at)
 
         if version.archived_at is not None:
             raise KgVersionArchivedError

@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from litestar import Litestar
     from litestar.testing import AsyncTestClient
 
-    from tests.integration.conftest import SignIn
+    from tests.integration.conftest import OpenEventStream, SignIn
     from tests.integration.production.conftest import CreateVersion
 
 pytestmark = [
@@ -58,7 +58,10 @@ async def test_update_kg_version_changes_given_fields(
 ) -> None:
     version = await create_version("v1")
 
-    response = await client.patch(f"/api/kg/versions/{version.id}", json={"description": "Rev. B board"})
+    response = await client.patch(
+        f"/api/kg/versions/{version.id}",
+        json={"expectedUpdatedAt": version.updated_at.isoformat(), "description": "Rev. B board"},
+    )
 
     assert (response.status_code, response.json()["description"]) == (200, "Rev. B board")
 
@@ -95,3 +98,17 @@ async def test_delete_kg_version_removes_it(
 
     assert response.status_code == 204
     assert (await client.get(f"/api/kg/versions/{version.id}")).status_code == 404
+
+
+async def test_archive_kg_version_announces_the_version_change(
+    client: AsyncTestClient[Litestar],
+    create_version: CreateVersion,
+    open_event_stream: OpenEventStream,
+) -> None:
+    version = await create_version()
+
+    async with open_event_stream() as events:
+        await client.post(f"/api/kg/versions/{version.id}/archive")
+        event = await events.next_event()
+
+    assert event == ("kg_version.changed", {"versionId": str(version.id)})

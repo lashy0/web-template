@@ -9,8 +9,12 @@ from app.domain.quality.schemas import (
     VerificationStepComplete,
     VerificationStepStart,
 )
+from app.lib.concurrency import update_changes
 from app.lib.lorawan import InvalidDevEuiError
 from app.lib.validation import ValidationError
+
+READ_AT = "2026-10-05T12:00:00+00:00"
+"""The `updatedAt` of the copy an update is made from."""
 
 pytestmark = pytest.mark.unit
 
@@ -49,13 +53,13 @@ def test_defect_type_requires_description() -> None:
 
 def test_defect_type_update_requires_a_field() -> None:
     with pytest.raises(msgspec.ValidationError):
-        msgspec.convert({}, DefectTypeUpdate)
+        msgspec.convert({"expectedUpdatedAt": READ_AT}, DefectTypeUpdate)
 
 
 def test_defect_type_update_can_clear_optional_guidance() -> None:
-    data = msgspec.convert({"possibleCause": None}, DefectTypeUpdate)
+    data = msgspec.convert({"expectedUpdatedAt": READ_AT, "possibleCause": None}, DefectTypeUpdate)
 
-    assert data.to_dict() == {"possible_cause": None}
+    assert update_changes(data) == {"possible_cause": None}
 
 
 def test_verification_session_open_normalizes_dev_eui() -> None:

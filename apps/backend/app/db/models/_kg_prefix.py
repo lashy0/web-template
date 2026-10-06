@@ -6,10 +6,11 @@ from advanced_alchemy.base import UUIDv7AuditBase
 from sqlalchemy import CheckConstraint, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.lib.audit import AuditTarget
 from app.lib.lorawan import DEV_EUI_SERIAL_MAX
 
 
-class KgPrefix(UUIDv7AuditBase):
+class KgPrefix(UUIDv7AuditBase, AuditTarget):
     """DevEUI prefix that KG units of a batch are allocated from.
 
     ``prefix`` and ``short_code`` never change: DevEUIs start with the prefix and
@@ -19,6 +20,10 @@ class KgPrefix(UUIDv7AuditBase):
     """
 
     __tablename__ = "kg_prefixes"
+
+    __audit_type__ = "kg_prefix"
+    __audit_label__ = "prefix"
+    __audit_name__ = "name"
 
     prefix: Mapped[str] = mapped_column(
         String(10),

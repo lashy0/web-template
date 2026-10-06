@@ -14,14 +14,17 @@ from litestar.status_codes import HTTP_200_OK, HTTP_204_NO_CONTENT
 from app.db import models as m
 from app.domain.admin.deps import provide_audit_log_service
 from app.domain.admin.services import AuditLogService
+from app.domain.quality.events import DefectTypeChanged
 from app.domain.quality.permissions import DefectPermission
 from app.domain.quality.schemas import DefectType, DefectTypeCreate, DefectTypeUpdate
 from app.domain.quality.services import DefectTypeService
 from app.lib.audit import change_details, same_fields, snapshot
 from app.lib.authorization import requires_permission
+from app.lib.concurrency import update_changes
 from app.lib.deps import create_service_dependencies
 from app.lib.filters import provide_archived_filter
 from app.lib.openapi import error_responses
+from app.lib.realtime import Realtime, announce_after_commit
 from app.lib.uow import UnitOfWork
 
 if TYPE_CHECKING:
@@ -65,6 +68,8 @@ class DefectTypeController(Controller):
     async def _log_type_action(
         request: Request[m.User, Any, Any],
         audit_service: AuditLogService,
+        uow: UnitOfWork,
+        realtime: Realtime,
         *,
         action: str,
         target: m.DefectType,
@@ -74,12 +79,12 @@ class DefectTypeController(Controller):
             action=action,
             actor_id=request.user.id,
             actor_login=request.user.identity_login,
-            target_type="defect_type",
-            target_id=str(target.id),
-            target_label=target.code,
+            actor_name=request.user.name,
+            target=target,
             details=details,
             request=request,
         )
+        announce_after_commit(uow, realtime, DefectTypeChanged(type_id=target.id))
 
     @get(
         operation_id="ListDefectTypes",
@@ -122,13 +127,16 @@ class DefectTypeController(Controller):
         request: Request[m.User, Any, Any],
         defect_types_service: NamedDependency[DefectTypeService],
         audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],  # noqa: ARG002 - requested so the change commits
+        uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         data: DefectTypeCreate,
     ) -> DefectType:
         db_obj = await defect_types_service.create_type(data)
         await self._log_type_action(
             request,
             audit_service,
+            uow,
+            realtime,
             action="defect_type.created",
             target=db_obj,
             details={"group_id": str(db_obj.group_id)},
@@ -148,15 +156,23 @@ class DefectTypeController(Controller):
         data: DefectTypeUpdate,
         defect_types_service: NamedDependency[DefectTypeService],
         audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],  # noqa: ARG002 - requested so the change commits
+        uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         type_id: TypeId,
     ) -> DefectType:
         before = snapshot(await defect_types_service.get(type_id), _AUDIT_FIELDS)
-        db_obj = await defect_types_service.update_type(type_id, data.to_dict())
+        db_obj = await defect_types_service.update_type(
+            type_id,
+            update_changes(data),
+            expected_updated_at=data.expected_updated_at,
+        )
+
         if details := change_details(before, snapshot(db_obj, _AUDIT_FIELDS)):
             await self._log_type_action(
                 request,
                 audit_service,
+                uow,
+                realtime,
                 action="defect_type.updated",
                 target=db_obj,
                 details=details,
@@ -176,13 +192,16 @@ class DefectTypeController(Controller):
         request: Request[m.User, Any, Any],
         defect_types_service: NamedDependency[DefectTypeService],
         audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],  # noqa: ARG002 - requested so the change commits
+        uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         type_id: TypeId,
     ) -> DefectType:
         return await self._set_archived(
             request,
             defect_types_service,
             audit_service,
+            uow,
+            realtime,
             type_id,
             archived=True,
         )
@@ -199,13 +218,16 @@ class DefectTypeController(Controller):
         request: Request[m.User, Any, Any],
         defect_types_service: NamedDependency[DefectTypeService],
         audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],  # noqa: ARG002 - requested so the change commits
+        uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         type_id: TypeId,
     ) -> DefectType:
         return await self._set_archived(
             request,
             defect_types_service,
             audit_service,
+            uow,
+            realtime,
             type_id,
             archived=False,
         )
@@ -215,6 +237,8 @@ class DefectTypeController(Controller):
         request: Request[m.User, Any, Any],
         defect_types_service: DefectTypeService,
         audit_service: AuditLogService,
+        uow: UnitOfWork,
+        realtime: Realtime,
         type_id: UUID,
         *,
         archived: bool,
@@ -226,6 +250,8 @@ class DefectTypeController(Controller):
             await self._log_type_action(
                 request,
                 audit_service,
+                uow,
+                realtime,
                 action="defect_type.archived" if archived else "defect_type.restored",
                 target=db_obj,
             )
@@ -244,13 +270,16 @@ class DefectTypeController(Controller):
         request: Request[m.User, Any, Any],
         defect_types_service: NamedDependency[DefectTypeService],
         audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],  # noqa: ARG002 - requested so the change commits
+        uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         type_id: TypeId,
     ) -> None:
         target = await defect_types_service.delete_type(type_id)
         await self._log_type_action(
             request,
             audit_service,
+            uow,
+            realtime,
             action="defect_type.deleted",
             target=target,
             details={"group_id": str(target.group_id)},

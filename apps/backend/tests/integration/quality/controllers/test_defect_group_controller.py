@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from litestar.testing import AsyncTestClient
     from sqlalchemy.ext.asyncio import AsyncSession
 
-    from tests.integration.conftest import SignIn
+    from tests.integration.conftest import OpenEventStream, SignIn
     from tests.integration.quality.conftest import CreateGroup, CreateType
 
 pytestmark = [
@@ -114,7 +114,12 @@ async def test_create_defect_group_writes_audit_entry(
 
     entry = await session.scalar(select(m.AuditLog).where(m.AuditLog.target_id == response.json()["id"]))
     assert entry is not None
-    assert entry.action == "defect_group.created"
+    assert (entry.action, entry.actor_name, entry.target_label, entry.target_name) == (
+        "defect_group.created",
+        "Test Actor",
+        "RF",
+        "Radio",
+    )
 
 
 async def test_update_defect_group_changes_given_fields(
@@ -123,7 +128,9 @@ async def test_update_defect_group_changes_given_fields(
 ) -> None:
     group = await create_group("RF")
 
-    response = await client.patch(f"/api/defects/groups/{group.id}", json={"name": "Radio"})
+    response = await client.patch(
+        f"/api/defects/groups/{group.id}", json={"expectedUpdatedAt": group.updated_at.isoformat(), "name": "Radio"}
+    )
 
     assert (response.status_code, response.json()["name"]) == (200, "Radio")
 
@@ -174,3 +181,17 @@ async def test_delete_defect_group_removes_it(
     response = await client.delete(f"/api/defects/groups/{group.id}")
 
     assert (response.status_code, (await client.get(f"/api/defects/groups/{group.id}")).status_code) == (204, 404)
+
+
+async def test_archive_defect_group_announces_the_group_change(
+    client: AsyncTestClient[Litestar],
+    create_group: CreateGroup,
+    open_event_stream: OpenEventStream,
+) -> None:
+    group = await create_group("RF")
+
+    async with open_event_stream() as events:
+        await client.post(f"/api/defects/groups/{group.id}/archive")
+        event = await events.next_event()
+
+    assert event == ("defect_group.changed", {"groupId": str(group.id)})

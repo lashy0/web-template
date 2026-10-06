@@ -9,6 +9,7 @@ from app.domain.production.permissions import (
     KgPrefixPermission,
     KgUnitPermission,
     KgVersionPermission,
+    MulticastGroupPermission,
     PackingPermission,
     ProductionOrderPermission,
 )
@@ -27,6 +28,7 @@ def create_authorization_policy() -> PermissionPolicy:
                 *ProductionOrderPermission,
                 *KgPrefixPermission,
                 *KgVersionPermission,
+                *MulticastGroupPermission,
                 *BatchPermission,
                 *KgUnitPermission,
                 *PackingPermission,
@@ -37,6 +39,8 @@ def create_authorization_policy() -> PermissionPolicy:
                 *ProductionOrderPermission,
                 KgPrefixPermission.READ,
                 KgVersionPermission.READ,
+                # Choosing the groups of a new batch; the keys stay with administrators.
+                MulticastGroupPermission.READ,
                 *BatchPermission,
                 KgUnitPermission.READ,
                 DefectPermission.READ,

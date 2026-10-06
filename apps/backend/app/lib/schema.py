@@ -1,5 +1,3 @@
-from typing import Any
-
 import msgspec
 from advanced_alchemy.utils.text import camelize
 from pydantic import BaseModel as _BaseModel
@@ -7,8 +5,7 @@ from pydantic import ConfigDict
 
 
 class BaseStruct(msgspec.Struct):
-    def to_dict(self) -> dict[str, Any]:
-        return {f: getattr(self, f) for f in self.__struct_fields__ if getattr(self, f, None) != msgspec.UNSET}
+    """Base of request and response structs; ``advanced_alchemy.service.schema_dump`` turns one into a dict."""
 
 
 class CamelizedBaseStruct(BaseStruct, rename="camel"):

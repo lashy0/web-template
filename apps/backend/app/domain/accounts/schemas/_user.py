@@ -6,6 +6,7 @@ from uuid import UUID
 import msgspec
 
 from app.db.enums import UserRole
+from app.lib.concurrency import VersionedUpdate
 from app.lib.schema import CamelizedBaseStruct
 from app.lib.validation import (
     Login,
@@ -46,7 +47,7 @@ class UserCreate(CamelizedBaseStruct):
         self.name = validate_name(self.name)
 
 
-class UserUpdate(CamelizedBaseStruct, omit_defaults=True):
+class UserUpdate(VersionedUpdate, omit_defaults=True):
     """Administrative update of a user's attributes.
 
     The role has its own endpoint and permission, see ``UserRoleUpdate``.
@@ -91,7 +92,7 @@ class UserPasswordUpdate(CamelizedBaseStruct):
         self.password = validate_password(self.password)
 
 
-class UserRoleUpdate(CamelizedBaseStruct):
+class UserRoleUpdate(VersionedUpdate):
     """Assign a user's role."""
 
     role: UserRole

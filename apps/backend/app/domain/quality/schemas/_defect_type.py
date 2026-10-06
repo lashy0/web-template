@@ -15,6 +15,7 @@ from app.domain.quality.schemas._common import (
     validate_text,
     validate_title,
 )
+from app.lib.concurrency import VersionedUpdate
 from app.lib.schema import CamelizedBaseStruct
 
 CODE_MAX_LENGTH = 64
@@ -65,7 +66,7 @@ class DefectTypeCreate(CamelizedBaseStruct):
             self.engineer_action = validate_text(self.engineer_action)
 
 
-class DefectTypeUpdate(CamelizedBaseStruct, omit_defaults=True):
+class DefectTypeUpdate(VersionedUpdate, omit_defaults=True):
     """Change a defect type's attributes; archiving has its own endpoints."""
 
     name: Title | msgspec.UnsetType = msgspec.UNSET

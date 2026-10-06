@@ -10,7 +10,8 @@ share the host outside it. Route paths in `docs/` omit the prefix.
 Before changing backend behavior, consult the relevant guide in `docs/`:
 
 - `docs/*.md` — how the backend works: authentication, authorization, audit,
-  errors, request validation, transactions, background tasks, logging.
+  errors, request validation, transactions, concurrent edits, background tasks,
+  realtime events, logging.
 - `docs/domain/*.md` — business rules of a domain area, such as what may be
   changed in a batch and how DevEUIs are allocated. Update the guide together
   with the rule.

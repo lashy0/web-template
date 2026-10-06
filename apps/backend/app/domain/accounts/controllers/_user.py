@@ -14,6 +14,7 @@ from litestar.status_codes import HTTP_200_OK, HTTP_204_NO_CONTENT
 from app.db import models as m
 from app.db.enums import UserRole
 from app.domain.accounts.audit import USER_AUDIT_FIELDS
+from app.domain.accounts.events import UserChanged
 from app.domain.accounts.permissions import UserPermission
 from app.domain.accounts.schemas import (
     User,
@@ -31,6 +32,7 @@ from app.lib.deps import create_service_dependencies
 from app.lib.filters import create_active_filter_provider, provide_archived_filter
 from app.lib.kratos import KratosClient
 from app.lib.openapi import error_responses
+from app.lib.realtime import Realtime, announce_after_commit
 from app.lib.uow import UnitOfWork
 
 if TYPE_CHECKING:
@@ -69,22 +71,24 @@ class UserController(Controller):
     async def _log_user_action(
         request: Request[m.User, Any, Any],
         audit_service: AuditLogService,
+        uow: UnitOfWork,
+        realtime: Realtime,
         *,
         action: str,
         target: m.User,
         details: dict[str, Any] | None = None,
     ) -> None:
-        """Write an audit entry from the request-scoped controller context."""
+        """Write an audit entry for the change and announce it once it commits."""
         await audit_service.log_action(
             action=action,
             actor_id=request.user.id,
             actor_login=request.user.identity_login,
-            target_type="user",
-            target_id=str(target.id),
-            target_label=target.identity_login,
+            actor_name=request.user.name,
+            target=target,
             details=details,
             request=request,
         )
+        announce_after_commit(uow, realtime, UserChanged(user_id=target.id))
 
     @get(
         operation_id="ListUsers",
@@ -140,6 +144,7 @@ class UserController(Controller):
         kratos: NamedDependency[KratosClient],
         audit_service: NamedDependency[AuditLogService],
         uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         data: UserCreate,
     ) -> User:
         db_obj = await users_service.create_user(
@@ -150,6 +155,8 @@ class UserController(Controller):
         await self._log_user_action(
             request,
             audit_service,
+            uow,
+            realtime,
             action="user.created",
             target=db_obj,
             details={"role": data.role.value, "is_active": data.is_active},
@@ -174,6 +181,7 @@ class UserController(Controller):
         kratos: NamedDependency[KratosClient],
         audit_service: NamedDependency[AuditLogService],
         uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         user_id: UserId,
     ) -> User:
         before = snapshot(await users_service.get(user_id), USER_AUDIT_FIELDS)
@@ -188,6 +196,8 @@ class UserController(Controller):
             await self._log_user_action(
                 request,
                 audit_service,
+                uow,
+                realtime,
                 action="user.updated",
                 target=db_obj,
                 details=details,
@@ -210,7 +220,8 @@ class UserController(Controller):
         data: UserRoleUpdate,
         users_service: NamedDependency[UserService],
         audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],  # noqa: ARG002 - requested so the change commits
+        uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         user_id: UserId,
     ) -> User:
         previous_role = (await users_service.get(user_id)).role
@@ -218,12 +229,15 @@ class UserController(Controller):
             user_id,
             data.role,
             actor_id=request.user.id,
+            expected_updated_at=data.expected_updated_at,
         )
 
         if previous_role != data.role:
             await self._log_user_action(
                 request,
                 audit_service,
+                uow,
+                realtime,
                 action="user.role_changed",
                 target=db_obj,
                 details=change_details({"role": previous_role.value}, {"role": data.role.value}),
@@ -248,7 +262,8 @@ class UserController(Controller):
         users_service: NamedDependency[UserService],
         kratos: NamedDependency[KratosClient],
         audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],  # noqa: ARG002 - requested so the audit entry commits
+        uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         user_id: UserId,
     ) -> None:
         target = await users_service.set_password(
@@ -260,6 +275,8 @@ class UserController(Controller):
         await self._log_user_action(
             request,
             audit_service,
+            uow,
+            realtime,
             action="user.password_changed",
             target=target,
         )
@@ -278,6 +295,7 @@ class UserController(Controller):
         kratos: NamedDependency[KratosClient],
         audit_service: NamedDependency[AuditLogService],
         uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         user_id: UserId,
     ) -> User:
         return await self._set_active(
@@ -286,6 +304,7 @@ class UserController(Controller):
             kratos,
             audit_service,
             uow,
+            realtime,
             user_id,
             is_active=True,
         )
@@ -304,6 +323,7 @@ class UserController(Controller):
         kratos: NamedDependency[KratosClient],
         audit_service: NamedDependency[AuditLogService],
         uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         user_id: UserId,
     ) -> User:
         return await self._set_active(
@@ -312,6 +332,7 @@ class UserController(Controller):
             kratos,
             audit_service,
             uow,
+            realtime,
             user_id,
             is_active=False,
         )
@@ -323,6 +344,7 @@ class UserController(Controller):
         kratos: KratosClient,
         audit_service: AuditLogService,
         uow: UnitOfWork,
+        realtime: Realtime,
         user_id: UUID,
         *,
         is_active: bool,
@@ -340,6 +362,8 @@ class UserController(Controller):
             await self._log_user_action(
                 request,
                 audit_service,
+                uow,
+                realtime,
                 action="user.activated" if is_active else "user.deactivated",
                 target=db_obj,
             )
@@ -363,6 +387,7 @@ class UserController(Controller):
         kratos: NamedDependency[KratosClient],
         audit_service: NamedDependency[AuditLogService],
         uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         user_id: UserId,
     ) -> User:
         return await self._set_archived(
@@ -371,6 +396,7 @@ class UserController(Controller):
             kratos,
             audit_service,
             uow,
+            realtime,
             user_id,
             archived=True,
         )
@@ -389,6 +415,7 @@ class UserController(Controller):
         kratos: NamedDependency[KratosClient],
         audit_service: NamedDependency[AuditLogService],
         uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         user_id: UserId,
     ) -> User:
         return await self._set_archived(
@@ -397,6 +424,7 @@ class UserController(Controller):
             kratos,
             audit_service,
             uow,
+            realtime,
             user_id,
             archived=False,
         )
@@ -408,6 +436,7 @@ class UserController(Controller):
         kratos: KratosClient,
         audit_service: AuditLogService,
         uow: UnitOfWork,
+        realtime: Realtime,
         user_id: UUID,
         *,
         archived: bool,
@@ -425,6 +454,8 @@ class UserController(Controller):
             await self._log_user_action(
                 request,
                 audit_service,
+                uow,
+                realtime,
                 action="user.archived" if archived else "user.restored",
                 target=db_obj,
             )
@@ -448,6 +479,7 @@ class UserController(Controller):
         kratos: NamedDependency[KratosClient],
         audit_service: NamedDependency[AuditLogService],
         uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         user_id: UserId,
     ) -> None:
         target = await users_service.delete_user(
@@ -460,6 +492,8 @@ class UserController(Controller):
         await self._log_user_action(
             request,
             audit_service,
+            uow,
+            realtime,
             action="user.deleted",
             target=target,
         )

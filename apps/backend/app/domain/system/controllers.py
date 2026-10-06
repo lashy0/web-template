@@ -2,15 +2,19 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
-from litestar import Controller, MediaType, get
+from litestar import Controller, MediaType, Request, get
 from litestar.di import NamedDependency
-from litestar.response import Response
+from litestar.response import Response, ServerSentEvent
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.db import models as m
 from app.domain.system import schemas as s
+from app.lib.authorization import granted_permissions
+from app.lib.openapi import error_responses
+from app.lib.realtime import Realtime, event_stream
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,6 +22,8 @@ if TYPE_CHECKING:
     from app.config.settings import AppSettings
     from app.lib.hydra import HydraClient
     from app.lib.kratos import KratosClient
+
+_RECONNECT_DELAY_MS = 2000
 
 
 class SystemController(Controller):
@@ -86,3 +92,31 @@ class SystemController(Controller):
     async def get_system_version(self, settings: NamedDependency[AppSettings]) -> s.SystemVersion:
         """Return the release version of the running backend, ``dev`` outside a release."""
         return s.SystemVersion(version=settings.version)
+
+
+class EventController(Controller):
+    """Realtime events of the signed-in user, as server-sent events."""
+
+    tags = ["Realtime"]  # noqa: RUF012
+
+    @get(
+        operation_id="StreamEvents",
+        path="/events",
+        summary="Event Stream",
+        media_type="text/event-stream",
+        responses=error_responses(401),
+    )
+    async def stream_events(
+        self,
+        request: Request[m.User, Any, Any],
+        realtime: NamedDependency[Realtime],
+    ) -> ServerSentEvent:
+        """Stream the events the user's permissions allow; see ``docs/realtime.md``.
+
+        Every user may open the stream: what it carries is filtered by
+        permission, as of the moment the stream opened.
+        """
+        return ServerSentEvent(
+            event_stream(realtime, granted_permissions(request)),
+            retry_duration=_RECONNECT_DELAY_MS,
+        )

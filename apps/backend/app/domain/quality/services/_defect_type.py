@@ -6,6 +6,7 @@ from uuid import UUID
 
 from advanced_alchemy.exceptions import IntegrityError, NotFoundError
 from advanced_alchemy.extensions.litestar import repository, service
+from advanced_alchemy.service import schema_dump
 from sqlalchemy import select
 
 from app.db import models as m
@@ -14,6 +15,7 @@ from app.domain.quality.exceptions import (
     DefectTypeArchivedError,
     DefectTypeCodeTakenError,
 )
+from app.lib.concurrency import ensure_unchanged
 
 if TYPE_CHECKING:
     from app.domain.quality import schemas as s
@@ -39,7 +41,7 @@ class DefectTypeService(service.SQLAlchemyAsyncRepositoryService[m.DefectType]):
             raise DefectTypeCodeTakenError
 
         try:
-            defect_type = await self.create(data.to_dict(), auto_commit=False)
+            defect_type = await self.create(schema_dump(data), auto_commit=False)
         except IntegrityError as error:
             raise DefectTypeCodeTakenError from error
 
@@ -47,8 +49,15 @@ class DefectTypeService(service.SQLAlchemyAsyncRepositoryService[m.DefectType]):
 
         return defect_type
 
-    async def update_type(self, type_id: UUID, data: dict[str, object]) -> m.DefectType:
+    async def update_type(
+        self,
+        type_id: UUID,
+        data: dict[str, object],
+        *,
+        expected_updated_at: datetime | None = None,
+    ) -> m.DefectType:
         defect_type = await self._require(type_id, for_update=True)
+        ensure_unchanged(defect_type, expected_updated_at)
 
         if defect_type.archived_at is not None:
             raise DefectTypeArchivedError

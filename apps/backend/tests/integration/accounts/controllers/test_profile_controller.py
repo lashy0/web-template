@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from litestar import Litestar
     from litestar.testing import AsyncTestClient
 
-    from tests.integration.conftest import SignIn
+    from tests.integration.conftest import OpenEventStream, SignIn
 
 pytestmark = [
     pytest.mark.anyio,
@@ -40,3 +40,17 @@ async def test_update_profile_renames_signed_in_user(
     response = await client.patch("/api/auth/me", json={"name": "Renamed Actor"})
 
     assert (response.status_code, response.json()["name"]) == (200, "Renamed Actor")
+
+
+async def test_update_profile_announces_the_user_change(
+    client: AsyncTestClient[Litestar],
+    sign_in: SignIn,
+    open_event_stream: OpenEventStream,
+) -> None:
+    user = await sign_in()
+
+    async with open_event_stream() as events:
+        await client.patch("/api/auth/me", json={"name": "Renamed Actor"})
+        event = await events.next_event()
+
+    assert event == ("user.changed", {"userId": str(user.id)})

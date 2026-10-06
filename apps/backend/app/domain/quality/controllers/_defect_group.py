@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Annotated, Any
 from uuid import UUID
 
+from advanced_alchemy.service import schema_dump
 from litestar import Controller, Request, delete, get, patch, post
 from litestar.di import NamedDependency, Provide
 from litestar.params import Parameter, SkipValidation
@@ -13,14 +14,17 @@ from litestar.status_codes import HTTP_200_OK, HTTP_204_NO_CONTENT
 from app.db import models as m
 from app.domain.admin.deps import provide_audit_log_service
 from app.domain.admin.services import AuditLogService
+from app.domain.quality.events import DefectGroupChanged
 from app.domain.quality.permissions import DefectPermission
 from app.domain.quality.schemas import DefectGroup, DefectGroupCreate, DefectGroupUpdate
 from app.domain.quality.services import DefectGroupService
 from app.lib.audit import change_details, same_fields, snapshot
 from app.lib.authorization import requires_permission
+from app.lib.concurrency import update_changes
 from app.lib.deps import create_service_dependencies
 from app.lib.filters import provide_archived_filter
 from app.lib.openapi import error_responses
+from app.lib.realtime import Realtime, announce_after_commit
 from app.lib.uow import UnitOfWork
 
 if TYPE_CHECKING:
@@ -64,6 +68,8 @@ class DefectGroupController(Controller):
     async def _log_group_action(
         request: Request[m.User, Any, Any],
         audit_service: AuditLogService,
+        uow: UnitOfWork,
+        realtime: Realtime,
         *,
         action: str,
         target: m.DefectGroup,
@@ -73,12 +79,12 @@ class DefectGroupController(Controller):
             action=action,
             actor_id=request.user.id,
             actor_login=request.user.identity_login,
-            target_type="defect_group",
-            target_id=str(target.id),
-            target_label=target.code,
+            actor_name=request.user.name,
+            target=target,
             details=details,
             request=request,
         )
+        announce_after_commit(uow, realtime, DefectGroupChanged(group_id=target.id))
 
     @get(
         operation_id="ListDefectGroups",
@@ -121,11 +127,14 @@ class DefectGroupController(Controller):
         request: Request[m.User, Any, Any],
         defect_groups_service: NamedDependency[DefectGroupService],
         audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],  # noqa: ARG002 - requested so the change commits
+        uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         data: DefectGroupCreate,
     ) -> DefectGroup:
-        db_obj = await defect_groups_service.create_group(data.to_dict())
-        await self._log_group_action(request, audit_service, action="defect_group.created", target=db_obj)
+        db_obj = await defect_groups_service.create_group(schema_dump(data))
+        await self._log_group_action(
+            request, audit_service, uow, realtime, action="defect_group.created", target=db_obj
+        )
 
         return defect_groups_service.to_schema(db_obj, schema_type=DefectGroup)
 
@@ -141,15 +150,23 @@ class DefectGroupController(Controller):
         data: DefectGroupUpdate,
         defect_groups_service: NamedDependency[DefectGroupService],
         audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],  # noqa: ARG002 - requested so the change commits
+        uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         group_id: GroupId,
     ) -> DefectGroup:
         before = snapshot(await defect_groups_service.get(group_id), _AUDIT_FIELDS)
-        db_obj = await defect_groups_service.update_group(group_id, data.to_dict())
+        db_obj = await defect_groups_service.update_group(
+            group_id,
+            update_changes(data),
+            expected_updated_at=data.expected_updated_at,
+        )
+
         if details := change_details(before, snapshot(db_obj, _AUDIT_FIELDS)):
             await self._log_group_action(
                 request,
                 audit_service,
+                uow,
+                realtime,
                 action="defect_group.updated",
                 target=db_obj,
                 details=details,
@@ -169,13 +186,16 @@ class DefectGroupController(Controller):
         request: Request[m.User, Any, Any],
         defect_groups_service: NamedDependency[DefectGroupService],
         audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],  # noqa: ARG002 - requested so the change commits
+        uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         group_id: GroupId,
     ) -> DefectGroup:
         return await self._set_archived(
             request,
             defect_groups_service,
             audit_service,
+            uow,
+            realtime,
             group_id,
             archived=True,
         )
@@ -192,13 +212,16 @@ class DefectGroupController(Controller):
         request: Request[m.User, Any, Any],
         defect_groups_service: NamedDependency[DefectGroupService],
         audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],  # noqa: ARG002 - requested so the change commits
+        uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         group_id: GroupId,
     ) -> DefectGroup:
         return await self._set_archived(
             request,
             defect_groups_service,
             audit_service,
+            uow,
+            realtime,
             group_id,
             archived=False,
         )
@@ -208,6 +231,8 @@ class DefectGroupController(Controller):
         request: Request[m.User, Any, Any],
         defect_groups_service: DefectGroupService,
         audit_service: AuditLogService,
+        uow: UnitOfWork,
+        realtime: Realtime,
         group_id: UUID,
         *,
         archived: bool,
@@ -219,6 +244,8 @@ class DefectGroupController(Controller):
             await self._log_group_action(
                 request,
                 audit_service,
+                uow,
+                realtime,
                 action="defect_group.archived" if archived else "defect_group.restored",
                 target=db_obj,
             )
@@ -237,13 +264,16 @@ class DefectGroupController(Controller):
         request: Request[m.User, Any, Any],
         defect_groups_service: NamedDependency[DefectGroupService],
         audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],  # noqa: ARG002 - requested so the change commits
+        uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         group_id: GroupId,
     ) -> None:
         target = await defect_groups_service.delete_group(group_id)
         await self._log_group_action(
             request,
             audit_service,
+            uow,
+            realtime,
             action="defect_group.deleted",
             target=target,
         )

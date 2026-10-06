@@ -8,14 +8,20 @@ from advanced_alchemy.base import UUIDv7AuditBase
 from sqlalchemy import ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.lib.audit import AuditTarget
+
 if TYPE_CHECKING:
     from app.db.models._defect_group import DefectGroup
 
 
-class DefectType(UUIDv7AuditBase):
+class DefectType(UUIDv7AuditBase, AuditTarget):
     """A specific defect with guidance for the engineer who repairs it."""
 
     __tablename__ = "defect_types"
+
+    __audit_type__ = "defect_type"
+    __audit_label__ = "code"
+    __audit_name__ = "name"
 
     group_id: Mapped[UUID] = mapped_column(
         ForeignKey("defect_groups.id", ondelete="RESTRICT"),

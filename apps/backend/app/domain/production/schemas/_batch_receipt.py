@@ -8,6 +8,7 @@ import msgspec
 
 from app.domain.production.schemas._batch import UserSummary
 from app.domain.production.schemas._common import Description, validate_description, validate_title
+from app.lib.concurrency import VersionedUpdate
 from app.lib.schema import CamelizedBaseStruct
 
 ReceiptQty = Annotated[int, msgspec.Meta(ge=1, description="Number of KG units received.")]
@@ -40,7 +41,7 @@ class BatchReceiptCreate(CamelizedBaseStruct):
             self.comment = validate_description(self.comment)
 
 
-class BatchReceiptUpdate(CamelizedBaseStruct, omit_defaults=True):
+class BatchReceiptUpdate(VersionedUpdate, omit_defaults=True):
     """Correct a receipt; ``comment: null`` clears the comment."""
 
     quantity: ReceiptQty | msgspec.UnsetType = msgspec.UNSET

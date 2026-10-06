@@ -8,11 +8,13 @@ from advanced_alchemy.base import UUIDv7AuditBase
 from sqlalchemy import ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.lib.audit import AuditTarget
+
 if TYPE_CHECKING:
     from app.db.models._defect_group import DefectGroup
 
 
-class PakCheck(UUIDv7AuditBase):
+class PakCheck(UUIDv7AuditBase, AuditTarget):
     """A check that PAKs run, as they last reported it.
 
     PAKs define checks, not users: a row is created the first time a PAK
@@ -23,6 +25,9 @@ class PakCheck(UUIDv7AuditBase):
     """
 
     __tablename__ = "pak_checks"
+
+    __audit_type__ = "pak_check"
+    __audit_label__ = "label"
 
     name: Mapped[str] = mapped_column(
         String(128),

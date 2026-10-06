@@ -43,7 +43,7 @@ async def test_update_user_renames_kratos_identity(
     async with unit_of_work(user_service.repository.session) as uow:
         updated = await user_service.update_user(
             user.id,
-            UserUpdate(login=login),
+            UserUpdate(login=login, expected_updated_at=user.updated_at),
             kratos=kratos_client,
             uow=uow,
         )

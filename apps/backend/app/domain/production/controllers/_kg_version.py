@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Annotated, Any
 from uuid import UUID
 
+from advanced_alchemy.service import schema_dump
 from litestar import Controller, Request, delete, get, patch, post
 from litestar.di import NamedDependency, Provide
 from litestar.params import Parameter, SkipValidation
@@ -13,6 +14,7 @@ from litestar.status_codes import HTTP_200_OK, HTTP_204_NO_CONTENT
 from app.db import models as m
 from app.domain.admin.deps import provide_audit_log_service
 from app.domain.admin.services import AuditLogService
+from app.domain.production.events import KgVersionChanged
 from app.domain.production.permissions import KgVersionPermission
 from app.domain.production.schemas import (
     KgVersion,
@@ -22,9 +24,11 @@ from app.domain.production.schemas import (
 from app.domain.production.services import KgVersionService
 from app.lib.audit import change_details, same_fields, snapshot
 from app.lib.authorization import requires_permission
+from app.lib.concurrency import update_changes
 from app.lib.deps import create_service_dependencies
 from app.lib.filters import provide_archived_filter
 from app.lib.openapi import error_responses
+from app.lib.realtime import Realtime, announce_after_commit
 from app.lib.uow import UnitOfWork
 
 if TYPE_CHECKING:
@@ -67,6 +71,8 @@ class KgVersionController(Controller):
     async def _log_version_action(
         request: Request[m.User, Any, Any],
         audit_service: AuditLogService,
+        uow: UnitOfWork,
+        realtime: Realtime,
         *,
         action: str,
         target: m.KgVersion,
@@ -76,12 +82,12 @@ class KgVersionController(Controller):
             action=action,
             actor_id=request.user.id,
             actor_login=request.user.identity_login,
-            target_type="kg_version",
-            target_id=str(target.id),
-            target_label=target.code,
+            actor_name=request.user.name,
+            target=target,
             details=details,
             request=request,
         )
+        announce_after_commit(uow, realtime, KgVersionChanged(version_id=target.id))
 
     @get(
         operation_id="ListKgVersions",
@@ -129,13 +135,16 @@ class KgVersionController(Controller):
         request: Request[m.User, Any, Any],
         kg_versions_service: NamedDependency[KgVersionService],
         audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],  # noqa: ARG002 - requested so the change commits
+        uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         data: KgVersionCreate,
     ) -> KgVersion:
-        db_obj = await kg_versions_service.create_version(data.to_dict())
+        db_obj = await kg_versions_service.create_version(schema_dump(data))
         await self._log_version_action(
             request,
             audit_service,
+            uow,
+            realtime,
             action="kg_version.created",
             target=db_obj,
         )
@@ -154,15 +163,22 @@ class KgVersionController(Controller):
         data: KgVersionUpdate,
         kg_versions_service: NamedDependency[KgVersionService],
         audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],  # noqa: ARG002 - requested so the change commits
+        uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         version_id: VersionId,
     ) -> KgVersion:
         before = snapshot(await kg_versions_service.get(version_id), _AUDIT_FIELDS)
-        db_obj = await kg_versions_service.update_version(version_id, data.to_dict())
+        db_obj = await kg_versions_service.update_version(
+            version_id,
+            update_changes(data),
+            expected_updated_at=data.expected_updated_at,
+        )
         if details := change_details(before, snapshot(db_obj, _AUDIT_FIELDS)):
             await self._log_version_action(
                 request,
                 audit_service,
+                uow,
+                realtime,
                 action="kg_version.updated",
                 target=db_obj,
                 details=details,
@@ -182,13 +198,16 @@ class KgVersionController(Controller):
         request: Request[m.User, Any, Any],
         kg_versions_service: NamedDependency[KgVersionService],
         audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],  # noqa: ARG002 - requested so the change commits
+        uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         version_id: VersionId,
     ) -> KgVersion:
         return await self._set_archived(
             request,
             kg_versions_service,
             audit_service,
+            uow,
+            realtime,
             version_id,
             archived=True,
         )
@@ -205,13 +224,16 @@ class KgVersionController(Controller):
         request: Request[m.User, Any, Any],
         kg_versions_service: NamedDependency[KgVersionService],
         audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],  # noqa: ARG002 - requested so the change commits
+        uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         version_id: VersionId,
     ) -> KgVersion:
         return await self._set_archived(
             request,
             kg_versions_service,
             audit_service,
+            uow,
+            realtime,
             version_id,
             archived=False,
         )
@@ -221,6 +243,8 @@ class KgVersionController(Controller):
         request: Request[m.User, Any, Any],
         kg_versions_service: KgVersionService,
         audit_service: AuditLogService,
+        uow: UnitOfWork,
+        realtime: Realtime,
         version_id: UUID,
         *,
         archived: bool,
@@ -232,6 +256,8 @@ class KgVersionController(Controller):
             await self._log_version_action(
                 request,
                 audit_service,
+                uow,
+                realtime,
                 action="kg_version.archived" if archived else "kg_version.restored",
                 target=db_obj,
             )
@@ -250,13 +276,16 @@ class KgVersionController(Controller):
         request: Request[m.User, Any, Any],
         kg_versions_service: NamedDependency[KgVersionService],
         audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],  # noqa: ARG002 - requested so the change commits
+        uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         version_id: VersionId,
     ) -> None:
         target = await kg_versions_service.delete_version(version_id)
         await self._log_version_action(
             request,
             audit_service,
+            uow,
+            realtime,
             action="kg_version.deleted",
             target=target,
         )

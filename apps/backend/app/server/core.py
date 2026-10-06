@@ -27,6 +27,7 @@ from app.lib.exceptions import (
 from app.lib.hydra import HydraClient, provide_hydra_client
 from app.lib.kratos import KratosClient, provide_kratos_client
 from app.lib.log import RequestContextMiddleware, log_request
+from app.lib.realtime import Realtime, create_realtime
 from app.lib.uow import UnitOfWork, provide_uow
 from app.server import plugins
 from app.server.authentication import SessionVerifier, create_authentication_middleware
@@ -63,6 +64,7 @@ class ApplicationCore(InitPlugin, CLIPlugin):
     def on_app_init(self, app_config: AppConfig) -> AppConfig:
         settings = self._settings or get_settings()
         alchemy = settings.db.get_config()
+        realtime = create_realtime(settings)
 
         self.app_slug = settings.app.slug
 
@@ -86,6 +88,7 @@ class ApplicationCore(InitPlugin, CLIPlugin):
             }
         )
         app_config.state["authorization_policy"] = create_authorization_policy()
+        app_config.on_shutdown.append(realtime.close)
 
         app_config.plugins.extend(
             [
@@ -93,6 +96,7 @@ class ApplicationCore(InitPlugin, CLIPlugin):
                 SQLAlchemyPlugin(config=alchemy),
                 plugins.autowire,
                 plugins.create_task_queue(settings),
+                realtime.channels,
             ]
         )
         # Outermost, so the request ID tags the records of every other middleware.
@@ -113,6 +117,7 @@ class ApplicationCore(InitPlugin, CLIPlugin):
                 "KratosSettings": KratosSettings,
                 "HydraClient": HydraClient,
                 "KratosClient": KratosClient,
+                "Realtime": Realtime,
                 "UnitOfWork": UnitOfWork,
                 "VerificationSettings": VerificationSettings,
                 "m": m,
@@ -130,6 +135,9 @@ class ApplicationCore(InitPlugin, CLIPlugin):
 
         def provide_verification_settings() -> VerificationSettings:
             return settings.verification
+
+        def provide_realtime() -> Realtime:
+            return realtime
 
         app_config.dependencies.update(
             {
@@ -155,6 +163,10 @@ class ApplicationCore(InitPlugin, CLIPlugin):
                 ),
                 "kratos": Provide(
                     provide_kratos_client,
+                    sync_to_thread=False,
+                ),
+                "realtime": Provide(
+                    provide_realtime,
                     sync_to_thread=False,
                 ),
                 "uow": Provide(provide_uow),

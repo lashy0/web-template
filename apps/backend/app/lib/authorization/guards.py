@@ -24,6 +24,7 @@ def _policy_for_connection(connection: ASGIConnection[Any, m.User, Any, Any]) ->
         return PermissionPolicy()
 
     policy = state.get(AUTHORIZATION_POLICY_STATE_KEY)
+
     if policy is None:
         return PermissionPolicy()
 
@@ -53,6 +54,7 @@ def requires_permission(permission: str) -> PermissionGuard:
             raise NotAuthorizedException(detail="Authentication required.")
 
         policy = _policy_for_connection(connection)
+
         if not policy.has_permission(user.role, permission_name):
             raise PermissionDeniedException(
                 detail=f"Permission required: {permission_name}.",
@@ -61,4 +63,14 @@ def requires_permission(permission: str) -> PermissionGuard:
     return guard
 
 
-__all__ = ("AUTHORIZATION_POLICY_STATE_KEY", "PermissionGuard", "requires_permission")
+def granted_permissions(connection: ASGIConnection[Any, m.User, Any, Any]) -> frozenset[str]:
+    """Return the permissions of the connection's authenticated user."""
+    return _policy_for_connection(connection).permissions_for_role(connection.user.role)
+
+
+__all__ = (
+    "AUTHORIZATION_POLICY_STATE_KEY",
+    "PermissionGuard",
+    "granted_permissions",
+    "requires_permission",
+)

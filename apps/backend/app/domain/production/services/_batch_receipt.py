@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 from advanced_alchemy.exceptions import NotFoundError
 from advanced_alchemy.extensions.litestar import repository, service
+from advanced_alchemy.service import schema_dump
 from sqlalchemy import func, select
 
 from app.db import models as m
@@ -16,6 +17,7 @@ from app.domain.production.exceptions import (
     BatchReceiptQuantityExceededError,
     BatchReceiptVoidedError,
 )
+from app.lib.concurrency import ensure_unchanged
 
 if TYPE_CHECKING:
     from uuid import UUID
@@ -70,7 +72,7 @@ class BatchReceiptService(service.SQLAlchemyAsyncRepositoryService[m.BatchReceip
         await self._ensure_within_plan(batch, data.quantity)
         receipt = await self.create(
             {
-                **data.to_dict(),
+                **schema_dump(data),
                 "batch_id": batch.id,
                 "created_by_id": created_by_id,
             },
@@ -85,9 +87,12 @@ class BatchReceiptService(service.SQLAlchemyAsyncRepositoryService[m.BatchReceip
         batch_id: UUID,
         receipt_id: UUID,
         data: dict[str, object],
+        *,
+        expected_updated_at: datetime | None = None,
     ) -> m.BatchReceipt:
         batch = await self._lock_batch(batch_id)
         receipt = await self._lock_editable_receipt(batch, receipt_id)
+        ensure_unchanged(receipt, expected_updated_at)
 
         quantity = data.get("quantity")
 

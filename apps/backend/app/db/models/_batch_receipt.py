@@ -8,15 +8,18 @@ from sqlalchemy import CheckConstraint, ForeignKey, Index, Integer, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.models._user import User
+from app.lib.audit import AuditTarget
 
 
-class BatchReceipt(UUIDv7AuditBase):
+class BatchReceipt(UUIDv7AuditBase, AuditTarget):
     """A quantity of KG units of one batch accepted from production.
 
     A voided receipt stays for the record and no longer counts as received.
     """
 
     __tablename__ = "batch_receipts"
+
+    __audit_type__ = "batch_receipt"
 
     batch_id: Mapped[UUID] = mapped_column(
         ForeignKey("batches.id", ondelete="RESTRICT"),

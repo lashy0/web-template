@@ -7,6 +7,7 @@ from uuid import UUID
 import msgspec
 
 from app.domain.production.schemas._common import Description, Title, validate_description, validate_title
+from app.lib.concurrency import VersionedUpdate
 from app.lib.schema import CamelizedBaseStruct
 
 CODE_MAX_LENGTH = 32
@@ -39,7 +40,7 @@ class KgVersionCreate(CamelizedBaseStruct):
             self.description = validate_description(self.description)
 
 
-class KgVersionUpdate(CamelizedBaseStruct, omit_defaults=True):
+class KgVersionUpdate(VersionedUpdate, omit_defaults=True):
     """Change a KG version's attributes; archiving has its own endpoints."""
 
     name: Title | msgspec.UnsetType = msgspec.UNSET

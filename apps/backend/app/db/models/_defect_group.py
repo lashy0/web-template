@@ -8,12 +8,17 @@ from sqlalchemy import String, Text, func, select
 from sqlalchemy.orm import Mapped, column_property, mapped_column
 
 from app.db.models._defect_type import DefectType
+from app.lib.audit import AuditTarget
 
 
-class DefectGroup(UUIDv7AuditBase):
+class DefectGroup(UUIDv7AuditBase, AuditTarget):
     """A class of defects; a PAK reports a failed check by the group's code."""
 
     __tablename__ = "defect_groups"
+
+    __audit_type__ = "defect_group"
+    __audit_label__ = "code"
+    __audit_name__ = "name"
 
     code: Mapped[str] = mapped_column(
         String(32),

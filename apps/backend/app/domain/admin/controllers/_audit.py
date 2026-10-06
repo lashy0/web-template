@@ -40,6 +40,7 @@ class AuditController(Controller):
                 FieldNameType(name="target_type", type_hint=str),
                 FieldNameType(name="target_id", type_hint=str),
                 FieldNameType(name="actor_id", type_hint=UUID),
+                FieldNameType(name="action", type_hint=str),
             ],
         },
     )
@@ -55,5 +56,14 @@ class AuditController(Controller):
         filters: NamedDependency[SkipValidation[list[FilterTypes]]],
     ) -> OffsetPagination[AuditLogEntry]:
         results, total = await audit_service.get_many_and_count(*filters)
+        page = audit_service.to_schema(results, total, filters, schema_type=AuditLogEntry)
 
-        return audit_service.to_schema(results, total, filters, schema_type=AuditLogEntry)
+        current_labels = await audit_service.current_target_labels(results)
+
+        for item in page.items:
+            current = current_labels.get((item.target_type or "", item.target_id or ""))
+
+            if current != item.target_label:
+                item.target_current_label = current
+
+        return page

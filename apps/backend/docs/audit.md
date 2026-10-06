@@ -9,24 +9,37 @@ was committed. Entries are never updated or deleted by the application.
 | Field | Meaning |
 |---|---|
 | `action` | `<subject>.<verb>`, e.g. `batch.completed`, `user.password_changed`, `kg.packed` |
-| `actorId`, `actorLogin` | who acted; the login is a snapshot and stays after the user is renamed or deleted (`actorId` becomes null) |
-| `targetType`, `targetId`, `targetLabel` | what was changed; the label is a snapshot such as a name or a DevEUI |
+| `actorId`, `actorLogin`, `actorName` | who acted; the login and name are snapshots and stay after the user is renamed or deleted (`actorId` becomes null) |
+| `targetType`, `targetId`, `targetLabel` | what was changed; the label is a snapshot such as a login, a code, a name or a DevEUI |
+| `targetName` | a snapshot of the target's name when it has one apart from its label: users, KG versions and prefixes, defect groups and types |
 | `details` | action-specific JSON: the changes of an update (below) or the key values of a created or deleted record |
 | `ipAddress`, `userAgent` | of the request, when there is one |
 
 Entries without a signed-in user have no `actorId`: `actorLogin` is `cli` for
 commands run with `otk` (see `docs/authentication.md`) and the PAK code for
-check changes a PAK reports.
+check changes a PAK reports. They have no `actorName` either.
 
 Target types: `user`, `pak`, `production_order`, `kg_prefix`, `kg_version`,
-`batch`, `batch_receipt`, `batch_shipment`, `kg_unit`, `defect_group`,
+`multicast_group`, `batch`, `batch_receipt`, `batch_shipment`, `kg_unit`, `defect_group`,
 `defect_type`, `pak_check`.
 
 ## Writing
 
 A controller writes the entry through `AuditLogService.log_action` after the
 service call succeeded, from a helper such as `_log_order_action` that fills in
-the actor and the target. Record document-level events only: adding KG units
+the actor and passes the changed record as `target`.
+
+A model whose records are targets mixes in `AuditTarget` (`app/lib/audit.py`)
+and declares how entries name it:
+
+```python
+class PakDevice(UUIDv7AuditBase, AuditTarget):
+    __audit_type__ = "pak"  # targetType
+    __audit_label__ = "code"  # targetLabel; __audit_id__ gives targetId, "id" by default
+    __audit_name__ = None  # targetName, for a name shown apart from the label
+```
+
+`log_action` reads the target's type, id, label and name from these attributes. Record document-level events only: adding KG units
 to a shipment is one entry for the shipment, not one per unit.
 
 ## Changes
@@ -60,3 +73,9 @@ the same format.
 - `targetTypeIn` with `targetIdIn`: the history of one record;
 - `actorIdIn`: what a user did;
 - `createdAfter`, `createdBefore`: a time range.
+
+A target whose label can be edited, such as a PAK code or a user login, may be
+labelled otherwise today than in the entry. The list then adds
+`targetCurrentLabel`, read through the target model's `__audit_label__` when the
+page is served, so an entry can be matched to the record it concerns; it is
+null when the label has not changed or the target has been deleted.

@@ -7,6 +7,7 @@ from uuid import UUID
 import msgspec
 
 from app.domain.quality.schemas._common import CODE_ALLOWED, Text, Title, validate_code, validate_text, validate_title
+from app.lib.concurrency import VersionedUpdate
 from app.lib.schema import CamelizedBaseStruct
 
 CODE_MAX_LENGTH = 32
@@ -41,7 +42,7 @@ class DefectGroupCreate(CamelizedBaseStruct):
             self.description = validate_text(self.description)
 
 
-class DefectGroupUpdate(CamelizedBaseStruct, omit_defaults=True):
+class DefectGroupUpdate(VersionedUpdate, omit_defaults=True):
     """Change a defect group's attributes; archiving has its own endpoints."""
 
     name: Title | msgspec.UnsetType = msgspec.UNSET

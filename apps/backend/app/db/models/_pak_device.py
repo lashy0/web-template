@@ -9,12 +9,16 @@ from sqlalchemy.orm import Mapped, column_property, mapped_column
 
 from app.db.enums import PakDeviceKind, enum_values
 from app.db.models._pak_device_presence import PakDevicePresence
+from app.lib.audit import AuditTarget
 
 
-class PakDevice(UUIDv7AuditBase):
+class PakDevice(UUIDv7AuditBase, AuditTarget):
     """Programmable inspection and control device registered in the system."""
 
     __tablename__ = "pak_devices"
+
+    __audit_type__ = "pak"
+    __audit_label__ = "code"
 
     code: Mapped[str] = mapped_column(
         String(128),

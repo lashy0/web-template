@@ -7,11 +7,13 @@ from typing import TYPE_CHECKING, Required
 from saq.types import Context
 
 from app.config import get_settings
+from app.lib.realtime import create_realtime
 
 if TYPE_CHECKING:
     from advanced_alchemy.extensions.litestar import SQLAlchemyAsyncConfig
 
     from app.config import Settings
+    from app.lib.realtime import Realtime
 
 
 class WorkerContext(Context, total=False):
@@ -19,16 +21,22 @@ class WorkerContext(Context, total=False):
 
     settings: Required[Settings]
     alchemy: Required[SQLAlchemyAsyncConfig]
+    realtime: Required[Realtime]
 
 
 async def on_startup(ctx: WorkerContext) -> None:
-    """Open the database engine once per worker process."""
+    """Build what the jobs of a worker process share; nothing connects until it is used."""
     settings = get_settings()
     ctx["settings"] = settings
     ctx["alchemy"] = settings.db.get_config()
+    ctx["realtime"] = create_realtime(settings)
+    await ctx["realtime"].start()
 
 
 async def on_shutdown(ctx: WorkerContext) -> None:
+    if "realtime" in ctx:
+        await ctx["realtime"].close()
+
     if "alchemy" in ctx:
         await ctx["alchemy"].get_engine().dispose()
 

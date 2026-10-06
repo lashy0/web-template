@@ -9,12 +9,14 @@ from litestar.di import NamedDependency, Provide
 
 from app.domain.accounts.audit import USER_AUDIT_FIELDS
 from app.domain.accounts.deps import provide_current_user, provide_users_service
+from app.domain.accounts.events import UserChanged
 from app.domain.accounts.schemas import ProfileUpdate, User
 from app.domain.accounts.services import UserService
 from app.domain.admin.deps import provide_audit_log_service
 from app.domain.admin.services import AuditLogService
 from app.lib.audit import change_details, snapshot
 from app.lib.openapi import error_responses
+from app.lib.realtime import Realtime, announce_after_commit
 from app.lib.uow import UnitOfWork
 
 if TYPE_CHECKING:
@@ -67,24 +69,26 @@ class ProfileController(Controller):
         data: ProfileUpdate,
         users_service: NamedDependency[UserService],
         audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],  # noqa: ARG002 - requested so the change commits
+        uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
     ) -> User:
         before = snapshot(current_user, USER_AUDIT_FIELDS)
         db_obj = await users_service.update_profile(
             current_user.id,
             data,
         )
+
         if details := change_details(before, snapshot(db_obj, USER_AUDIT_FIELDS)):
             await audit_service.log_action(
                 action="user.updated",
                 actor_id=request.user.id,
                 actor_login=request.user.identity_login,
-                target_type="user",
-                target_id=str(db_obj.id),
-                target_label=db_obj.identity_login,
+                actor_name=request.user.name,
+                target=db_obj,
                 details=details,
                 request=request,
             )
+            announce_after_commit(uow, realtime, UserChanged(user_id=db_obj.id))
 
         return users_service.to_schema(
             db_obj,

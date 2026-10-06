@@ -15,7 +15,9 @@ The coverage gate (`fail_under` in `pyproject.toml`) applies to the full suite
 only; a partial run always falls below it.
 
 Integration tests start the containers they need (PostgreSQL and external
-services) themselves.
+services) themselves. The application under test keeps realtime events in
+memory (`BACKEND_REALTIME_BACKEND=memory`); only the tests of the delivery
+itself start Redis.
 
 ## Unit or integration
 
@@ -133,6 +135,9 @@ tested once, not per route.
 - **`sign_in(role)`** commits a local user with that role and signs `client` in
   as them. A module whose routes all need the same user signs in from an
   `autouse` fixture.
+- **`open_event_stream()`** opens `/api/events` as the signed-in user and
+  returns the events it receives. The test client waits for the end of a
+  response, which an event stream does not have.
 - **`settings`** points at the test PostgreSQL, Kratos and Hydra. Build another
   application from a changed copy to put one dependency out of reach:
   `create_app(settings=replace(settings, hydra=...))`.

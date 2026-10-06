@@ -12,6 +12,7 @@ from litestar.status_codes import HTTP_200_OK
 from app.db import models as m
 from app.domain.admin.deps import provide_audit_log_service
 from app.domain.admin.services import AuditLogService
+from app.domain.production.events import announce_batch_changes
 from app.domain.production.permissions import PackingPermission
 from app.domain.production.schemas import PackingBlocker, PackingUnit, PackingUnitBatch
 from app.domain.production.services import PackingService
@@ -19,6 +20,7 @@ from app.lib.authorization import requires_permission
 from app.lib.deps import create_service_dependencies
 from app.lib.lorawan import normalize_dev_eui
 from app.lib.openapi import error_responses
+from app.lib.realtime import Realtime
 from app.lib.uow import UnitOfWork
 
 UnitCode = Annotated[
@@ -84,7 +86,8 @@ class PackingController(Controller):
         request: Request[m.User, Any, Any],
         packing_service: NamedDependency[PackingService],
         audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],  # noqa: ARG002 - requested so the change commits
+        uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         dev_eui: DevEui,
     ) -> PackingUnit:
         kg = await packing_service.pack(normalize_dev_eui(dev_eui), packed_by_id=request.user.id)
@@ -92,11 +95,11 @@ class PackingController(Controller):
             action="kg.packed",
             actor_id=request.user.id,
             actor_login=request.user.identity_login,
-            target_type="kg_unit",
-            target_id=kg.dev_eui,
-            target_label=kg.short_id,
+            actor_name=request.user.name,
+            target=kg,
             details={"batch_id": str(kg.batch_id)},
             request=request,
         )
+        announce_batch_changes(uow, realtime, [kg.batch_id])
 
         return _to_packing_unit(kg, PackingBlocker.ALREADY_PACKED)

@@ -73,3 +73,9 @@ async def test_health_reports_offline_hydra(settings: Settings) -> None:
         response = await client.get("/api/health")
 
     assert (response.status_code, response.json()["hydra_status"]) == (503, "offline")
+
+
+async def test_event_stream_requires_a_session(client: AsyncTestClient[Litestar]) -> None:
+    response = await client.get("/api/events")
+
+    assert response.status_code == 401

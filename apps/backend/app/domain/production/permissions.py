@@ -39,10 +39,26 @@ class KgVersionPermission(StrEnum):
     DELETE = "kg_versions.delete"
 
 
+class MulticastGroupPermission(StrEnum):
+    """Capabilities for managing the multicast group catalog."""
+
+    READ = "multicast_groups.read"
+    READ_KEYS = "multicast_groups.read_keys"
+    """See the McKey and session keys of a group."""
+    CREATE = "multicast_groups.create"
+    UPDATE = "multicast_groups.update"
+
+    ARCHIVE = "multicast_groups.archive"
+
+    DELETE = "multicast_groups.delete"
+
+
 class KgUnitPermission(StrEnum):
     """Capabilities for viewing KG units of batches; production processes change them."""
 
     READ = "kg_units.read"
+    READ_CREDENTIALS = "kg_units.read_credentials"
+    """See the LoRaWAN keys of a unit."""
 
 
 class PackingPermission(StrEnum):
@@ -78,6 +94,7 @@ __all__ = (
     "KgPrefixPermission",
     "KgUnitPermission",
     "KgVersionPermission",
+    "MulticastGroupPermission",
     "PackingPermission",
     "ProductionOrderPermission",
 )

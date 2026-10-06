@@ -8,12 +8,17 @@ from sqlalchemy import Boolean, Enum, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.enums import UserRole, enum_values
+from app.lib.audit import AuditTarget
 
 
-class User(UUIDv7AuditBase):
+class User(UUIDv7AuditBase, AuditTarget):
     """Application user associated with a Kratos identity."""
 
     __tablename__ = "user_account"
+
+    __audit_type__ = "user"
+    __audit_label__ = "identity_login"
+    __audit_name__ = "name"
 
     __table_args__ = ({"comment": "Application users associated with Kratos identities"},)
 

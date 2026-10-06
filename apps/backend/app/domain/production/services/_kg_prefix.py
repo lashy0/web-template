@@ -13,6 +13,7 @@ from app.domain.production.exceptions import (
     KgPrefixShortCodeTakenError,
     KgPrefixTakenError,
 )
+from app.lib.concurrency import ensure_unchanged
 from app.lib.exceptions import ApplicationConflictError
 
 
@@ -46,8 +47,11 @@ class KgPrefixService(service.SQLAlchemyAsyncRepositoryService[m.KgPrefix]):
         self,
         prefix_id: UUID,
         data: dict[str, object],
+        *,
+        expected_updated_at: datetime | None = None,
     ) -> m.KgPrefix:
         prefix = await self._require(prefix_id, for_update=True)
+        ensure_unchanged(prefix, expected_updated_at)
 
         if prefix.archived_at is not None:
             raise KgPrefixArchivedError

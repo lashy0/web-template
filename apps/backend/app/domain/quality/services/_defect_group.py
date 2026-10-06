@@ -14,6 +14,7 @@ from app.domain.quality.exceptions import (
     DefectGroupHasActiveTypesError,
     DefectGroupInUseError,
 )
+from app.lib.concurrency import ensure_unchanged
 
 _TYPE_COUNTS = ("types_count", "active_types_count")
 
@@ -41,8 +42,15 @@ class DefectGroupService(service.SQLAlchemyAsyncRepositoryService[m.DefectGroup]
 
         return group
 
-    async def update_group(self, group_id: UUID, data: dict[str, object]) -> m.DefectGroup:
+    async def update_group(
+        self,
+        group_id: UUID,
+        data: dict[str, object],
+        *,
+        expected_updated_at: datetime | None = None,
+    ) -> m.DefectGroup:
         group = await self._require(group_id, for_update=True)
+        ensure_unchanged(group, expected_updated_at)
 
         if group.archived_at is not None:
             raise DefectGroupArchivedError

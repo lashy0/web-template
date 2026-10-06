@@ -11,6 +11,7 @@ from app.config.hydra import HydraSettings
 from app.config.kratos import KratosSettings
 from app.config.log import LogSettings
 from app.config.queue import QueueSettings
+from app.config.realtime import RealtimeSettings
 from app.config.redis import RedisSettings
 from app.config.verification import VerificationSettings
 
@@ -63,6 +64,7 @@ class Settings:
     log: LogSettings = field(default_factory=LogSettings)
     redis: RedisSettings = field(default_factory=RedisSettings)
     queue: QueueSettings = field(default_factory=QueueSettings)
+    realtime: RealtimeSettings = field(default_factory=RealtimeSettings)
     verification: VerificationSettings = field(default_factory=VerificationSettings)
 
 

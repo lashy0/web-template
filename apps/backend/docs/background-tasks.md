@@ -11,9 +11,10 @@ by dotted path in `TASKS`, and recurring ones as `CronJob`s.
 |---|---|---|
 | `app.domain.quality.tasks.expire_stale_verification_sessions` | every minute | closes verification sessions idle past `BACKEND_VERIFICATION_SESSION_TTL_MINUTES` as incomplete; see [verification](domain/verification.md) |
 
-A task receives the SAQ context filled by `app/lib/worker.py`: the settings and
-a database config whose engine lives as long as the worker process. It opens
-its own sessions and commits through `unit_of_work`.
+A task receives the SAQ context filled by `app/lib/worker.py`: the settings, a
+database config whose engine lives as long as the worker process, and the
+delivery of [realtime events](realtime.md). It opens its own sessions and
+commits through `unit_of_work`.
 
 ## Where workers run
 
@@ -31,8 +32,9 @@ In a deployment the worker is separate from the API so that:
 - a heavy job uses the worker container's CPU and memory limits, and a crash
   on either side leaves the other running.
 
-The API only enqueues jobs. It connects to Redis on the first enqueue, not at
-startup.
+The API only enqueues jobs. It connects to Redis on first use, not at startup:
+when it enqueues a job, publishes a realtime event or opens the first event
+stream.
 
 ## Redis keys and permissions
 
@@ -40,7 +42,8 @@ The queue is named after `BACKEND_REDIS_PREFIX` (`otk-app`), so SAQ keeps its
 keys under `saq:otk-app:*` and `saq:job:otk-app:*`; job abort markers go to
 `saq:abort:*` without the queue name. The runtime ACL user `otk_app_runtime`
 (`infrastructure/database/redis/users.acl.template`) may use only these keys,
-the `otk-app:*` namespace, and the commands SAQ needs. When a SAQ upgrade or a
+the `otk-app:*` namespace of keys and pub/sub channels, and the commands SAQ
+and realtime events need. When a SAQ upgrade or a
 new feature is denied by Redis (`NOPERM`), check `ACL LOG` as the admin user
 and extend the template. Redis renders the ACL from the template when the
 container starts, so restart it after a change; the data volume is kept.
