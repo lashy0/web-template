@@ -6,6 +6,7 @@ from app.domain.production.permissions import (
     KgPrefixPermission,
     KgUnitPermission,
     KgVersionPermission,
+    MulticastGroupPermission,
     PackingPermission,
     ProductionOrderPermission,
 )
@@ -57,6 +58,21 @@ def test_kg_version_routes_use_operation_specific_permissions() -> None:
             "ArchiveKgVersion": {KgVersionPermission.ARCHIVE},
             "RestoreKgVersion": {KgVersionPermission.ARCHIVE},
             "DeleteKgVersion": {KgVersionPermission.DELETE},
+        }
+    )
+
+
+def test_multicast_group_routes_use_operation_specific_permissions() -> None:
+    assert_routes_require(
+        {
+            "ListMulticastGroups": {MulticastGroupPermission.READ},
+            "GetMulticastGroup": {MulticastGroupPermission.READ},
+            "GetMulticastGroupKeys": {MulticastGroupPermission.READ_KEYS},
+            "CreateMulticastGroup": {MulticastGroupPermission.CREATE},
+            "UpdateMulticastGroup": {MulticastGroupPermission.UPDATE},
+            "ArchiveMulticastGroup": {MulticastGroupPermission.ARCHIVE},
+            "RestoreMulticastGroup": {MulticastGroupPermission.ARCHIVE},
+            "DeleteMulticastGroup": {MulticastGroupPermission.DELETE},
         }
     )
 
@@ -120,6 +136,7 @@ def test_kg_unit_routes_use_operation_specific_permissions() -> None:
         {
             "ListKgUnits": {KgUnitPermission.READ},
             "GetKgUnit": {KgUnitPermission.READ},
+            "GetKgUnitCredentials": {KgUnitPermission.READ_CREDENTIALS},
         }
     )
 
@@ -139,3 +156,31 @@ def test_batch_shipment_routes_use_operation_specific_permissions() -> None:
             "RemoveBatchShipmentUnit": {BatchPermission.UPDATE_SHIPMENT},
         }
     )
+
+
+@pytest.mark.parametrize(
+    ("role", "granted"),
+    [
+        (UserRole.ADMINISTRATOR, True),
+        (UserRole.MANAGER, False),
+        (UserRole.ENGINEER, False),
+    ],
+)
+def test_only_administrators_read_kg_unit_credentials(role: UserRole, granted: bool) -> None:
+    permissions = create_authorization_policy().permissions_for_role(role)
+
+    assert (KgUnitPermission.READ_CREDENTIALS in permissions) is granted
+
+
+@pytest.mark.parametrize(
+    ("role", "granted"),
+    [
+        (UserRole.ADMINISTRATOR, True),
+        (UserRole.MANAGER, False),
+        (UserRole.ENGINEER, False),
+    ],
+)
+def test_only_administrators_read_multicast_group_keys(role: UserRole, granted: bool) -> None:
+    permissions = create_authorization_policy().permissions_for_role(role)
+
+    assert (MulticastGroupPermission.READ_KEYS in permissions) is granted

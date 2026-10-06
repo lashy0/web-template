@@ -52,6 +52,7 @@ def test_archivable_lists_accept_archived_filter() -> None:
         "ListDefectTypes",
         "ListKgPrefixes",
         "ListKgVersions",
+        "ListMulticastGroups",
         "ListPakDevices",
         "ListProductionOrders",
         "ListUsers",

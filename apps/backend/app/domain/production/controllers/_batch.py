@@ -6,16 +6,18 @@ from typing import TYPE_CHECKING, Annotated, Any
 from uuid import UUID
 
 from advanced_alchemy.extensions.litestar.providers import FieldNameType
-from advanced_alchemy.filters import FilterTypes, NotNullFilter, NullFilter
+from advanced_alchemy.filters import CollectionFilter, FilterGroup, FilterTypes, NotNullFilter, NullFilter
 from litestar import Controller, Request, delete, get, patch, post, put
 from litestar.di import NamedDependency, Provide
 from litestar.params import Parameter, QueryParameter, SkipValidation
 from litestar.status_codes import HTTP_200_OK, HTTP_204_NO_CONTENT
+from sqlalchemy import or_
 
 from app.db import models as m
 from app.db.enums import BatchStatus
 from app.domain.admin.deps import provide_audit_log_service
 from app.domain.admin.services import AuditLogService
+from app.domain.production.events import announce_batch_changes
 from app.domain.production.permissions import BatchPermission
 from app.domain.production.schemas import (
     Batch,
@@ -28,9 +30,11 @@ from app.domain.production.schemas._batch import PlannedQty
 from app.domain.production.services import BatchService
 from app.lib.audit import change_details, same_fields, snapshot
 from app.lib.authorization import requires_permission
+from app.lib.concurrency import update_changes
 from app.lib.deps import create_service_dependencies
 from app.lib.filters import provide_archived_filter
 from app.lib.openapi import error_responses
+from app.lib.realtime import Realtime
 from app.lib.uow import UnitOfWork
 
 if TYPE_CHECKING:
@@ -55,6 +59,29 @@ def provide_production_order_presence_filter(
         return []
 
     return [NotNullFilter("production_order_id") if has_production_order else NullFilter("production_order_id")]
+
+
+def provide_multicast_group_filter(
+    multicast_group_id: Annotated[
+        UUID | None,
+        QueryParameter(
+            name="multicastGroupId",
+            description="Only batches whose KG units are provisioned with this multicast group.",
+        ),
+    ] = None,
+) -> list[FilterTypes]:
+    if multicast_group_id is None:
+        return []
+
+    return [
+        FilterGroup(
+            logical_operator=or_,
+            filters=[
+                CollectionFilter("multicast_group_0_id", [multicast_group_id]),
+                CollectionFilter("multicast_group_1_id", [multicast_group_id]),
+            ],
+        )
+    ]
 
 
 _AUDIT_FIELDS = same_fields("name", "description", "day_plan_qty")
@@ -90,27 +117,31 @@ class BatchController(Controller):
         provide_production_order_presence_filter,
         sync_to_thread=False,
     )
+    dependencies["multicast_group_filter"] = Provide(provide_multicast_group_filter, sync_to_thread=False)
     dependencies["audit_service"] = Provide(provide_audit_log_service)
 
     @staticmethod
-    async def _log_batch_action(
+    async def _record_batch_action(
         request: Request[m.User, Any, Any],
         audit_service: AuditLogService,
+        uow: UnitOfWork,
+        realtime: Realtime,
         *,
         action: str,
         target: m.Batch,
         details: dict[str, Any] | None = None,
     ) -> None:
+        """Write the action to the audit log and announce that the batch changed."""
         await audit_service.log_action(
             action=action,
             actor_id=request.user.id,
             actor_login=request.user.identity_login,
-            target_type="batch",
-            target_id=str(target.id),
-            target_label=target.name,
+            actor_name=request.user.name,
+            target=target,
             details=details,
             request=request,
         )
+        announce_batch_changes(uow, realtime, [target.id])
 
     @get(
         operation_id="ListBatches",
@@ -123,11 +154,13 @@ class BatchController(Controller):
         filters: NamedDependency[SkipValidation[list[FilterTypes]]],
         archived_filter: NamedDependency[SkipValidation[list[FilterTypes]]],
         production_order_presence_filter: NamedDependency[SkipValidation[list[FilterTypes]]],
+        multicast_group_filter: NamedDependency[SkipValidation[list[FilterTypes]]],
     ) -> OffsetPagination[Batch]:
         results, total = await batches_service.get_many_and_count(
             *filters,
             *archived_filter,
             *production_order_presence_filter,
+            *multicast_group_filter,
         )
 
         return batches_service.to_schema(results, total, filters, schema_type=Batch)
@@ -178,19 +211,24 @@ class BatchController(Controller):
         request: Request[m.User, Any, Any],
         batches_service: NamedDependency[BatchService],
         audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],  # noqa: ARG002 - requested so the change commits
+        uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         data: BatchCreate,
     ) -> Batch:
         db_obj = await batches_service.create_batch(data, created_by_id=request.user.id)
-        await self._log_batch_action(
+        await self._record_batch_action(
             request,
             audit_service,
+            uow,
+            realtime,
             action="batch.created",
             target=db_obj,
             details={
                 "planned_qty": db_obj.planned_qty,
                 "first_dev_eui": db_obj.first_dev_eui,
                 "last_dev_eui": db_obj.last_dev_eui,
+                "multicast_group_0": db_obj.multicast_group_0.name,
+                "multicast_group_1": db_obj.multicast_group_1.name,
             },
         )
 
@@ -208,15 +246,23 @@ class BatchController(Controller):
         data: BatchUpdate,
         batches_service: NamedDependency[BatchService],
         audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],  # noqa: ARG002 - requested so the change commits
+        uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         batch_id: BatchId,
     ) -> Batch:
         before = snapshot(await batches_service.get(batch_id), _AUDIT_FIELDS)
-        db_obj = await batches_service.update_batch(batch_id, data.to_dict())
+        db_obj = await batches_service.update_batch(
+            batch_id,
+            update_changes(data),
+            expected_updated_at=data.expected_updated_at,
+        )
+
         if details := change_details(before, snapshot(db_obj, _AUDIT_FIELDS)):
-            await self._log_batch_action(
+            await self._record_batch_action(
                 request,
                 audit_service,
+                uow,
+                realtime,
                 action="batch.updated",
                 target=db_obj,
                 details=details,
@@ -236,24 +282,34 @@ class BatchController(Controller):
         data: BatchProductionOrderAssignment,
         batches_service: NamedDependency[BatchService],
         audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],  # noqa: ARG002 - requested so the change commits
+        uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         batch_id: BatchId,
     ) -> Batch:
         previous = await batches_service.get(batch_id)
         # Compared by id: two orders may have the same name.
         previous_order_id, before = previous.production_order_id, snapshot(previous, _ORDER_AUDIT_FIELDS)
-        db_obj = await batches_service.assign_production_order(batch_id, data.production_order_id)
+        db_obj = await batches_service.assign_production_order(
+            batch_id,
+            data.production_order_id,
+            expected_updated_at=data.expected_updated_at,
+        )
 
         if previous_order_id != db_obj.production_order_id:
             after = snapshot(db_obj, _ORDER_AUDIT_FIELDS)
-            await self._log_batch_action(
+            await self._record_batch_action(
                 request,
                 audit_service,
+                uow,
+                realtime,
                 action="batch.production_order_changed",
                 target=db_obj,
                 details={
                     "changes": {
-                        "production_order": {"from": before["production_order"], "to": after["production_order"]}
+                        "production_order": {
+                            "from": before["production_order"],
+                            "to": after["production_order"],
+                        }
                     }
                 },
             )
@@ -272,11 +328,19 @@ class BatchController(Controller):
         request: Request[m.User, Any, Any],
         batches_service: NamedDependency[BatchService],
         audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],  # noqa: ARG002 - requested so the change commits
+        uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         batch_id: BatchId,
     ) -> Batch:
         db_obj = await batches_service.complete_batch(batch_id)
-        await self._log_batch_action(request, audit_service, action="batch.completed", target=db_obj)
+        await self._record_batch_action(
+            request,
+            audit_service,
+            uow,
+            realtime,
+            action="batch.completed",
+            target=db_obj,
+        )
 
         return batches_service.to_schema(db_obj, schema_type=Batch)
 
@@ -292,10 +356,19 @@ class BatchController(Controller):
         request: Request[m.User, Any, Any],
         batches_service: NamedDependency[BatchService],
         audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],  # noqa: ARG002 - requested so the change commits
+        uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         batch_id: BatchId,
     ) -> Batch:
-        return await self._set_archived(request, batches_service, audit_service, batch_id, archived=True)
+        return await self._set_archived(
+            request,
+            batches_service,
+            audit_service,
+            uow,
+            realtime,
+            batch_id,
+            archived=True,
+        )
 
     @post(
         operation_id="RestoreBatch",
@@ -309,16 +382,27 @@ class BatchController(Controller):
         request: Request[m.User, Any, Any],
         batches_service: NamedDependency[BatchService],
         audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],  # noqa: ARG002 - requested so the change commits
+        uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         batch_id: BatchId,
     ) -> Batch:
-        return await self._set_archived(request, batches_service, audit_service, batch_id, archived=False)
+        return await self._set_archived(
+            request,
+            batches_service,
+            audit_service,
+            uow,
+            realtime,
+            batch_id,
+            archived=False,
+        )
 
     async def _set_archived(
         self,
         request: Request[m.User, Any, Any],
         batches_service: BatchService,
         audit_service: AuditLogService,
+        uow: UnitOfWork,
+        realtime: Realtime,
         batch_id: UUID,
         *,
         archived: bool,
@@ -327,9 +411,11 @@ class BatchController(Controller):
         db_obj = await batches_service.set_archived(batch_id, archived=archived)
 
         if was_archived != archived:
-            await self._log_batch_action(
+            await self._record_batch_action(
                 request,
                 audit_service,
+                uow,
+                realtime,
                 action="batch.archived" if archived else "batch.restored",
                 target=db_obj,
             )
@@ -348,13 +434,16 @@ class BatchController(Controller):
         request: Request[m.User, Any, Any],
         batches_service: NamedDependency[BatchService],
         audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],  # noqa: ARG002 - requested so the change commits
+        uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         batch_id: BatchId,
     ) -> None:
         target = await batches_service.delete_batch(batch_id)
-        await self._log_batch_action(
+        await self._record_batch_action(
             request,
             audit_service,
+            uow,
+            realtime,
             action="batch.deleted",
             target=target,
             details={"first_dev_eui": target.first_dev_eui, "last_dev_eui": target.last_dev_eui},

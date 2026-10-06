@@ -7,6 +7,7 @@ from app.domain.production.controllers._batch_shipment_item import BatchShipment
 from app.domain.production.controllers._kg_prefix import KgPrefixController
 from app.domain.production.controllers._kg_unit import KgUnitController
 from app.domain.production.controllers._kg_version import KgVersionController
+from app.domain.production.controllers._multicast_group import MulticastGroupController
 from app.domain.production.controllers._packing import PackingController
 from app.domain.production.controllers._production_order import ProductionOrderController
 
@@ -18,6 +19,7 @@ __all__ = (
     "KgPrefixController",
     "KgUnitController",
     "KgVersionController",
+    "MulticastGroupController",
     "PackingController",
     "ProductionOrderController",
 )

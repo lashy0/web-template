@@ -49,6 +49,11 @@ class Otaa11Credentials(CredentialsPayload, frozen=True):
 type Credentials = Abp10Credentials | Abp11Credentials | Otaa10Credentials | Otaa11Credentials
 
 
+class MulticastSessionKeys(CredentialsPayload, frozen=True):
+    mc_nwk_s_key: str
+    mc_app_s_key: str
+
+
 __all__ = (
     "Abp10Credentials",
     "Abp11Credentials",
@@ -56,6 +61,7 @@ __all__ = (
     "Credentials",
     "CredentialsPayload",
     "LoRaWanVersion",
+    "MulticastSessionKeys",
     "Otaa10Credentials",
     "Otaa11Credentials",
 )

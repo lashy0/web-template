@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from litestar.testing import AsyncTestClient
     from sqlalchemy.ext.asyncio import AsyncSession
 
-    from tests.integration.conftest import SignIn
+    from tests.integration.conftest import MulticastGroups, SignIn
     from tests.integration.production.conftest import CreateBatch, CreateOrder, CreatePrefix
 
 pytestmark = [
@@ -31,7 +31,7 @@ async def fx_administrator(sign_in: SignIn) -> m.User:
     return await sign_in()
 
 
-def _create_body(prefix_id: UUID, **overrides: object) -> dict[str, object]:
+def _create_body(prefix_id: UUID, multicast_groups: MulticastGroups, **overrides: object) -> dict[str, object]:
     return {
         "name": "Batch A",
         "kgPrefixId": str(prefix_id),
@@ -39,6 +39,8 @@ def _create_body(prefix_id: UUID, **overrides: object) -> dict[str, object]:
         "dayPlanQty": 3,
         "activationType": "otaa",
         "lorawanVersion": "1.0",
+        "multicastGroup0Id": str(multicast_groups[0].id),
+        "multicastGroup1Id": str(multicast_groups[1].id),
         **overrides,
     }
 
@@ -115,10 +117,11 @@ async def test_create_batch_returns_created_batch(
     client: AsyncTestClient[Litestar],
     create_prefix: CreatePrefix,
     administrator: m.User,
+    multicast_groups: MulticastGroups,
 ) -> None:
     prefix = await create_prefix("a1b2c3d4e5")
 
-    response = await client.post("/api/batches", json=_create_body(prefix.id))
+    response = await client.post("/api/batches", json=_create_body(prefix.id, multicast_groups))
 
     assert response.status_code == 201
     body = response.json()
@@ -133,10 +136,11 @@ async def test_create_batch_returns_created_batch(
 async def test_create_batch_without_units_is_bad_request(
     client: AsyncTestClient[Litestar],
     create_prefix: CreatePrefix,
+    multicast_groups: MulticastGroups,
 ) -> None:
     prefix = await create_prefix()
 
-    response = await client.post("/api/batches", json=_create_body(prefix.id, plannedQty=0))
+    response = await client.post("/api/batches", json=_create_body(prefix.id, multicast_groups, plannedQty=0))
 
     assert response.status_code == 400
 
@@ -145,10 +149,11 @@ async def test_create_batch_writes_audit_entry(
     client: AsyncTestClient[Litestar],
     session: AsyncSession,
     create_prefix: CreatePrefix,
+    multicast_groups: MulticastGroups,
 ) -> None:
     prefix = await create_prefix()
 
-    response = await client.post("/api/batches", json=_create_body(prefix.id))
+    response = await client.post("/api/batches", json=_create_body(prefix.id, multicast_groups))
 
     entry = await session.scalar(select(m.AuditLog).where(m.AuditLog.target_id == response.json()["id"]))
     assert entry is not None
@@ -158,7 +163,9 @@ async def test_create_batch_writes_audit_entry(
 async def test_update_batch_changes_given_fields(client: AsyncTestClient[Litestar], create_batch: CreateBatch) -> None:
     batch = await create_batch()
 
-    response = await client.patch(f"/api/batches/{batch.id}", json={"dayPlanQty": 1})
+    response = await client.patch(
+        f"/api/batches/{batch.id}", json={"expectedUpdatedAt": batch.updated_at.isoformat(), "dayPlanQty": 1}
+    )
 
     assert (response.status_code, response.json()["name"], response.json()["dayPlanQty"]) == (200, "Batch", 1)
 
@@ -175,7 +182,9 @@ async def test_update_batch_after_edit_window_is_conflict_with_code(
             update(m.Batch).where(m.Batch.id == batch.id).values(created_at=datetime.now(UTC) - timedelta(hours=2))
         )
 
-    response = await client.patch(f"/api/batches/{batch.id}", json={"name": "Renamed"})
+    response = await client.patch(
+        f"/api/batches/{batch.id}", json={"expectedUpdatedAt": batch.updated_at.isoformat(), "name": "Renamed"}
+    )
 
     assert (response.status_code, response.json()["extra"]) == (409, {"code": "batch_edit_window_expired"})
 
@@ -188,7 +197,10 @@ async def test_assign_production_order_links_order(
     batch = await create_batch()
     order = await create_order("Order A")
 
-    response = await client.put(f"/api/batches/{batch.id}/production-order", json={"productionOrderId": str(order.id)})
+    response = await client.put(
+        f"/api/batches/{batch.id}/production-order",
+        json={"expectedUpdatedAt": batch.updated_at.isoformat(), "productionOrderId": str(order.id)},
+    )
 
     assert response.json()["productionOrder"] == {"id": str(order.id), "name": "Order A"}
 
@@ -201,7 +213,10 @@ async def test_detach_production_order_clears_it(
     order = await create_order()
     batch = await create_batch(production_order_id=order.id)
 
-    response = await client.put(f"/api/batches/{batch.id}/production-order", json={"productionOrderId": None})
+    response = await client.put(
+        f"/api/batches/{batch.id}/production-order",
+        json={"expectedUpdatedAt": batch.updated_at.isoformat(), "productionOrderId": None},
+    )
 
     assert response.json()["productionOrder"] is None
 
@@ -236,3 +251,48 @@ async def test_delete_batch_removes_it(client: AsyncTestClient[Litestar], create
     response = await client.delete(f"/api/batches/{batch.id}")
 
     assert (response.status_code, (await client.get(f"/api/batches/{batch.id}")).status_code) == (204, 404)
+
+
+async def test_create_batch_returns_its_multicast_groups(
+    client: AsyncTestClient[Litestar],
+    create_prefix: CreatePrefix,
+    multicast_groups: MulticastGroups,
+) -> None:
+    prefix = await create_prefix()
+
+    response = await client.post("/api/batches", json=_create_body(prefix.id, multicast_groups))
+
+    body = response.json()
+    group = multicast_groups[1]
+    assert body["multicastGroup0"]["id"] == str(multicast_groups[0].id)
+    assert body["multicastGroup1"] == {
+        "id": str(group.id),
+        "name": group.name,
+        "mcAddr": group.mc_addr,
+        "frequencyHz": group.frequency_hz,
+        "datarate": group.datarate,
+    }
+
+
+async def test_list_batches_filters_by_multicast_group(
+    client: AsyncTestClient[Litestar],
+    create_batch: CreateBatch,
+    multicast_groups: MulticastGroups,
+) -> None:
+    batch = await create_batch()
+
+    response = await client.get("/api/batches", params={"multicastGroupId": str(multicast_groups[1].id)})
+
+    assert [item["id"] for item in response.json()["items"]] == [str(batch.id)]
+
+
+async def test_list_batches_leaves_out_batches_of_other_multicast_groups(
+    client: AsyncTestClient[Litestar],
+    create_batch: CreateBatch,
+) -> None:
+    await create_batch()
+    other = await client.post("/api/kg/multicast-groups", json={"name": "Other", "groupId": 0})
+
+    response = await client.get("/api/batches", params={"multicastGroupId": other.json()["id"]})
+
+    assert response.json()["items"] == []

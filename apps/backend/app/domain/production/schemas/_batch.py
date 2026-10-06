@@ -7,7 +7,13 @@ from uuid import UUID
 import msgspec
 
 from app.db.enums import BatchStatus
-from app.domain.production.schemas._common import Description, Title, validate_description, validate_title
+from app.domain.production.schemas._common import (
+    Description,
+    Title,
+    validate_description,
+    validate_title,
+)
+from app.lib.concurrency import VersionedUpdate
 from app.lib.lorawan import ActivationType, LoRaWanVersion
 from app.lib.schema import CamelizedBaseStruct
 
@@ -34,6 +40,14 @@ class BatchProductionOrder(CamelizedBaseStruct):
     name: str
 
 
+class BatchMulticastGroup(CamelizedBaseStruct):
+    id: UUID
+    name: str
+    mc_addr: str
+    frequency_hz: int
+    datarate: int
+
+
 class UserSummary(CamelizedBaseStruct):
     """The user who created a production record."""
 
@@ -49,6 +63,8 @@ class Batch(CamelizedBaseStruct):
     received_qty: int
     packed_qty: int
     shipped_qty: int
+    otk_passed_qty: int
+    otk_failed_qty: int
     day_plan_qty: int
     status: BatchStatus
     kg_prefix: BatchKgPrefix
@@ -59,6 +75,8 @@ class Batch(CamelizedBaseStruct):
     activation_type: ActivationType
     lorawan_version: LoRaWanVersion
     join_eui: str
+    multicast_group_0: BatchMulticastGroup
+    multicast_group_1: BatchMulticastGroup
     created_by: UserSummary | None
     completed_at: datetime | None
     archived_at: datetime | None
@@ -67,7 +85,7 @@ class Batch(CamelizedBaseStruct):
 
 
 class BatchCreate(CamelizedBaseStruct):
-    """Create a batch and allocate its DevEUI range; the range and LoRaWAN settings never change."""
+    """Create a batch and allocate its DevEUI range; the range, LoRaWAN settings and multicast groups never change."""
 
     name: Title
     kg_prefix_id: UUID
@@ -75,6 +93,8 @@ class BatchCreate(CamelizedBaseStruct):
     day_plan_qty: DayPlanQty
     activation_type: ActivationType
     lorawan_version: LoRaWanVersion
+    multicast_group_0_id: Annotated[UUID, msgspec.Meta(description="A multicast group with group ID 0.")]
+    multicast_group_1_id: Annotated[UUID, msgspec.Meta(description="A multicast group with group ID 1.")]
     description: Description | None = None
     kg_version_id: UUID | None = None
     production_order_id: UUID | None = None
@@ -86,7 +106,7 @@ class BatchCreate(CamelizedBaseStruct):
             self.description = validate_description(self.description)
 
 
-class BatchUpdate(CamelizedBaseStruct, omit_defaults=True):
+class BatchUpdate(VersionedUpdate, omit_defaults=True):
     """Change a batch's attributes; the production order and archiving have their own endpoints."""
 
     name: Title | msgspec.UnsetType = msgspec.UNSET
@@ -105,7 +125,7 @@ class BatchUpdate(CamelizedBaseStruct, omit_defaults=True):
             self.description = validate_description(self.description)
 
 
-class BatchProductionOrderAssignment(CamelizedBaseStruct):
+class BatchProductionOrderAssignment(VersionedUpdate):
     """Assign the batch to a production order, or detach it with ``null``."""
 
     production_order_id: UUID | None

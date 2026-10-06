@@ -9,7 +9,7 @@ import pytest
 from sqlalchemy import func, select, update
 
 from app.db import models as m
-from app.db.enums import BatchStatus, KgState, PakDeviceKind, VerificationSessionStatus
+from app.db.enums import BatchStatus, KgOtkStatus, KgState, PakDeviceKind, VerificationSessionStatus
 from app.domain.production.exceptions import (
     BatchArchivedError,
     BatchCompletedError,
@@ -17,6 +17,8 @@ from app.domain.production.exceptions import (
     BatchInUseError,
     KgPrefixArchivedError,
     KgVersionArchivedError,
+    MulticastGroupArchivedError,
+    MulticastGroupIdMismatchError,
     ProductionOrderArchivedError,
 )
 from app.domain.production.schemas import BatchCreate
@@ -33,7 +35,8 @@ if TYPE_CHECKING:
 
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-    from app.domain.production.services import BatchService
+    from app.domain.production.services import BatchService, MulticastGroupService
+    from tests.integration.conftest import MulticastGroups
     from tests.integration.production.conftest import (
         CreateBatch,
         CreateOrder,
@@ -51,6 +54,7 @@ pytestmark = [
 
 def _batch_data(
     prefix_id: UUID,
+    multicast_groups: MulticastGroups,
     *,
     planned_qty: int = 3,
     kg_version_id: UUID | None = None,
@@ -63,6 +67,8 @@ def _batch_data(
         day_plan_qty=planned_qty,
         activation_type=ActivationType.OTAA,
         lorawan_version=LoRaWanVersion.V1_0,
+        multicast_group_0_id=multicast_groups[0].id,
+        multicast_group_1_id=multicast_groups[1].id,
         kg_version_id=kg_version_id,
         production_order_id=production_order_id,
     )
@@ -122,6 +128,37 @@ async def test_create_batch_registers_one_unit_per_dev_eui(
     ]
 
 
+async def test_batch_counts_otk_results_of_its_units(
+    session: AsyncSession,
+    batch_service: BatchService,
+    create_batch: CreateBatch,
+) -> None:
+    batch = await create_batch(planned_qty=4)
+    # Packing needs a passed OTK, so a packed unit counts as passed; a packed
+    # unit never fails, and a failed one is still registered.
+    outcomes = {
+        1: (KgState.PACKED, KgOtkStatus.PASSED),
+        2: (KgState.REGISTERED, KgOtkStatus.PASSED),
+        3: (KgState.REGISTERED, KgOtkStatus.FAILED),
+    }
+    async with unit_of_work(session):
+        for serial, (state, otk_status) in outcomes.items():
+            await session.execute(
+                update(m.KgUnit)
+                .where(m.KgUnit.batch_id == batch.id, m.KgUnit.short_id.endswith(f"{serial:06d}"))
+                .values(
+                    state=state,
+                    otk_status=otk_status,
+                    packed_at=datetime.now(UTC) if state is KgState.PACKED else None,
+                )
+            )
+    session.expunge_all()
+
+    reloaded = await batch_service.get(batch.id)
+
+    assert (reloaded.otk_passed_qty, reloaded.otk_failed_qty) == (2, 1)
+
+
 async def test_deleted_batch_dev_euis_are_not_reissued(
     session: AsyncSession,
     batch_service: BatchService,
@@ -143,6 +180,7 @@ async def test_create_batch_beyond_prefix_capacity_is_rejected(
     session: AsyncSession,
     batch_service: BatchService,
     create_prefix: CreatePrefix,
+    multicast_groups: MulticastGroups,
 ) -> None:
     prefix = await create_prefix()
 
@@ -153,19 +191,22 @@ async def test_create_batch_beyond_prefix_capacity_is_rejected(
 
     with pytest.raises(DevEuiRangeOverflowError):
         async with unit_of_work(session):
-            await batch_service.create_batch(_batch_data(prefix.id, planned_qty=2), created_by_id=None)
+            await batch_service.create_batch(
+                _batch_data(prefix.id, multicast_groups, planned_qty=2), created_by_id=None
+            )
 
 
 async def test_create_batch_from_archived_prefix_is_rejected(
     session: AsyncSession,
     batch_service: BatchService,
     create_prefix: CreatePrefix,
+    multicast_groups: MulticastGroups,
 ) -> None:
     prefix = await create_prefix(archived=True)
 
     with pytest.raises(KgPrefixArchivedError):
         async with unit_of_work(session):
-            await batch_service.create_batch(_batch_data(prefix.id), created_by_id=None)
+            await batch_service.create_batch(_batch_data(prefix.id, multicast_groups), created_by_id=None)
 
 
 async def test_create_batch_with_archived_version_is_rejected(
@@ -173,6 +214,7 @@ async def test_create_batch_with_archived_version_is_rejected(
     batch_service: BatchService,
     create_prefix: CreatePrefix,
     create_version: CreateVersion,
+    multicast_groups: MulticastGroups,
 ) -> None:
     prefix = await create_prefix()
     version = await create_version(archived=True)
@@ -180,7 +222,7 @@ async def test_create_batch_with_archived_version_is_rejected(
     with pytest.raises(KgVersionArchivedError):
         async with unit_of_work(session):
             await batch_service.create_batch(
-                _batch_data(prefix.id, kg_version_id=version.id),
+                _batch_data(prefix.id, multicast_groups, kg_version_id=version.id),
                 created_by_id=None,
             )
 
@@ -190,6 +232,7 @@ async def test_create_batch_for_archived_order_is_rejected(
     batch_service: BatchService,
     create_prefix: CreatePrefix,
     create_order: CreateOrder,
+    multicast_groups: MulticastGroups,
 ) -> None:
     prefix = await create_prefix()
     order = await create_order(archived=True)
@@ -197,9 +240,40 @@ async def test_create_batch_for_archived_order_is_rejected(
     with pytest.raises(ProductionOrderArchivedError):
         async with unit_of_work(session):
             await batch_service.create_batch(
-                _batch_data(prefix.id, production_order_id=order.id),
+                _batch_data(prefix.id, multicast_groups, production_order_id=order.id),
                 created_by_id=None,
             )
+
+
+async def test_create_batch_with_archived_multicast_group_is_rejected(
+    session: AsyncSession,
+    batch_service: BatchService,
+    multicast_group_service: MulticastGroupService,
+    create_prefix: CreatePrefix,
+    multicast_groups: MulticastGroups,
+) -> None:
+    prefix = await create_prefix()
+
+    async with unit_of_work(session):
+        await multicast_group_service.set_archived(multicast_groups[1].id, archived=True)
+
+    with pytest.raises(MulticastGroupArchivedError):
+        async with unit_of_work(session):
+            await batch_service.create_batch(_batch_data(prefix.id, multicast_groups), created_by_id=None)
+
+
+async def test_create_batch_with_multicast_groups_swapped_is_rejected(
+    session: AsyncSession,
+    batch_service: BatchService,
+    create_prefix: CreatePrefix,
+    multicast_groups: MulticastGroups,
+) -> None:
+    prefix = await create_prefix()
+    group_0, group_1 = multicast_groups
+
+    with pytest.raises(MulticastGroupIdMismatchError):
+        async with unit_of_work(session):
+            await batch_service.create_batch(_batch_data(prefix.id, (group_1, group_0)), created_by_id=None)
 
 
 async def test_update_batch_after_edit_window_is_rejected(

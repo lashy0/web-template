@@ -12,19 +12,25 @@ from app.db.enums import BatchStatus, enum_values
 from app.db.models._batch_receipt import BatchReceipt
 from app.db.models._kg_prefix import KgPrefix
 from app.db.models._kg_version import KgVersion
+from app.db.models._multicast_group import MulticastGroup
 from app.db.models._production_order import ProductionOrder
 from app.db.models._user import User
+from app.lib.audit import AuditTarget
 from app.lib.lorawan import DEV_EUI_SERIAL_MAX, ActivationType, LoRaWanVersion, derive_dev_eui_range
 
 
-class Batch(UUIDv7AuditBase):
+class Batch(UUIDv7AuditBase, AuditTarget):
     """A production run of KG units with one contiguous DevEUI range.
 
     The range starts at ``first_serial`` under ``kg_prefix`` and holds
-    ``planned_qty`` serials; it is allocated at creation and never changes.
+    ``planned_qty`` serials; it is allocated at creation and never changes, as
+    do the multicast groups its units are provisioned with.
     """
 
     __tablename__ = "batches"
+
+    __audit_type__ = "batch"
+    __audit_label__ = "name"
 
     name: Mapped[str] = mapped_column(
         String(128),
@@ -112,6 +118,18 @@ class Batch(UUIDv7AuditBase):
         unique=True,
     )
 
+    multicast_group_0_id: Mapped[UUID] = mapped_column(
+        ForeignKey("multicast_groups.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+
+    multicast_group_1_id: Mapped[UUID] = mapped_column(
+        ForeignKey("multicast_groups.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+
     created_by_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("user_account.id", ondelete="SET NULL"),
         nullable=True,
@@ -129,6 +147,8 @@ class Batch(UUIDv7AuditBase):
     kg_prefix: Mapped[KgPrefix] = relationship(lazy="selectin")
     kg_version: Mapped[KgVersion | None] = relationship(lazy="selectin")
     production_order: Mapped[ProductionOrder | None] = relationship(lazy="selectin")
+    multicast_group_0: Mapped[MulticastGroup] = relationship(foreign_keys=[multicast_group_0_id], lazy="selectin")
+    multicast_group_1: Mapped[MulticastGroup] = relationship(foreign_keys=[multicast_group_1_id], lazy="selectin")
     created_by: Mapped[User | None] = relationship(lazy="selectin")
 
     if TYPE_CHECKING:
@@ -138,6 +158,10 @@ class Batch(UUIDv7AuditBase):
         """KG units packed, shipped ones included; mapped in ``_kg_unit``."""
         shipped_qty: int
         """KG units shipped by completed shipments; mapped in ``_kg_unit``."""
+        otk_passed_qty: int
+        """KG units whose last OTK passed, packed and shipped ones included; mapped in ``_kg_unit``."""
+        otk_failed_qty: int
+        """Unpacked KG units whose last OTK failed; mapped in ``_kg_unit``."""
 
     __table_args__ = (
         CheckConstraint("planned_qty > 0", name="planned_qty_positive"),

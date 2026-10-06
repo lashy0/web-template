@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
+from datetime import timedelta
 from typing import TYPE_CHECKING
+from uuid import uuid4
 
 import pytest
 from sqlalchemy import func, update
 
 from app.db import models as m
-from app.db.enums import KgOtkStatus, KgState
+from app.db.enums import KgOtkStatus, KgState, PakDeviceKind
 from app.domain.production.schemas import BatchCreate, BatchReceiptCreate, BatchShipmentCreate
 from app.domain.production.services import (
     BatchReceiptService,
@@ -19,9 +21,19 @@ from app.domain.production.services import (
     KgPrefixService,
     KgUnitService,
     KgVersionService,
+    MulticastGroupService,
     PackingService,
     ProductionOrderService,
 )
+from app.domain.quality.schemas import (
+    VerificationSessionComplete,
+    VerificationSessionOpen,
+    VerificationSessionResult,
+    VerificationStepComplete,
+    VerificationStepResult,
+    VerificationStepStart,
+)
+from app.domain.quality.services import PakCheckService, VerificationSessionService
 from app.lib.lorawan import ActivationType, LoRaWanVersion
 from app.lib.uow import unit_of_work
 
@@ -30,6 +42,8 @@ if TYPE_CHECKING:
     from uuid import UUID
 
     from sqlalchemy.ext.asyncio import AsyncSession
+
+    from tests.integration.conftest import MulticastGroups
 
 
 pytestmark = pytest.mark.anyio
@@ -41,6 +55,7 @@ type CreateBatch = Callable[..., Awaitable[m.Batch]]
 type CreateReceipt = Callable[..., Awaitable[m.BatchReceipt]]
 type PackUnits = Callable[..., Awaitable[None]]
 type CreateShipment = Callable[..., Awaitable[m.BatchShipment]]
+type VerifyUnit = Callable[..., Awaitable[m.VerificationSession]]
 
 
 @pytest.fixture
@@ -61,6 +76,13 @@ async def kg_prefix_service(session: AsyncSession) -> AsyncGenerator[KgPrefixSer
 async def kg_version_service(session: AsyncSession) -> AsyncGenerator[KgVersionService]:
     """Create KgVersionService instance with the test session."""
     async with KgVersionService.new(session) as service:
+        yield service
+
+
+@pytest.fixture
+async def multicast_group_service(session: AsyncSession) -> AsyncGenerator[MulticastGroupService]:
+    """Create MulticastGroupService instance with the test session."""
+    async with MulticastGroupService.new(session) as service:
         yield service
 
 
@@ -153,6 +175,7 @@ def create_batch(
     session: AsyncSession,
     batch_service: BatchService,
     create_prefix: CreatePrefix,
+    multicast_groups: MulticastGroups,
 ) -> CreateBatch:
     """Return a helper that commits a batch with its KG units, from a new prefix unless one is given."""
 
@@ -161,6 +184,7 @@ def create_batch(
         *,
         planned_qty: int = 3,
         production_order_id: UUID | None = None,
+        kg_version_id: UUID | None = None,
         archived: bool = False,
     ) -> m.Batch:
         prefix = prefix or await create_prefix()
@@ -174,7 +198,10 @@ def create_batch(
                     day_plan_qty=planned_qty,
                     activation_type=ActivationType.OTAA,
                     lorawan_version=LoRaWanVersion.V1_0,
+                    multicast_group_0_id=multicast_groups[0].id,
+                    multicast_group_1_id=multicast_groups[1].id,
                     production_order_id=production_order_id,
+                    kg_version_id=kg_version_id,
                 ),
                 created_by_id=None,
             )
@@ -248,11 +275,82 @@ def create_shipment(
             )
 
             if dev_euis:
-                shipment, _, _ = await batch_shipment_item_service.add_units(batch.id, shipment.id, dev_euis)
+                shipment, _, _ = await batch_shipment_item_service.add_units(
+                    batch.id,
+                    shipment.id,
+                    dev_euis,
+                    added_by_id=None,
+                )
 
             if completed:
-                shipment = await batch_shipment_service.complete_shipment(batch.id, shipment.id)
+                shipment = await batch_shipment_service.complete_shipment(batch.id, shipment.id, completed_by_id=None)
 
         return shipment
 
     return _create
+
+
+@pytest.fixture
+def verify_unit(session: AsyncSession) -> VerifyUnit:
+    """Return a helper that verifies a unit on a new PAK through the verification service.
+
+    ``steps`` maps each check label to whether it passes; the session passes
+    when all do. ``finish=False`` leaves it running after its steps.
+    """
+
+    async def _verify(
+        dev_eui: str,
+        steps: dict[str, bool],
+        *,
+        kind: PakDeviceKind = PakDeviceKind.OTK_LINE,
+        finish: bool = True,
+    ) -> m.VerificationSession:
+        suffix = uuid4().hex[:8]
+        pak = m.PakDevice(
+            code=f"pak-{suffix}",
+            kind=kind,
+            oauth_client_id=f"pak-client-{suffix}",
+            encrypted_access_key="unused",
+        )
+
+        async with (
+            unit_of_work(session),
+            VerificationSessionService.new(session=session) as sessions,
+            PakCheckService.new(session=session) as checks,
+        ):
+            session.add(pak)
+            await session.flush()
+            item, _ = await sessions.open_session(
+                pak,
+                VerificationSessionOpen(dev_eui=dev_eui, slot_no=1, firmware_version="1.0.0", total_steps=len(steps)),
+                reopen_inactivity=timedelta(minutes=60),
+            )
+
+            for step_no, (label, passes) in enumerate(steps.items(), start=1):
+                await sessions.start_step(
+                    pak,
+                    item.id,
+                    VerificationStepStart(
+                        step_no=step_no,
+                        check_name=f"check_{step_no}",
+                        check_label=label,
+                        defect_group_code="RF",
+                    ),
+                    checks=checks,
+                )
+                await sessions.complete_step(
+                    pak,
+                    item.id,
+                    step_no,
+                    VerificationStepComplete(
+                        status=VerificationStepResult.PASSED if passes else VerificationStepResult.FAILED
+                    ),
+                )
+
+            if finish:
+                outcome = VerificationSessionResult.PASSED if all(steps.values()) else VerificationSessionResult.FAILED
+                item = await sessions.complete_session(pak, item.id, VerificationSessionComplete(status=outcome))
+
+        return item
+
+    return _verify

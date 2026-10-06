@@ -7,6 +7,7 @@ from app.db.models._defect_type import DefectType
 from app.db.models._kg_prefix import KgPrefix
 from app.db.models._kg_unit import KgUnit
 from app.db.models._kg_version import KgVersion
+from app.db.models._multicast_group import MulticastGroup
 from app.db.models._pak_check import PakCheck
 from app.db.models._pak_device import PakDevice
 from app.db.models._pak_device_presence import PakDevicePresence
@@ -26,6 +27,7 @@ __all__ = [
     "KgPrefix",
     "KgUnit",
     "KgVersion",
+    "MulticastGroup",
     "PakCheck",
     "PakDevice",
     "PakDevicePresence",

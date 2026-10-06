@@ -5,6 +5,7 @@ from app.domain.production.services._batch_shipment_item import BatchShipmentIte
 from app.domain.production.services._kg_prefix import KgPrefixService
 from app.domain.production.services._kg_unit import KgUnitService
 from app.domain.production.services._kg_version import KgVersionService
+from app.domain.production.services._multicast_group import MulticastGroupService
 from app.domain.production.services._packing import PackingService
 from app.domain.production.services._production_order import ProductionOrderService
 
@@ -16,6 +17,7 @@ __all__ = (
     "KgPrefixService",
     "KgUnitService",
     "KgVersionService",
+    "MulticastGroupService",
     "PackingService",
     "ProductionOrderService",
 )

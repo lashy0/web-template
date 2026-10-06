@@ -15,6 +15,7 @@ from app.domain.production.exceptions._batch_shipment import (
     BatchShipmentCompletedError,
     BatchShipmentEmptyError,
     BatchShipmentKgNotPackedError,
+    BatchShipmentQuantityChangedError,
     BatchShipmentVoidedError,
     BatchShipmentVoidWindowExpiredError,
 )
@@ -28,6 +29,12 @@ from app.domain.production.exceptions._kg_version import (
     KgVersionArchivedError,
     KgVersionCodeTakenError,
     KgVersionInUseError,
+)
+from app.domain.production.exceptions._multicast_group import (
+    MulticastGroupArchivedError,
+    MulticastGroupIdMismatchError,
+    MulticastGroupInUseError,
+    MulticastGroupNameTakenError,
 )
 from app.domain.production.exceptions._packing import (
     PackingBatchArchivedError,
@@ -52,6 +59,7 @@ __all__ = (
     "BatchShipmentCompletedError",
     "BatchShipmentEmptyError",
     "BatchShipmentKgNotPackedError",
+    "BatchShipmentQuantityChangedError",
     "BatchShipmentVoidWindowExpiredError",
     "BatchShipmentVoidedError",
     "KgPrefixArchivedError",
@@ -61,6 +69,10 @@ __all__ = (
     "KgVersionArchivedError",
     "KgVersionCodeTakenError",
     "KgVersionInUseError",
+    "MulticastGroupArchivedError",
+    "MulticastGroupIdMismatchError",
+    "MulticastGroupInUseError",
+    "MulticastGroupNameTakenError",
     "PackingBatchArchivedError",
     "PackingKgAlreadyPackedError",
     "PackingKgScrappedError",

@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
     from app.domain.production.services import BatchService, KgVersionService
+    from tests.integration.conftest import MulticastGroups
     from tests.integration.production.conftest import CreatePrefix, CreateVersion
 
 pytestmark = [
@@ -88,6 +89,7 @@ async def test_delete_version_used_by_batch_is_rejected(
     kg_version_service: KgVersionService,
     create_version: CreateVersion,
     create_prefix: CreatePrefix,
+    multicast_groups: MulticastGroups,
 ) -> None:
     version = await create_version()
     prefix = await create_prefix()
@@ -101,6 +103,8 @@ async def test_delete_version_used_by_batch_is_rejected(
                 day_plan_qty=1,
                 activation_type=ActivationType.OTAA,
                 lorawan_version=LoRaWanVersion.V1_0,
+                multicast_group_0_id=multicast_groups[0].id,
+                multicast_group_1_id=multicast_groups[1].id,
                 kg_version_id=version.id,
             ),
             created_by_id=None,

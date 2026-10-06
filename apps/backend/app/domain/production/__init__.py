@@ -6,6 +6,7 @@ from app.domain.production.permissions import (
     KgPrefixPermission,
     KgUnitPermission,
     KgVersionPermission,
+    MulticastGroupPermission,
     ProductionOrderPermission,
 )
 from app.domain.production.services import (
@@ -14,6 +15,7 @@ from app.domain.production.services import (
     KgPrefixService,
     KgUnitService,
     KgVersionService,
+    MulticastGroupService,
     ProductionOrderService,
 )
 
@@ -27,6 +29,8 @@ __all__ = (
     "KgUnitService",
     "KgVersionPermission",
     "KgVersionService",
+    "MulticastGroupPermission",
+    "MulticastGroupService",
     "ProductionOrderPermission",
     "ProductionOrderService",
     "controllers",

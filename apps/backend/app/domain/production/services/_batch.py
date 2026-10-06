@@ -7,6 +7,7 @@ from uuid import UUID
 
 from advanced_alchemy.exceptions import NotFoundError
 from advanced_alchemy.extensions.litestar import repository, service
+from advanced_alchemy.service import schema_dump
 from sqlalchemy import exists, func, insert, literal, select
 
 from app.db import models as m
@@ -18,8 +19,11 @@ from app.domain.production.exceptions import (
     BatchInUseError,
     KgPrefixArchivedError,
     KgVersionArchivedError,
+    MulticastGroupArchivedError,
+    MulticastGroupIdMismatchError,
     ProductionOrderArchivedError,
 )
+from app.lib.concurrency import ensure_unchanged
 from app.lib.lorawan import derive_dev_eui_range
 
 if TYPE_CHECKING:
@@ -32,6 +36,8 @@ _RESPONSE_ATTRIBUTES = (
     "kg_prefix",
     "kg_version",
     "production_order",
+    "multicast_group_0",
+    "multicast_group_1",
     "created_by",
     "received_qty",
 )
@@ -57,13 +63,16 @@ class BatchService(service.SQLAlchemyAsyncRepositoryService[m.Batch]):
         if data.production_order_id is not None:
             await self._ensure_assignable_order(data.production_order_id)
 
+        await self._ensure_assignable_multicast_group(data.multicast_group_0_id, group_id=0)
+        await self._ensure_assignable_multicast_group(data.multicast_group_1_id, group_id=1)
+
         first_serial = prefix.next_serial
         derive_dev_eui_range(prefix.prefix, data.planned_qty, first_serial=first_serial)
         prefix.next_serial = first_serial + data.planned_qty
 
         batch = await self.create(
             {
-                **data.to_dict(),
+                **schema_dump(data),
                 "first_serial": first_serial,
                 "join_eui": token_hex(8),
                 "created_by_id": created_by_id,
@@ -87,8 +96,15 @@ class BatchService(service.SQLAlchemyAsyncRepositoryService[m.Batch]):
             first_serial=prefix.next_serial,
         )
 
-    async def update_batch(self, batch_id: UUID, data: dict[str, object]) -> m.Batch:
+    async def update_batch(
+        self,
+        batch_id: UUID,
+        data: dict[str, object],
+        *,
+        expected_updated_at: datetime | None = None,
+    ) -> m.Batch:
         batch = await self._require(batch_id, for_update=True)
+        ensure_unchanged(batch, expected_updated_at)
         self._ensure_not_archived(batch)
         self._ensure_editable(batch)
 
@@ -103,8 +119,11 @@ class BatchService(service.SQLAlchemyAsyncRepositoryService[m.Batch]):
         self,
         batch_id: UUID,
         production_order_id: UUID | None,
+        *,
+        expected_updated_at: datetime | None = None,
     ) -> m.Batch:
         batch = await self._require(batch_id, for_update=True)
+        ensure_unchanged(batch, expected_updated_at)
         self._ensure_not_archived(batch)
 
         if production_order_id == batch.production_order_id:
@@ -233,6 +252,23 @@ class BatchService(service.SQLAlchemyAsyncRepositoryService[m.Batch]):
 
         if order.archived_at is not None:
             raise ProductionOrderArchivedError(detail="Archived production order cannot receive batches.")
+
+    async def _ensure_assignable_multicast_group(self, multicast_group_id: UUID, *, group_id: int) -> None:
+        # A shared lock keeps the group from changing, being archived or deleted before the batch commits.
+        group: m.MulticastGroup | None = await self.repository.session.scalar(
+            select(m.MulticastGroup).where(m.MulticastGroup.id == multicast_group_id).with_for_update(read=True)
+        )
+
+        if group is None:
+            raise NotFoundError("Multicast group not found.")
+
+        if group.archived_at is not None:
+            raise MulticastGroupArchivedError(detail="Archived multicast group cannot be used for a batch.")
+
+        if group.group_id != group_id:
+            raise MulticastGroupIdMismatchError(
+                detail=f"multicastGroup{group_id}Id must name a multicast group with group ID {group_id}."
+            )
 
     async def _with_relationships(self, batch: m.Batch) -> m.Batch:
         await self.repository.session.refresh(batch, attribute_names=_RESPONSE_ATTRIBUTES)

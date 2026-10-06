@@ -4,7 +4,7 @@ import pytest
 from app.domain.production.schemas import (
     BatchReceiptUpdate,
     BatchReceiptVoid,
-    BatchShipmentCreate,
+    BatchShipmentComplete,
     BatchShipmentUnitsAdd,
     BatchShipmentUpdate,
     BatchUpdate,
@@ -15,8 +15,12 @@ from app.domain.production.schemas import (
     ProductionOrderCreate,
     ProductionOrderUpdate,
 )
+from app.lib.concurrency import update_changes
 from app.lib.lorawan import InvalidDevEuiPrefixError
 from app.lib.validation import ValidationError
+
+READ_AT = "2026-10-05T12:00:00+00:00"
+"""The `updatedAt` of the copy an update is made from."""
 
 pytestmark = pytest.mark.unit
 
@@ -39,13 +43,13 @@ def test_production_order_create_rejects_too_long_description() -> None:
 
 def test_production_order_update_requires_a_field() -> None:
     with pytest.raises(msgspec.ValidationError):
-        msgspec.convert({}, ProductionOrderUpdate)
+        msgspec.convert({"expectedUpdatedAt": READ_AT}, ProductionOrderUpdate)
 
 
 def test_production_order_update_accepts_cleared_description() -> None:
-    data = msgspec.convert({"description": None}, ProductionOrderUpdate)
+    data = msgspec.convert({"expectedUpdatedAt": READ_AT, "description": None}, ProductionOrderUpdate)
 
-    assert data.to_dict() == {"description": None}
+    assert update_changes(data) == {"description": None}
 
 
 def test_kg_prefix_create_normalizes_prefix_and_short_code() -> None:
@@ -66,7 +70,7 @@ def test_kg_prefix_create_rejects_short_code_with_separator() -> None:
 
 def test_kg_prefix_update_requires_a_field() -> None:
     with pytest.raises(msgspec.ValidationError):
-        msgspec.convert({}, KgPrefixUpdate)
+        msgspec.convert({"expectedUpdatedAt": READ_AT}, KgPrefixUpdate)
 
 
 def test_kg_version_create_rejects_too_long_code() -> None:
@@ -80,30 +84,30 @@ def test_kg_prefix_create_rejects_too_long_short_code() -> None:
 
 
 def test_kg_prefix_update_accepts_cleared_name() -> None:
-    data = msgspec.convert({"name": None}, KgPrefixUpdate)
+    data = msgspec.convert({"expectedUpdatedAt": READ_AT, "name": None}, KgPrefixUpdate)
 
-    assert data.to_dict() == {"name": None}
+    assert update_changes(data) == {"name": None}
 
 
 def test_kg_version_update_requires_a_field() -> None:
     with pytest.raises(msgspec.ValidationError):
-        msgspec.convert({}, KgVersionUpdate)
+        msgspec.convert({"expectedUpdatedAt": READ_AT}, KgVersionUpdate)
 
 
 def test_kg_version_update_accepts_cleared_description() -> None:
-    data = msgspec.convert({"description": None}, KgVersionUpdate)
+    data = msgspec.convert({"expectedUpdatedAt": READ_AT, "description": None}, KgVersionUpdate)
 
-    assert data.to_dict() == {"description": None}
+    assert update_changes(data) == {"description": None}
 
 
 def test_batch_update_requires_a_field() -> None:
     with pytest.raises(msgspec.ValidationError):
-        msgspec.convert({}, BatchUpdate)
+        msgspec.convert({"expectedUpdatedAt": READ_AT}, BatchUpdate)
 
 
 def test_batch_receipt_update_requires_a_field() -> None:
     with pytest.raises(msgspec.ValidationError):
-        msgspec.convert({}, BatchReceiptUpdate)
+        msgspec.convert({"expectedUpdatedAt": READ_AT}, BatchReceiptUpdate)
 
 
 def test_batch_receipt_void_requires_a_reason() -> None:
@@ -111,15 +115,14 @@ def test_batch_receipt_void_requires_a_reason() -> None:
         BatchReceiptVoid(reason="   ")
 
 
-def test_batch_shipment_create_strips_recipient() -> None:
-    data = BatchShipmentCreate(recipient="  Customer  ")
-
-    assert data.recipient == "Customer"
-
-
-def test_batch_shipment_update_requires_a_field() -> None:
+def test_batch_shipment_update_requires_the_comment() -> None:
     with pytest.raises(msgspec.ValidationError):
-        msgspec.convert({}, BatchShipmentUpdate)
+        msgspec.convert({"expectedUpdatedAt": READ_AT}, BatchShipmentUpdate)
+
+
+def test_batch_shipment_complete_requires_a_positive_quantity() -> None:
+    with pytest.raises(msgspec.ValidationError):
+        msgspec.convert({"expectedQuantity": 0}, BatchShipmentComplete)
 
 
 def test_batch_shipment_units_add_rejects_more_codes_than_one_request_takes() -> None:
