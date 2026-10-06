@@ -353,7 +353,7 @@ async def test_start_step_links_the_check_and_its_defect_group(
     item = await _open_session(session, verification_service, pak, batch.first_dev_eui)
 
     async with unit_of_work(session):
-        step, observation = await verification_service.start_step(
+        step, reported_session, observation = await verification_service.start_step(
             pak,
             item.id,
             _start(),
@@ -361,6 +361,7 @@ async def test_start_step_links_the_check_and_its_defect_group(
         )
 
     assert observation is not None
+    assert reported_session is item
     assert (step.status, step.check_id, step.defect_group_id) == (
         VerificationStepStatus.RUNNING,
         observation.check.id,
@@ -380,7 +381,7 @@ async def test_start_step_with_unknown_defect_group_is_accepted_without_a_group(
     item = await _open_session(session, verification_service, pak, batch.first_dev_eui)
 
     async with unit_of_work(session):
-        step, _ = await verification_service.start_step(
+        step, _, _ = await verification_service.start_step(
             pak,
             item.id,
             _start(defect_group_code="UNKNOWN"),
@@ -402,7 +403,7 @@ async def test_start_step_again_returns_the_step_without_observing_the_check(
     item = await _open_session(session, verification_service, pak, batch.first_dev_eui)
 
     async with unit_of_work(session):
-        first, _ = await verification_service.start_step(
+        first, _, _ = await verification_service.start_step(
             pak,
             item.id,
             _start(),
@@ -410,7 +411,7 @@ async def test_start_step_again_returns_the_step_without_observing_the_check(
         )
 
     async with unit_of_work(session):
-        again, observation = await verification_service.start_step(
+        again, reported_session, observation = await verification_service.start_step(
             pak,
             item.id,
             _start(),
@@ -418,6 +419,7 @@ async def test_start_step_again_returns_the_step_without_observing_the_check(
         )
 
     assert (again.id, observation) == (first.id, None)
+    assert reported_session is item
 
 
 async def test_start_step_number_again_with_another_check_is_rejected(
@@ -536,13 +538,14 @@ async def test_complete_step_records_the_result(
 
     async with unit_of_work(session):
         await verification_service.start_step(pak, item.id, _start(), checks=pak_check_service)
-        step = await verification_service.complete_step(pak, item.id, 1, _passed(12.5))
+        step, reported_session = await verification_service.complete_step(pak, item.id, 1, _passed(12.5))
 
     assert (step.status, step.measurement_value, step.completed_at is not None) == (
         VerificationStepStatus.PASSED,
         12.5,
         True,
     )
+    assert reported_session is item
 
 
 async def test_complete_step_again_with_the_same_result_returns_it(
@@ -558,9 +561,10 @@ async def test_complete_step_again_with_the_same_result_returns_it(
     await _run_step(session, verification_service, pak_check_service, pak, item, 1)
 
     async with unit_of_work(session):
-        step = await verification_service.complete_step(pak, item.id, 1, _passed())
+        step, reported_session = await verification_service.complete_step(pak, item.id, 1, _passed())
 
     assert step.status is VerificationStepStatus.PASSED
+    assert reported_session is item
 
 
 async def test_complete_step_again_with_another_result_is_rejected(
@@ -711,7 +715,7 @@ async def test_abort_session_aborts_its_running_step(
     item = await _open_session(session, verification_service, pak, batch.first_dev_eui)
 
     async with unit_of_work(session):
-        step, _ = await verification_service.start_step(pak, item.id, _start(), checks=pak_check_service)
+        step, _, _ = await verification_service.start_step(pak, item.id, _start(), checks=pak_check_service)
 
     await _complete(session, verification_service, pak, item, VerificationSessionResult.ABORTED)
 
@@ -811,7 +815,7 @@ async def test_expire_stale_closes_idle_sessions_and_their_running_steps(
     item = await _open_session(session, verification_service, pak, batch.first_dev_eui)
 
     async with unit_of_work(session):
-        step, _ = await verification_service.start_step(pak, item.id, _start(), checks=pak_check_service)
+        step, _, _ = await verification_service.start_step(pak, item.id, _start(), checks=pak_check_service)
 
     step_id = step.id
 

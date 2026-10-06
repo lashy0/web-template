@@ -7,12 +7,10 @@ from typing import TYPE_CHECKING, ClassVar
 from uuid import UUID
 
 from app.domain.quality.permissions import DefectPermission, VerificationPermission
-from app.lib.realtime import RealtimeEvent, announce_after_commit
+from app.lib.realtime import RealtimeEvent
 
 if TYPE_CHECKING:
     from app.db import models as m
-    from app.lib.realtime import Realtime
-    from app.lib.uow import UnitOfWork
 
 
 class DefectGroupChanged(RealtimeEvent):
@@ -52,14 +50,14 @@ class VerificationChanged(RealtimeEvent):
     batch_id: UUID
 
 
-def announce_verification_changes(
-    uow: UnitOfWork,
-    realtime: Realtime,
+def verification_change_events(
     sessions: Iterable[m.VerificationSession],
-) -> None:
-    """Announce, once the transaction commits, that the sessions changed: once per PAK and batch."""
-    for pak_id, batch_id in {(item.pak_id, item.batch_id) for item in sessions}:
-        announce_after_commit(uow, realtime, VerificationChanged(pak_id=pak_id, batch_id=batch_id))
+) -> list[VerificationChanged]:
+    """Build one change event per PAK and batch for API requests and background tasks."""
+    return [
+        VerificationChanged(pak_id=pak_id, batch_id=batch_id)
+        for pak_id, batch_id in {(item.pak_id, item.batch_id) for item in sessions}
+    ]
 
 
 __all__ = (
@@ -67,5 +65,5 @@ __all__ = (
     "DefectTypeChanged",
     "PakCheckChanged",
     "VerificationChanged",
-    "announce_verification_changes",
+    "verification_change_events",
 )

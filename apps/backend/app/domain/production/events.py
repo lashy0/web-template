@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
-from typing import TYPE_CHECKING, ClassVar
+from typing import ClassVar
 from uuid import UUID
 
 from app.domain.production.permissions import (
@@ -13,11 +12,7 @@ from app.domain.production.permissions import (
     MulticastGroupPermission,
     ProductionOrderPermission,
 )
-from app.lib.realtime import RealtimeEvent, announce_after_commit
-
-if TYPE_CHECKING:
-    from app.lib.realtime import Realtime
-    from app.lib.uow import UnitOfWork
+from app.lib.realtime import RealtimeEvent
 
 
 class BatchChanged(RealtimeEvent):
@@ -65,21 +60,10 @@ class ProductionOrderChanged(RealtimeEvent):
     order_id: UUID
 
 
-def announce_batch_changes(
-    uow: UnitOfWork,
-    realtime: Realtime,
-    batch_ids: Iterable[UUID],
-) -> None:
-    """Announce, once the transaction commits, that the batches changed."""
-    for batch_id in set(batch_ids):
-        announce_after_commit(uow, realtime, BatchChanged(batch_id=batch_id))
-
-
 __all__ = (
     "BatchChanged",
     "KgPrefixChanged",
     "KgVersionChanged",
     "MulticastGroupChanged",
     "ProductionOrderChanged",
-    "announce_batch_changes",
 )

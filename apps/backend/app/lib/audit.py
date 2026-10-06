@@ -12,6 +12,7 @@ snapshotted: their changes have actions of their own, such as
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
@@ -19,6 +20,18 @@ from typing import Any, ClassVar
 from uuid import UUID
 
 type Snapshot = dict[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class Actor:
+    """Who made a change, with the user's login and name kept as snapshots.
+
+    A PAK or CLI command has a login only; its entries have no user ID or name.
+    """
+
+    id: UUID | None = None
+    login: str | None = None
+    name: str | None = None
 
 
 class AuditTarget:
@@ -97,5 +110,10 @@ def same_fields(*names: str) -> dict[str, str]:
 
 def change_details(before: Snapshot, after: Snapshot) -> dict[str, Any] | None:
     """Return the ``details`` of the fields that differ, or None when nothing changed."""
-    changes = {field: {"from": value, "to": after[field]} for field, value in before.items() if value != after[field]}
+    changes = {
+        field: {"from": value, "to": after[field]}
+        for field, value in before.items()
+        if value != after[field]
+    }
+
     return {"changes": changes} if changes else None

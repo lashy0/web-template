@@ -96,17 +96,21 @@ async def test_start_verification_step_records_the_check_in_the_audit_log(
     response = await client.post(
         f"{SESSIONS}/{opened['id']}/steps",
         json={"stepNo": 1, "checkName": "rf_power", "checkLabel": "RF power", "defectGroupCode": "RF"},
-        headers=headers,
+        headers={**headers, "User-Agent": "PAK firmware/1.0"},
     )
 
     entry = await session.scalar(select(m.AuditLog).where(m.AuditLog.action == "pak_check.created"))
     assert response.status_code == 201
     assert entry is not None
-    assert (entry.target_label, entry.actor_login, entry.details) == (
+    assert (entry.target_label, entry.actor_id, entry.actor_login, entry.actor_name, entry.details) == (
         "RF power",
+        None,
         pak.code,
+        None,
         {"pak_id": str(pak.id), "name": "rf_power", "defect_group_code": "RF"},
     )
+    assert entry.user_agent == "PAK firmware/1.0"
+    assert entry.ip_address is not None
 
 
 async def test_start_verification_step_beyond_total_steps_returns_error_code(
@@ -192,7 +196,7 @@ async def test_start_verification_step_announces_a_new_check(
     open_event_stream: OpenEventStream,
 ) -> None:
     batch = await create_batch()
-    _, headers = await sign_in_pak()
+    pak, headers = await sign_in_pak()
     opened = await _open(client, headers, batch.first_dev_eui)
     await sign_in(UserRole.ENGINEER)
 
@@ -202,6 +206,126 @@ async def test_start_verification_step_announces_a_new_check(
 
     check_id = await session.scalar(select(m.PakCheck.id).where(m.PakCheck.name == "rf_power"))
     assert ("pak_check.changed", {"checkId": str(check_id)}) in received
+    entry = await session.scalar(select(m.AuditLog).where(m.AuditLog.action == "pak_check.created"))
+    assert entry is not None
+    assert (entry.actor_id, entry.actor_login, entry.actor_name) == (None, pak.code, None)
+
+
+async def test_repeated_step_start_does_not_audit_or_announce_the_check_again(
+    client: AsyncTestClient[Litestar],
+    session: AsyncSession,
+    create_batch: CreateBatch,
+    sign_in: SignIn,
+    sign_in_pak: SignInPak,
+    open_event_stream: OpenEventStream,
+) -> None:
+    batch = await create_batch()
+    pak, headers = await sign_in_pak()
+    opened = await _open(client, headers, batch.first_dev_eui)
+    await _start(client, headers, opened["id"])
+    await sign_in(UserRole.ENGINEER)
+
+    async with open_event_stream() as events:
+        await _start(client, headers, opened["id"])
+        event = await events.next_event()
+
+        with pytest.raises(TimeoutError):
+            await events.next_event(timeout=0.3)
+
+    entries = list(await session.scalars(select(m.AuditLog).where(m.AuditLog.target_type == "pak_check")))
+    assert len(entries) == 1
+    assert event == ("verification.changed", {"pakId": str(pak.id), "batchId": str(batch.id)})
+
+
+async def test_unchanged_check_in_a_new_step_does_not_audit_or_announce_the_check(
+    client: AsyncTestClient[Litestar],
+    session: AsyncSession,
+    create_batch: CreateBatch,
+    sign_in: SignIn,
+    sign_in_pak: SignInPak,
+    open_event_stream: OpenEventStream,
+) -> None:
+    batch = await create_batch()
+    pak, headers = await sign_in_pak()
+    opened = await _open(client, headers, batch.first_dev_eui, total_steps=2)
+    await _start(client, headers, opened["id"])
+    completed = await client.put(f"{SESSIONS}/{opened['id']}/steps/1", json={"status": "passed"}, headers=headers)
+    completed.raise_for_status()
+    await sign_in(UserRole.ENGINEER)
+
+    async with open_event_stream() as events:
+        response = await client.post(
+            f"{SESSIONS}/{opened['id']}/steps",
+            json={"stepNo": 2, "checkName": "rf_power", "checkLabel": "RF power", "defectGroupCode": "RF"},
+            headers=headers,
+        )
+        event = await events.next_event()
+
+        with pytest.raises(TimeoutError):
+            await events.next_event(timeout=0.3)
+
+    entries = list(await session.scalars(select(m.AuditLog).where(m.AuditLog.target_type == "pak_check")))
+    assert response.status_code == 201
+    assert len(entries) == 1
+    assert event == ("verification.changed", {"pakId": str(pak.id), "batchId": str(batch.id)})
+
+
+async def test_updated_check_is_audited_and_announced_by_the_pak(
+    client: AsyncTestClient[Litestar],
+    session: AsyncSession,
+    create_batch: CreateBatch,
+    sign_in: SignIn,
+    sign_in_pak: SignInPak,
+    open_event_stream: OpenEventStream,
+) -> None:
+    batch = await create_batch()
+    pak, headers = await sign_in_pak()
+    opened = await _open(client, headers, batch.first_dev_eui, total_steps=2)
+    await _start(client, headers, opened["id"])
+    completed = await client.put(f"{SESSIONS}/{opened['id']}/steps/1", json={"status": "passed"}, headers=headers)
+    completed.raise_for_status()
+    await sign_in(UserRole.ENGINEER)
+
+    async with open_event_stream() as events:
+        response = await client.post(
+            f"{SESSIONS}/{opened['id']}/steps",
+            json={"stepNo": 2, "checkName": "rf_power", "checkLabel": "RF power", "defectGroupCode": "POWER"},
+            headers=headers,
+        )
+        received = [await events.next_event(), await events.next_event()]
+
+    entry = await session.scalar(select(m.AuditLog).where(m.AuditLog.action == "pak_check.updated"))
+    assert response.status_code == 201
+    assert entry is not None
+    assert (entry.actor_id, entry.actor_login, entry.actor_name) == (None, pak.code, None)
+    assert entry.details == {
+        "pak_id": str(pak.id),
+        "name": "rf_power",
+        "changes": {"defect_group_code": {"from": "RF", "to": "POWER"}},
+    }
+    assert ("pak_check.changed", {"checkId": entry.target_id}) in received
+
+
+async def test_replacing_a_session_announces_once_for_the_same_pak_and_batch(
+    client: AsyncTestClient[Litestar],
+    create_batch: CreateBatch,
+    sign_in: SignIn,
+    sign_in_pak: SignInPak,
+    open_event_stream: OpenEventStream,
+) -> None:
+    batch = await create_batch()
+    pak, headers = await sign_in_pak()
+    await _open(client, headers, batch.first_dev_eui)
+    await sign_in(UserRole.ENGINEER)
+
+    async with open_event_stream() as events:
+        await _open(client, headers, batch.last_dev_eui)
+        event = await events.next_event()
+
+        with pytest.raises(TimeoutError):
+            await events.next_event(timeout=0.3)
+
+    assert event == ("verification.changed", {"pakId": str(pak.id), "batchId": str(batch.id)})
 
 
 async def test_complete_verification_session_on_otk_line_pak_announces_the_batch_change(

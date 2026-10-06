@@ -120,7 +120,10 @@ class VerificationSessionService(service.SQLAlchemyAsyncRepositoryService[m.Veri
         return MachineKgProvisioning(
             dev_eui=kg.dev_eui,
             keys=_machine_keys(kg.dev_eui, batch),
-            multicast=[_machine_group(batch.multicast_group_0), _machine_group(batch.multicast_group_1)],
+            multicast=[
+                _machine_group(batch.multicast_group_0),
+                _machine_group(batch.multicast_group_1),
+            ],
         )
 
     async def open_session(
@@ -197,11 +200,11 @@ class VerificationSessionService(service.SQLAlchemyAsyncRepositoryService[m.Veri
         data: s.VerificationStepStart,
         *,
         checks: PakCheckService,
-    ) -> tuple[m.VerificationStep, CheckObservation | None]:
+    ) -> tuple[m.VerificationStep, m.VerificationSession, CheckObservation | None]:
         """Start a step and record its check in the catalog.
 
         Repeating a start with the same check returns the step without
-        another observation.
+        another observation. Returns the step, its session and the catalog observation.
         """
         item = await self._lock_running_session(pak, session_id)
         self._ensure_in_range(item, data.step_no)
@@ -219,7 +222,7 @@ class VerificationSessionService(service.SQLAlchemyAsyncRepositoryService[m.Veri
             item.last_activity_at = now
             await self.repository.session.flush()
 
-            return existing, None
+            return existing, item, None
 
         running_step = select(m.VerificationStep.id).where(
             m.VerificationStep.session_id == item.id,
@@ -251,7 +254,7 @@ class VerificationSessionService(service.SQLAlchemyAsyncRepositoryService[m.Veri
         item.last_activity_at = now
         await self.repository.session.flush()
 
-        return step, observation
+        return step, item, observation
 
     async def complete_step(
         self,
@@ -259,8 +262,8 @@ class VerificationSessionService(service.SQLAlchemyAsyncRepositoryService[m.Veri
         session_id: UUID,
         step_no: int,
         data: s.VerificationStepComplete,
-    ) -> m.VerificationStep:
-        """Record the result of a running step; repeating the same result returns the step."""
+    ) -> tuple[m.VerificationStep, m.VerificationSession]:
+        """Record a step's result and return the step and its session, including on a repeated report."""
         item = await self._lock_running_session(pak, session_id)
         self._ensure_in_range(item, step_no)
         now = datetime.now(UTC)
@@ -299,7 +302,7 @@ class VerificationSessionService(service.SQLAlchemyAsyncRepositoryService[m.Veri
         item.last_activity_at = now
         await self.repository.session.flush()
 
-        return step
+        return step, item
 
     async def complete_session(
         self,
@@ -459,7 +462,9 @@ class VerificationSessionService(service.SQLAlchemyAsyncRepositoryService[m.Veri
     async def _lock_pak(self, pak_id: UUID) -> None:
         # Serializes the sessions opened on one PAK, so a slot never runs two.
         await self.repository.session.execute(
-            select(m.PakDevice.id).where(m.PakDevice.id == pak_id).with_for_update(key_share=True)
+            select(m.PakDevice.id)
+            .where(m.PakDevice.id == pak_id)
+            .with_for_update(key_share=True)
         )
 
     async def _lock_running_sessions(
@@ -554,9 +559,16 @@ class VerificationSessionService(service.SQLAlchemyAsyncRepositoryService[m.Veri
 def _machine_keys(dev_eui: str, batch: m.Batch) -> MachineKgKeys:
     match generate_credentials(dev_eui, batch.activation_type, batch.lorawan_version):
         case Otaa10Credentials() as keys:
-            return MachineKgOtaa10Keys(join_eui=batch.join_eui, app_key=keys.app_key)
+            return MachineKgOtaa10Keys(
+                join_eui=batch.join_eui,
+                app_key=keys.app_key,
+            )
         case Otaa11Credentials() as keys:
-            return MachineKgOtaa11Keys(join_eui=batch.join_eui, app_key=keys.app_key, nwk_key=keys.nwk_key)
+            return MachineKgOtaa11Keys(
+                join_eui=batch.join_eui,
+                app_key=keys.app_key,
+                nwk_key=keys.nwk_key,
+            )
         case Abp10Credentials() as keys:
             return MachineKgAbp10Keys(
                 dev_addr=keys.dev_addr,

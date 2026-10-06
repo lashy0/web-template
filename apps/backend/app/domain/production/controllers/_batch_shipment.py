@@ -7,15 +7,14 @@ from uuid import UUID
 
 from advanced_alchemy.extensions.litestar.providers import FieldNameType
 from litestar import Controller, Request, get, patch, post
-from litestar.di import NamedDependency, Provide
+from litestar.di import NamedDependency
 from litestar.params import Parameter, SkipValidation
 from litestar.status_codes import HTTP_200_OK
 
 from app.db import models as m
 from app.db.enums import BatchShipmentStatus
-from app.domain.admin.deps import provide_audit_log_service
-from app.domain.admin.services import AuditLogService
-from app.domain.production.events import announce_batch_changes
+from app.domain.audit.changes import ChangeRecorder
+from app.domain.production.events import BatchChanged
 from app.domain.production.permissions import BatchPermission
 from app.domain.production.schemas import (
     BatchShipment,
@@ -30,8 +29,6 @@ from app.lib.authorization import requires_permission
 from app.lib.concurrency import update_changes
 from app.lib.deps import create_service_dependencies
 from app.lib.openapi import error_responses
-from app.lib.realtime import Realtime
-from app.lib.uow import UnitOfWork
 
 if TYPE_CHECKING:
     from advanced_alchemy.filters import FilterTypes
@@ -72,30 +69,21 @@ class BatchShipmentController(Controller):
             ],
         },
     )
-    dependencies["audit_service"] = Provide(provide_audit_log_service)
 
     @staticmethod
-    async def _record_shipment_action(
-        request: Request[m.User, Any, Any],
-        audit_service: AuditLogService,
-        uow: UnitOfWork,
-        realtime: Realtime,
-        *,
+    async def _record_shipment_change(
+        changes: ChangeRecorder,
         action: str,
-        target: m.BatchShipment,
+        shipment: m.BatchShipment,
         details: dict[str, Any] | None = None,
     ) -> None:
-        """Write the action to the audit log and announce that the batch changed."""
-        await audit_service.log_action(
-            action=action,
-            actor_id=request.user.id,
-            actor_login=request.user.identity_login,
-            actor_name=request.user.name,
-            target=target,
-            details={"batch_id": str(target.batch_id), **(details or {})},
-            request=request,
+        """Record a change of the shipment; its entry names the batch, whose page shows the shipment."""
+        await changes.record(
+            action,
+            shipment,
+            event=BatchChanged(batch_id=shipment.batch_id),
+            details={"batch_id": str(shipment.batch_id), **(details or {})},
         )
-        announce_batch_changes(uow, realtime, [target.batch_id])
 
     @get(
         operation_id="ListBatchShipments",
@@ -143,9 +131,7 @@ class BatchShipmentController(Controller):
         self,
         request: Request[m.User, Any, Any],
         shipments_service: NamedDependency[BatchShipmentService],
-        audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],
-        realtime: NamedDependency[Realtime],
+        changes: NamedDependency[ChangeRecorder],
         data: BatchShipmentCreate,
         batch_id: BatchId,
     ) -> BatchShipment:
@@ -154,13 +140,10 @@ class BatchShipmentController(Controller):
             data,
             created_by_id=request.user.id,
         )
-        await self._record_shipment_action(
-            request,
-            audit_service,
-            uow,
-            realtime,
-            action="batch_shipment.created",
-            target=db_obj,
+        await self._record_shipment_change(
+            changes,
+            "batch_shipment.created",
+            db_obj,
         )
 
         return shipments_service.to_schema(db_obj, schema_type=BatchShipment)
@@ -173,11 +156,8 @@ class BatchShipmentController(Controller):
     )
     async def update_shipment(
         self,
-        request: Request[m.User, Any, Any],
         shipments_service: NamedDependency[BatchShipmentService],
-        audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],
-        realtime: NamedDependency[Realtime],
+        changes: NamedDependency[ChangeRecorder],
         data: BatchShipmentUpdate,
         batch_id: BatchId,
         shipment_id: ShipmentId,
@@ -189,14 +169,12 @@ class BatchShipmentController(Controller):
             update_changes(data),
             expected_updated_at=data.expected_updated_at,
         )
+
         if details := change_details(before, snapshot(db_obj, _AUDIT_FIELDS)):
-            await self._record_shipment_action(
-                request,
-                audit_service,
-                uow,
-                realtime,
-                action="batch_shipment.updated",
-                target=db_obj,
+            await self._record_shipment_change(
+                changes,
+                "batch_shipment.updated",
+                db_obj,
                 details=details,
             )
 
@@ -213,9 +191,7 @@ class BatchShipmentController(Controller):
         self,
         request: Request[m.User, Any, Any],
         shipments_service: NamedDependency[BatchShipmentService],
-        audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],
-        realtime: NamedDependency[Realtime],
+        changes: NamedDependency[ChangeRecorder],
         data: BatchShipmentComplete,
         batch_id: BatchId,
         shipment_id: ShipmentId,
@@ -227,13 +203,10 @@ class BatchShipmentController(Controller):
             completed_by_id=request.user.id,
             expected_quantity=data.expected_quantity,
         )
-        await self._record_shipment_action(
-            request,
-            audit_service,
-            uow,
-            realtime,
-            action="batch_shipment.completed",
-            target=db_obj,
+        await self._record_shipment_change(
+            changes,
+            "batch_shipment.completed",
+            db_obj,
             details={"quantity": db_obj.quantity},
         )
 
@@ -250,9 +223,7 @@ class BatchShipmentController(Controller):
         self,
         request: Request[m.User, Any, Any],
         shipments_service: NamedDependency[BatchShipmentService],
-        audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],
-        realtime: NamedDependency[Realtime],
+        changes: NamedDependency[ChangeRecorder],
         data: BatchShipmentVoid,
         batch_id: BatchId,
         shipment_id: ShipmentId,
@@ -263,13 +234,10 @@ class BatchShipmentController(Controller):
             data.reason,
             voided_by_id=request.user.id,
         )
-        await self._record_shipment_action(
-            request,
-            audit_service,
-            uow,
-            realtime,
-            action="batch_shipment.voided",
-            target=db_obj,
+        await self._record_shipment_change(
+            changes,
+            "batch_shipment.voided",
+            db_obj,
             details={
                 "quantity": db_obj.quantity,
                 "was_completed": db_obj.completed_at is not None,

@@ -43,8 +43,10 @@ minute.
 | `defect_group.changed` | `groupId` | `defects.read` | a defect group was created, changed, archived or deleted |
 | `defect_type.changed` | `typeId` | `defects.read` | a defect type was created, changed, archived or deleted |
 
-An event about a record is published by the route that changes it, with
-`announce_after_commit` (`app/lib/realtime.py`), next to its audit entry. The
+An event about a record is published by the route that changes it, together
+with its audit entry, through `changes.record(..., event=...)` (see
+[audit](audit.md)); a change without an audit entry, such as adding units to a
+shipment, uses `changes.announce(event)`. The
 frontend maps each event to the queries to reread in `src/app/live-updates.ts`.
 
 ## Declaring and publishing an event
@@ -69,9 +71,10 @@ announce_after_commit(uow, realtime, event)
 ```
 
 A failed publish is logged and does not fail the request, like every
-post-commit effect (see [transactions](transactions.md)). Handlers request the
-`realtime` dependency; a background task takes it from the worker context
-(`ctx["realtime"]`).
+post-commit effect (see [transactions](transactions.md)). User routes and the
+PAK machine API publish through `changes`; a background task takes `realtime`
+from the worker context (`ctx["realtime"]`). `verification_change_events`
+builds one event per PAK and batch for both machine requests and the worker.
 
 Put only identifiers in an event. Every user who holds the permission receives
 it, whatever records they may read.

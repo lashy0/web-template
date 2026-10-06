@@ -1,7 +1,7 @@
 import pytest
 
 from app.db.enums import UserRole
-from app.domain.admin.permissions import AuditPermission
+from app.domain.audit.permissions import AuditPermission
 from app.server.authorization import create_authorization_policy
 from tests.unit.route_permissions import assert_routes_require
 

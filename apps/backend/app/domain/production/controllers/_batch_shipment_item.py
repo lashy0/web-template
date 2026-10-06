@@ -11,7 +11,8 @@ from litestar.params import Parameter, SkipValidation
 from litestar.status_codes import HTTP_200_OK, HTTP_204_NO_CONTENT
 
 from app.db import models as m
-from app.domain.production.events import announce_batch_changes
+from app.domain.audit.changes import ChangeRecorder
+from app.domain.production.events import BatchChanged
 from app.domain.production.permissions import BatchPermission
 from app.domain.production.schemas import (
     BatchShipment,
@@ -24,8 +25,6 @@ from app.lib.authorization import requires_permission
 from app.lib.deps import create_service_dependencies
 from app.lib.lorawan import normalize_dev_eui
 from app.lib.openapi import error_responses
-from app.lib.realtime import Realtime
-from app.lib.uow import UnitOfWork
 
 if TYPE_CHECKING:
     from advanced_alchemy.filters import FilterTypes
@@ -99,8 +98,7 @@ class BatchShipmentItemController(Controller):
         self,
         request: Request[m.User, Any, Any],
         shipment_items_service: NamedDependency[BatchShipmentItemService],
-        uow: NamedDependency[UnitOfWork],
-        realtime: NamedDependency[Realtime],
+        changes: NamedDependency[ChangeRecorder],
         data: BatchShipmentUnitsAdd,
         batch_id: BatchId,
         shipment_id: ShipmentId,
@@ -112,7 +110,7 @@ class BatchShipmentItemController(Controller):
             data.codes,
             added_by_id=request.user.id,
         )
-        announce_batch_changes(uow, realtime, [batch_id])
+        changes.announce(BatchChanged(batch_id=batch_id))
 
         return BatchShipmentUnitsAdded(
             added=added,
@@ -131,14 +129,13 @@ class BatchShipmentItemController(Controller):
         self,
         request: Request[m.User, Any, Any],
         shipment_items_service: NamedDependency[BatchShipmentItemService],
-        uow: NamedDependency[UnitOfWork],
-        realtime: NamedDependency[Realtime],
+        changes: NamedDependency[ChangeRecorder],
         batch_id: BatchId,
         shipment_id: ShipmentId,
     ) -> BatchShipment:
         """Add every packed unit of the batch that is in no other shipment; ``quantity`` shows the result."""
         shipment = await shipment_items_service.add_packed_units(batch_id, shipment_id, added_by_id=request.user.id)
-        announce_batch_changes(uow, realtime, [batch_id])
+        changes.announce(BatchChanged(batch_id=batch_id))
 
         return shipment_items_service.to_schema(shipment, schema_type=BatchShipment)
 
@@ -152,11 +149,10 @@ class BatchShipmentItemController(Controller):
     async def remove_unit(
         self,
         shipment_items_service: NamedDependency[BatchShipmentItemService],
-        uow: NamedDependency[UnitOfWork],
-        realtime: NamedDependency[Realtime],
+        changes: NamedDependency[ChangeRecorder],
         batch_id: BatchId,
         shipment_id: ShipmentId,
         dev_eui: DevEui,
     ) -> None:
         await shipment_items_service.remove_unit(batch_id, shipment_id, normalize_dev_eui(dev_eui))
-        announce_batch_changes(uow, realtime, [batch_id])
+        changes.announce(BatchChanged(batch_id=batch_id))

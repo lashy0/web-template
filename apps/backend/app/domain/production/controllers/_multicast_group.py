@@ -2,20 +2,18 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated, Any
+from typing import TYPE_CHECKING, Annotated
 from uuid import UUID
 
 from advanced_alchemy.extensions.litestar.providers import FieldNameType
 from advanced_alchemy.service import schema_dump
-from litestar import Controller, Request, delete, get, patch, post
+from litestar import Controller, delete, get, patch, post
 from litestar.datastructures import CacheControlHeader
 from litestar.di import NamedDependency, Provide
 from litestar.params import Parameter, SkipValidation
 from litestar.status_codes import HTTP_200_OK, HTTP_204_NO_CONTENT
 
-from app.db import models as m
-from app.domain.admin.deps import provide_audit_log_service
-from app.domain.admin.services import AuditLogService
+from app.domain.audit.changes import ChangeRecorder
 from app.domain.production.events import MulticastGroupChanged
 from app.domain.production.permissions import MulticastGroupPermission
 from app.domain.production.schemas import (
@@ -31,8 +29,6 @@ from app.lib.concurrency import update_changes
 from app.lib.deps import create_service_dependencies
 from app.lib.filters import provide_archived_filter
 from app.lib.openapi import error_responses
-from app.lib.realtime import Realtime, announce_after_commit
-from app.lib.uow import UnitOfWork
 
 if TYPE_CHECKING:
     from advanced_alchemy.filters import FilterTypes
@@ -70,29 +66,6 @@ class MulticastGroupController(Controller):
         },
     )
     dependencies["archived_filter"] = Provide(provide_archived_filter, sync_to_thread=False)
-    dependencies["audit_service"] = Provide(provide_audit_log_service)
-
-    @staticmethod
-    async def _log_group_action(
-        request: Request[m.User, Any, Any],
-        audit_service: AuditLogService,
-        uow: UnitOfWork,
-        realtime: Realtime,
-        *,
-        action: str,
-        target: m.MulticastGroup,
-        details: dict[str, Any] | None = None,
-    ) -> None:
-        await audit_service.log_action(
-            action=action,
-            actor_id=request.user.id,
-            actor_login=request.user.identity_login,
-            actor_name=request.user.name,
-            target=target,
-            details=details,
-            request=request,
-        )
-        announce_after_commit(uow, realtime, MulticastGroupChanged(multicast_group_id=target.id))
 
     @get(
         operation_id="ListMulticastGroups",
@@ -148,21 +121,15 @@ class MulticastGroupController(Controller):
     )
     async def create_multicast_group(
         self,
-        request: Request[m.User, Any, Any],
         multicast_groups_service: NamedDependency[MulticastGroupService],
-        audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],
-        realtime: NamedDependency[Realtime],
+        changes: NamedDependency[ChangeRecorder],
         data: MulticastGroupCreate,
     ) -> MulticastGroup:
         db_obj = await multicast_groups_service.create_group(schema_dump(data))
-        await self._log_group_action(
-            request,
-            audit_service,
-            uow,
-            realtime,
-            action="multicast_group.created",
-            target=db_obj,
+        await changes.record(
+            "multicast_group.created",
+            db_obj,
+            event=MulticastGroupChanged(multicast_group_id=db_obj.id),
             details={"group_id": db_obj.group_id, "mc_addr": db_obj.mc_addr},
         )
 
@@ -176,12 +143,9 @@ class MulticastGroupController(Controller):
     )
     async def update_multicast_group(
         self,
-        request: Request[m.User, Any, Any],
         data: MulticastGroupUpdate,
         multicast_groups_service: NamedDependency[MulticastGroupService],
-        audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],
-        realtime: NamedDependency[Realtime],
+        changes: NamedDependency[ChangeRecorder],
         multicast_group_id: MulticastGroupId,
     ) -> MulticastGroup:
         before = snapshot(await multicast_groups_service.get(multicast_group_id), _AUDIT_FIELDS)
@@ -190,14 +154,12 @@ class MulticastGroupController(Controller):
             update_changes(data),
             expected_updated_at=data.expected_updated_at,
         )
+
         if details := change_details(before, snapshot(db_obj, _AUDIT_FIELDS)):
-            await self._log_group_action(
-                request,
-                audit_service,
-                uow,
-                realtime,
-                action="multicast_group.updated",
-                target=db_obj,
+            await changes.record(
+                "multicast_group.updated",
+                db_obj,
+                event=MulticastGroupChanged(multicast_group_id=db_obj.id),
                 details=details,
             )
 
@@ -212,22 +174,11 @@ class MulticastGroupController(Controller):
     )
     async def archive_multicast_group(
         self,
-        request: Request[m.User, Any, Any],
         multicast_groups_service: NamedDependency[MulticastGroupService],
-        audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],
-        realtime: NamedDependency[Realtime],
+        changes: NamedDependency[ChangeRecorder],
         multicast_group_id: MulticastGroupId,
     ) -> MulticastGroup:
-        return await self._set_archived(
-            request,
-            multicast_groups_service,
-            audit_service,
-            uow,
-            realtime,
-            multicast_group_id,
-            archived=True,
-        )
+        return await self._set_archived(multicast_groups_service, changes, multicast_group_id, archived=True)
 
     @post(
         operation_id="RestoreMulticastGroup",
@@ -238,30 +189,16 @@ class MulticastGroupController(Controller):
     )
     async def restore_multicast_group(
         self,
-        request: Request[m.User, Any, Any],
         multicast_groups_service: NamedDependency[MulticastGroupService],
-        audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],
-        realtime: NamedDependency[Realtime],
+        changes: NamedDependency[ChangeRecorder],
         multicast_group_id: MulticastGroupId,
     ) -> MulticastGroup:
-        return await self._set_archived(
-            request,
-            multicast_groups_service,
-            audit_service,
-            uow,
-            realtime,
-            multicast_group_id,
-            archived=False,
-        )
+        return await self._set_archived(multicast_groups_service, changes, multicast_group_id, archived=False)
 
+    @staticmethod
     async def _set_archived(
-        self,
-        request: Request[m.User, Any, Any],
         multicast_groups_service: MulticastGroupService,
-        audit_service: AuditLogService,
-        uow: UnitOfWork,
-        realtime: Realtime,
+        changes: ChangeRecorder,
         multicast_group_id: UUID,
         *,
         archived: bool,
@@ -270,13 +207,10 @@ class MulticastGroupController(Controller):
         db_obj = await multicast_groups_service.set_archived(multicast_group_id, archived=archived)
 
         if was_archived != archived:
-            await self._log_group_action(
-                request,
-                audit_service,
-                uow,
-                realtime,
-                action="multicast_group.archived" if archived else "multicast_group.restored",
-                target=db_obj,
+            await changes.record(
+                "multicast_group.archived" if archived else "multicast_group.restored",
+                db_obj,
+                event=MulticastGroupChanged(multicast_group_id=db_obj.id),
             )
 
         return multicast_groups_service.to_schema(db_obj, schema_type=MulticastGroup)
@@ -290,20 +224,14 @@ class MulticastGroupController(Controller):
     )
     async def delete_multicast_group(
         self,
-        request: Request[m.User, Any, Any],
         multicast_groups_service: NamedDependency[MulticastGroupService],
-        audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],
-        realtime: NamedDependency[Realtime],
+        changes: NamedDependency[ChangeRecorder],
         multicast_group_id: MulticastGroupId,
     ) -> None:
         target = await multicast_groups_service.delete_group(multicast_group_id)
-        await self._log_group_action(
-            request,
-            audit_service,
-            uow,
-            realtime,
-            action="multicast_group.deleted",
-            target=target,
+        await changes.record(
+            "multicast_group.deleted",
+            target,
+            event=MulticastGroupChanged(multicast_group_id=target.id),
             details={"group_id": target.group_id, "mc_addr": target.mc_addr},
         )

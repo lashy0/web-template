@@ -6,8 +6,9 @@ from typing import TYPE_CHECKING
 
 import structlog
 
-from app.domain.quality.events import announce_verification_changes
+from app.domain.quality.events import verification_change_events
 from app.domain.quality.services import VerificationSessionService
+from app.lib.realtime import announce_after_commit
 from app.lib.uow import unit_of_work
 
 if TYPE_CHECKING:
@@ -35,7 +36,9 @@ async def expire_stale_verification_sessions(ctx: WorkerContext) -> int:
             VerificationSessionService.new(session=db_session) as sessions,
         ):
             expired = await sessions.expire_stale(idle_for=idle_for, limit=EXPIRE_BATCH_SIZE)
-            announce_verification_changes(uow, ctx["realtime"], expired)
+
+            for event in verification_change_events(expired):
+                announce_after_commit(uow, ctx["realtime"], event)
 
         total += len(expired)
 

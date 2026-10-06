@@ -19,6 +19,7 @@ from app.config import (
 )
 from app.db import models as m
 from app.domain.accounts.cli import users_group
+from app.domain.audit.deps import provide_audit_log_service, provide_change_recorder
 from app.lib.exceptions import (
     ApplicationError,
     exception_group_to_http_response,
@@ -170,6 +171,12 @@ class ApplicationCore(InitPlugin, CLIPlugin):
                     sync_to_thread=False,
                 ),
                 "uow": Provide(provide_uow),
+                "audit_service": Provide(provide_audit_log_service),
+                # Requests the unit of work too, so a handler that records a change commits it.
+                "changes": Provide(
+                    provide_change_recorder,
+                    sync_to_thread=False,
+                ),
             }
         )
 

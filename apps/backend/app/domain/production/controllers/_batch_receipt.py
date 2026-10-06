@@ -12,9 +12,8 @@ from litestar.params import Parameter, QueryParameter, SkipValidation
 from litestar.status_codes import HTTP_200_OK
 
 from app.db import models as m
-from app.domain.admin.deps import provide_audit_log_service
-from app.domain.admin.services import AuditLogService
-from app.domain.production.events import announce_batch_changes
+from app.domain.audit.changes import ChangeRecorder
+from app.domain.production.events import BatchChanged
 from app.domain.production.permissions import BatchPermission
 from app.domain.production.schemas import (
     BatchReceipt,
@@ -28,8 +27,6 @@ from app.lib.authorization import requires_permission
 from app.lib.concurrency import update_changes
 from app.lib.deps import create_service_dependencies
 from app.lib.openapi import error_responses
-from app.lib.realtime import Realtime
-from app.lib.uow import UnitOfWork
 
 if TYPE_CHECKING:
     from advanced_alchemy.service.pagination import OffsetPagination
@@ -79,30 +76,21 @@ class BatchReceiptController(Controller):
         },
     )
     dependencies["voided_filter"] = Provide(provide_voided_filter, sync_to_thread=False)
-    dependencies["audit_service"] = Provide(provide_audit_log_service)
 
     @staticmethod
-    async def _record_receipt_action(
-        request: Request[m.User, Any, Any],
-        audit_service: AuditLogService,
-        uow: UnitOfWork,
-        realtime: Realtime,
-        *,
+    async def _record_receipt_change(
+        changes: ChangeRecorder,
         action: str,
-        target: m.BatchReceipt,
+        receipt: m.BatchReceipt,
         details: dict[str, Any],
     ) -> None:
-        """Write the action to the audit log and announce that the batch changed."""
-        await audit_service.log_action(
-            action=action,
-            actor_id=request.user.id,
-            actor_login=request.user.identity_login,
-            actor_name=request.user.name,
-            target=target,
-            details={"batch_id": str(target.batch_id), **details},
-            request=request,
+        """Record a change of the receipt; its entry names the batch, whose page shows the receipt."""
+        await changes.record(
+            action,
+            receipt,
+            event=BatchChanged(batch_id=receipt.batch_id),
+            details={"batch_id": str(receipt.batch_id), **details},
         )
-        announce_batch_changes(uow, realtime, [target.batch_id])
 
     @get(
         operation_id="ListBatchReceipts",
@@ -152,20 +140,15 @@ class BatchReceiptController(Controller):
         self,
         request: Request[m.User, Any, Any],
         receipts_service: NamedDependency[BatchReceiptService],
-        audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],
-        realtime: NamedDependency[Realtime],
+        changes: NamedDependency[ChangeRecorder],
         data: BatchReceiptCreate,
         batch_id: BatchId,
     ) -> BatchReceipt:
         db_obj = await receipts_service.create_receipt(batch_id, data, created_by_id=request.user.id)
-        await self._record_receipt_action(
-            request,
-            audit_service,
-            uow,
-            realtime,
-            action="batch_receipt.created",
-            target=db_obj,
+        await self._record_receipt_change(
+            changes,
+            "batch_receipt.created",
+            db_obj,
             details={"quantity": db_obj.quantity},
         )
 
@@ -179,11 +162,8 @@ class BatchReceiptController(Controller):
     )
     async def update_receipt(
         self,
-        request: Request[m.User, Any, Any],
         receipts_service: NamedDependency[BatchReceiptService],
-        audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],
-        realtime: NamedDependency[Realtime],
+        changes: NamedDependency[ChangeRecorder],
         data: BatchReceiptUpdate,
         batch_id: BatchId,
         receipt_id: ReceiptId,
@@ -195,14 +175,12 @@ class BatchReceiptController(Controller):
             update_changes(data),
             expected_updated_at=data.expected_updated_at,
         )
+
         if details := change_details(before, snapshot(db_obj, _AUDIT_FIELDS)):
-            await self._record_receipt_action(
-                request,
-                audit_service,
-                uow,
-                realtime,
-                action="batch_receipt.updated",
-                target=db_obj,
+            await self._record_receipt_change(
+                changes,
+                "batch_receipt.updated",
+                db_obj,
                 details=details,
             )
 
@@ -217,23 +195,17 @@ class BatchReceiptController(Controller):
     )
     async def void_receipt(
         self,
-        request: Request[m.User, Any, Any],
         receipts_service: NamedDependency[BatchReceiptService],
-        audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],
-        realtime: NamedDependency[Realtime],
+        changes: NamedDependency[ChangeRecorder],
         data: BatchReceiptVoid,
         batch_id: BatchId,
         receipt_id: ReceiptId,
     ) -> BatchReceipt:
         db_obj = await receipts_service.void_receipt(batch_id, receipt_id, data.reason)
-        await self._record_receipt_action(
-            request,
-            audit_service,
-            uow,
-            realtime,
-            action="batch_receipt.voided",
-            target=db_obj,
+        await self._record_receipt_change(
+            changes,
+            "batch_receipt.voided",
+            db_obj,
             details={"quantity": db_obj.quantity, "reason": data.reason},
         )
 

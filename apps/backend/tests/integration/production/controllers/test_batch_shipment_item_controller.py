@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from litestar.testing import AsyncTestClient
     from sqlalchemy.ext.asyncio import AsyncSession
 
-    from tests.integration.conftest import SignIn
+    from tests.integration.conftest import OpenEventStream, SignIn
     from tests.integration.production.conftest import CreateBatch, CreateShipment, PackUnits
 
 pytestmark = [
@@ -51,6 +51,37 @@ async def test_add_units_reports_added_and_rejected(
         [batch.first_dev_eui],
         [{"code": batch.last_dev_eui, "reason": "batch_shipment_kg_not_packed", "shipmentNumber": None}],
         1,
+    )
+
+
+async def test_add_units_commits_and_announces_without_an_audit_entry(
+    client: AsyncTestClient[Litestar],
+    session: AsyncSession,
+    create_batch: CreateBatch,
+    pack_units: PackUnits,
+    create_shipment: CreateShipment,
+    open_event_stream: OpenEventStream,
+) -> None:
+    batch = await create_batch()
+    await pack_units(batch.first_dev_eui)
+    shipment = await create_shipment(batch)
+
+    async with open_event_stream() as events:
+        response = await client.post(
+            f"/api/batches/{batch.id}/shipments/{shipment.id}/items",
+            json={"codes": [batch.first_dev_eui]},
+        )
+        event = await events.next_event()
+
+    item = await session.scalar(select(m.BatchShipmentItem))
+    entry = await session.scalar(select(m.AuditLog))
+    assert item is not None
+    assert (response.status_code, item.dev_eui, item.shipment_id, entry, event) == (
+        200,
+        batch.first_dev_eui,
+        shipment.id,
+        None,
+        ("batch.changed", {"batchId": str(batch.id)}),
     )
 
 

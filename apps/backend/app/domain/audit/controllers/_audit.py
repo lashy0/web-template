@@ -10,11 +10,11 @@ from litestar import Controller, get
 from litestar.di import NamedDependency
 from litestar.params import SkipValidation
 
-from app.domain.admin.permissions import AuditPermission
-from app.domain.admin.schemas import AuditLogEntry
-from app.domain.admin.services import AuditLogService
+from app.domain.audit.permissions import AuditPermission
+from app.domain.audit.schemas import AuditLogEntry
+from app.domain.audit.services import AuditLogService
 from app.lib.authorization import requires_permission
-from app.lib.deps import create_service_dependencies
+from app.lib.deps import create_filter_dependencies
 from app.lib.openapi import error_responses
 
 if TYPE_CHECKING:
@@ -27,10 +27,8 @@ class AuditController(Controller):
 
     tags = ["Audit"]  # noqa: RUF012
     path = "/audit"
-    dependencies = create_service_dependencies(
-        AuditLogService,
-        key="audit_service",
-        filters={
+    dependencies = create_filter_dependencies(
+        {
             "pagination_type": "limit_offset",
             "pagination_size": 50,
             "created_at": True,

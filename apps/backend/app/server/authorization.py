@@ -2,7 +2,7 @@
 
 from app.db.enums import UserRole
 from app.domain.accounts.permissions import UserPermission
-from app.domain.admin.permissions import AuditPermission
+from app.domain.audit.permissions import AuditPermission
 from app.domain.pak.permissions import PakPermission
 from app.domain.production.permissions import (
     BatchPermission,

@@ -17,7 +17,7 @@ from app.config import get_settings
 from app.db.enums import UserRole
 from app.domain.accounts.schemas import UserCreate
 from app.domain.accounts.services import UserService
-from app.domain.admin.services import AuditLogService
+from app.domain.audit.services import AuditLogService
 from app.lib.exceptions import ApplicationError
 from app.lib.kratos import KratosClient
 from app.lib.uow import UnitOfWork, unit_of_work

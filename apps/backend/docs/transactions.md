@@ -8,14 +8,22 @@ commit reaches the client as an error instead of a silent success.
 
 - **Services never commit or roll back.** They write through their session and
   at most `flush()`. The unit of work commits.
-- **Handlers that change data request `uow`.** The app-level `uow` dependency
+- **Handlers that change data request `uow`**, directly or through
+  `changes` (see [audit](audit.md)), which requests it. The app-level `uow` dependency
   commits after the handler returns and **before** the response is sent
   (Litestar runs the code after a dependency's `yield` at that point and throws
   handler exceptions into it). A commit failure becomes an error response; a
   handler exception rolls everything back, including audit entries.
 - **Request `uow` even when the service does not take it.** Litestar resolves a
   dependency only for handlers that declare it; without the parameter nothing
-  commits. Mark such a parameter `# noqa: ARG002 - requested so the change commits`.
+  commits. A handler that records its change requests `changes` and needs no
+  `uow` parameter of its own. Otherwise mark the parameter
+  `# noqa: ARG002 - requested so the change commits`.
+- **Requesting `changes` establishes the transaction boundary.** Neither
+  `record()` nor `announce()` commits on its own. Even when the handler finds
+  nothing to audit and skips those calls, its unit of work still finishes
+  normally. Direct and indirect requests for `uow` share one instance in the
+  request.
 - **Write audit entries in the same request.** `AuditLogService` shares the
   request session, so the entry commits or rolls back with the change.
 - **Outside HTTP** (CLI, jobs, tests) use the same boundary explicitly:
@@ -73,7 +81,8 @@ Two exceptions:
 
 ## Session lifecycle
 
-Every data-changing handler requests `uow`; nothing commits implicitly. The
-SQLAlchemy plugin uses Advanced Alchemy's default `before_send_handler`, which
+Every data-changing handler requests `uow`, directly or through `changes`;
+nothing commits implicitly. The SQLAlchemy plugin uses Advanced Alchemy's
+default `before_send_handler`, which
 only closes the session. A handler that writes without requesting `uow`
 therefore loses its writes.

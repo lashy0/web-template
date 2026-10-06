@@ -1,4 +1,4 @@
-"""Permission identifiers owned by the admin domain."""
+"""Permission identifiers owned by the audit domain."""
 
 from enum import StrEnum
 

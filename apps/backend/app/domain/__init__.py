@@ -1,8 +1,8 @@
 """Domain modules for the application."""
 
-from app.domain import admin, system
+from app.domain import audit, system
 
 __all__ = (
-    "admin",
+    "audit",
     "system",
 )

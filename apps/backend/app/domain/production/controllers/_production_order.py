@@ -2,18 +2,16 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated, Any
+from typing import TYPE_CHECKING, Annotated
 from uuid import UUID
 
 from advanced_alchemy.service import schema_dump
-from litestar import Controller, Request, delete, get, patch, post
+from litestar import Controller, delete, get, patch, post
 from litestar.di import NamedDependency, Provide
 from litestar.params import Parameter, SkipValidation
 from litestar.status_codes import HTTP_200_OK, HTTP_204_NO_CONTENT
 
-from app.db import models as m
-from app.domain.admin.deps import provide_audit_log_service
-from app.domain.admin.services import AuditLogService
+from app.domain.audit.changes import ChangeRecorder
 from app.domain.production.events import ProductionOrderChanged
 from app.domain.production.permissions import ProductionOrderPermission
 from app.domain.production.schemas import (
@@ -28,8 +26,6 @@ from app.lib.concurrency import update_changes
 from app.lib.deps import create_service_dependencies
 from app.lib.filters import provide_archived_filter
 from app.lib.openapi import error_responses
-from app.lib.realtime import Realtime, announce_after_commit
-from app.lib.uow import UnitOfWork
 
 if TYPE_CHECKING:
     from advanced_alchemy.filters import FilterTypes
@@ -65,29 +61,6 @@ class ProductionOrderController(Controller):
         },
     )
     dependencies["archived_filter"] = Provide(provide_archived_filter, sync_to_thread=False)
-    dependencies["audit_service"] = Provide(provide_audit_log_service)
-
-    @staticmethod
-    async def _log_order_action(
-        request: Request[m.User, Any, Any],
-        audit_service: AuditLogService,
-        uow: UnitOfWork,
-        realtime: Realtime,
-        *,
-        action: str,
-        target: m.ProductionOrder,
-        details: dict[str, Any] | None = None,
-    ) -> None:
-        await audit_service.log_action(
-            action=action,
-            actor_id=request.user.id,
-            actor_login=request.user.identity_login,
-            actor_name=request.user.name,
-            target=target,
-            details=details,
-            request=request,
-        )
-        announce_after_commit(uow, realtime, ProductionOrderChanged(order_id=target.id))
 
     @get(
         operation_id="ListProductionOrders",
@@ -132,21 +105,15 @@ class ProductionOrderController(Controller):
     )
     async def create_production_order(
         self,
-        request: Request[m.User, Any, Any],
         production_orders_service: NamedDependency[ProductionOrderService],
-        audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],
-        realtime: NamedDependency[Realtime],
+        changes: NamedDependency[ChangeRecorder],
         data: ProductionOrderCreate,
     ) -> ProductionOrder:
         db_obj = await production_orders_service.create_order(schema_dump(data))
-        await self._log_order_action(
-            request,
-            audit_service,
-            uow,
-            realtime,
-            action="production_order.created",
-            target=db_obj,
+        await changes.record(
+            "production_order.created",
+            db_obj,
+            event=ProductionOrderChanged(order_id=db_obj.id),
         )
 
         return production_orders_service.to_schema(db_obj, schema_type=ProductionOrder)
@@ -159,12 +126,9 @@ class ProductionOrderController(Controller):
     )
     async def update_production_order(
         self,
-        request: Request[m.User, Any, Any],
         data: ProductionOrderUpdate,
         production_orders_service: NamedDependency[ProductionOrderService],
-        audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],
-        realtime: NamedDependency[Realtime],
+        changes: NamedDependency[ChangeRecorder],
         order_id: OrderId,
     ) -> ProductionOrder:
         before = snapshot(await production_orders_service.get(order_id), _AUDIT_FIELDS)
@@ -173,14 +137,12 @@ class ProductionOrderController(Controller):
             update_changes(data),
             expected_updated_at=data.expected_updated_at,
         )
+
         if details := change_details(before, snapshot(db_obj, _AUDIT_FIELDS)):
-            await self._log_order_action(
-                request,
-                audit_service,
-                uow,
-                realtime,
-                action="production_order.updated",
-                target=db_obj,
+            await changes.record(
+                "production_order.updated",
+                db_obj,
+                event=ProductionOrderChanged(order_id=db_obj.id),
                 details=details,
             )
 
@@ -195,22 +157,11 @@ class ProductionOrderController(Controller):
     )
     async def archive_production_order(
         self,
-        request: Request[m.User, Any, Any],
         production_orders_service: NamedDependency[ProductionOrderService],
-        audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],
-        realtime: NamedDependency[Realtime],
+        changes: NamedDependency[ChangeRecorder],
         order_id: OrderId,
     ) -> ProductionOrder:
-        return await self._set_archived(
-            request,
-            production_orders_service,
-            audit_service,
-            uow,
-            realtime,
-            order_id,
-            archived=True,
-        )
+        return await self._set_archived(production_orders_service, changes, order_id, archived=True)
 
     @post(
         operation_id="RestoreProductionOrder",
@@ -221,30 +172,16 @@ class ProductionOrderController(Controller):
     )
     async def restore_production_order(
         self,
-        request: Request[m.User, Any, Any],
         production_orders_service: NamedDependency[ProductionOrderService],
-        audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],
-        realtime: NamedDependency[Realtime],
+        changes: NamedDependency[ChangeRecorder],
         order_id: OrderId,
     ) -> ProductionOrder:
-        return await self._set_archived(
-            request,
-            production_orders_service,
-            audit_service,
-            uow,
-            realtime,
-            order_id,
-            archived=False,
-        )
+        return await self._set_archived(production_orders_service, changes, order_id, archived=False)
 
+    @staticmethod
     async def _set_archived(
-        self,
-        request: Request[m.User, Any, Any],
         production_orders_service: ProductionOrderService,
-        audit_service: AuditLogService,
-        uow: UnitOfWork,
-        realtime: Realtime,
+        changes: ChangeRecorder,
         order_id: UUID,
         *,
         archived: bool,
@@ -253,13 +190,10 @@ class ProductionOrderController(Controller):
         db_obj = await production_orders_service.set_archived(order_id, archived=archived)
 
         if was_archived != archived:
-            await self._log_order_action(
-                request,
-                audit_service,
-                uow,
-                realtime,
-                action="production_order.archived" if archived else "production_order.restored",
-                target=db_obj,
+            await changes.record(
+                "production_order.archived" if archived else "production_order.restored",
+                db_obj,
+                event=ProductionOrderChanged(order_id=db_obj.id),
             )
 
         return production_orders_service.to_schema(db_obj, schema_type=ProductionOrder)
@@ -273,19 +207,13 @@ class ProductionOrderController(Controller):
     )
     async def delete_production_order(
         self,
-        request: Request[m.User, Any, Any],
         production_orders_service: NamedDependency[ProductionOrderService],
-        audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],
-        realtime: NamedDependency[Realtime],
+        changes: NamedDependency[ChangeRecorder],
         order_id: OrderId,
     ) -> None:
         target = await production_orders_service.delete_order(order_id)
-        await self._log_order_action(
-            request,
-            audit_service,
-            uow,
-            realtime,
-            action="production_order.deleted",
-            target=target,
+        await changes.record(
+            "production_order.deleted",
+            target,
+            event=ProductionOrderChanged(order_id=target.id),
         )

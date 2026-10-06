@@ -24,15 +24,13 @@ from app.domain.accounts.schemas import (
     UserUpdate,
 )
 from app.domain.accounts.services import UserService
-from app.domain.admin.deps import provide_audit_log_service
-from app.domain.admin.services import AuditLogService
+from app.domain.audit.changes import ChangeRecorder
 from app.lib.audit import change_details, snapshot
 from app.lib.authorization import requires_permission
 from app.lib.deps import create_service_dependencies
 from app.lib.filters import create_active_filter_provider, provide_archived_filter
 from app.lib.kratos import KratosClient
 from app.lib.openapi import error_responses
-from app.lib.realtime import Realtime, announce_after_commit
 from app.lib.uow import UnitOfWork
 
 if TYPE_CHECKING:
@@ -65,30 +63,6 @@ class UserController(Controller):
     )
     dependencies["archived_filter"] = Provide(provide_archived_filter, sync_to_thread=False)
     dependencies["active_filter"] = Provide(create_active_filter_provider("identity_active"), sync_to_thread=False)
-    dependencies["audit_service"] = Provide(provide_audit_log_service)
-
-    @staticmethod
-    async def _log_user_action(
-        request: Request[m.User, Any, Any],
-        audit_service: AuditLogService,
-        uow: UnitOfWork,
-        realtime: Realtime,
-        *,
-        action: str,
-        target: m.User,
-        details: dict[str, Any] | None = None,
-    ) -> None:
-        """Write an audit entry for the change and announce it once it commits."""
-        await audit_service.log_action(
-            action=action,
-            actor_id=request.user.id,
-            actor_login=request.user.identity_login,
-            actor_name=request.user.name,
-            target=target,
-            details=details,
-            request=request,
-        )
-        announce_after_commit(uow, realtime, UserChanged(user_id=target.id))
 
     @get(
         operation_id="ListUsers",
@@ -139,12 +113,10 @@ class UserController(Controller):
     )
     async def create_user(
         self,
-        request: Request[m.User, Any, Any],
         users_service: NamedDependency[UserService],
         kratos: NamedDependency[KratosClient],
-        audit_service: NamedDependency[AuditLogService],
         uow: NamedDependency[UnitOfWork],
-        realtime: NamedDependency[Realtime],
+        changes: NamedDependency[ChangeRecorder],
         data: UserCreate,
     ) -> User:
         db_obj = await users_service.create_user(
@@ -152,13 +124,10 @@ class UserController(Controller):
             kratos=kratos,
             uow=uow,
         )
-        await self._log_user_action(
-            request,
-            audit_service,
-            uow,
-            realtime,
-            action="user.created",
-            target=db_obj,
+        await changes.record(
+            "user.created",
+            db_obj,
+            event=UserChanged(user_id=db_obj.id),
             details={"role": data.role.value, "is_active": data.is_active},
         )
 
@@ -175,13 +144,11 @@ class UserController(Controller):
     )
     async def update_user(
         self,
-        request: Request[m.User, Any, Any],
         data: UserUpdate,
         users_service: NamedDependency[UserService],
         kratos: NamedDependency[KratosClient],
-        audit_service: NamedDependency[AuditLogService],
         uow: NamedDependency[UnitOfWork],
-        realtime: NamedDependency[Realtime],
+        changes: NamedDependency[ChangeRecorder],
         user_id: UserId,
     ) -> User:
         before = snapshot(await users_service.get(user_id), USER_AUDIT_FIELDS)
@@ -193,13 +160,10 @@ class UserController(Controller):
         )
 
         if details := change_details(before, snapshot(db_obj, USER_AUDIT_FIELDS)):
-            await self._log_user_action(
-                request,
-                audit_service,
-                uow,
-                realtime,
-                action="user.updated",
-                target=db_obj,
+            await changes.record(
+                "user.updated",
+                db_obj,
+                event=UserChanged(user_id=db_obj.id),
                 details=details,
             )
 
@@ -219,9 +183,7 @@ class UserController(Controller):
         request: Request[m.User, Any, Any],
         data: UserRoleUpdate,
         users_service: NamedDependency[UserService],
-        audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],
-        realtime: NamedDependency[Realtime],
+        changes: NamedDependency[ChangeRecorder],
         user_id: UserId,
     ) -> User:
         previous_role = (await users_service.get(user_id)).role
@@ -233,13 +195,10 @@ class UserController(Controller):
         )
 
         if previous_role != data.role:
-            await self._log_user_action(
-                request,
-                audit_service,
-                uow,
-                realtime,
-                action="user.role_changed",
-                target=db_obj,
+            await changes.record(
+                "user.role_changed",
+                db_obj,
+                event=UserChanged(user_id=db_obj.id),
                 details=change_details({"role": previous_role.value}, {"role": data.role.value}),
             )
 
@@ -257,13 +216,10 @@ class UserController(Controller):
     )
     async def update_password(
         self,
-        request: Request[m.User, Any, Any],
         data: UserPasswordUpdate,
         users_service: NamedDependency[UserService],
         kratos: NamedDependency[KratosClient],
-        audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],
-        realtime: NamedDependency[Realtime],
+        changes: NamedDependency[ChangeRecorder],
         user_id: UserId,
     ) -> None:
         target = await users_service.set_password(
@@ -272,14 +228,7 @@ class UserController(Controller):
             kratos=kratos,
         )
 
-        await self._log_user_action(
-            request,
-            audit_service,
-            uow,
-            realtime,
-            action="user.password_changed",
-            target=target,
-        )
+        await changes.record("user.password_changed", target, event=UserChanged(user_id=target.id))
 
     @post(
         operation_id="ActivateUser",
@@ -293,18 +242,16 @@ class UserController(Controller):
         request: Request[m.User, Any, Any],
         users_service: NamedDependency[UserService],
         kratos: NamedDependency[KratosClient],
-        audit_service: NamedDependency[AuditLogService],
         uow: NamedDependency[UnitOfWork],
-        realtime: NamedDependency[Realtime],
+        changes: NamedDependency[ChangeRecorder],
         user_id: UserId,
     ) -> User:
         return await self._set_active(
             request,
             users_service,
             kratos,
-            audit_service,
             uow,
-            realtime,
+            changes,
             user_id,
             is_active=True,
         )
@@ -321,30 +268,27 @@ class UserController(Controller):
         request: Request[m.User, Any, Any],
         users_service: NamedDependency[UserService],
         kratos: NamedDependency[KratosClient],
-        audit_service: NamedDependency[AuditLogService],
         uow: NamedDependency[UnitOfWork],
-        realtime: NamedDependency[Realtime],
+        changes: NamedDependency[ChangeRecorder],
         user_id: UserId,
     ) -> User:
         return await self._set_active(
             request,
             users_service,
             kratos,
-            audit_service,
             uow,
-            realtime,
+            changes,
             user_id,
             is_active=False,
         )
 
+    @staticmethod
     async def _set_active(
-        self,
         request: Request[m.User, Any, Any],
         users_service: UserService,
         kratos: KratosClient,
-        audit_service: AuditLogService,
         uow: UnitOfWork,
-        realtime: Realtime,
+        changes: ChangeRecorder,
         user_id: UUID,
         *,
         is_active: bool,
@@ -359,13 +303,10 @@ class UserController(Controller):
         )
 
         if was_active != is_active:
-            await self._log_user_action(
-                request,
-                audit_service,
-                uow,
-                realtime,
-                action="user.activated" if is_active else "user.deactivated",
-                target=db_obj,
+            await changes.record(
+                "user.activated" if is_active else "user.deactivated",
+                db_obj,
+                event=UserChanged(user_id=db_obj.id),
             )
 
         return users_service.to_schema(
@@ -385,18 +326,16 @@ class UserController(Controller):
         request: Request[m.User, Any, Any],
         users_service: NamedDependency[UserService],
         kratos: NamedDependency[KratosClient],
-        audit_service: NamedDependency[AuditLogService],
         uow: NamedDependency[UnitOfWork],
-        realtime: NamedDependency[Realtime],
+        changes: NamedDependency[ChangeRecorder],
         user_id: UserId,
     ) -> User:
         return await self._set_archived(
             request,
             users_service,
             kratos,
-            audit_service,
             uow,
-            realtime,
+            changes,
             user_id,
             archived=True,
         )
@@ -413,30 +352,27 @@ class UserController(Controller):
         request: Request[m.User, Any, Any],
         users_service: NamedDependency[UserService],
         kratos: NamedDependency[KratosClient],
-        audit_service: NamedDependency[AuditLogService],
         uow: NamedDependency[UnitOfWork],
-        realtime: NamedDependency[Realtime],
+        changes: NamedDependency[ChangeRecorder],
         user_id: UserId,
     ) -> User:
         return await self._set_archived(
             request,
             users_service,
             kratos,
-            audit_service,
             uow,
-            realtime,
+            changes,
             user_id,
             archived=False,
         )
 
+    @staticmethod
     async def _set_archived(
-        self,
         request: Request[m.User, Any, Any],
         users_service: UserService,
         kratos: KratosClient,
-        audit_service: AuditLogService,
         uow: UnitOfWork,
-        realtime: Realtime,
+        changes: ChangeRecorder,
         user_id: UUID,
         *,
         archived: bool,
@@ -451,13 +387,10 @@ class UserController(Controller):
         )
 
         if was_archived != archived:
-            await self._log_user_action(
-                request,
-                audit_service,
-                uow,
-                realtime,
-                action="user.archived" if archived else "user.restored",
-                target=db_obj,
+            await changes.record(
+                "user.archived" if archived else "user.restored",
+                db_obj,
+                event=UserChanged(user_id=db_obj.id),
             )
 
         return users_service.to_schema(
@@ -477,9 +410,8 @@ class UserController(Controller):
         request: Request[m.User, Any, Any],
         users_service: NamedDependency[UserService],
         kratos: NamedDependency[KratosClient],
-        audit_service: NamedDependency[AuditLogService],
         uow: NamedDependency[UnitOfWork],
-        realtime: NamedDependency[Realtime],
+        changes: NamedDependency[ChangeRecorder],
         user_id: UserId,
     ) -> None:
         target = await users_service.delete_user(
@@ -489,11 +421,4 @@ class UserController(Controller):
             actor_id=request.user.id,
         )
 
-        await self._log_user_action(
-            request,
-            audit_service,
-            uow,
-            realtime,
-            action="user.deleted",
-            target=target,
-        )
+        await changes.record("user.deleted", target, event=UserChanged(user_id=target.id))
