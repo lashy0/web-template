@@ -38,7 +38,7 @@ async def test_create_shipment_returns_open_shipment(
 
     response = await client.post(
         f"/api/batches/{batch.id}/shipments",
-        json={"recipient": " Customer ", "waybillNumber": "WB-1"},
+        json={"comment": "Pick up on Thursday"},
     )
 
     body = response.json()
@@ -46,10 +46,10 @@ async def test_create_shipment_returns_open_shipment(
         response.status_code,
         body["batchId"],
         body["status"],
-        body["recipient"],
+        body["comment"],
         body["quantity"],
         isinstance(body["number"], int),
-    ) == (201, str(batch.id), "open", "Customer", 0, True)
+    ) == (201, str(batch.id), "open", "Pick up on Thursday", 0, True)
 
 
 async def test_create_shipment_writes_audit_entry(
@@ -109,18 +109,20 @@ async def test_get_shipment_returns_quantity(
     assert (response.status_code, response.json()["quantity"]) == (200, 2)
 
 
-async def test_update_shipment_clears_waybill_number(
+async def test_update_shipment_changes_comment(
     client: AsyncTestClient[Litestar],
     create_batch: CreateBatch,
     create_shipment: CreateShipment,
 ) -> None:
     batch = await create_batch()
     shipment = await create_shipment(batch)
-    await client.patch(f"/api/batches/{batch.id}/shipments/{shipment.id}", json={"waybillNumber": "WB-1"})
 
-    response = await client.patch(f"/api/batches/{batch.id}/shipments/{shipment.id}", json={"waybillNumber": None})
+    response = await client.patch(
+        f"/api/batches/{batch.id}/shipments/{shipment.id}",
+        json={"expectedUpdatedAt": shipment.updated_at.isoformat(), "comment": "Thursday"},
+    )
 
-    assert (response.status_code, response.json()["waybillNumber"]) == (200, None)
+    assert (response.status_code, response.json()["comment"]) == (200, "Thursday")
 
 
 async def test_complete_shipment_returns_completed_shipment(
@@ -133,7 +135,10 @@ async def test_complete_shipment_returns_completed_shipment(
     await pack_units(batch.first_dev_eui)
     shipment = await create_shipment(batch, batch.first_dev_eui)
 
-    response = await client.post(f"/api/batches/{batch.id}/shipments/{shipment.id}/complete")
+    response = await client.post(
+        f"/api/batches/{batch.id}/shipments/{shipment.id}/complete",
+        json={"expectedQuantity": 1},
+    )
 
     body = response.json()
     assert (response.status_code, body["status"], body["completedAt"] is not None, body["quantity"]) == (
@@ -142,6 +147,25 @@ async def test_complete_shipment_returns_completed_shipment(
         True,
         1,
     )
+
+
+async def test_complete_shipment_names_who_shipped_it(
+    client: AsyncTestClient[Litestar],
+    create_batch: CreateBatch,
+    pack_units: PackUnits,
+    create_shipment: CreateShipment,
+    manager: m.User,
+) -> None:
+    batch = await create_batch()
+    await pack_units(batch.first_dev_eui)
+    shipment = await create_shipment(batch, batch.first_dev_eui)
+
+    response = await client.post(
+        f"/api/batches/{batch.id}/shipments/{shipment.id}/complete",
+        json={"expectedQuantity": 1},
+    )
+
+    assert response.json()["completedBy"]["id"] == str(manager.id)
 
 
 async def test_complete_shipment_writes_audit_entry_with_quantity(
@@ -155,7 +179,7 @@ async def test_complete_shipment_writes_audit_entry_with_quantity(
     await pack_units(batch.first_dev_eui)
     shipment = await create_shipment(batch, batch.first_dev_eui)
 
-    await client.post(f"/api/batches/{batch.id}/shipments/{shipment.id}/complete")
+    await client.post(f"/api/batches/{batch.id}/shipments/{shipment.id}/complete", json={"expectedQuantity": 1})
 
     entry = await session.scalar(select(m.AuditLog).where(m.AuditLog.action == "batch_shipment.completed"))
     assert entry is not None
@@ -170,9 +194,30 @@ async def test_complete_empty_shipment_is_conflict_with_code(
     batch = await create_batch()
     shipment = await create_shipment(batch)
 
-    response = await client.post(f"/api/batches/{batch.id}/shipments/{shipment.id}/complete")
+    response = await client.post(
+        f"/api/batches/{batch.id}/shipments/{shipment.id}/complete",
+        json={"expectedQuantity": 1},
+    )
 
     assert (response.status_code, response.json()["extra"]) == (409, {"code": "batch_shipment_empty"})
+
+
+async def test_complete_shipment_whose_units_changed_is_conflict_with_code(
+    client: AsyncTestClient[Litestar],
+    create_batch: CreateBatch,
+    pack_units: PackUnits,
+    create_shipment: CreateShipment,
+) -> None:
+    batch = await create_batch()
+    await pack_units(batch.first_dev_eui, batch.last_dev_eui)
+    shipment = await create_shipment(batch, batch.first_dev_eui, batch.last_dev_eui)
+
+    response = await client.post(
+        f"/api/batches/{batch.id}/shipments/{shipment.id}/complete",
+        json={"expectedQuantity": 1},
+    )
+
+    assert (response.status_code, response.json()["extra"]) == (409, {"code": "batch_shipment_quantity_changed"})
 
 
 async def test_void_shipment_returns_voided_shipment(

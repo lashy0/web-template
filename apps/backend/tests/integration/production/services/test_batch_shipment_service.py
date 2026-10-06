@@ -17,6 +17,7 @@ from app.domain.production.exceptions import (
     BatchShipmentCompletedError,
     BatchShipmentEmptyError,
     BatchShipmentKgNotPackedError,
+    BatchShipmentQuantityChangedError,
     BatchShipmentVoidedError,
     BatchShipmentVoidWindowExpiredError,
 )
@@ -47,9 +48,12 @@ async def _complete(
     session: AsyncSession,
     batch_shipment_service: BatchShipmentService,
     shipment: m.BatchShipment,
+    expected_quantity: int | None = None,
 ) -> m.BatchShipment:
     async with unit_of_work(session):
-        return await batch_shipment_service.complete_shipment(shipment.batch_id, shipment.id)
+        return await batch_shipment_service.complete_shipment(
+            shipment.batch_id, shipment.id, expected_quantity=expected_quantity, completed_by_id=None
+        )
 
 
 async def _void(
@@ -58,7 +62,9 @@ async def _void(
     shipment: m.BatchShipment,
 ) -> m.BatchShipment:
     async with unit_of_work(session):
-        return await batch_shipment_service.void_shipment(shipment.batch_id, shipment.id, "Wrong recipient")
+        return await batch_shipment_service.void_shipment(
+            shipment.batch_id, shipment.id, "Pickup postponed", voided_by_id=None
+        )
 
 
 async def test_create_shipment_numbers_shipments_in_sequence(
@@ -121,9 +127,9 @@ async def test_update_shipment_changes_open_shipment(
     shipment = await create_shipment(batch)
 
     async with unit_of_work(session):
-        updated = await batch_shipment_service.update_shipment(batch.id, shipment.id, {"recipient": "Customer"})
+        updated = await batch_shipment_service.update_shipment(batch.id, shipment.id, {"comment": "Thursday"})
 
-    assert updated.recipient == "Customer"
+    assert updated.comment == "Thursday"
 
 
 async def test_update_shipment_of_other_batch_is_not_found(
@@ -139,7 +145,7 @@ async def test_update_shipment_of_other_batch_is_not_found(
 
     with pytest.raises(NotFoundError):
         async with unit_of_work(session):
-            await batch_shipment_service.update_shipment(other.id, shipment.id, {"recipient": "Customer"})
+            await batch_shipment_service.update_shipment(other.id, shipment.id, {"comment": "Thursday"})
 
 
 async def test_update_completed_shipment_is_rejected(
@@ -193,6 +199,21 @@ async def test_complete_shipment_counts_units_as_shipped_and_still_packed(
     assert (reloaded.packed_qty, reloaded.shipped_qty) == (2, 1)
 
 
+async def test_complete_shipment_whose_units_changed_is_rejected(
+    session: AsyncSession,
+    batch_shipment_service: BatchShipmentService,
+    create_batch: CreateBatch,
+    pack_units: PackUnits,
+    create_shipment: CreateShipment,
+) -> None:
+    batch = await create_batch()
+    await pack_units(batch.first_dev_eui, batch.last_dev_eui)
+    shipment = await create_shipment(batch, batch.first_dev_eui, batch.last_dev_eui)
+
+    with pytest.raises(BatchShipmentQuantityChangedError):
+        await _complete(session, batch_shipment_service, shipment, expected_quantity=1)
+
+
 async def test_complete_empty_shipment_is_rejected(
     session: AsyncSession,
     batch_shipment_service: BatchShipmentService,
@@ -242,7 +263,12 @@ async def test_void_open_shipment_releases_its_units(
     other = await create_shipment(batch)
 
     async with unit_of_work(session):
-        _, added, _ = await batch_shipment_item_service.add_units(batch.id, other.id, [batch.first_dev_eui])
+        _, added, _ = await batch_shipment_item_service.add_units(
+            batch.id,
+            other.id,
+            [batch.first_dev_eui],
+            added_by_id=None,
+        )
 
     assert added == [batch.first_dev_eui]
 

@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 from advanced_alchemy.exceptions import NotFoundError
 from advanced_alchemy.extensions.litestar import repository, service
+from advanced_alchemy.service import schema_dump
 from sqlalchemy import func, select, update
 
 from app.db import models as m
@@ -14,9 +15,11 @@ from app.domain.production.exceptions import (
     BatchShipmentCompletedError,
     BatchShipmentEmptyError,
     BatchShipmentKgNotPackedError,
+    BatchShipmentQuantityChangedError,
     BatchShipmentVoidedError,
     BatchShipmentVoidWindowExpiredError,
 )
+from app.lib.concurrency import ensure_unchanged
 
 if TYPE_CHECKING:
     from uuid import UUID
@@ -28,7 +31,7 @@ if TYPE_CHECKING:
 SHIPMENT_VOID_WINDOW = timedelta(minutes=60)
 """How long after completion a shipment may still be voided."""
 
-_RESPONSE_ATTRIBUTES = ("created_by", "quantity")
+_RESPONSE_ATTRIBUTES = ("created_by", "completed_by", "voided_by", "quantity")
 
 
 class BatchShipmentService(service.SQLAlchemyAsyncRepositoryService[m.BatchShipment]):
@@ -70,7 +73,7 @@ class BatchShipmentService(service.SQLAlchemyAsyncRepositoryService[m.BatchShipm
     ) -> m.BatchShipment:
         batch = await lock_batch(self.repository.session, batch_id)
         shipment = await self.create(
-            {**data.to_dict(), "batch_id": batch.id, "created_by_id": created_by_id},
+            {**schema_dump(data), "batch_id": batch.id, "created_by_id": created_by_id},
             auto_commit=False,
         )
 
@@ -81,10 +84,13 @@ class BatchShipmentService(service.SQLAlchemyAsyncRepositoryService[m.BatchShipm
         batch_id: UUID,
         shipment_id: UUID,
         data: dict[str, object],
+        *,
+        expected_updated_at: datetime | None = None,
     ) -> m.BatchShipment:
         session = self.repository.session
         await lock_batch(session, batch_id)
         shipment = await lock_open_shipment(session, batch_id, shipment_id)
+        ensure_unchanged(shipment, expected_updated_at)
 
         for field, value in data.items():
             setattr(shipment, field, value)
@@ -93,8 +99,20 @@ class BatchShipmentService(service.SQLAlchemyAsyncRepositoryService[m.BatchShipm
 
         return await load_response_attributes(session, shipment)
 
-    async def complete_shipment(self, batch_id: UUID, shipment_id: UUID) -> m.BatchShipment:
-        """Ship the units: each goes from ``packed`` to ``shipped``."""
+    async def complete_shipment(
+        self,
+        batch_id: UUID,
+        shipment_id: UUID,
+        *,
+        completed_by_id: UUID | None,
+        expected_quantity: int | None = None,
+    ) -> m.BatchShipment:
+        """Ship the units: each goes from ``packed`` to ``shipped``.
+
+        ``expected_quantity`` is the count the user saw; another count means
+        someone changed the units meanwhile, and nothing is shipped. ``None``
+        skips the check.
+        """
         session = self.repository.session
         await lock_batch(session, batch_id)
         shipment = await lock_open_shipment(session, batch_id, shipment_id)
@@ -103,11 +121,15 @@ class BatchShipmentService(service.SQLAlchemyAsyncRepositoryService[m.BatchShipm
         if quantity == 0:
             raise BatchShipmentEmptyError
 
+        if expected_quantity is not None and quantity != expected_quantity:
+            raise BatchShipmentQuantityChangedError
+
         if await _move_units(session, shipment.id, KgState.PACKED, KgState.SHIPPED) != quantity:
             raise BatchShipmentKgNotPackedError
 
         shipment.status = BatchShipmentStatus.COMPLETED
         shipment.completed_at = datetime.now(UTC)
+        shipment.completed_by_id = completed_by_id
         await session.flush()
 
         return await load_response_attributes(session, shipment)
@@ -117,6 +139,8 @@ class BatchShipmentService(service.SQLAlchemyAsyncRepositoryService[m.BatchShipm
         batch_id: UUID,
         shipment_id: UUID,
         reason: str,
+        *,
+        voided_by_id: UUID | None,
     ) -> m.BatchShipment:
         """Void the shipment and release its units; shipped units return to ``packed``."""
         session = self.repository.session
@@ -141,6 +165,7 @@ class BatchShipmentService(service.SQLAlchemyAsyncRepositoryService[m.BatchShipm
         )
         shipment.status = BatchShipmentStatus.VOIDED
         shipment.voided_at = now
+        shipment.voided_by_id = voided_by_id
         shipment.void_reason = reason
         await session.flush()
 

@@ -48,6 +48,8 @@ class BatchShipmentItemService(service.SQLAlchemyAsyncRepositoryService[m.BatchS
         batch_id: UUID,
         shipment_id: UUID,
         codes: Sequence[str],
+        *,
+        added_by_id: UUID | None,
     ) -> tuple[m.BatchShipment, list[str], list[BatchShipmentUnitRejected]]:
         """Add the units named by DevEUI or short ID; return the shipment, the added DevEUIs and the rejections.
 
@@ -81,18 +83,27 @@ class BatchShipmentItemService(service.SQLAlchemyAsyncRepositoryService[m.BatchS
             rejection = _find_rejection(unit, shipment.id, shipment_of)
 
             if rejection is not None:
-                rejected.append(BatchShipmentUnitRejected(code=code, reason=rejection))
+                other_number = (
+                    shipment_of[unit.dev_eui][1] if rejection is BatchShipmentUnitRejection.IN_OTHER_SHIPMENT else None
+                )
+                rejected.append(BatchShipmentUnitRejected(code=code, reason=rejection, shipment_number=other_number))
                 continue
 
-            session.add(m.BatchShipmentItem(shipment_id=shipment.id, dev_eui=unit.dev_eui))
-            shipment_of[unit.dev_eui] = shipment.id
+            session.add(m.BatchShipmentItem(shipment_id=shipment.id, dev_eui=unit.dev_eui, added_by_id=added_by_id))
+            shipment_of[unit.dev_eui] = (shipment.id, shipment.number)
             added.append(unit.dev_eui)
 
         await session.flush()
 
         return await load_response_attributes(session, shipment), added, rejected
 
-    async def add_packed_units(self, batch_id: UUID, shipment_id: UUID) -> m.BatchShipment:
+    async def add_packed_units(
+        self,
+        batch_id: UUID,
+        shipment_id: UUID,
+        *,
+        added_by_id: UUID | None,
+    ) -> m.BatchShipment:
         """Add every packed unit of the batch that is in no other shipment, in one statement."""
         session = self.repository.session
         await lock_batch(session, batch_id)
@@ -106,10 +117,11 @@ class BatchShipmentItemService(service.SQLAlchemyAsyncRepositoryService[m.BatchS
         await session.execute(
             insert(m.BatchShipmentItem)
             .from_select(
-                ["shipment_id", "dev_eui", "created_at", "updated_at"],
+                ["shipment_id", "dev_eui", "added_by_id", "created_at", "updated_at"],
                 select(
                     literal(shipment.id, m.BatchShipmentItem.shipment_id.type),
                     m.KgUnit.dev_eui,
+                    literal(added_by_id, m.BatchShipmentItem.added_by_id.type),
                     now,
                     now,
                 ).where(
@@ -164,30 +176,33 @@ class BatchShipmentItemService(service.SQLAlchemyAsyncRepositoryService[m.BatchS
 
         return {value for row in rows.tuples() for value in row}
 
-    async def _find_open_items(self, dev_euis: set[str]) -> dict[str, UUID]:
-        """Return the shipment that is not voided of each unit that has one."""
+    async def _find_open_items(self, dev_euis: set[str]) -> dict[str, tuple[UUID, int]]:
+        """Return the shipment that is not voided, its ID and number, of each unit that has one."""
         rows = await self.repository.session.execute(
-            select(m.BatchShipmentItem.dev_eui, m.BatchShipmentItem.shipment_id).where(
+            select(m.BatchShipmentItem.dev_eui, m.BatchShipment.id, m.BatchShipment.number)
+            .join(m.BatchShipment, m.BatchShipment.id == m.BatchShipmentItem.shipment_id)
+            .where(
                 m.BatchShipmentItem.dev_eui.in_(dev_euis),
                 m.BatchShipmentItem.voided_at.is_(None),
             )
         )
 
-        return dict(rows.tuples().all())
+        return {dev_eui: (shipment_id, number) for dev_eui, shipment_id, number in rows.tuples()}
 
 
 def _find_rejection(
     unit: m.KgUnit,
     shipment_id: UUID,
-    shipment_of: Mapping[str, UUID],
+    shipment_of: Mapping[str, tuple[UUID, int]],
 ) -> BatchShipmentUnitRejection | None:
-    other = shipment_of.get(unit.dev_eui)
+    held_by = shipment_of.get(unit.dev_eui)
 
-    if other == shipment_id:
-        return BatchShipmentUnitRejection.ALREADY_ADDED
-
-    if other is not None:
-        return BatchShipmentUnitRejection.IN_OTHER_SHIPMENT
+    if held_by is not None:
+        return (
+            BatchShipmentUnitRejection.ALREADY_ADDED
+            if held_by[0] == shipment_id
+            else BatchShipmentUnitRejection.IN_OTHER_SHIPMENT
+        )
 
     if unit.state is not KgState.PACKED:
         return BatchShipmentUnitRejection.NOT_PACKED

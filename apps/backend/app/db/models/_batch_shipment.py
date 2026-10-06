@@ -13,8 +13,8 @@ from sqlalchemy import (
     Identity,
     Index,
     Integer,
-    String,
     Text,
+    and_,
     func,
     select,
     text,
@@ -24,16 +24,20 @@ from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 from app.db.enums import BatchShipmentStatus, enum_values
 from app.db.models._kg_unit import KgUnit
 from app.db.models._user import User
+from app.lib.audit import AuditTarget
 
 
-class BatchShipment(UUIDv7AuditBase):
-    """A document that ships packed KG units of one batch to a recipient.
+class BatchShipment(UUIDv7AuditBase, AuditTarget):
+    """A document that ships packed KG units of one batch.
 
     An open shipment collects units; completing it ships them. A voided
     shipment stays for the record and releases its units.
     """
 
     __tablename__ = "batch_shipments"
+
+    __audit_type__ = "batch_shipment"
+    __audit_label__ = "number"
 
     batch_id: Mapped[UUID] = mapped_column(
         ForeignKey("batches.id", ondelete="RESTRICT"),
@@ -61,16 +65,6 @@ class BatchShipment(UUIDv7AuditBase):
         default=BatchShipmentStatus.OPEN,
     )
 
-    recipient: Mapped[str | None] = mapped_column(
-        String(256),
-        nullable=True,
-    )
-
-    waybill_number: Mapped[str | None] = mapped_column(
-        String(64),
-        nullable=True,
-    )
-
     comment: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
@@ -86,8 +80,20 @@ class BatchShipment(UUIDv7AuditBase):
         nullable=True,
     )
 
+    completed_by_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("user_account.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
     voided_at: Mapped[datetime | None] = mapped_column(
         nullable=True,
+    )
+
+    voided_by_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("user_account.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
     )
 
     void_reason: Mapped[str | None] = mapped_column(
@@ -95,7 +101,9 @@ class BatchShipment(UUIDv7AuditBase):
         nullable=True,
     )
 
-    created_by: Mapped[User | None] = relationship(lazy="selectin")
+    created_by: Mapped[User | None] = relationship(lazy="selectin", foreign_keys=[created_by_id])
+    completed_by: Mapped[User | None] = relationship(lazy="selectin", foreign_keys=[completed_by_id])
+    voided_by: Mapped[User | None] = relationship(lazy="selectin", foreign_keys=[voided_by_id])
 
     if TYPE_CHECKING:
         quantity: int
@@ -137,7 +145,15 @@ class BatchShipmentItem(DefaultBase, AuditColumns):
         nullable=True,
     )
 
+    added_by_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("user_account.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    """Who put the unit into the shipment."""
+
     kg_unit: Mapped[KgUnit] = relationship(lazy="selectin")
+    added_by: Mapped[User | None] = relationship(lazy="selectin")
 
     __table_args__ = (
         Index(
@@ -163,4 +179,22 @@ BatchShipment.quantity = column_property(  # type: ignore[assignment]
     .correlate_except(BatchShipmentItem)
     .scalar_subquery(),
     expire_on_flush=False,
+)
+
+# Assigned here because ``KgUnit`` cannot import the shipments. A shipped unit
+# is in exactly one completed shipment whose item is not voided.
+KgUnit.shipment = relationship(  # type: ignore[assignment]
+    BatchShipment,
+    secondary=BatchShipmentItem.__table__,
+    primaryjoin=lambda: and_(
+        KgUnit.dev_eui == BatchShipmentItem.dev_eui,
+        BatchShipmentItem.voided_at.is_(None),
+    ),
+    secondaryjoin=lambda: and_(
+        BatchShipmentItem.shipment_id == BatchShipment.id,
+        BatchShipment.status == BatchShipmentStatus.COMPLETED,
+    ),
+    uselist=False,
+    viewonly=True,
+    lazy="selectin",
 )

@@ -35,7 +35,7 @@ async def _add(
     *codes: str,
 ) -> tuple[m.BatchShipment, Sequence[str], Sequence[BatchShipmentUnitRejected]]:
     async with unit_of_work(session):
-        return await batch_shipment_item_service.add_units(shipment.batch_id, shipment.id, codes)
+        return await batch_shipment_item_service.add_units(shipment.batch_id, shipment.id, codes, added_by_id=None)
 
 
 async def test_add_units_accepts_short_id_in_any_case(
@@ -118,7 +118,7 @@ async def test_add_unit_not_packed_is_rejected(
     assert [item.reason for item in rejected] == [BatchShipmentUnitRejection.NOT_PACKED]
 
 
-async def test_add_unit_in_other_shipment_is_rejected(
+async def test_add_unit_in_other_shipment_is_rejected_with_its_number(
     session: AsyncSession,
     batch_shipment_item_service: BatchShipmentItemService,
     create_batch: CreateBatch,
@@ -127,12 +127,18 @@ async def test_add_unit_in_other_shipment_is_rejected(
 ) -> None:
     batch = await create_batch()
     await pack_units(batch.first_dev_eui)
-    await create_shipment(batch, batch.first_dev_eui)
+    holder = await create_shipment(batch, batch.first_dev_eui)
     shipment = await create_shipment(batch)
 
     _, _, rejected = await _add(session, batch_shipment_item_service, shipment, batch.first_dev_eui)
 
-    assert [item.reason for item in rejected] == [BatchShipmentUnitRejection.IN_OTHER_SHIPMENT]
+    assert rejected == [
+        BatchShipmentUnitRejected(
+            code=batch.first_dev_eui,
+            reason=BatchShipmentUnitRejection.IN_OTHER_SHIPMENT,
+            shipment_number=holder.number,
+        ),
+    ]
 
 
 async def test_add_unit_named_twice_is_added_once(
@@ -168,7 +174,7 @@ async def test_add_units_to_voided_shipment_is_rejected(
     shipment = await create_shipment(batch)
 
     async with unit_of_work(session):
-        await batch_shipment_service.void_shipment(batch.id, shipment.id, "Cancelled")
+        await batch_shipment_service.void_shipment(batch.id, shipment.id, "Cancelled", voided_by_id=None)
 
     with pytest.raises(BatchShipmentVoidedError):
         await _add(session, batch_shipment_item_service, shipment, batch.first_dev_eui)
@@ -188,7 +194,7 @@ async def test_add_packed_units_adds_those_in_no_other_shipment(
     shipment = await create_shipment(batch)
 
     async with unit_of_work(session):
-        updated = await batch_shipment_item_service.add_packed_units(batch.id, shipment.id)
+        updated = await batch_shipment_item_service.add_packed_units(batch.id, shipment.id, added_by_id=None)
 
     assert updated.quantity == 2
 

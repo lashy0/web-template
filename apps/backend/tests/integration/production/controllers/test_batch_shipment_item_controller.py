@@ -49,7 +49,7 @@ async def test_add_units_reports_added_and_rejected(
     assert (response.status_code, body["added"], body["rejected"], body["shipment"]["quantity"]) == (
         200,
         [batch.first_dev_eui],
-        [{"code": batch.last_dev_eui, "reason": "batch_shipment_kg_not_packed"}],
+        [{"code": batch.last_dev_eui, "reason": "batch_shipment_kg_not_packed", "shipmentNumber": None}],
         1,
     )
 
@@ -101,6 +101,26 @@ async def test_list_items_returns_unit(
 
     item = response.json()["items"][0]
     assert (item["devEui"], item["shortId"]) == (batch.first_dev_eui, f"{batch.kg_prefix.short_code}-000001")
+
+
+async def test_list_items_names_who_added_the_unit(
+    client: AsyncTestClient[Litestar],
+    create_batch: CreateBatch,
+    pack_units: PackUnits,
+    create_shipment: CreateShipment,
+    manager: m.User,
+) -> None:
+    batch = await create_batch()
+    await pack_units(batch.first_dev_eui)
+    shipment = await create_shipment(batch)
+    await client.post(
+        f"/api/batches/{batch.id}/shipments/{shipment.id}/items",
+        json={"codes": [batch.first_dev_eui]},
+    )
+
+    response = await client.get(f"/api/batches/{batch.id}/shipments/{shipment.id}/items")
+
+    assert response.json()["items"][0]["addedBy"]["id"] == str(manager.id)
 
 
 async def test_list_items_of_unknown_shipment_is_not_found(

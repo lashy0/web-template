@@ -24,6 +24,13 @@ class BatchShipmentEmptyError(ApplicationConflictError):
     detail = "Shipment has no KG units."
 
 
+class BatchShipmentQuantityChangedError(ApplicationConflictError):
+    """The shipment holds another number of KG units than the user saw (HTTP 409)."""
+
+    code = "batch_shipment_quantity_changed"
+    detail = "The KG units of the shipment have changed. Check them and complete it again."
+
+
 class BatchShipmentKgNotPackedError(ApplicationConflictError):
     """A KG unit of the shipment is no longer packed, so the shipment cannot be completed (HTTP 409)."""
 
