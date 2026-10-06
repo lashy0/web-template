@@ -24,8 +24,16 @@ class PakDeviceInUseError(ApplicationConflictError):
     detail = "PAK device has verification history; archive it instead."
 
 
+class PakVerificationRunningError(ApplicationConflictError):
+    """The PAK is verifying KG units, so its key may only be replaced immediately (HTTP 409)."""
+
+    code = "pak_verification_running"
+    detail = "PAK device is running a verification; replace its key immediately or wait for the end."
+
+
 __all__ = (
     "PakDeviceArchivedError",
     "PakDeviceCodeTakenError",
     "PakDeviceInUseError",
+    "PakVerificationRunningError",
 )

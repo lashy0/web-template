@@ -14,12 +14,15 @@ from sqlalchemy.orm.attributes import set_committed_value
 from uuid_utils.compat import uuid7
 
 from app.db import models as m
+from app.db.enums import VerificationSessionStatus
 from app.domain.pak.crypto import PakAccessKeyCipher
 from app.domain.pak.exceptions import (
     PakDeviceArchivedError,
     PakDeviceCodeTakenError,
     PakDeviceInUseError,
+    PakVerificationRunningError,
 )
+from app.lib.concurrency import ensure_unchanged
 from app.lib.exceptions import AuthenticationError, AuthorizationError
 from app.lib.hydra import HydraClient
 from app.lib.uow import UnitOfWork
@@ -114,8 +117,15 @@ class PakDeviceService(service.SQLAlchemyAsyncRepositoryService[m.PakDevice]):
 
         return pak, credentials.client_secret
 
-    async def update_pak(self, pak_id: UUID, data: dict[str, object]) -> m.PakDevice:
-        pak = await self._require(pak_id)
+    async def update_pak(
+        self,
+        pak_id: UUID,
+        data: dict[str, object],
+        *,
+        expected_updated_at: datetime | None = None,
+    ) -> m.PakDevice:
+        pak = await self._require(pak_id, for_update=True)
+        ensure_unchanged(pak, expected_updated_at)
 
         if pak.archived_at is not None:
             raise PakDeviceArchivedError
@@ -197,11 +207,29 @@ class PakDeviceService(service.SQLAlchemyAsyncRepositoryService[m.PakDevice]):
         hydra: HydraClient,
         cipher: PakAccessKeyCipher,
         uow: UnitOfWork,
+        revoke_tokens: bool = True,
     ) -> tuple[m.PakDevice, str]:
+        """Replace the PAK's secret and return the new one.
+
+        The previous secret stops working at once. With ``revoke_tokens`` the
+        PAK's access tokens are revoked too; without it they stay valid until
+        they expire, which is allowed only while the PAK verifies nothing, so
+        no running session outlives the key it started with.
+        """
         pak = await self._require(pak_id, for_update=True)
 
         if pak.archived_at is not None:
             raise PakDeviceArchivedError
+
+        if not revoke_tokens and await self.repository.session.scalar(
+            select(
+                exists().where(
+                    m.VerificationSession.pak_id == pak.id,
+                    m.VerificationSession.status == VerificationSessionStatus.RUNNING,
+                )
+            )
+        ):
+            raise PakVerificationRunningError
 
         previous_secret = cipher.decrypt(pak.encrypted_access_key)
         credentials = await hydra.rotate_client_credentials(pak.oauth_client_id)
@@ -215,10 +243,12 @@ class PakDeviceService(service.SQLAlchemyAsyncRepositoryService[m.PakDevice]):
 
         pak.encrypted_access_key = cipher.encrypt(credentials.client_secret)
         await self.repository.session.flush()
-        uow.after_commit(
-            "pak.rotate_access_key",
-            partial(hydra.revoke_client_tokens, pak.oauth_client_id),
-        )
+
+        if revoke_tokens:
+            uow.after_commit(
+                "pak.rotate_access_key",
+                partial(hydra.revoke_client_tokens, pak.oauth_client_id),
+            )
 
         return pak, credentials.client_secret
 

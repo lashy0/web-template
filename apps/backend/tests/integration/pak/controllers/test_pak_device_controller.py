@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from litestar.testing import AsyncTestClient
 
     from app.lib.hydra import HydraClient
-    from tests.integration.conftest import SignIn
+    from tests.integration.conftest import OpenEventStream, SignIn
     from tests.integration.pak.conftest import CreatePak
 
 pytestmark = [
@@ -86,7 +86,9 @@ async def test_update_pak_device_changes_code(
 ) -> None:
     pak, _ = await create_pak("pak-update")
 
-    response = await client.patch(f"/api/paks/{pak.id}", json={"code": "pak-renamed"})
+    response = await client.patch(
+        f"/api/paks/{pak.id}", json={"expectedUpdatedAt": pak.updated_at.isoformat(), "code": "pak-renamed"}
+    )
 
     assert (response.status_code, response.json()["code"]) == (200, "pak-renamed")
 
@@ -102,7 +104,10 @@ async def test_update_pak_device_audits_old_and_new_values(
 ) -> None:
     pak, _ = await create_pak("pak-audit")
 
-    await client.patch(f"/api/paks/{pak.id}", json={"code": "pak-audited", "kind": "engineering"})
+    await client.patch(
+        f"/api/paks/{pak.id}",
+        json={"expectedUpdatedAt": pak.updated_at.isoformat(), "code": "pak-audited", "kind": "engineering"},
+    )
 
     assert ("pak.updated", {"changes": {"code": {"from": "pak-audit", "to": "pak-audited"}}}) in (
         await _pak_audit_actions(client)
@@ -115,7 +120,9 @@ async def test_update_pak_device_without_changes_writes_no_audit_entry(
 ) -> None:
     pak, _ = await create_pak("pak-same")
 
-    await client.patch(f"/api/paks/{pak.id}", json={"code": "pak-same"})
+    await client.patch(
+        f"/api/paks/{pak.id}", json={"expectedUpdatedAt": pak.updated_at.isoformat(), "code": "pak-same"}
+    )
 
     assert "pak.updated" not in [action for action, _ in await _pak_audit_actions(client)]
 
@@ -183,10 +190,22 @@ async def test_rotate_pak_access_key_returns_new_key(
 ) -> None:
     pak, key = await create_pak("pak-rotate")
 
-    response = await client.post(f"/api/paks/{pak.id}/access-key/rotate")
+    response = await client.post(f"/api/paks/{pak.id}/access-key/rotate", json={"mode": "planned"})
 
     assert response.status_code == 200
     assert response.json()["accessKey"] not in {"", key}
+    assert ("pak.access_key_rotated", {"mode": "planned"}) in await _pak_audit_actions(client)
+
+
+async def test_rotate_pak_access_key_requires_a_mode(
+    client: AsyncTestClient[Litestar],
+    create_pak: CreatePak,
+) -> None:
+    pak, _ = await create_pak("pak-rotate-mode")
+
+    response = await client.post(f"/api/paks/{pak.id}/access-key/rotate", json={})
+
+    assert response.status_code == 400
 
 
 async def test_delete_pak_device_removes_hydra_client(
@@ -202,3 +221,17 @@ async def test_delete_pak_device_removes_hydra_client(
 
     with pytest.raises(HydraClientNotFoundError):
         await hydra_client.get_client(pak.oauth_client_id)
+
+
+async def test_deactivate_pak_device_announces_the_pak_change(
+    client: AsyncTestClient[Litestar],
+    create_pak: CreatePak,
+    open_event_stream: OpenEventStream,
+) -> None:
+    pak, _ = await create_pak("pak-announce")
+
+    async with open_event_stream() as events:
+        await client.post(f"/api/paks/{pak.id}/deactivate")
+        event = await events.next_event()
+
+    assert event == ("pak.changed", {"pakId": str(pak.id)})

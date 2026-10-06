@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
+import httpx
 import pytest
 from sqlalchemy import insert, select
 
@@ -15,6 +16,7 @@ from app.domain.pak.exceptions import (
     PakDeviceArchivedError,
     PakDeviceCodeTakenError,
     PakDeviceInUseError,
+    PakVerificationRunningError,
 )
 from app.domain.pak.services import PakDeviceService
 from app.domain.production.schemas import BatchCreate
@@ -28,6 +30,7 @@ from app.lib.uow import unit_of_work
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
+    from tests.integration.conftest import MulticastGroups
     from tests.integration.pak.conftest import CreatePak, IssueAccessToken
 
 pytestmark = [
@@ -195,6 +198,56 @@ async def test_rotate_access_key_revokes_previous_token(
     assert (await pak_service.authorize_machine_access_token(new_token, hydra=hydra_client)).id == pak.id
 
 
+async def test_planned_rotation_keeps_previous_token_but_not_previous_key(
+    session: AsyncSession,
+    hydra_client: HydraClient,
+    pak_service: PakDeviceService,
+    pak_cipher: PakAccessKeyCipher,
+    create_pak: CreatePak,
+    issue_access_token: IssueAccessToken,
+) -> None:
+    pak, key = await create_pak("pak-planned")
+    old_token = await issue_access_token(pak.oauth_client_id, key)
+
+    async with unit_of_work(session) as uow:
+        await pak_service.rotate_access_key(
+            pak.id,
+            hydra=hydra_client,
+            cipher=pak_cipher,
+            uow=uow,
+            revoke_tokens=False,
+        )
+
+    assert (await hydra_client.introspect_access_token(old_token)).active is True
+    with pytest.raises(httpx.HTTPStatusError):
+        await issue_access_token(pak.oauth_client_id, key)
+
+
+async def test_planned_rotation_during_verification_is_rejected(
+    session: AsyncSession,
+    hydra_client: HydraClient,
+    pak_service: PakDeviceService,
+    pak_cipher: PakAccessKeyCipher,
+    create_pak: CreatePak,
+    multicast_groups: MulticastGroups,
+) -> None:
+    pak, key = await create_pak("pak-busy")
+    pak_id = pak.id
+    await _start_verification(session, pak, multicast_groups)
+
+    with pytest.raises(PakVerificationRunningError):
+        async with unit_of_work(session) as uow:
+            await pak_service.rotate_access_key(
+                pak_id,
+                hydra=hydra_client,
+                cipher=pak_cipher,
+                uow=uow,
+                revoke_tokens=False,
+            )
+
+    assert await pak_service.get_access_key(pak_id, cipher=pak_cipher) == key
+
+
 async def test_archived_pak_is_rejected(
     session: AsyncSession,
     hydra_client: HydraClient,
@@ -263,8 +316,18 @@ async def test_delete_pak_with_verification_history_is_rejected(
     hydra_client: HydraClient,
     pak_service: PakDeviceService,
     create_pak: CreatePak,
+    multicast_groups: MulticastGroups,
 ) -> None:
     pak, _ = await create_pak("pak-verified")
+    await _start_verification(session, pak, multicast_groups)
+
+    with pytest.raises(PakDeviceInUseError):
+        async with unit_of_work(session) as uow:
+            await pak_service.delete_pak(pak.id, hydra=hydra_client, uow=uow)
+
+
+async def _start_verification(session: AsyncSession, pak: m.PakDevice, multicast_groups: MulticastGroups) -> None:
+    """Commit a batch of one KG unit and a running session of ``pak`` on it."""
     now = datetime.now(UTC)
 
     async with (
@@ -281,6 +344,8 @@ async def test_delete_pak_with_verification_history_is_rejected(
                 day_plan_qty=1,
                 activation_type=ActivationType.OTAA,
                 lorawan_version=LoRaWanVersion.V1_0,
+                multicast_group_0_id=multicast_groups[0].id,
+                multicast_group_1_id=multicast_groups[1].id,
             ),
             created_by_id=None,
         )
@@ -298,7 +363,3 @@ async def test_delete_pak_with_verification_history_is_rejected(
                 last_activity_at=now,
             )
         )
-
-    with pytest.raises(PakDeviceInUseError):
-        async with unit_of_work(session) as uow:
-            await pak_service.delete_pak(pak.id, hydra=hydra_client, uow=uow)

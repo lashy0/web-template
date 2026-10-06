@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Annotated, Any
 from uuid import UUID
 
 from advanced_alchemy.extensions.litestar.providers import FieldNameType
+from advanced_alchemy.service import schema_dump
 from litestar import Controller, Request, delete, get, patch, post
 from litestar.di import NamedDependency, Provide
 from litestar.params import Parameter, SkipValidation
@@ -17,9 +18,12 @@ from app.domain.admin.deps import provide_audit_log_service
 from app.domain.admin.services import AuditLogService
 from app.domain.pak.crypto import PakAccessKeyCipher
 from app.domain.pak.deps import provide_pak_access_key_cipher
+from app.domain.pak.events import PakChanged
 from app.domain.pak.permissions import PakPermission
 from app.domain.pak.schemas import (
     PakAccessKey,
+    PakAccessKeyRotation,
+    PakAccessKeyRotationMode,
     PakDevice,
     PakDeviceCreate,
     PakDeviceProvisioned,
@@ -28,10 +32,12 @@ from app.domain.pak.schemas import (
 from app.domain.pak.services import PakDeviceService
 from app.lib.audit import change_details, same_fields, snapshot
 from app.lib.authorization import requires_permission
+from app.lib.concurrency import update_changes
 from app.lib.deps import create_service_dependencies
 from app.lib.filters import create_active_filter_provider, provide_archived_filter
 from app.lib.hydra import HydraClient
 from app.lib.openapi import error_responses
+from app.lib.realtime import Realtime, announce_after_commit
 from app.lib.uow import UnitOfWork
 
 if TYPE_CHECKING:
@@ -74,6 +80,8 @@ class PakDeviceController(Controller):
     async def _log_pak_action(
         request: Request[m.User, Any, Any],
         audit_service: AuditLogService,
+        uow: UnitOfWork,
+        realtime: Realtime,
         *,
         action: str,
         target: m.PakDevice,
@@ -83,12 +91,12 @@ class PakDeviceController(Controller):
             action=action,
             actor_id=request.user.id,
             actor_login=request.user.identity_login,
-            target_type="pak",
-            target_id=str(target.id),
-            target_label=target.code,
+            actor_name=request.user.name,
+            target=target,
             details=details,
             request=request,
         )
+        announce_after_commit(uow, realtime, PakChanged(pak_id=target.id))
 
     @get(
         operation_id="ListPakDevices",
@@ -143,10 +151,11 @@ class PakDeviceController(Controller):
         pak_cipher: NamedDependency[PakAccessKeyCipher],
         audit_service: NamedDependency[AuditLogService],
         uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         data: PakDeviceCreate,
     ) -> PakDeviceProvisioned:
         db_obj, access_key = await pak_devices_service.create_pak(
-            data.to_dict(),
+            schema_dump(data),
             hydra=hydra,
             cipher=pak_cipher,
             uow=uow,
@@ -154,6 +163,8 @@ class PakDeviceController(Controller):
         await self._log_pak_action(
             request,
             audit_service,
+            uow,
+            realtime,
             action="pak.created",
             target=db_obj,
             details={
@@ -182,15 +193,23 @@ class PakDeviceController(Controller):
         data: PakDeviceUpdate,
         pak_devices_service: NamedDependency[PakDeviceService],
         audit_service: NamedDependency[AuditLogService],
-        uow: NamedDependency[UnitOfWork],  # noqa: ARG002 - requested so the change commits
+        uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         pak_id: PakId,
     ) -> PakDevice:
         before = snapshot(await pak_devices_service.get(pak_id), _AUDIT_FIELDS)
-        db_obj = await pak_devices_service.update_pak(pak_id, data.to_dict())
+        db_obj = await pak_devices_service.update_pak(
+            pak_id,
+            update_changes(data),
+            expected_updated_at=data.expected_updated_at,
+        )
+
         if details := change_details(before, snapshot(db_obj, _AUDIT_FIELDS)):
             await self._log_pak_action(
                 request,
                 audit_service,
+                uow,
+                realtime,
                 action="pak.updated",
                 target=db_obj,
                 details=details,
@@ -215,6 +234,7 @@ class PakDeviceController(Controller):
         hydra: NamedDependency[HydraClient],
         audit_service: NamedDependency[AuditLogService],
         uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         pak_id: PakId,
     ) -> PakDevice:
         return await self._set_active(
@@ -223,6 +243,7 @@ class PakDeviceController(Controller):
             hydra,
             audit_service,
             uow,
+            realtime,
             pak_id,
             is_active=True,
         )
@@ -241,6 +262,7 @@ class PakDeviceController(Controller):
         hydra: NamedDependency[HydraClient],
         audit_service: NamedDependency[AuditLogService],
         uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         pak_id: PakId,
     ) -> PakDevice:
         return await self._set_active(
@@ -249,6 +271,7 @@ class PakDeviceController(Controller):
             hydra,
             audit_service,
             uow,
+            realtime,
             pak_id,
             is_active=False,
         )
@@ -260,6 +283,7 @@ class PakDeviceController(Controller):
         hydra: HydraClient,
         audit_service: AuditLogService,
         uow: UnitOfWork,
+        realtime: Realtime,
         pak_id: UUID,
         *,
         is_active: bool,
@@ -276,6 +300,8 @@ class PakDeviceController(Controller):
             await self._log_pak_action(
                 request,
                 audit_service,
+                uow,
+                realtime,
                 action="pak.activated" if is_active else "pak.deactivated",
                 target=db_obj,
             )
@@ -299,6 +325,7 @@ class PakDeviceController(Controller):
         hydra: NamedDependency[HydraClient],
         audit_service: NamedDependency[AuditLogService],
         uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         pak_id: PakId,
     ) -> PakDevice:
         return await self._set_archived(
@@ -307,6 +334,7 @@ class PakDeviceController(Controller):
             hydra,
             audit_service,
             uow,
+            realtime,
             pak_id,
             archived=True,
         )
@@ -325,6 +353,7 @@ class PakDeviceController(Controller):
         hydra: NamedDependency[HydraClient],
         audit_service: NamedDependency[AuditLogService],
         uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         pak_id: PakId,
     ) -> PakDevice:
         return await self._set_archived(
@@ -333,6 +362,7 @@ class PakDeviceController(Controller):
             hydra,
             audit_service,
             uow,
+            realtime,
             pak_id,
             archived=False,
         )
@@ -344,6 +374,7 @@ class PakDeviceController(Controller):
         hydra: HydraClient,
         audit_service: AuditLogService,
         uow: UnitOfWork,
+        realtime: Realtime,
         pak_id: UUID,
         *,
         archived: bool,
@@ -360,6 +391,8 @@ class PakDeviceController(Controller):
             await self._log_pak_action(
                 request,
                 audit_service,
+                uow,
+                realtime,
                 action="pak.archived" if archived else "pak.restored",
                 target=db_obj,
             )
@@ -398,11 +431,13 @@ class PakDeviceController(Controller):
     async def rotate_pak_access_key(
         self,
         request: Request[m.User, Any, Any],
+        data: PakAccessKeyRotation,
         pak_devices_service: NamedDependency[PakDeviceService],
         hydra: NamedDependency[HydraClient],
         pak_cipher: NamedDependency[PakAccessKeyCipher],
         audit_service: NamedDependency[AuditLogService],
         uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         pak_id: PakId,
     ) -> PakAccessKey:
         target, access_key = await pak_devices_service.rotate_access_key(
@@ -410,12 +445,16 @@ class PakDeviceController(Controller):
             hydra=hydra,
             cipher=pak_cipher,
             uow=uow,
+            revoke_tokens=data.mode is PakAccessKeyRotationMode.IMMEDIATE,
         )
         await self._log_pak_action(
             request,
             audit_service,
+            uow,
+            realtime,
             action="pak.access_key_rotated",
             target=target,
+            details={"mode": data.mode.value},
         )
 
         return PakAccessKey(access_key=access_key)
@@ -434,6 +473,7 @@ class PakDeviceController(Controller):
         hydra: NamedDependency[HydraClient],
         audit_service: NamedDependency[AuditLogService],
         uow: NamedDependency[UnitOfWork],
+        realtime: NamedDependency[Realtime],
         pak_id: PakId,
     ) -> None:
         target = await pak_devices_service.delete_pak(
@@ -444,6 +484,8 @@ class PakDeviceController(Controller):
         await self._log_pak_action(
             request,
             audit_service,
+            uow,
+            realtime,
             action="pak.deleted",
             target=target,
         )

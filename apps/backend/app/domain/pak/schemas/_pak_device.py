@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from datetime import datetime
+from enum import StrEnum
 from typing import Annotated
 from uuid import UUID
 
 import msgspec
 
 from app.db.enums import PakDeviceKind
+from app.lib.concurrency import VersionedUpdate
 from app.lib.schema import CamelizedBaseStruct
 
 CODE_MAX_LENGTH = 128
@@ -29,13 +31,20 @@ class PakDevice(CamelizedBaseStruct):
     updated_at: datetime
 
 
+class MachinePak(CamelizedBaseStruct):
+    """The calling PAK as it shows itself."""
+
+    code: str
+    kind: PakDeviceKind
+
+
 class PakDeviceCreate(CamelizedBaseStruct):
     code: PakCode
     kind: PakDeviceKind
     is_active: bool = True
 
 
-class PakDeviceUpdate(CamelizedBaseStruct, omit_defaults=True):
+class PakDeviceUpdate(VersionedUpdate, omit_defaults=True):
     """Change a device's attributes; activity and archiving have their own endpoints."""
 
     code: PakCode | msgspec.UnsetType = msgspec.UNSET
@@ -54,6 +63,19 @@ class PakDeviceUpdate(CamelizedBaseStruct, omit_defaults=True):
 
 class PakAccessKey(CamelizedBaseStruct):
     access_key: str
+
+
+class PakAccessKeyRotationMode(StrEnum):
+    """How a key replacement treats the tokens the PAK already holds."""
+
+    PLANNED = "planned"
+    """The tokens stay valid until they expire, leaving time to set the new key on the PAK."""
+    IMMEDIATE = "immediate"
+    """The tokens are revoked at once, for a key that may have leaked."""
+
+
+class PakAccessKeyRotation(CamelizedBaseStruct):
+    mode: PakAccessKeyRotationMode
 
 
 class PakDeviceProvisioned(CamelizedBaseStruct):
