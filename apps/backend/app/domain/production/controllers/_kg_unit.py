@@ -7,22 +7,15 @@ from typing import TYPE_CHECKING, Annotated
 from uuid import UUID
 
 from advanced_alchemy.extensions.litestar.providers import FieldNameType
-from advanced_alchemy.filters import (
-    BeforeAfter,
-    CollectionFilter,
-    ExistsFilter,
-    FilterGroup,
-    FilterTypes,
-    StatementFilter,
-)
+from advanced_alchemy.filters import BeforeAfter, FilterTypes
 from litestar import Controller, get
 from litestar.datastructures import CacheControlHeader
 from litestar.di import NamedDependency, Provide
 from litestar.params import Parameter, QueryParameter, SkipValidation
-from sqlalchemy import or_
+from sqlalchemy import ColumnElement, and_, or_
 
 from app.db import models as m
-from app.db.enums import BatchShipmentStatus, KgOtkStatus, KgState, PakDeviceKind, VerificationSessionStatus
+from app.db.enums import KgOtkStatus, KgState
 from app.domain.production.permissions import KgUnitPermission
 from app.domain.production.schemas import KgOtkFilter, KgTimelineEvent, KgUnit, KgUnitCredentials
 from app.domain.production.services import KgUnitService
@@ -40,54 +33,58 @@ DevEui = Annotated[
 ]
 
 
-def _moment(name: str, description: str) -> QueryParameter:
-    return QueryParameter(name=name, description=description)
-
-
 def provide_kg_unit_date_filters(
     last_verification_after: Annotated[
         datetime | None,
-        _moment("lastVerificationAfter", "Only units whose last OTK completed after this moment."),
+        QueryParameter(
+            name="lastVerificationAfter",
+            description="Only units whose last OTK completed after this moment.",
+        ),
     ] = None,
     last_verification_before: Annotated[
         datetime | None,
-        _moment("lastVerificationBefore", "Only units whose last OTK completed before this moment."),
+        QueryParameter(
+            name="lastVerificationBefore",
+            description="Only units whose last OTK completed before this moment.",
+        ),
     ] = None,
     packed_after: Annotated[
         datetime | None,
-        _moment("packedAfter", "Only units packed after this moment."),
+        QueryParameter(name="packedAfter", description="Only units packed after this moment."),
     ] = None,
     packed_before: Annotated[
         datetime | None,
-        _moment("packedBefore", "Only units packed before this moment."),
+        QueryParameter(name="packedBefore", description="Only units packed before this moment."),
     ] = None,
     shipped_after: Annotated[
         datetime | None,
-        _moment("shippedAfter", "Only units whose shipment completed after this moment."),
+        QueryParameter(name="shippedAfter", description="Only units whose shipment completed after this moment."),
     ] = None,
     shipped_before: Annotated[
         datetime | None,
-        _moment("shippedBefore", "Only units whose shipment completed before this moment."),
+        QueryParameter(name="shippedBefore", description="Only units whose shipment completed before this moment."),
     ] = None,
-) -> list[FilterTypes]:
+) -> list[FilterTypes | ColumnElement[bool]]:
     """Filter KG units by the dates their list shows; a unit without the date never matches."""
-    filters: list[FilterTypes] = []
+    filters: list[FilterTypes | ColumnElement[bool]] = []
+
     if last_verification_after or last_verification_before:
         filters.append(BeforeAfter("last_verification_at", last_verification_before, last_verification_after))
+
     if packed_after or packed_before:
         filters.append(BeforeAfter("packed_at", packed_before, packed_after))
+
     if shipped_after or shipped_before:
-        shipped = [
-            m.BatchShipmentItem.dev_eui == m.KgUnit.dev_eui,
-            m.BatchShipmentItem.voided_at.is_(None),
-            m.BatchShipment.id == m.BatchShipmentItem.shipment_id,
-            m.BatchShipment.status == BatchShipmentStatus.COMPLETED,
-        ]
+        shipped: list[ColumnElement[bool]] = []
+
         if shipped_after:
             shipped.append(m.BatchShipment.completed_at > shipped_after)
+
         if shipped_before:
             shipped.append(m.BatchShipment.completed_at < shipped_before)
-        filters.append(ExistsFilter(shipped))
+
+        filters.append(m.KgUnit.shipment.has(and_(*shipped)))
+
     return filters
 
 
@@ -99,26 +96,21 @@ def provide_kg_unit_otk_filter(
             description="Only units with one of these last OTK results or, for `running`, on an OTK-line PAK now.",
         ),
     ] = None,
-) -> list[FilterTypes]:
+) -> list[ColumnElement[bool]]:
     """Filter KG units by OTK; the values add up, so `running` adds the units on a PAK to the results."""
     if not otk_in:
         return []
 
-    matches: list[StatementFilter] = []
+    matches: list[ColumnElement[bool]] = []
     statuses = [KgOtkStatus(value) for value in otk_in if value is not KgOtkFilter.RUNNING]
+
     if statuses:
-        matches.append(CollectionFilter("otk_status", statuses))
+        matches.append(m.KgUnit.otk_status.in_(statuses))
+
     if KgOtkFilter.RUNNING in otk_in:
-        matches.append(
-            ExistsFilter(
-                [
-                    m.VerificationSession.dev_eui == m.KgUnit.dev_eui,
-                    m.VerificationSession.status == VerificationSessionStatus.RUNNING,
-                    m.VerificationSession.pak_kind == PakDeviceKind.OTK_LINE,
-                ]
-            )
-        )
-    return [FilterGroup(logical_operator=or_, filters=matches)]
+        matches.append(m.KgUnit.running_otk.has())
+
+    return [or_(*matches)]
 
 
 class KgUnitController(Controller):
@@ -154,8 +146,8 @@ class KgUnitController(Controller):
         self,
         kg_units_service: NamedDependency[KgUnitService],
         filters: NamedDependency[SkipValidation[list[FilterTypes]]],
-        date_filters: NamedDependency[SkipValidation[list[FilterTypes]]],
-        otk_filter: NamedDependency[SkipValidation[list[FilterTypes]]],
+        date_filters: NamedDependency[SkipValidation[list[FilterTypes | ColumnElement[bool]]]],
+        otk_filter: NamedDependency[SkipValidation[list[ColumnElement[bool]]]],
     ) -> OffsetPagination[KgUnit]:
         results, total = await kg_units_service.get_many_and_count(*filters, *date_filters, *otk_filter)
 

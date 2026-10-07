@@ -42,6 +42,8 @@ shipped ones included since packing needs a passed OTK, and the unpacked units
 whose OTK failed as `otkFailedQty`; scrapped units count in neither.
 `shipment` is the completed shipment that shipped the unit (its `number` and
 `completedAt`), or `null` while the unit is not shipped; see [shipments](shipments.md).
+Date bounds are exclusive; a unit without the corresponding date does not
+match. Shipment date filters exclude open or voided shipments and removed units.
 `packedAt` and `packedBy` come from [packing](packing.md), and the batch
 counts its packed units as `packedQty`, shipped ones included.
 The batch's [shipments](shipments.md) move units to `shipped`, and the batch

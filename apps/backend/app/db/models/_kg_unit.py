@@ -112,7 +112,7 @@ class KgUnit(DefaultBase, AuditColumns, AuditTarget):
     """The verification running on an OTK-line PAK now; a unit runs at most one session."""
 
     if TYPE_CHECKING:
-        shipment: BatchShipment | None
+        shipment: Mapped[BatchShipment | None]
         """The completed shipment that shipped the unit; mapped in the shipments module."""
 
     __table_args__ = (

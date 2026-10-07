@@ -183,7 +183,7 @@ BatchShipment.quantity = column_property(  # type: ignore[assignment]
 
 # Assigned here because ``KgUnit`` cannot import the shipments. A shipped unit
 # is in exactly one completed shipment whose item is not voided.
-KgUnit.shipment = relationship(  # type: ignore[assignment]
+KgUnit.shipment = relationship(
     BatchShipment,
     secondary=BatchShipmentItem.__table__,
     primaryjoin=lambda: and_(

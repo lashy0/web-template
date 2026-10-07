@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from litestar.testing import AsyncTestClient
     from sqlalchemy.ext.asyncio import AsyncSession
 
+    from app.domain.production.services import BatchShipmentService
     from tests.integration.conftest import SignIn
     from tests.integration.production.conftest import (
         CreateBatch,
@@ -198,6 +199,7 @@ async def test_list_kg_units_otk_filter_adds_up_results_and_running(
     verify_unit: VerifyUnit,
 ) -> None:
     batch = await create_batch()
+    await verify_unit(batch.first_dev_eui, {"RF power": False})
     await verify_unit(batch.first_dev_eui, {"RF power": True}, finish=False)
     await verify_unit(batch.last_dev_eui, {"RF power": False})
 
@@ -207,6 +209,21 @@ async def test_list_kg_units_otk_filter_adds_up_results_and_running(
     )
 
     assert [item["devEui"] for item in response.json()["items"]] == [batch.first_dev_eui, batch.last_dev_eui]
+    assert response.json()["total"] == 2
+
+
+async def test_list_kg_units_otk_running_filter_excludes_finished_sessions(
+    client: AsyncTestClient[Litestar],
+    create_batch: CreateBatch,
+    verify_unit: VerifyUnit,
+) -> None:
+    batch = await create_batch()
+    await verify_unit(batch.first_dev_eui, {"RF power": True})
+
+    response = await client.get("/api/kg/units", params={"batchIdIn": str(batch.id), "otkIn": "running"})
+
+    assert response.status_code == 200
+    assert (response.json()["items"], response.json()["total"]) == ([], 0)
 
 
 async def test_get_kg_unit_shows_the_shipment_that_shipped_it(
@@ -239,20 +256,77 @@ async def test_get_kg_unit_in_an_open_shipment_shows_no_shipment(
     assert response.json()["shipment"] is None
 
 
+@pytest.mark.parametrize("bounds", [("shippedAfter",), ("shippedBefore",), ("shippedAfter", "shippedBefore")])
 async def test_list_kg_units_filters_by_shipment_date(
     client: AsyncTestClient[Litestar],
     create_batch: CreateBatch,
     pack_units: PackUnits,
     create_shipment: CreateShipment,
+    bounds: tuple[str, ...],
 ) -> None:
     batch = await create_batch()
     await pack_units(batch.first_dev_eui, batch.last_dev_eui)
     await create_shipment(batch, batch.first_dev_eui, completed=True)
+    await create_shipment(batch, batch.last_dev_eui)
+    now = datetime.now(UTC)
+    dates = {
+        "shippedAfter": (now - timedelta(hours=1)).isoformat(),
+        "shippedBefore": (now + timedelta(hours=1)).isoformat(),
+    }
+
+    response = await client.get(
+        "/api/kg/units",
+        params={"batchIdIn": str(batch.id), **{bound: dates[bound] for bound in bounds}},
+    )
+
+    assert response.status_code == 200
+    assert [item["devEui"] for item in response.json()["items"]] == [batch.first_dev_eui]
+    assert response.json()["total"] == 1
+
+
+@pytest.mark.parametrize("bound", ["shippedAfter", "shippedBefore"])
+async def test_list_kg_units_shipment_date_bounds_are_exclusive(
+    client: AsyncTestClient[Litestar],
+    create_batch: CreateBatch,
+    pack_units: PackUnits,
+    create_shipment: CreateShipment,
+    bound: str,
+) -> None:
+    batch = await create_batch()
+    await pack_units(batch.first_dev_eui)
+    shipment = await create_shipment(batch, batch.first_dev_eui, completed=True)
+    assert shipment.completed_at is not None
+
+    response = await client.get(
+        "/api/kg/units",
+        params={"batchIdIn": str(batch.id), bound: shipment.completed_at.isoformat()},
+    )
+
+    assert response.status_code == 200
+    assert (response.json()["items"], response.json()["total"]) == ([], 0)
+
+
+async def test_list_kg_units_shipment_date_filter_excludes_voided_shipments(
+    client: AsyncTestClient[Litestar],
+    session: AsyncSession,
+    create_batch: CreateBatch,
+    pack_units: PackUnits,
+    create_shipment: CreateShipment,
+    batch_shipment_service: BatchShipmentService,
+) -> None:
+    batch = await create_batch()
+    await pack_units(batch.first_dev_eui)
+    shipment = await create_shipment(batch, batch.first_dev_eui, completed=True)
+
+    async with unit_of_work(session):
+        await batch_shipment_service.void_shipment(batch.id, shipment.id, "Cancelled", voided_by_id=None)
+
     hour_ago = (datetime.now(UTC) - timedelta(hours=1)).isoformat()
 
     response = await client.get("/api/kg/units", params={"batchIdIn": str(batch.id), "shippedAfter": hour_ago})
 
-    assert [item["devEui"] for item in response.json()["items"]] == [batch.first_dev_eui]
+    assert response.status_code == 200
+    assert (response.json()["items"], response.json()["total"]) == ([], 0)
 
 
 async def test_get_kg_unit_credentials_derives_keys_from_dev_eui(
