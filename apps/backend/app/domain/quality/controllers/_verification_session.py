@@ -115,7 +115,7 @@ class VerificationSessionController(Controller):
             finished_within=timedelta(seconds=finished_within),
         )
 
-        return list(verification_sessions_service.to_schema(results, schema_type=VerificationSlotSession).items)
+        return [verification_sessions_service.to_schema(item, schema_type=VerificationSlotSession) for item in results]
 
     @get(
         operation_id="GetVerificationSession",

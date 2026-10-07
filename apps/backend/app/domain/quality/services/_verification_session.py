@@ -462,9 +462,7 @@ class VerificationSessionService(service.SQLAlchemyAsyncRepositoryService[m.Veri
     async def _lock_pak(self, pak_id: UUID) -> None:
         # Serializes the sessions opened on one PAK, so a slot never runs two.
         await self.repository.session.execute(
-            select(m.PakDevice.id)
-            .where(m.PakDevice.id == pak_id)
-            .with_for_update(key_share=True)
+            select(m.PakDevice.id).where(m.PakDevice.id == pak_id).with_for_update(key_share=True)
         )
 
     async def _lock_running_sessions(

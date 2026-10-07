@@ -37,7 +37,7 @@ async def expire_stale_verification_sessions(ctx: WorkerContext) -> int:
         ):
             expired = await sessions.expire_stale(idle_for=idle_for, limit=EXPIRE_BATCH_SIZE)
 
-            for event in verification_change_events(expired):
+            for event in verification_change_events(*expired):
                 announce_after_commit(uow, ctx["realtime"], event)
 
         total += len(expired)

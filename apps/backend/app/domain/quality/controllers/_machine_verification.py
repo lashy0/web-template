@@ -85,7 +85,7 @@ class MachineVerificationController(Controller):
             reopen_inactivity=verification_settings.reopen_inactivity,
         )
         # A session closed to make room may have run on another PAK.
-        changes.announce(*verification_change_events([db_obj, *closed]))
+        changes.announce(*verification_change_events(db_obj, *closed))
 
         return verification_sessions_service.to_schema(db_obj, schema_type=VerificationSession)
 
@@ -111,7 +111,7 @@ class MachineVerificationController(Controller):
             data,
             checks=pak_checks_service,
         )
-        changes.announce(*verification_change_events([session]))
+        changes.announce(*verification_change_events(session))
 
         if observation is not None:
             await self._record_check_change(changes, current_pak, observation)
@@ -140,7 +140,7 @@ class MachineVerificationController(Controller):
             step_no,
             data,
         )
-        changes.announce(*verification_change_events([session]))
+        changes.announce(*verification_change_events(session))
 
         return verification_sessions_service.to_schema(step, schema_type=VerificationStep)
 
@@ -160,7 +160,7 @@ class MachineVerificationController(Controller):
     ) -> VerificationSession:
         """Finish the session; on an OTK-line PAK a pass or fail sets the KG unit's OTK status."""
         db_obj = await verification_sessions_service.complete_session(current_pak, session_id, data)
-        changes.announce(*verification_change_events([db_obj]))
+        changes.announce(*verification_change_events(db_obj))
 
         # Only an OTK-line PAK sets the unit's OTK status, which the batch counts.
         if db_obj.pak_kind is PakDeviceKind.OTK_LINE:

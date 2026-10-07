@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
 from typing import TYPE_CHECKING, ClassVar
 from uuid import UUID
 
@@ -50,9 +49,7 @@ class VerificationChanged(RealtimeEvent):
     batch_id: UUID
 
 
-def verification_change_events(
-    sessions: Iterable[m.VerificationSession],
-) -> list[VerificationChanged]:
+def verification_change_events(*sessions: m.VerificationSession) -> list[VerificationChanged]:
     """Build one change event per PAK and batch for API requests and background tasks."""
     return [
         VerificationChanged(pak_id=pak_id, batch_id=batch_id)

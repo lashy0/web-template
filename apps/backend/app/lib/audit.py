@@ -110,10 +110,6 @@ def same_fields(*names: str) -> dict[str, str]:
 
 def change_details(before: Snapshot, after: Snapshot) -> dict[str, Any] | None:
     """Return the ``details`` of the fields that differ, or None when nothing changed."""
-    changes = {
-        field: {"from": value, "to": after[field]}
-        for field, value in before.items()
-        if value != after[field]
-    }
+    changes = {field: {"from": value, "to": after[field]} for field, value in before.items() if value != after[field]}
 
     return {"changes": changes} if changes else None
